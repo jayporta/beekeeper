@@ -99,7 +99,14 @@ src/renderer/src/features/<feature>/   UI, co-located by feature
 
 - Describe what the code does, and only as much as needed.
 - Keep comments timeless: no development history, no "used to" or "now". Doc comments describe the contract as it stands.
-- Exported functions, types, and components get a TSDoc comment stating their contract.
+
+### Doc comments
+
+Doc comments exist so editors show full hover tooltips and parameter hints. Use `/** ... */` TSDoc (Markdown is allowed) on:
+
+- **Exported functions:** a one-line summary, then `@param name - meaning` for each parameter, plus `@returns`, `@throws {ErrorType} When ...`, and `@remarks` or `@example` when they tell the reader something the signature doesn't.
+- **Exported types and interfaces:** a summary on the type and a one-line `/** ... */` on every member.
+- **React components:** a summary on the component with an `@example` of typical JSX, and a one-line `/** ... */` on every prop in its `Props` interface. Optional props with a default get `@defaultValue`.
 
 ## User-facing copy
 
