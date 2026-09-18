@@ -70,5 +70,19 @@ export default defineConfig(
       ]
     }
   },
+  {
+    files: ['scripts/**/*.mjs', '.claude/hooks/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        Buffer: 'readonly'
+      }
+    },
+    rules: {
+      // Plain JS has no type annotations to require; JSDoc carries the types.
+      '@typescript-eslint/explicit-function-return-type': 'off'
+    }
+  },
   eslintConfigPrettier
 )

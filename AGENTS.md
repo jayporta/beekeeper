@@ -14,10 +14,36 @@ Beekeeper is a local-only, read-only Electron app that reads Claude Code's sessi
 ## Workflow
 
 - Branch off `main` for every change. Never commit directly to `main`.
-- Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `ci:`), with an optional scope such as `feat(transcript):`.
+- Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `ci:`), with an optional scope such as `feat(transcript):`. Keep descriptions concise. Don't be wordy.
 - Work in small, human-reviewable chunks. Finish, review, and commit one chunk before starting the next.
 - Don't push until the maintainer has reviewed the change. Once pushed, open a pull request into `main`.
 - CI (lint, format check, typecheck, tests, build on macOS and Ubuntu) must pass before merge.
+
+### Pre-commit review
+
+Every commit, whether a human or an agent makes it, passes up to three independent reviews before it lands. Which ones run depends on what the diff touches. You can use the project's default reviewers or your own, as long as each required review actually runs and covers the same ground:
+
+| Review        | Default reviewer (model)   | Runs when the diff touches                                                                                                                                                                                                                                                                                                                                 |
+| ------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Code review   | `code-reviewer` (Opus)     | anything other than docs                                                                                                                                                                                                                                                                                                                                   |
+| Security      | `security-reviewer` (Opus) | non-test code in `src/main`, `src/preload`, `src/shared`, `src/core`, and renderer `.ts`/`.tsx`/`.html`; dependencies and `.npmrc`; build, packaging, TypeScript, Vitest, and lint config; `.gitattributes`; `.nvmrc`; CI; `resources/`; the review gate (`.githooks/`, `scripts/`); and `.claude/settings*.json`, `.claude/hooks/`, and `.claude/agents/` |
+| Accessibility | `a11y-reviewer` (Sonnet)   | renderer `.tsx`, `.css`, or `.html`                                                                                                                                                                                                                                                                                                                        |
+
+Docs-only diffs (Markdown outside `.claude/agents/`, anything in `.claude/skills/`, `LICENSE`) skip all three. Test-only diffs get a code review only. Run `npm run review:plan` for the exact answer on a staged diff. The gate's path rules (`scripts/review-gate/lib/pathClassification.mjs`) are the source of truth.
+
+Commit exactly what was reviewed: stage the change, keep no unstaged edits to tracked files, and commit the index with a plain `git commit`. Anything that commits other content (`-a`, `-i`, `-o`, pathspecs, a different `GIT_INDEX_FILE`) won't match the receipt.
+
+The loop:
+
+1. Stage the change, then run `npm run lint`, `npm run format:check`, `npm run typecheck`, and `npm test`. Fix failures before paying for any review.
+2. Run the required reviews in parallel, each by a fresh reviewer that didn't write the code, against the staged diff.
+3. Fix every finding, or, if a finding is wrong, say why in the commit body. Re-stage.
+4. Re-run the required reviews on the new diff. Repeat until every review reports clean on the same diff. After three rounds with findings left, stop and ask the maintainer.
+5. Record the receipt with `npm run review:record`, then commit.
+
+**Git hooks enforce this.** `npm install` points `core.hooksPath` at `.githooks/` (unless it's already set to something else, in which case it warns). From then on, git runs the gate for `git commit`, whatever command starts it, including in linked worktrees that have `.githooks/` checked out. Merge commits aren't gated, because every commit on the merged branches already passed the gate. While a merge is in progress (`MERGE_HEAD` exists), anything staged lands unreviewed, including conflict resolutions. Stage only the merge result, and review conflict resolutions yourself. The gate blocks until a receipt matching the exact index being committed exists (stored at `<git-dir>/beekeeper-review-receipt`) and the checks pass. Docs-only commits pass without a receipt, and any error inside the gate blocks the commit. The default reviewers live in `.claude/agents/`.
+
+Git doesn't run the hook for `cherry-pick`, `revert`, `rebase`, `am`, or `commit-tree`, and `--no-verify` or `npm install --ignore-scripts` skips them. Don't use those to land unreviewed changes. In Claude Code, a guard hook (`.claude/hooks/block-hook-bypass.mjs`) catches the common bypasses. It's a speed bump, not a wall. CI is the backstop.
 
 ## Commands
 
