@@ -7,6 +7,9 @@ const PRODUCTION_CSP =
  * access at all. With a dev server URL, script-src, style-src, and
  * connect-src are widened just enough for Vite's HMR client, the React
  * refresh preamble, and the HMR websocket, scoped to that origin only.
+ *
+ * @param devServerUrl - The Vite dev server origin in development, or `undefined` in production.
+ * @returns The policy string for the `Content-Security-Policy` header.
  */
 export function buildContentSecurityPolicy(devServerUrl: string | undefined): string {
   if (!devServerUrl) return PRODUCTION_CSP

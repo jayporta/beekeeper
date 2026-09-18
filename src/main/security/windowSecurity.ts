@@ -6,6 +6,9 @@ import { isDevServerUrl } from './requestAllowlist'
  * hatches: every popup is denied outright, navigation away from the app's
  * own page (or, in development, the Vite dev server) is blocked, and
  * `<webview>` tags can't be attached.
+ *
+ * @param webContents - The window contents to lock down.
+ * @param devServerUrl - The Vite dev server origin in development, or `undefined` in production.
  */
 export function hardenWebContents(
   webContents: WebContents,

@@ -1,13 +1,6 @@
 import { session as electronSession } from 'electron'
 import { buildContentSecurityPolicy } from './csp'
-import { isAllowedRequestUrl } from './requestAllowlist'
-
-export interface HardenSessionOptions {
-  /** Absolute path to the built renderer output directory. `file:` requests must resolve inside it. */
-  rendererRoot: string
-  /** The Vite dev server's origin in development, or undefined in production. */
-  devServerUrl: string | undefined
-}
+import { isAllowedRequestUrl, type RequestAllowlistOptions } from './requestAllowlist'
 
 /**
  * Wires the network kill switch, permission denial, and Content-Security-
@@ -16,8 +9,11 @@ export interface HardenSessionOptions {
  * bundled files or, in development, the Vite dev server, is canceled
  * before it leaves the process, and every permission prompt (camera,
  * microphone, geolocation, notifications, and the rest) is refused.
+ *
+ * @param options - Where the app's bundled files live and, in development, the dev server origin.
  */
-export function hardenDefaultSession({ rendererRoot, devServerUrl }: HardenSessionOptions): void {
+export function hardenDefaultSession(options: RequestAllowlistOptions): void {
+  const { devServerUrl } = options
   const defaultSession = electronSession.defaultSession
 
   defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
@@ -26,7 +22,7 @@ export function hardenDefaultSession({ rendererRoot, devServerUrl }: HardenSessi
   defaultSession.setPermissionCheckHandler(() => false)
 
   defaultSession.webRequest.onBeforeRequest((details, callback) => {
-    callback({ cancel: !isAllowedRequestUrl(details.url, { rendererRoot, devServerUrl }) })
+    callback({ cancel: !isAllowedRequestUrl(details.url, options) })
   })
 
   const contentSecurityPolicy = buildContentSecurityPolicy(devServerUrl)

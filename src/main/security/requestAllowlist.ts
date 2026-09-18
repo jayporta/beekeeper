@@ -19,6 +19,10 @@ const ORIGIN_FAMILY: Record<string, string> = {
  * server's URL (a subdomain suffix, a userinfo trick) does not match,
  * since both sides are parsed and compared by their actual origin. A
  * parse failure or a missing dev server both resolve to false.
+ *
+ * @param url - The URL being requested or navigated to.
+ * @param devServerUrl - The Vite dev server origin in development, or `undefined` in production.
+ * @returns Whether `url` belongs to the dev server's origin.
  */
 export function isDevServerUrl(url: string, devServerUrl: string | undefined): boolean {
   if (!devServerUrl) return false
@@ -76,6 +80,10 @@ export interface RequestAllowlistOptions {
  * server's own origin (its page load, assets, and HMR websocket) plus the
  * `devtools:` scheme, are allowed. Everything else, including any
  * external host, is denied. In production, `devtools:` is denied too.
+ *
+ * @param url - The URL of the outgoing request.
+ * @param options - Where the app's bundled files live and, in development, the dev server origin.
+ * @returns Whether the request may proceed.
  */
 export function isAllowedRequestUrl(url: string, options: RequestAllowlistOptions): boolean {
   const { rendererRoot, devServerUrl } = options
