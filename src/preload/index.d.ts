@@ -1,8 +1,2 @@
-import { ElectronAPI } from '@electron-toolkit/preload'
-
-declare global {
-  interface Window {
-    electron: ElectronAPI
-    api: unknown
-  }
-}
+/** No renderer API is exposed yet; this becomes the Window augmentation in chunk 3. */
+export {}

@@ -1,5 +1,5 @@
-appId: com.electron.app
-productName: beekeeper
+appId: com.jayporta.beekeeper
+productName: Beekeeper
 directories:
   buildResources: build
 files:
@@ -11,33 +11,22 @@ files:
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
 asarUnpack:
   - resources/**
-win:
-  executableName: beekeeper
-nsis:
-  artifactName: ${name}-${version}-setup.${ext}
-  shortcutName: ${productName}
-  uninstallDisplayName: ${productName}
-  createDesktopShortcut: always
 mac:
+  hardenedRuntime: true
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
-    - NSCameraUsageDescription: Application requests access to the device's camera.
-    - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
-    - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
-    - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
+    - NSDocumentsFolderUsageDescription: Beekeeper reads git history in your project folders to show what each agent changed. Nothing leaves your computer.
+    - NSDownloadsFolderUsageDescription: Beekeeper reads git history in your project folders to show what each agent changed. Nothing leaves your computer.
+    - NSDesktopFolderUsageDescription: Beekeeper reads git history in your project folders to show what each agent changed. Nothing leaves your computer.
   notarize: false
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
   target:
     - AppImage
-    - snap
     - deb
-  maintainer: electronjs.org
+  maintainer: Jay Porta
   category: Utility
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
-publish:
-  provider: generic
-  url: https://example.com/auto-updates

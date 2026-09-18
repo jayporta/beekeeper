@@ -4,12 +4,17 @@ import eslintConfigPrettier from '@electron-toolkit/eslint-config-prettier'
 import eslintPluginReact from 'eslint-plugin-react'
 import eslintPluginReactHooks from 'eslint-plugin-react-hooks'
 import eslintPluginReactRefresh from 'eslint-plugin-react-refresh'
+import eslintPluginJsxA11y from 'eslint-plugin-jsx-a11y'
+
+const NETWORK_MODULE_MESSAGE =
+  'Beekeeper makes no network calls. See the no-network promise in the README.'
 
 export default defineConfig(
   { ignores: ['**/node_modules', '**/dist', '**/out'] },
   tseslint.configs.recommended,
   eslintPluginReact.configs.flat.recommended,
   eslintPluginReact.configs.flat['jsx-runtime'],
+  eslintPluginJsxA11y.flatConfigs.strict,
   {
     settings: {
       react: {
@@ -26,6 +31,43 @@ export default defineConfig(
     rules: {
       ...eslintPluginReactHooks.configs.recommended.rules,
       ...eslintPluginReactRefresh.configs.vite.rules
+    }
+  },
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
+      'react/no-danger': 'error',
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            { name: 'http', message: NETWORK_MODULE_MESSAGE },
+            { name: 'node:http', message: NETWORK_MODULE_MESSAGE },
+            { name: 'https', message: NETWORK_MODULE_MESSAGE },
+            { name: 'node:https', message: NETWORK_MODULE_MESSAGE },
+            { name: 'net', message: NETWORK_MODULE_MESSAGE },
+            { name: 'node:net', message: NETWORK_MODULE_MESSAGE },
+            { name: 'tls', message: NETWORK_MODULE_MESSAGE },
+            { name: 'node:tls', message: NETWORK_MODULE_MESSAGE },
+            { name: 'dgram', message: NETWORK_MODULE_MESSAGE },
+            { name: 'node:dgram', message: NETWORK_MODULE_MESSAGE },
+            { name: 'http2', message: NETWORK_MODULE_MESSAGE },
+            { name: 'node:http2', message: NETWORK_MODULE_MESSAGE },
+            {
+              name: 'electron',
+              importNames: ['net'],
+              message: NETWORK_MODULE_MESSAGE
+            }
+          ]
+        }
+      ],
+      'no-restricted-globals': [
+        'error',
+        { name: 'fetch', message: NETWORK_MODULE_MESSAGE },
+        { name: 'XMLHttpRequest', message: NETWORK_MODULE_MESSAGE },
+        { name: 'WebSocket', message: NETWORK_MODULE_MESSAGE },
+        { name: 'EventSource', message: NETWORK_MODULE_MESSAGE }
+      ]
     }
   },
   eslintConfigPrettier
