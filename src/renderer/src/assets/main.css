@@ -1,0 +1,18 @@
+@import './base.css';
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  text-align: center;
+}
+
+main {
+  padding: 0 24px;
+}
+
+p {
+  color: var(--ev-c-text-2);
+  font-size: 16px;
+}

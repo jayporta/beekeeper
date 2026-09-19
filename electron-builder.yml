@@ -1,0 +1,32 @@
+appId: com.jayporta.beekeeper
+productName: Beekeeper
+directories:
+  buildResources: build
+files:
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+asarUnpack:
+  - resources/**
+mac:
+  hardenedRuntime: true
+  entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    - NSDocumentsFolderUsageDescription: Beekeeper reads git history in your project folders to show what each agent changed. Nothing leaves your computer.
+    - NSDownloadsFolderUsageDescription: Beekeeper reads git history in your project folders to show what each agent changed. Nothing leaves your computer.
+    - NSDesktopFolderUsageDescription: Beekeeper reads git history in your project folders to show what each agent changed. Nothing leaves your computer.
+  notarize: false
+dmg:
+  artifactName: ${name}-${version}.${ext}
+linux:
+  target:
+    - AppImage
+    - deb
+  maintainer: Jay Porta
+  category: Utility
+appImage:
+  artifactName: ${name}-${version}.${ext}
+npmRebuild: false
