@@ -5,6 +5,7 @@ import eslintPluginReact from 'eslint-plugin-react'
 import eslintPluginReactHooks from 'eslint-plugin-react-hooks'
 import eslintPluginReactRefresh from 'eslint-plugin-react-refresh'
 import eslintPluginJsxA11y from 'eslint-plugin-jsx-a11y'
+import eslintPluginUnicorn from 'eslint-plugin-unicorn'
 
 const NETWORK_MODULE_MESSAGE =
   'Beekeeper makes no network calls. See the no-network promise in the README.'
@@ -67,6 +68,30 @@ export default defineConfig(
         { name: 'XMLHttpRequest', message: NETWORK_MODULE_MESSAGE },
         { name: 'WebSocket', message: NETWORK_MODULE_MESSAGE },
         { name: 'EventSource', message: NETWORK_MODULE_MESSAGE }
+      ]
+    }
+  },
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    plugins: { unicorn: eslintPluginUnicorn },
+    rules: {
+      'unicorn/filename-case': ['error', { case: 'camelCase', checkDirectories: false }]
+    }
+  },
+  {
+    files: ['src/**/*.tsx'],
+    ignores: ['src/renderer/src/main.tsx'],
+    rules: {
+      'unicorn/filename-case': ['error', { case: 'pascalCase', checkDirectories: false }]
+    }
+  },
+  {
+    // Tests and test helpers are named after what they cover: a component or a hook.
+    files: ['src/**/__tests__/**/*.tsx', 'src/**/test*.tsx'],
+    rules: {
+      'unicorn/filename-case': [
+        'error',
+        { cases: { camelCase: true, pascalCase: true }, checkDirectories: false }
       ]
     }
   },

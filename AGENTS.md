@@ -73,7 +73,7 @@ src/renderer/src/features/<feature>/   UI, co-located by feature
 - **One component per file, one hook per file,** and never a hook or a Context in the same file as a component.
 - **Size threshold.** When a source file passes 250 lines, or a change would add more than 50 lines of new logic to an existing file, extract discrete pieces (sub-components, pure transformations) into co-located files first. Before adding a function to a large file, state why it belongs there rather than in a new file. Generated data files are exempt.
 - **DRY.** Keep a single source of truth. Don't duplicate anything that can be derived, read, or called.
-- **Naming.** Components, types, and classes are `PascalCase`. Modules, variables, and functions are `camelCase`. Component files are `ComponentName.tsx`, and hooks are `useThing.ts`.
+- **Naming.** Components, types, and classes are `PascalCase`. Modules, variables, and functions are `camelCase`. Component files are `ComponentName.tsx`, and hooks are `useThing.ts`. ESLint (`unicorn/filename-case`) enforces file names in `src/`.
 - **Imports.** In the renderer, use the `@renderer/*` alias for anything outside the current feature folder.
 
 ## TypeScript
