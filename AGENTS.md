@@ -16,6 +16,7 @@ Beekeeper is a local-only, read-only Electron app that reads Claude Code's sessi
 - Branch off `main` for every change. Never commit directly to `main`.
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `ci:`), with an optional scope such as `feat(transcript):`. Keep descriptions concise. Don't be wordy.
 - Work in small, human-reviewable chunks. Finish, review, and commit one chunk before starting the next.
+- Track all work on the [Beekeeper project board](https://github.com/users/jayporta/projects/4). Each task is an issue, and the [v1 roadmap](https://github.com/jayporta/beekeeper/issues/2) holds the plan and links every task as a sub-issue. Move a card when its state changes, file new work as an issue before starting it, and put `Closes #n` in PR bodies.
 - Don't push until the maintainer has reviewed the change. Once pushed, open a pull request into `main`.
 - CI (lint, format check, typecheck, tests, build on macOS and Ubuntu) must pass before merge.
 
