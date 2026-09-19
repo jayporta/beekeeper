@@ -72,4 +72,4 @@ Commits go through a pre-commit review gate. `npm install` sets this clone's `co
 
 ## License
 
-MIT. See [LICENSE](./LICENSE).
+Apache License 2.0. See [LICENSE](./LICENSE) and [NOTICE](./NOTICE). The license doesn't grant rights to the Beekeeper name or logo.
