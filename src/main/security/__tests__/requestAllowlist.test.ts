@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { isAllowedRequestUrl, isDevServerUrl } from '../requestAllowlist'
 
-const RENDERER_ROOT = '/Users/jay/app/out/renderer'
+const RENDERER_ROOT = '/apps/beekeeper/out/renderer'
 const DEV_SERVER_URL = 'http://localhost:5173'
 
 describe('isDevServerUrl', () => {
@@ -44,7 +44,7 @@ describe('isAllowedRequestUrl', () => {
   })
 
   it('denies a file in a sibling directory', () => {
-    const url = 'file:///Users/jay/app/out/main/index.js'
+    const url = 'file:///apps/beekeeper/out/main/index.js'
 
     expect(isAllowedRequestUrl(url, { rendererRoot: RENDERER_ROOT, devServerUrl: undefined })).toBe(
       false

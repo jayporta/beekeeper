@@ -80,13 +80,13 @@ describe('discoverProjects', () => {
 
   it('returns a folder name verbatim, including a leading dash', async () => {
     tree = await buildDiscoveryTree({
-      files: { '-Users-jay-app/session-placeholder': '' }
+      files: { '-apps-beekeeper/session-placeholder': '' }
     })
 
     const projects = await discoverProjects(tree.root)
 
     expect(projects).toEqual([
-      { dirName: '-Users-jay-app', path: join(tree.root, '-Users-jay-app') }
+      { dirName: '-apps-beekeeper', path: join(tree.root, '-apps-beekeeper') }
     ])
   })
 
