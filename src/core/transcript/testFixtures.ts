@@ -29,6 +29,7 @@ interface AssistantRecordOverrides {
   readonly outputTokens?: number
   readonly inputTokens?: number
   readonly parentUuid?: string | null
+  readonly timestamp?: string
   readonly extra?: Record<string, unknown>
 }
 
@@ -41,12 +42,13 @@ export function buildAssistantRecord(
     outputTokens = 10,
     inputTokens = 5,
     parentUuid = 'parent-uuid-1',
+    timestamp = '2026-01-01T00:00:00.000Z',
     extra = {}
   } = overrides
 
   return {
     type: 'assistant',
-    timestamp: '2026-01-01T00:00:00.000Z',
+    timestamp,
     parentUuid,
     message: {
       id: messageId,
