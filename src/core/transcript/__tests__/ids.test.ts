@@ -3,7 +3,7 @@ import { toAgentId, toProjectDirName, toSessionId } from '../ids'
 
 describe('toProjectDirName', () => {
   it('brands a non-empty folder name', () => {
-    expect(toProjectDirName('-Users-jay-app')).toBe('-Users-jay-app')
+    expect(toProjectDirName('-apps-beekeeper')).toBe('-apps-beekeeper')
   })
 
   it('throws on an empty folder name', () => {
