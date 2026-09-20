@@ -1,13 +1,14 @@
 import { z } from 'zod'
 
 /**
- * An `ai-title` transcript record: the generated title for a session. Never
- * carries a `timestamp`.
+ * An `ai-title` transcript record: the generated title for a session. The
+ * title is carried in `aiTitle`, not `title`. Never carries a `timestamp`,
+ * so "latest" means the last such record by line order.
  */
 export const aiTitleRecordSchema = z
   .object({
     type: z.literal('ai-title'),
-    title: z.string()
+    aiTitle: z.string()
   })
   .loose()
 

@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { parseRecord } from '../parseRecord'
+import { buildAiTitleRecord, toJsonlLine } from '../testFixtures'
 
 describe('parseRecord', () => {
   it('returns the parsed value for valid JSON', () => {
-    const result = parseRecord('{"type":"ai-title","title":"Fix the bug"}')
+    const record = buildAiTitleRecord('Fix the bug')
 
-    expect(result).toEqual({ ok: true, value: { type: 'ai-title', title: 'Fix the bug' } })
+    const result = parseRecord(toJsonlLine(record))
+
+    expect(result).toEqual({ ok: true, value: record })
   })
 
   it('returns a failed result for malformed JSON', () => {
