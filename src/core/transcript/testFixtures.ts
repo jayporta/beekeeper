@@ -135,8 +135,8 @@ export function buildCostStateRecord(
 }
 
 /** Builds a synthetic `ai-title` record. */
-export function buildAiTitleRecord(title = 'Fix the flaky test'): Record<string, unknown> {
-  return { type: 'ai-title', title }
+export function buildAiTitleRecord(aiTitle = 'Fix the flaky test'): Record<string, unknown> {
+  return { type: 'ai-title', aiTitle }
 }
 
 /** Builds a synthetic subagent `.meta.json` object with only the required field. */
