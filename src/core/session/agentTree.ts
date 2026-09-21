@@ -6,6 +6,7 @@ import {
   subagentIdentity,
   type AgentIdentity
 } from './agentIdentity'
+import { findCycleMembers } from './findCycleMembers'
 import type { SubagentMetaStatus } from './subagentMetaStatus'
 
 /** One subagent's id and its resolved meta status, as input to {@link buildAgentTree}. */
@@ -127,51 +128,6 @@ function buildRawParentMap(
   }
 
   return rawParentOf
-}
-
-/**
- * Finds every subagent id that sits on a cycle of raw `parentAgentId`
- * links, in one pass over `rawParentOf` (each node is visited once, since
- * every walk stops the moment it reaches an already-visited node).
- *
- * Since each node has at most one outgoing link, an iterative walk from an
- * unvisited node either dead-ends, reaches a node already resolved by an
- * earlier walk, or reaches back into its own walk. Only the last case is a
- * cycle, and only the suffix of the walk from the repeated node onward is
- * on it: a node earlier in the same walk merely leads into that cycle.
- *
- * @param rawParentOf - Each subagent's raw parent, as {@link buildRawParentMap} built it.
- * @returns The ids that are themselves part of a cycle.
- */
-function findCycleMembers(rawParentOf: ReadonlyMap<string, AgentId>): ReadonlySet<string> {
-  const resolved = new Set<string>()
-  const onCycle = new Set<string>()
-
-  for (const start of rawParentOf.keys()) {
-    if (resolved.has(start)) continue
-
-    // Tracks both the walk's order (for slicing out the cycle suffix) and,
-    // via its keys, O(1) membership so each step of the walk below stays
-    // O(1) regardless of how long the walk gets.
-    const pathIndex = new Map<string, number>()
-    const path: string[] = []
-    let current: string | undefined = start
-
-    while (current !== undefined && !resolved.has(current) && !pathIndex.has(current)) {
-      pathIndex.set(current, path.length)
-      path.push(current)
-      current = rawParentOf.get(current)
-    }
-
-    const cycleStart = current === undefined ? undefined : pathIndex.get(current)
-    if (cycleStart !== undefined) {
-      for (const node of path.slice(cycleStart)) onCycle.add(node)
-    }
-
-    for (const node of path) resolved.add(node)
-  }
-
-  return onCycle
 }
 
 /**
