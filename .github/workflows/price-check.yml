@@ -1,0 +1,88 @@
+# Monthly reminder to recheck src/core/pricing/prices.json against the
+# pricing page. Opens a "Check model prices" issue with the current asOf
+# date, its age, and the priced models, unless one is already open.
+#
+# GitHub disables scheduled workflows after 60 days with no repo activity.
+# If this stops firing, re-enable it from the Actions tab.
+name: Price check
+
+on:
+  schedule:
+    - cron: '17 15 1 * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: price-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read # read prices.json, even if the repo is private
+      issues: write # create/list the reminder issue and its label
+    steps:
+      - name: Check prices.json age and open a reminder issue
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          path='src/core/pricing/prices.json'
+          err_file="$(mktemp)"
+
+          if ! raw="$(gh api -H 'Accept: application/vnd.github.raw' "repos/$REPO/contents/$path" 2>"$err_file")"; then
+            if grep -q 'HTTP 404' "$err_file"; then
+              echo "::warning::$path isn't on the default branch yet (404). Skipping until it's added."
+              exit 0
+            fi
+            cat "$err_file" >&2
+            exit 1
+          fi
+
+          if ! echo "$raw" | jq -e '
+              (.asOf | type == "string" and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}$")) and
+              (.source | type == "string" and startswith("https://")) and
+              (.models | type == "object") and
+              (.models | length > 0)
+            ' >/dev/null; then
+            echo "::error::$path failed validation: asOf must be YYYY-MM-DD, source must start with https://, and models must be a non-empty object."
+            exit 1
+          fi
+
+          as_of="$(echo "$raw" | jq -r '.asOf')"
+          if ! as_of_epoch="$(date -u -d "$as_of" +%s 2>/dev/null)"; then
+            echo "::error::$path has an asOf that isn't a real date: $as_of"
+            exit 1
+          fi
+          now_epoch="$(date -u +%s)"
+          age_days=$(( (now_epoch - as_of_epoch) / 86400 ))
+
+          gh label create price-check --repo "$REPO" --force --color fbca04 \
+            --description 'Recurring reminder to recheck model prices against the pricing page'
+
+          open_count="$(gh issue list --repo "$REPO" --state open --label price-check --json number --jq length)"
+          if [ "$open_count" -gt 0 ]; then
+            echo "::notice::An open price-check issue already exists. Skipping."
+            exit 0
+          fi
+
+          body_file="$(mktemp)"
+          jq -r --argjson age "$age_days" '
+              def modelList: [.models | keys[] | "- `\(.)`"] | join("\n");
+              "`asOf` is \(.asOf), which is \($age) days old.\n\n" +
+              "Source: \(.source)\n\n" +
+              "### Models\n\n" + modelList + "\n\n" +
+              "### What to do\n\n" +
+              "1. Open the source link above and check the input, output, cache read, 5-minute cache write, and 1-hour cache write rate for each model listed.\n" +
+              "2. Update `src/core/pricing/prices.json` with anything that changed, including `asOf`.\n" +
+              "3. Close this issue from the PR that updates the prices."
+            ' <<<"$raw" >"$body_file"
+
+          gh issue create --repo "$REPO" --title 'Check model prices' \
+            --label price-check --body-file "$body_file"
