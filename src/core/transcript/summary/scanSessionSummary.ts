@@ -1,6 +1,5 @@
-import { isRecordObject } from '../isRecordObject'
-import { parseRecord } from '../parseRecord'
-import { readJsonlLines, type ReadJsonlLinesOptions } from '../readJsonlLines'
+import type { ReadJsonlLinesOptions } from '../readJsonlLines'
+import { readRecords } from '../readRecords'
 import { aiTitleRecordSchema, costStateRecordSchema } from '../schemas'
 import { recordTimestampMs } from './recordTimestampMs'
 import type { ActivitySpan, RecordedCost, SessionSummary } from './sessionSummary'
@@ -45,19 +44,13 @@ export async function scanSessionSummary(
   let latestMs: number | null = null
   let skippedLines = 0
 
-  for await (const line of readJsonlLines(filePath, options)) {
-    if (!line.ok) {
+  for await (const result of readRecords(filePath, options)) {
+    if (!result.ok) {
       skippedLines += 1
       continue
     }
 
-    const parsed = parseRecord(line.value)
-    if (!parsed.ok || !isRecordObject(parsed.value)) {
-      skippedLines += 1
-      continue
-    }
-
-    const record = parsed.value
+    const record = result.value
     const timestampMs = recordTimestampMs(record)
     if (timestampMs !== null) {
       if (earliestMs === null || timestampMs < earliestMs) earliestMs = timestampMs
