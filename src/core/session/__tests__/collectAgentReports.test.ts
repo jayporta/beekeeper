@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { SkippedLineError } from '../../transcript/readRecords'
 import { err, ok, type Result } from '../../transcript/result'
+import {
+  buildAssistantToolUseRecord,
+  buildEditToolUseResult,
+  buildUserToolResultRecord
+} from '../../transcript/testFileTouchFixtures'
 import { buildAssistantRecord } from '../../transcript/testFixtures'
 import { leadIdentity } from '../agentIdentity'
 import { collectAgentReports } from '../collectAgentReports'
@@ -61,5 +66,31 @@ describe('collectAgentReports', () => {
     await expect(collectAgentReports(failingAfterFirstRecord(), leadIdentity)).rejects.toThrow(
       'simulated mid-read failure'
     )
+  })
+
+  it('collects a file touch from the same pass, alongside message reports', async () => {
+    const { fileTouches } = await collectAgentReports(
+      recordsOf(
+        ok(buildAssistantToolUseRecord({ toolUseId: 'toolu_1', toolName: 'Edit' })),
+        ok(
+          buildUserToolResultRecord({
+            toolUseId: 'toolu_1',
+            toolUseResult: buildEditToolUseResult('/a.ts')
+          })
+        )
+      ),
+      leadIdentity
+    )
+
+    expect(fileTouches).toEqual([{ filePath: '/a.ts', operation: 'edit', toolUseId: 'toolu_1' }])
+  })
+
+  it('reports no file touches when the transcript has none', async () => {
+    const { fileTouches } = await collectAgentReports(
+      recordsOf(ok(buildAssistantRecord({ messageId: 'msg_1' }))),
+      leadIdentity
+    )
+
+    expect(fileTouches).toEqual([])
   })
 })
