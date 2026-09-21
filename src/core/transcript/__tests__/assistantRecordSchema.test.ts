@@ -53,4 +53,28 @@ describe('assistantRecordSchema', () => {
 
     expect(assistantRecordSchema.safeParse(record).success).toBe(false)
   })
+
+  it('rejects an oversized message.id', () => {
+    const record = buildAssistantRecord({ messageId: 'x'.repeat(257) })
+
+    expect(assistantRecordSchema.safeParse(record).success).toBe(false)
+  })
+
+  it('rejects an oversized message.model', () => {
+    const record = buildAssistantRecord({ model: 'x'.repeat(257) })
+
+    expect(assistantRecordSchema.safeParse(record).success).toBe(false)
+  })
+
+  it('accepts a message.id of exactly the cap', () => {
+    const record = buildAssistantRecord({ messageId: 'x'.repeat(256) })
+
+    expect(assistantRecordSchema.safeParse(record).success).toBe(true)
+  })
+
+  it('accepts a message.model of exactly the cap', () => {
+    const record = buildAssistantRecord({ model: 'x'.repeat(256) })
+
+    expect(assistantRecordSchema.safeParse(record).success).toBe(true)
+  })
 })

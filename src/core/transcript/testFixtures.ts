@@ -30,6 +30,9 @@ interface AssistantRecordOverrides {
   readonly inputTokens?: number
   readonly parentUuid?: string | null
   readonly timestamp?: string
+  readonly model?: string
+  /** Merged onto the built `message.usage` object, e.g. to set `speed`, `iterations`, or cache fields. */
+  readonly usageExtra?: Record<string, unknown>
   readonly extra?: Record<string, unknown>
 }
 
@@ -43,6 +46,8 @@ export function buildAssistantRecord(
     inputTokens = 5,
     parentUuid = 'parent-uuid-1',
     timestamp = '2026-01-01T00:00:00.000Z',
+    model = 'claude-opus-5',
+    usageExtra = {},
     extra = {}
   } = overrides
 
@@ -52,8 +57,8 @@ export function buildAssistantRecord(
     parentUuid,
     message: {
       id: messageId,
-      model: 'claude-opus-5',
-      usage: { input_tokens: inputTokens, output_tokens: outputTokens }
+      model,
+      usage: { input_tokens: inputTokens, output_tokens: outputTokens, ...usageExtra }
     },
     ...extra
   }

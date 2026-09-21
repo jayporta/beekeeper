@@ -5,4 +5,4 @@ export { forkContextRefRecordSchema, type ForkContextRefRecord } from './forkCon
 export { modelUsageSchema, type ModelUsage } from './modelUsage'
 export { subagentMetaSchema, type SubagentMeta } from './subagentMeta'
 export { timestampSchema } from './timestamp'
-export { usageSchema, type Usage } from './usage'
+export { usageSchema, type Usage, type UsageEntry } from './usage'
