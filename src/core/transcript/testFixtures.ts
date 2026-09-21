@@ -151,5 +151,24 @@ export function buildMinimalSubagentMeta(agentType = 'general-purpose'): Record<
   return { agentType }
 }
 
+interface SubagentMetaOverrides {
+  readonly agentType?: string
+  readonly parentAgentId?: string
+  readonly teamName?: string
+  readonly extra?: Record<string, unknown>
+}
+
+/** Builds a synthetic subagent `.meta.json` object with overridable fields. */
+export function buildSubagentMeta(overrides: SubagentMetaOverrides = {}): Record<string, unknown> {
+  const { agentType = 'general-purpose', parentAgentId, teamName, extra = {} } = overrides
+
+  return {
+    agentType,
+    ...(parentAgentId !== undefined && { parentAgentId }),
+    ...(teamName !== undefined && { teamName }),
+    ...extra
+  }
+}
+
 /** A short line of text with multi-byte UTF-8 characters, for chunk-boundary decoding tests. */
 export const MULTIBYTE_TEXT = 'héllo 🐝 wörld'
