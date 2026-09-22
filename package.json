@@ -4,7 +4,7 @@
   "private": true,
   "description": "See what your Claude Code agents did, what they changed, and what they cost. Local-only.",
   "main": "./out/main/index.js",
-  "author": "Jay Porta",
+  "author": "Jason Matthew Porta",
   "license": "Apache-2.0",
   "homepage": "https://github.com/jayporta/beekeeper",
   "repository": {
