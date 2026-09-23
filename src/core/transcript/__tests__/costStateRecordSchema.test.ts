@@ -36,6 +36,32 @@ describe('costStateRecordSchema', () => {
     expect(costStateRecordSchema.safeParse(record).success).toBe(false)
   })
 
+  it.each([
+    'inputTokens',
+    'outputTokens',
+    'cacheReadInputTokens',
+    'cacheCreationInputTokens',
+    'costUSD'
+  ])('rejects a modelUsage entry with a negative %s', (field) => {
+    const record = buildCostStateRecord({ modelUsage: { 'claude-opus-5': { [field]: -1 } } })
+
+    expect(costStateRecordSchema.safeParse(record).success).toBe(false)
+  })
+
+  it('rejects a negative totalCostUSD', () => {
+    expect(
+      costStateRecordSchema.safeParse(buildCostStateRecord({ totalCostUSD: -1 })).success
+    ).toBe(false)
+  })
+
+  it('accepts a negative thinkingTokens or webSearchRequests, since neither is read', () => {
+    const record = buildCostStateRecord({
+      modelUsage: { 'claude-opus-5': { thinkingTokens: -1, webSearchRequests: -1 } }
+    })
+
+    expect(costStateRecordSchema.safeParse(record).success).toBe(true)
+  })
+
   it('round-trips a numeric totalCostUSD but rejects a non-number one', () => {
     const validRecord = buildCostStateRecord({ totalCostUSD: 4.56 })
     const validResult = costStateRecordSchema.safeParse(validRecord)

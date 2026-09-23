@@ -1,6 +1,7 @@
+import { createLastCostState } from '../lastCostState'
 import type { ReadJsonlLinesOptions } from '../readJsonlLines'
 import { readRecords } from '../readRecords'
-import { aiTitleRecordSchema, costStateRecordSchema } from '../schemas'
+import { aiTitleRecordSchema } from '../schemas'
 import { recordTimestampMs } from './recordTimestampMs'
 import type { ActivitySpan, RecordedCost, SessionSummary } from './sessionSummary'
 import { truncateTitle } from './truncateTitle'
@@ -39,7 +40,7 @@ export async function scanSessionSummary(
   options: ReadJsonlLinesOptions = {}
 ): Promise<SessionSummary> {
   let title: string | null = null
-  let cost: RecordedCost | null = null
+  const lastCostState = createLastCostState()
   let earliestMs: number | null = null
   let latestMs: number | null = null
   let skippedLines = 0
@@ -57,14 +58,15 @@ export async function scanSessionSummary(
       if (latestMs === null || timestampMs > latestMs) latestMs = timestampMs
     }
 
+    lastCostState.observe(record)
     if (record.type === 'ai-title') {
       const aiTitle = aiTitleRecordSchema.safeParse(record)
       if (aiTitle.success) title = truncateTitle(aiTitle.data.aiTitle)
-    } else if (record.type === 'cost-state') {
-      const parsedCost = costStateRecordSchema.safeParse(record)
-      if (parsedCost.success) cost = { totalUSD: parsedCost.data.totalCostUSD ?? null }
     }
   }
+
+  const costState = lastCostState.latest()
+  const cost: RecordedCost | null = costState ? { totalUSD: costState.totalCostUSD ?? null } : null
 
   const activity: ActivitySpan | null =
     earliestMs === null || latestMs === null ? null : { earliestMs, latestMs }
