@@ -59,7 +59,8 @@ export interface ReconciledTotals {
   readonly transcriptUSD: number | null
   /**
    * Whether the transcript figures are a lower bound: some group had no
-   * known price, or some subagent's transcript was unreadable.
+   * known price, some agent's transcript skipped lines, or some subagent's
+   * transcript was unreadable.
    */
   readonly transcriptPartial: boolean
   /** The `cost-state`'s `totalCostUSD`, or `null` when there is no cost-state or it has no total. */
@@ -79,7 +80,7 @@ export interface UsageReconciliation {
 
 /** Input for {@link reconcileUsage}. */
 export interface ReconcileUsageInput {
-  /** Usage of the lead and every readable subagent. */
+  /** Usage of the lead and every readable subagent, including each one's skipped-line count. */
   readonly agents: readonly AgentUsage[]
   /** How many subagent transcripts were unreadable and so are missing from `agents`. */
   readonly unreadableAgents: number
@@ -95,8 +96,9 @@ export interface ReconcileUsageInput {
  * `claude-opus-5` share a row, and the transcript side also sums across
  * billing speeds and agents. A model present on only one side still gets a
  * row, with the other side `null`. Totals are `partial` when a group is
- * unpriced or a subagent transcript was unreadable. `thinkingTokens` and
- * `webSearchRequests` are not token classes and are ignored.
+ * unpriced, an agent's transcript skipped lines, or a subagent transcript
+ * was unreadable. `thinkingTokens` and `webSearchRequests` are not token
+ * classes and are ignored.
  *
  * @param input - The agents' usage and the lead's cost-state.
  * @returns The per-model rows and session totals.
@@ -114,7 +116,8 @@ export function reconcileUsage(input: ReconcileUsageInput): UsageReconciliation 
     }))
 
   let transcriptUSD: number | null = null
-  let transcriptPartial = input.unreadableAgents > 0
+  let transcriptPartial =
+    input.unreadableAgents > 0 || input.agents.some((agent) => agent.skippedLines > 0)
   for (const usage of transcript.values()) {
     if (usage.usd !== null) transcriptUSD = (transcriptUSD ?? 0) + usage.usd
     transcriptPartial ||= usage.partial

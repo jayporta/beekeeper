@@ -1,34 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { emptyTokenCounts } from '../../pricing/tokenCounts'
-import type { PriceTokensResult } from '../../pricing/priceTokens'
-import type { CostStateRecord } from '../../transcript/schemas'
-import type { AgentUsage } from '../agentUsage'
 import { reconcileUsage } from '../reconcileUsage'
-import type { TokenGroup } from '../tokenGroup'
-
-function group(
-  model: string,
-  overrides: Partial<{
-    speed: string
-    price: PriceTokensResult
-    tokens: Partial<typeof emptyTokenCounts>
-  }> = {}
-): TokenGroup {
-  return {
-    model,
-    speed: overrides.speed ?? 'standard',
-    tokens: { ...emptyTokenCounts, ...overrides.tokens },
-    price: overrides.price ?? { kind: 'priced', usd: 1 }
-  }
-}
-
-function agent(...tokenGroups: TokenGroup[]): AgentUsage {
-  return { tokenGroups, messageCount: tokenGroups.length, skippedLines: 0 }
-}
-
-function costState(state: Partial<CostStateRecord>): CostStateRecord {
-  return { type: 'cost-state', ...state }
-}
+import { agent, costState, group } from '../testReconcileFixtures'
 
 describe('reconcileUsage', () => {
   it('sums agents, speeds, and raw ids under one normalized model', () => {
@@ -215,6 +187,16 @@ describe('reconcileUsage', () => {
     })
 
     expect(result.totals).toMatchObject({ transcriptUSD: null, transcriptPartial: true })
+  })
+
+  it('flags totals partial when a readable agent skipped lines', () => {
+    const result = reconcileUsage({
+      unreadableAgents: 0,
+      agents: [agent(group('claude-opus-5')), { ...agent(), skippedLines: 1 }],
+      costState: null
+    })
+
+    expect(result.totals).toMatchObject({ transcriptUSD: 1, transcriptPartial: true })
   })
 
   it('reports a recorded cost of null when no entry carried one', () => {
