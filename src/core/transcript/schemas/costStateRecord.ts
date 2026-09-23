@@ -16,7 +16,7 @@ export const costStateRecordSchema = z
      * keys.
      */
     modelUsage: z.record(z.string(), modelUsageSchema).optional(),
-    totalCostUSD: z.number().optional()
+    totalCostUSD: z.number().nonnegative().optional()
   })
   .loose()
 

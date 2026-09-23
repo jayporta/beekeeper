@@ -1,4 +1,5 @@
 import type { SubagentEntry } from '../transcript/discoverSubagents'
+import { createLastCostState } from '../transcript/lastCostState'
 import type { AgentId } from '../transcript/ids'
 import type { ReadJsonlLinesOptions } from '../transcript/readJsonlLines'
 import { readRecords } from '../transcript/readRecords'
@@ -16,8 +17,10 @@ import { collectAgentReports, type AgentReports } from './collectAgentReports'
 import type { FileTouch } from './fileTouchCollector'
 import { createFilesLedger, type FileTouchEntry, type FilesLedger } from './filesLedger'
 import { groupByOwner } from './groupByOwner'
+import { reconcileUsage, type UsageReconciliation } from './reconcileUsage'
 import { readSubagentTranscript } from './readSubagentTranscript'
 import { resolveSubagentMeta } from './resolveSubagentMeta'
+import { tapRecords } from './tapRecords'
 import { groupTokensByModelAndSpeed } from './tokenGroup'
 import { createUsageLedger, type LedgerEntry, type UsageLedger } from './usageLedger'
 
@@ -49,6 +52,11 @@ export interface SessionScan {
    * keep the rest of the session from reporting.
    */
   readonly subagents: ReadonlyMap<AgentId, Result<AgentReport, UnreadableError>>
+  /**
+   * The transcripts' usage beside the lead's recorded `cost-state`. Covers
+   * the lead and every readable subagent.
+   */
+  readonly reconciliation: UsageReconciliation
 }
 
 /**
@@ -69,8 +77,9 @@ export interface SessionScan {
  * rather than silently discarded.
  *
  * @param options - The lead transcript's path, its subagents, and read tuning.
- * @returns The session's agent tree, the lead's report, and each
- * subagent's report isolated as a `Result`.
+ * @returns The session's agent tree, the lead's report, each subagent's
+ * report isolated as a `Result`, and the usage reconciliation. Only the
+ * lead is read for a `cost-state`, in the same pass as its usage.
  * @throws {Error} When the lead transcript cannot be read.
  */
 export async function scanSession(options: ScanSessionOptions): Promise<SessionScan> {
@@ -78,7 +87,11 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
   const usageLedger = createUsageLedger()
   const filesLedger = createFilesLedger()
 
-  const leadReports = await collectAgentReports(readRecords(leadPath, readOptions), leadIdentity)
+  const lastCostState = createLastCostState()
+  const leadReports = await collectAgentReports(
+    tapRecords(readRecords(leadPath, readOptions), lastCostState.observe),
+    leadIdentity
+  )
   applyAgentReports({ usageLedger, filesLedger, identity: leadIdentity, agentReports: leadReports })
 
   const subagentReadResults = new Map<AgentId, Result<AgentReports, UnreadableError>>()
@@ -115,15 +128,27 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
     subagentReports.set(agentId, ok(report))
   }
 
+  const lead = buildAgentReport({
+    identity: leadIdentity,
+    usageByOwner,
+    touchesByOwner,
+    skippedLines: leadReports.skippedLines
+  })
+
+  const readableAgents = [
+    lead,
+    ...[...subagentReports.values()].flatMap((r) => (r.ok ? [r.value] : []))
+  ]
+
   return {
     tree: buildAgentTree(treeInputs),
-    lead: buildAgentReport({
-      identity: leadIdentity,
-      usageByOwner,
-      touchesByOwner,
-      skippedLines: leadReports.skippedLines
-    }),
-    subagents: subagentReports
+    lead,
+    subagents: subagentReports,
+    reconciliation: reconcileUsage({
+      agents: readableAgents.map((agent) => agent.usage),
+      unreadableAgents: subagentReports.size + 1 - readableAgents.length,
+      costState: lastCostState.latest()
+    })
   }
 }
 
