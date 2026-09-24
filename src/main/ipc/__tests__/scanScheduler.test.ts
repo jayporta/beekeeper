@@ -1,21 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createScanScheduler } from '../scanScheduler'
 
-interface Deferred {
-  readonly promise: Promise<string>
-  readonly resolve: (value: string) => void
-  readonly reject: (error: Error) => void
-}
-
-function defer(): Deferred {
-  let resolve!: (value: string) => void
-  let reject!: (error: Error) => void
-  const promise = new Promise<string>((res, rej) => {
-    resolve = res
-    reject = rej
-  })
-  return { promise, resolve, reject }
-}
+const defer = (): PromiseWithResolvers<string> => Promise.withResolvers<string>()
 
 const tick = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0))
 
