@@ -13,14 +13,15 @@ const MAX_CWD_CHARS = 4096
 const MAX_BRANCH_CHARS = 255
 
 /**
- * The most timeline entries, or distinct named-branch cwds, a transcript may
- * hold before it stops contributing.
+ * The most timeline entries a transcript may hold before it stops
+ * contributing. Each new named-branch cwd adds a timeline entry, so this
+ * bounds the distinct named-branch cwds too.
  */
 export const MAX_TIMELINE_ENTRIES = 1024
 
 /** Options for {@link createSpawnObserver}. */
 export interface SpawnObserverOptions {
-  /** The cap on timeline entries and cwds. Defaults to {@link MAX_TIMELINE_ENTRIES}. */
+  /** The cap on timeline entries, which also bounds distinct cwds. Defaults to {@link MAX_TIMELINE_ENTRIES}. */
   readonly maxTimelineEntries?: number
 }
 
@@ -33,8 +34,11 @@ export interface BranchSighting {
   readonly branch: string
   /** The absolute working directory of the record that started this run. */
   readonly cwd: string
-  /** Epoch milliseconds of the first record of this run. */
-  readonly timestamp: number
+  /**
+   * Epoch milliseconds of the first record of this run with a parseable
+   * timestamp, or `undefined` when no record of the run so far had one.
+   */
+  readonly timestamp: number | undefined
 }
 
 /** What one transcript's records showed about spawns and branches. */
@@ -44,10 +48,10 @@ export interface TranscriptSpawns {
   /**
    * Branch and cwd sightings in file order. An entry is appended only when
    * the branch or cwd differs from the previous entry, and carries the
-   * timestamp of the first record of its run. Timestamps aren't monotonic in
-   * file order, so consumers scan rather than sort. A transcript that would
-   * exceed the entry or cwd cap has its timeline emptied and stops recording,
-   * so it contributes no inferred sightings.
+   * first parseable timestamp of its run, or `undefined` for a run with none.
+   * Timestamps aren't monotonic in file order, so consumers scan rather than
+   * sort. A transcript that would exceed the entry cap has its timeline
+   * emptied and stops recording, so it contributes no inferred sightings.
    */
   readonly timeline: readonly BranchSighting[]
   /** Epoch milliseconds of the first record with a valid timestamp, or `undefined`. */
@@ -83,15 +87,16 @@ function validBranch(value: unknown): string | undefined {
  * 4096 characters, or a `gitBranch` that isn't a non-empty string of at
  * most 255, counts as absent; a spawn with no valid `cwd` is not recorded.
  *
- * Records with a valid `cwd`, a valid branch (`HEAD` included) and a
- * parseable timestamp feed the timeline; the first record with any parseable
+ * Records with a valid `cwd` and a valid branch (`HEAD` included) feed the
+ * timeline, each run keeping the first parseable timestamp among its records
+ * (`undefined` when none has one). The first record with any parseable
  * timestamp sets the start.
  *
  * The timeline is what inference reads. Spawn bases come from the per-cwd
  * branch map instead, which any record with a named branch updates. Both are
- * capped: once the timeline passes the cap, or a new `cwd` would push the map
- * past it, both are emptied and stop recording, so a later `HEAD` spawn gets
- * no base.
+ * capped: once the timeline passes the cap, both are emptied and stop
+ * recording, so a later `HEAD` spawn gets no base. The map stays bounded
+ * because each new named `cwd` adds a timeline entry.
  *
  * @param options - Optional timeline cap.
  * @returns A reducer ready to `observe` one transcript's records in order.
@@ -116,8 +121,7 @@ export function createSpawnObserver(options: SpawnObserverOptions = {}): SpawnOb
       const namedBranch = branch !== undefined && branch !== DETACHED_BRANCH ? branch : undefined
 
       if (!overflowed && cwd !== undefined && namedBranch !== undefined) {
-        if (!namedByCwd.has(cwd) && namedByCwd.size >= maxTimelineEntries) overflow()
-        else namedByCwd.set(cwd, namedBranch)
+        namedByCwd.set(cwd, namedBranch)
       }
 
       const previous = timeline[timeline.length - 1]
@@ -126,14 +130,20 @@ export function createSpawnObserver(options: SpawnObserverOptions = {}): SpawnOb
         cwd !== undefined &&
         branch !== undefined &&
         (previous === undefined || previous.branch !== branch || previous.cwd !== cwd)
-      if (startedAt === undefined || changed) {
+      const undated = previous !== undefined && previous.timestamp === undefined
+      if (startedAt === undefined || changed || undated) {
         const timestamp = recordTimestampMs(record) ?? undefined
-        if (timestamp !== undefined) {
-          startedAt ??= timestamp
-          if (changed) {
-            timeline.push({ branch, cwd, timestamp })
-            if (timeline.length > maxTimelineEntries) overflow()
-          }
+        if (timestamp !== undefined) startedAt ??= timestamp
+        if (changed) {
+          timeline.push({ branch, cwd, timestamp })
+          if (timeline.length > maxTimelineEntries) overflow()
+        } else if (
+          undated &&
+          timestamp !== undefined &&
+          previous.branch === branch &&
+          previous.cwd === cwd
+        ) {
+          timeline[timeline.length - 1] = { ...previous, timestamp }
         }
       }
 

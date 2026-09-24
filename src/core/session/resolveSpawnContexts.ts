@@ -30,8 +30,10 @@ export interface ResolveSpawnContextsInput {
  * timeline entry in file order at or before the subagent's own start time,
  * then each further ancestor's, then the lead's, every level using the
  * subagent's start. A `HEAD` entry borrows the nearest earlier named branch
- * in the same cwd. An ancestor with no readable transcript, or no entry at
- * or before the start, contributes nothing. When the subagent's own
+ * in the same cwd that was also seen at or before the start. Entries with no
+ * timestamp are skipped when the start is known. An ancestor with no
+ * readable transcript, or no entry at or before the start, contributes
+ * nothing. When the subagent's own
  * transcript is unreadable or has no timestamps, the latest entry is used
  * instead, still flagged inferred. The walk visits at most
  * {@link MAX_ANCESTOR_DEPTH} ancestors, then goes straight to the lead. A

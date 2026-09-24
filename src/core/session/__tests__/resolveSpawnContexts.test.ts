@@ -4,6 +4,7 @@ import type { AgentTreeInput } from '../agentTree'
 import { MAX_ANCESTOR_DEPTH, resolveSpawnContexts } from '../resolveSpawnContexts'
 import type { SpawnContext } from '../spawnContext'
 import type { BranchSighting, ObservedSpawn, TranscriptSpawns } from '../spawnObserver'
+import { buildSighting } from '../testSpawnFixtures'
 
 function agent(id: string, meta: Record<string, unknown> | null): AgentTreeInput {
   return {
@@ -166,15 +167,12 @@ describe('resolveSpawnContexts', () => {
   })
 
   describe('timing', () => {
-    const at = (branch: string, timestamp: number, cwd = '/repo'): BranchSighting => ({
-      branch,
-      cwd,
-      timestamp
-    })
-
     it('gives the child the earlier branch when the parent switches after the child starts', () => {
       const result = resolve([agent('p', {}), agent('c', { parentAgentId: 'p' })], {
-        p: transcript({}, [at('feat/early', 10), at('feat/late', 100)]),
+        p: transcript({}, [
+          buildSighting('feat/early', { timestamp: 10 }),
+          buildSighting('feat/late', { timestamp: 100 })
+        ]),
         c: startedAt(transcript(), 50)
       })
 
@@ -189,7 +187,11 @@ describe('resolveSpawnContexts', () => {
       const result = resolve(
         [agent('g', {}), agent('p', { parentAgentId: 'g' }), agent('c', { parentAgentId: 'p' })],
         {
-          g: transcript({}, [at('feat/one', 5), at('feat/two', 30), at('feat/three', 90)]),
+          g: transcript({}, [
+            buildSighting('feat/one', { timestamp: 5 }),
+            buildSighting('feat/two', { timestamp: 30 }),
+            buildSighting('feat/three', { timestamp: 90 })
+          ]),
           p: startedAt(transcript(), 20),
           c: startedAt(transcript(), 50)
         }
@@ -200,7 +202,7 @@ describe('resolveSpawnContexts', () => {
 
     it('continues to the next ancestor when the parent has nothing at or before the start', () => {
       const result = resolve([agent('p', {}), agent('c', { parentAgentId: 'p' })], {
-        p: transcript({}, [at('feat/late', 100)]),
+        p: transcript({}, [buildSighting('feat/late', { timestamp: 100 })]),
         c: startedAt(transcript(), 50)
       })
 
@@ -214,10 +216,10 @@ describe('resolveSpawnContexts', () => {
     it('picks by file order when timestamps step backwards', () => {
       const result = resolve([agent('p', {}), agent('c', { parentAgentId: 'p' })], {
         p: transcript({}, [
-          at('feat/a', 10),
-          at('feat/b', 100),
-          at('feat/c', 40),
-          at('feat/d', 90)
+          buildSighting('feat/a', { timestamp: 10 }),
+          buildSighting('feat/b', { timestamp: 100 }),
+          buildSighting('feat/c', { timestamp: 40 }),
+          buildSighting('feat/d', { timestamp: 90 })
         ]),
         c: startedAt(transcript(), 50)
       })
@@ -227,7 +229,11 @@ describe('resolveSpawnContexts', () => {
 
     it('borrows the nearest earlier same-cwd branch for a HEAD pick', () => {
       const result = resolve([agent('p', {}), agent('c', { parentAgentId: 'p' })], {
-        p: transcript({}, [at('feat/x', 10), at('feat/y', 20, '/other'), at('HEAD', 30)]),
+        p: transcript({}, [
+          buildSighting('feat/x', { timestamp: 10 }),
+          buildSighting('feat/y', { timestamp: 20, cwd: '/other' }),
+          buildSighting('HEAD', { timestamp: 30 })
+        ]),
         c: startedAt(transcript(), 50)
       })
 
@@ -240,7 +246,10 @@ describe('resolveSpawnContexts', () => {
 
     it('gives no base for a HEAD pick when the earlier branch has a different cwd', () => {
       const result = resolve([agent('p', {}), agent('c', { parentAgentId: 'p' })], {
-        p: transcript({}, [at('feat/x', 10, '/other'), at('HEAD', 30)]),
+        p: transcript({}, [
+          buildSighting('feat/x', { timestamp: 10, cwd: '/other' }),
+          buildSighting('HEAD', { timestamp: 30 })
+        ]),
         c: startedAt(transcript(), 50)
       })
 
@@ -253,7 +262,10 @@ describe('resolveSpawnContexts', () => {
 
     it('uses the latest entry, flagged inferred, when the child has no start time', () => {
       const result = resolve([agent('p', {}), agent('c', { parentAgentId: 'p' })], {
-        p: transcript({}, [at('feat/early', 10), at('feat/late', 100)])
+        p: transcript({}, [
+          buildSighting('feat/early', { timestamp: 10 }),
+          buildSighting('feat/late', { timestamp: 100 })
+        ])
       })
 
       expect(result.get(toAgentId('c'))).toEqual({
@@ -278,9 +290,9 @@ describe('resolveSpawnContexts', () => {
     it('leaves a child out when its start precedes every entry at every level', () => {
       const result = resolveSpawnContexts({
         subagents: [agent('p', {}), agent('c', { parentAgentId: 'p' })],
-        leadTranscript: transcript({}, [at('main', 100, '/lead')]),
+        leadTranscript: transcript({}, [buildSighting('main', { timestamp: 100, cwd: '/lead' })]),
         subagentTranscripts: new Map([
-          [toAgentId('p'), transcript({}, [at('feat/late', 90)])],
+          [toAgentId('p'), transcript({}, [buildSighting('feat/late', { timestamp: 90 })])],
           [toAgentId('c'), startedAt(transcript(), 50)]
         ])
       })
@@ -294,7 +306,7 @@ describe('resolveSpawnContexts', () => {
         agent(`p${i}`, i + 1 < depth ? { parentAgentId: `p${i + 1}` } : {})
       )
       const result = resolve([agent('c', { parentAgentId: 'p0' }), ...chain], {
-        [`p${depth - 1}`]: transcript({}, [at('feat/deep', 10)]),
+        [`p${depth - 1}`]: transcript({}, [buildSighting('feat/deep', { timestamp: 10 })]),
         c: startedAt(transcript(), 50)
       })
 

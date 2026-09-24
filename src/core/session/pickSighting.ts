@@ -12,21 +12,22 @@ function lastIndexAtOrBefore(timeline: readonly BranchSighting[], at: number | u
   if (at === undefined) return timeline.length - 1
   for (let i = timeline.length - 1; i >= 0; i--) {
     const entry = timeline[i]
-    if (entry !== undefined && entry.timestamp <= at) return i
+    if (entry !== undefined && entry.timestamp !== undefined && entry.timestamp <= at) return i
   }
   return -1
 }
 
 /**
  * Picks where a subagent started from one transcript's timeline: the last
- * entry in file order whose timestamp is at or before `at`. File order is
- * scanned, not sorted, because timestamps step backwards between records. A
- * `HEAD` pick borrows the nearest earlier named branch in the same cwd, and
- * has no base when there is none.
+ * entry in file order whose timestamp is at or before `at`; entries with no
+ * timestamp never qualify. File order is scanned, not sorted, because
+ * timestamps step backwards between records. A `HEAD` pick borrows the
+ * nearest earlier named branch in the same cwd whose timestamp is also at or
+ * before `at`, and has no base when there is none.
  *
  * @param timeline - A transcript's sightings in file order.
  * @param at - The subagent's start in epoch milliseconds. When `undefined`,
- * the latest entry is picked.
+ * the latest entry is picked and no timestamp filter applies.
  * @returns The location, or `undefined` when no entry qualifies.
  */
 export function pickSighting(
@@ -39,9 +40,10 @@ export function pickSighting(
   if (picked.branch !== DETACHED_BRANCH) return { cwd: picked.cwd, baseBranch: picked.branch }
   for (let i = index - 1; i >= 0; i--) {
     const earlier = timeline[i]
-    if (earlier !== undefined && earlier.branch !== DETACHED_BRANCH && earlier.cwd === picked.cwd) {
-      return { cwd: picked.cwd, baseBranch: earlier.branch }
-    }
+    if (earlier === undefined || earlier.branch === DETACHED_BRANCH) continue
+    if (earlier.cwd !== picked.cwd) continue
+    if (at !== undefined && (earlier.timestamp === undefined || earlier.timestamp > at)) continue
+    return { cwd: picked.cwd, baseBranch: earlier.branch }
   }
   return { cwd: picked.cwd, baseBranch: undefined }
 }
