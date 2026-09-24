@@ -28,8 +28,9 @@ export interface WorktreeDiffStatOptions {
  *   committed work is shown.
  * - `skipped-filters`: the repo defines filter drivers that a working-tree
  *   diff would run, so only committed work is shown.
- * - `worktree-mismatch`: the directory exists but isn't the agent's worktree
- *   of this repo, so only committed work is shown.
+ * - `worktree-mismatch`: the directory exists but isn't the agent's linked
+ *   worktree of this repo (the main checkout doesn't count), so only
+ *   committed work is shown.
  */
 export type UncommittedStatus = 'included' | 'no-worktree' | 'skipped-filters' | 'worktree-mismatch'
 

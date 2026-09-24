@@ -21,8 +21,9 @@ export interface CheckWorktreeOptions {
  * Whether a worktree may be diffed as a working tree: `safe`, `no-worktree`
  * when the directory no longer exists, `skipped-filters` when the repo
  * defines filter drivers (a working-tree diff would run them), or
- * `worktree-mismatch` when the directory exists but isn't the agent's
- * top-level worktree of this repo on the agent branch (or can't be inspected).
+ * `worktree-mismatch` when the directory exists but isn't the agent's linked
+ * worktree of this repo (a top-level `git worktree add` checkout, not the main
+ * checkout) on the agent branch, or can't be inspected.
  */
 export type WorktreeVerdict = 'safe' | 'no-worktree' | 'skipped-filters' | 'worktree-mismatch'
 
@@ -74,9 +75,10 @@ async function definesFilters(
  *
  * @remarks
  * A working-tree diff runs `filter.<driver>.clean` commands, so any
- * configured filter driver rules it out. The worktree must also be a
- * top-level checkout of the same repository (matching `--git-common-dir`)
- * with the agent branch checked out. A directory that no longer exists is
+ * configured filter driver rules it out. The worktree must also be a linked
+ * worktree (the top level of a `git worktree add` checkout) of the same
+ * repository (matching `--git-common-dir`), not the main checkout, with the
+ * agent branch checked out. A directory that no longer exists is
  * `no-worktree`.
  *
  * @param options - The repository, worktree, and expected branch.
@@ -89,29 +91,34 @@ export async function checkWorktree(
   if (!isAbsoluteDir(repoDir) || !isAbsoluteDir(worktreeDir)) return err('invalid-path')
   if (await isMissing(worktreeDir)) return ok('no-worktree')
   const commonArgs = ['rev-parse', '--path-format=absolute', '--git-common-dir']
-  const [filters, top, common, repoCommon, head] = await Promise.all([
+  const [filters, top, common, repoCommon, head, gitDir] = await Promise.all([
     definesFilters(git, worktreeDir),
     gitText({ git, dir: worktreeDir, args: ['rev-parse', '--show-toplevel'] }),
     gitText({ git, dir: worktreeDir, args: commonArgs }),
     gitText({ git, dir: repoDir, args: commonArgs }),
-    gitText({ git, dir: worktreeDir, args: ['rev-parse', '--symbolic-full-name', 'HEAD'] })
+    gitText({ git, dir: worktreeDir, args: ['rev-parse', '--symbolic-full-name', 'HEAD'] }),
+    gitText({ git, dir: worktreeDir, args: ['rev-parse', '--absolute-git-dir'] })
   ])
   if (!top.ok) return err(top.error)
   if (!common.ok) return err(common.error)
   if (!repoCommon.ok) return err(repoCommon.error)
   if (!head.ok) return err(head.error)
+  if (!gitDir.ok) return err(gitDir.error)
 
-  const [realWorktree, realTop, realCommon, realRepoCommon] = await Promise.all([
+  const [realWorktree, realTop, realCommon, realRepoCommon, realGitDir] = await Promise.all([
     realpathOrUndefined(worktreeDir),
     realpathOrUndefined(top.value),
     realpathOrUndefined(common.value),
-    realpathOrUndefined(repoCommon.value)
+    realpathOrUndefined(repoCommon.value),
+    realpathOrUndefined(gitDir.value)
   ])
   const matches =
     realWorktree !== undefined &&
     realWorktree === realTop &&
     realCommon !== undefined &&
     realCommon === realRepoCommon &&
+    realGitDir !== undefined &&
+    realGitDir !== realCommon &&
     head.value === `refs/heads/${options.agentBranch}`
   if (!matches) return ok('worktree-mismatch')
 
