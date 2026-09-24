@@ -1,2 +1,8 @@
-/** No renderer API is exposed yet; this becomes the Window augmentation in chunk 3. */
-export {}
+import type { BeekeeperApi } from '../shared/ipc/beekeeperApi'
+
+declare global {
+  interface Window {
+    /** The main-process API the preload script exposes. */
+    beekeeper: BeekeeperApi
+  }
+}

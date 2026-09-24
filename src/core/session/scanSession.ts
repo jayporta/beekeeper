@@ -30,6 +30,13 @@ export interface ScanSessionOptions extends ReadJsonlLinesOptions {
   readonly leadPath: string
   /** The session's subagent transcripts, scanned after the lead, in order. */
   readonly subagents: readonly SubagentEntry[]
+  /**
+   * Whether the session's `subagents/` folder couldn't be listed, so
+   * `subagents` is empty for lack of information rather than lack of agents.
+   * Counts as one unreadable agent in the reconciliation.
+   * @defaultValue `false`
+   */
+  readonly subagentsUnreadable?: boolean
 }
 
 /** One agent's usage and file touches, scanned from its transcript. */
@@ -76,14 +83,16 @@ export interface SessionScan {
  * parented to the lead in the tree, with its status recorded for display
  * rather than silently discarded.
  *
- * @param options - The lead transcript's path, its subagents, and read tuning.
+ * @param options - The lead transcript's path, its subagents, whether the
+ * subagents folder was unreadable, and read tuning.
  * @returns The session's agent tree, the lead's report, each subagent's
  * report isolated as a `Result`, and the usage reconciliation. Only the
- * lead is read for a `cost-state`, in the same pass as its usage.
+ * lead is read for a `cost-state`, in the same pass as its usage. When
+ * `subagentsUnreadable` is set, the totals are flagged partial.
  * @throws {Error} When the lead transcript cannot be read.
  */
 export async function scanSession(options: ScanSessionOptions): Promise<SessionScan> {
-  const { leadPath, subagents, ...readOptions } = options
+  const { leadPath, subagents, subagentsUnreadable = false, ...readOptions } = options
   const usageLedger = createUsageLedger()
   const filesLedger = createFilesLedger()
 
@@ -146,7 +155,8 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
     subagents: subagentReports,
     reconciliation: reconcileUsage({
       agents: readableAgents.map((agent) => agent.usage),
-      unreadableAgents: subagentReports.size + 1 - readableAgents.length,
+      unreadableAgents:
+        subagentReports.size + 1 - readableAgents.length + (subagentsUnreadable ? 1 : 0),
       costState: lastCostState.latest()
     })
   }
