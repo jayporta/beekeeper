@@ -20,7 +20,12 @@ function transcript(
   spawns: Record<string, ObservedSpawn> = {},
   timeline: BranchSighting[] = []
 ): TranscriptSpawns {
-  return { spawns: new Map(Object.entries(spawns)), timeline, startedAt: undefined }
+  return {
+    spawns: new Map(Object.entries(spawns)),
+    timeline,
+    startedAt: undefined,
+    firstCwd: undefined
+  }
 }
 
 function startedAt(base: TranscriptSpawns, at: number | undefined): TranscriptSpawns {

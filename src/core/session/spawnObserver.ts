@@ -56,6 +56,8 @@ export interface TranscriptSpawns {
   readonly timeline: readonly BranchSighting[]
   /** Epoch milliseconds of the first record with a valid timestamp, or `undefined`. */
   readonly startedAt: number | undefined
+  /** The `cwd` of the first record with a valid one, or `undefined` when none had one. */
+  readonly firstCwd: string | undefined
 }
 
 /** Observes one transcript's records for `Agent` spawns and its branch timeline and start. */
@@ -90,7 +92,8 @@ function validBranch(value: unknown): string | undefined {
  * Records with a valid `cwd` and a valid branch (`HEAD` included) feed the
  * timeline, each run keeping the first parseable timestamp among its records
  * (`undefined` when none has one). The first record with any parseable
- * timestamp sets the start.
+ * timestamp sets the start, and the first record with a valid `cwd` sets
+ * `firstCwd`.
  *
  * The timeline is what inference reads. Spawn bases come from the per-cwd
  * branch map instead, which any record with a named branch updates. Both are
@@ -106,6 +109,7 @@ export function createSpawnObserver(options: SpawnObserverOptions = {}): SpawnOb
   const spawns = new Map<string, ObservedSpawn>()
   const timeline: BranchSighting[] = []
   let startedAt: number | undefined
+  let firstCwd: string | undefined
   const namedByCwd = new Map<string, string>()
   let overflowed = false
   const overflow = (): void => {
@@ -119,6 +123,7 @@ export function createSpawnObserver(options: SpawnObserverOptions = {}): SpawnOb
       const cwd = validCwd(record.cwd)
       const branch = validBranch(record.gitBranch)
       const namedBranch = branch !== undefined && branch !== DETACHED_BRANCH ? branch : undefined
+      firstCwd ??= cwd
 
       if (!overflowed && cwd !== undefined && namedBranch !== undefined) {
         namedByCwd.set(cwd, namedBranch)
@@ -162,6 +167,6 @@ export function createSpawnObserver(options: SpawnObserverOptions = {}): SpawnOb
         }
       }
     },
-    result: () => ({ spawns, timeline, startedAt })
+    result: () => ({ spawns, timeline, startedAt, firstCwd })
   }
 }
