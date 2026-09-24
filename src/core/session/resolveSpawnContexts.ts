@@ -2,7 +2,11 @@ import type { AgentId } from '../transcript/ids'
 import type { AgentTreeInput } from './agentTree'
 import { dedupeByAgentId, resolveParents } from './resolveParents'
 import type { SpawnContext } from './spawnContext'
-import type { BranchSighting, TranscriptSpawns } from './spawnObserver'
+import { pickSighting, type PickedLocation } from './pickSighting'
+import type { TranscriptSpawns } from './spawnObserver'
+
+/** The most ancestors walked for one subagent before falling back to the lead. */
+export const MAX_ANCESTOR_DEPTH = 64
 
 /** Input for {@link resolveSpawnContexts}. */
 export interface ResolveSpawnContextsInput {
@@ -21,11 +25,17 @@ export interface ResolveSpawnContextsInput {
  * transcript of the subagent named by `parentAgentId`, or the lead's when
  * there is none. Parents are the ones `buildAgentTree` uses, so a dangling
  * link or a cycle member (including a self-parent) has the lead as parent. A
- * match is exact. Otherwise the context is inferred from the last named
- * branch, and the cwd of its record, in the parent's transcript, then each
- * further ancestor's, then the lead's. An ancestor with no readable
- * transcript contributes nothing. A subagent none of these reach is left
- * out.
+ * match is exact. Otherwise the context is inferred from the branch and cwd
+ * the parent's transcript showed when the subagent started: the last
+ * timeline entry in file order at or before the subagent's own start time,
+ * then each further ancestor's, then the lead's, every level using the
+ * subagent's start. A `HEAD` entry borrows the nearest earlier named branch
+ * in the same cwd. An ancestor with no readable transcript, or no entry at
+ * or before the start, contributes nothing. When the subagent's own
+ * transcript is unreadable or has no timestamps, the latest entry is used
+ * instead, still flagged inferred. The walk visits at most
+ * {@link MAX_ANCESTOR_DEPTH} ancestors, then goes straight to the lead. A
+ * subagent none of these reach is left out.
  *
  * @param input - The subagents and each transcript's observed spawns.
  * @returns The context of each subagent that resolved one.
@@ -39,14 +49,16 @@ export function resolveSpawnContexts(
   const transcriptOf = (agentId: AgentId | undefined): TranscriptSpawns | undefined =>
     agentId === undefined ? leadTranscript : subagentTranscripts.get(agentId)
 
-  const nearestBranch = (agent: AgentTreeInput): BranchSighting | undefined => {
+  const nearestLocation = (agent: AgentTreeInput): PickedLocation | undefined => {
+    const startedAt = subagentTranscripts.get(agent.agentId)?.startedAt
     let current = parentOf.get(agent.agentId)
-    while (current !== undefined) {
-      const sighting = transcriptOf(current)?.lastBranch
-      if (sighting !== undefined) return sighting
+    for (let depth = 0; current !== undefined && depth < MAX_ANCESTOR_DEPTH; depth++) {
+      const timeline = transcriptOf(current)?.timeline
+      const picked = timeline === undefined ? undefined : pickSighting(timeline, startedAt)
+      if (picked !== undefined) return picked
       current = parentOf.get(current)
     }
-    return leadTranscript.lastBranch
+    return pickSighting(leadTranscript.timeline, startedAt)
   }
 
   const contexts = new Map<AgentId, SpawnContext>()
@@ -60,10 +72,8 @@ export function resolveSpawnContexts(
       contexts.set(agent.agentId, { ...exact, inferred: false })
       continue
     }
-    const nearest = nearestBranch(agent)
-    if (nearest !== undefined) {
-      contexts.set(agent.agentId, { cwd: nearest.cwd, baseBranch: nearest.branch, inferred: true })
-    }
+    const nearest = nearestLocation(agent)
+    if (nearest !== undefined) contexts.set(agent.agentId, { ...nearest, inferred: true })
   }
   return contexts
 }

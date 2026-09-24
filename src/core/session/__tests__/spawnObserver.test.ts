@@ -2,6 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { createSpawnObserver } from '../spawnObserver'
 import { buildBranchRecord, buildSpawnRecord } from '../testSpawnFixtures'
 
+const BASE = Date.parse('2026-01-01T00:00:00.000Z')
+
+/** Stamps a record with `BASE` plus an offset in ms, or with a raw string. */
+function stamped(record: Record<string, unknown>, at: number | string): Record<string, unknown> {
+  return { ...record, timestamp: typeof at === 'string' ? at : new Date(BASE + at).toISOString() }
+}
+
 function observeAll(
   records: readonly Record<string, unknown>[]
 ): ReturnType<typeof createSpawnObserver> {
@@ -85,27 +92,46 @@ describe('createSpawnObserver', () => {
     expect(observer.result().spawns.get('toolu_spawn')?.baseBranch).toBeUndefined()
   })
 
-  it('reports the last non-HEAD branch with its own cwd', () => {
+  it('appends a timeline entry only when the branch or cwd changes, keeping the run start', () => {
     const observer = observeAll([
-      buildBranchRecord('one', '/repo-one'),
-      buildBranchRecord('two', '/repo-two'),
-      buildBranchRecord('HEAD', '/repo-three')
+      stamped(buildBranchRecord('one', '/a'), 0),
+      stamped(buildBranchRecord('one', '/a'), 1000),
+      stamped(buildBranchRecord('HEAD', '/a'), 2000),
+      stamped(buildBranchRecord('HEAD', '/b'), 3000)
     ])
 
-    expect(observer.result().lastBranch).toEqual({ branch: 'two', cwd: '/repo-two' })
+    expect(observer.result().timeline).toEqual([
+      { branch: 'one', cwd: '/a', timestamp: BASE },
+      { branch: 'HEAD', cwd: '/a', timestamp: BASE + 2000 },
+      { branch: 'HEAD', cwd: '/b', timestamp: BASE + 3000 }
+    ])
   })
 
-  it('ignores a branch whose record has no valid cwd', () => {
+  it('skips records without a valid cwd, branch, or timestamp', () => {
     const observer = observeAll([
-      buildBranchRecord('one', '/repo-one'),
-      buildBranchRecord('two', 'rel')
+      stamped(buildBranchRecord('one', 'rel'), 0),
+      stamped(buildBranchRecord('', '/a'), 0),
+      { ...buildBranchRecord('two', '/a'), timestamp: undefined },
+      stamped(buildBranchRecord('three', '/a'), 'not a date')
     ])
 
-    expect(observer.result().lastBranch).toEqual({ branch: 'one', cwd: '/repo-one' })
+    expect(observer.result().timeline).toEqual([])
   })
 
-  it('has no last branch when none was named', () => {
-    expect(observeAll([buildBranchRecord('HEAD')]).result().lastBranch).toBeUndefined()
+  it('takes the start from the first timestamped record when the first has none', () => {
+    const observer = observeAll([
+      { type: 'fork-context-ref' },
+      stamped(buildBranchRecord('one'), 0),
+      stamped(buildBranchRecord('two'), 5000)
+    ])
+
+    expect(observer.result().startedAt).toBe(BASE)
+  })
+
+  it('has no start when no record carries a timestamp', () => {
+    expect(
+      observeAll([{ ...buildBranchRecord('one'), timestamp: undefined }]).result().startedAt
+    ).toBeUndefined()
   })
 
   it('keeps the first entry when a tool_use id repeats', () => {
@@ -130,5 +156,92 @@ describe('createSpawnObserver', () => {
       cwd: '/repo',
       baseBranch: undefined
     })
+  })
+
+  it('borrows the same-cwd branch for a HEAD spawn even after another cwd named one', () => {
+    const observer = observeAll([
+      buildBranchRecord('feat/x', '/a'),
+      buildBranchRecord('feat/y', '/b'),
+      buildSpawnRecord({ cwd: '/a', gitBranch: 'HEAD' })
+    ])
+
+    expect(observer.result().spawns.get('toolu_spawn')?.baseBranch).toBe('feat/x')
+  })
+
+  it('adds an entry with the next timestamp when the changed record has none', () => {
+    const observer = observeAll([
+      stamped(buildBranchRecord('one'), 0),
+      { ...buildBranchRecord('two'), timestamp: undefined },
+      stamped(buildBranchRecord('two'), 7000)
+    ])
+
+    expect(observer.result().timeline.map((e) => [e.branch, e.timestamp])).toEqual([
+      ['one', BASE],
+      ['two', BASE + 7000]
+    ])
+  })
+
+  it('takes the start from a first record that has a timestamp but no cwd or branch', () => {
+    const observer = observeAll([
+      stamped({ type: 'summary' }, 1000),
+      stamped(buildBranchRecord('one'), 5000)
+    ])
+
+    expect(observer.result().startedAt).toBe(BASE + 1000)
+  })
+
+  it('empties the timeline at exactly one entry over the cap', () => {
+    const observer = createSpawnObserver({ maxTimelineEntries: 2 })
+    for (const [i, branch] of ['a', 'b', 'c'].entries()) {
+      observer.observe(stamped(buildBranchRecord(branch), i * 1000))
+    }
+
+    expect(observer.result().timeline).toEqual([])
+  })
+
+  it('stops recording after the cap is exceeded', () => {
+    const observer = createSpawnObserver({ maxTimelineEntries: 2 })
+    for (const [i, branch] of ['a', 'b', 'c', 'd'].entries()) {
+      observer.observe(stamped(buildBranchRecord(branch), i * 1000))
+    }
+
+    expect(observer.result().timeline).toEqual([])
+  })
+
+  it('gives a HEAD spawn no base once the timeline has overflowed', () => {
+    const observer = createSpawnObserver({ maxTimelineEntries: 1 })
+    observer.observe(stamped(buildBranchRecord('a'), 0))
+    observer.observe(stamped(buildBranchRecord('b'), 1000))
+    observer.observe(buildSpawnRecord({ gitBranch: 'HEAD' }))
+
+    expect(observer.result().spawns.get('toolu_spawn')?.baseBranch).toBeUndefined()
+  })
+
+  it('gives a HEAD spawn no base once untimestamped cwds pass the cap', () => {
+    const observer = createSpawnObserver({ maxTimelineEntries: 2 })
+    for (const cwd of ['/a', '/b', '/repo']) {
+      observer.observe({ ...buildBranchRecord('named', cwd), timestamp: undefined })
+    }
+    observer.observe(buildSpawnRecord({ gitBranch: 'HEAD' }))
+
+    expect(observer.result().spawns.get('toolu_spawn')?.baseBranch).toBeUndefined()
+  })
+
+  it('keeps a HEAD spawn base when untimestamped cwds stay at the cap', () => {
+    const observer = createSpawnObserver({ maxTimelineEntries: 2 })
+    for (const cwd of ['/a', '/repo']) {
+      observer.observe({ ...buildBranchRecord('named', cwd), timestamp: undefined })
+    }
+    observer.observe(buildSpawnRecord({ gitBranch: 'HEAD' }))
+
+    expect(observer.result().spawns.get('toolu_spawn')?.baseBranch).toBe('named')
+  })
+
+  it('keeps the timeline when it stays at the cap', () => {
+    const observer = createSpawnObserver({ maxTimelineEntries: 2 })
+    observer.observe(stamped(buildBranchRecord('a'), 0))
+    observer.observe(stamped(buildBranchRecord('b'), 1000))
+
+    expect(observer.result().timeline).toHaveLength(2)
   })
 })

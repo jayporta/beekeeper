@@ -33,10 +33,19 @@ export function buildSpawnRecord(overrides: SpawnRecordOverrides = {}): Record<s
   }
 }
 
-/** Builds a non-spawning `user` record carrying only a `cwd` and `gitBranch`. */
+/** The timestamp `buildBranchRecord` stamps on every record. */
+const BRANCH_RECORD_TIMESTAMP = '2026-01-01T00:00:00.000Z'
+
+/** Builds a non-spawning `user` record carrying a `cwd`, `gitBranch`, and fixed timestamp. */
 export function buildBranchRecord(
   gitBranch: unknown,
   cwd: unknown = '/repo'
 ): Record<string, unknown> {
-  return { type: 'user', cwd, gitBranch, message: { role: 'user', content: 'hi' } }
+  return {
+    type: 'user',
+    cwd,
+    gitBranch,
+    timestamp: BRANCH_RECORD_TIMESTAMP,
+    message: { role: 'user', content: 'hi' }
+  }
 }
