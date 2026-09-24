@@ -73,6 +73,11 @@ export interface SessionScan {
    * context. Read from every transcript, since a subagent can spawn others.
    */
   readonly spawnContexts: ReadonlyMap<AgentId, SpawnContext>
+  /**
+   * The `cwd` of the lead transcript's first record with a valid one
+   * (absolute, at most 4096 characters), or `undefined` when none had one.
+   */
+  readonly leadFirstCwd: string | undefined
 }
 
 /**
@@ -138,6 +143,7 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
     treeInputs.push({ agentId: subagent.agentId, metaStatus })
   }
 
+  const leadSpawnsResult = leadSpawns.result()
   const usageByOwner = groupByOwner(usageLedger.entries())
   const touchesByOwner = groupByOwner(filesLedger.entries())
 
@@ -179,9 +185,10 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
         subagentReports.size + 1 - readableAgents.length + (subagentsUnreadable ? 1 : 0),
       costState: lastCostState.latest()
     }),
+    leadFirstCwd: leadSpawnsResult.firstCwd,
     spawnContexts: resolveSpawnContexts({
       subagents: treeInputs,
-      leadTranscript: leadSpawns.result(),
+      leadTranscript: leadSpawnsResult,
       subagentTranscripts: subagentSpawns
     })
   }

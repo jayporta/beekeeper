@@ -82,6 +82,28 @@ describe.skipIf(process.platform === 'win32')('worktree safety', () => {
     })
   })
 
+  it('falls back when the directory is the main checkout on the agent branch', async (context) => {
+    const git = testGit.requireGit(context)
+    const { repo, worktree } = await setUp(git)
+    repo.git(['worktree', 'remove', '--force', worktree])
+    repo.git(['checkout', '--quiet', 'agent'])
+    await repo.write({ path: 'keep.txt', content: 'EDITED\n' })
+    await repo.write({ path: 'mine.txt', content: 'mine\n' })
+
+    const result = await worktreeDiffStat({
+      git,
+      repoDir: repo.dir,
+      baseSha: repo.sha('main'),
+      agentBranch: 'agent',
+      worktreeDir: repo.dir
+    })
+
+    expect(result).toMatchObject({
+      ok: true,
+      value: { untracked: [], uncommitted: 'worktree-mismatch' }
+    })
+  })
+
   it('falls back when the directory is a subfolder of the worktree', async (context) => {
     const git = testGit.requireGit(context)
     const { repo, worktree } = await setUp(git)

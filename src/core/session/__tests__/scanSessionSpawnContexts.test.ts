@@ -131,3 +131,22 @@ describe('scanSession spawn contexts', () => {
     })
   })
 })
+
+describe('scanSession leadFirstCwd', () => {
+  it("is the lead transcript's first valid cwd, not a subagent's", async () => {
+    const sub = dir.addSubagent('a', {
+      transcript: buildJsonlText([buildBranchRecord('main', '/from-subagent')]),
+      meta: { agentType: 'x' }
+    })
+
+    const result = await scan([buildBranchRecord('main', '/lead-first')], [sub])
+
+    expect(result.leadFirstCwd).toBe('/lead-first')
+  })
+
+  it('is undefined when the lead has no absolute cwd', async () => {
+    const result = await scan([buildBranchRecord('main', 'relative')], [])
+
+    expect(result.leadFirstCwd).toBeUndefined()
+  })
+})

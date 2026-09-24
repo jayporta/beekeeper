@@ -17,6 +17,7 @@ const ALLOWED_OPTIONS: Readonly<Record<string, ReadonlySet<string>>> = {
     '--path-format=absolute',
     '--git-common-dir',
     '--show-toplevel',
+    '--absolute-git-dir',
     '--symbolic-full-name'
   ]),
   'merge-base': new Set(),
