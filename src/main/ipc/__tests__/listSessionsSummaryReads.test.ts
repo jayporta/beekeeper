@@ -1,4 +1,4 @@
-import { writeFile } from 'node:fs/promises'
+import { utimes, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { createSessionSummaryCache } from '../../../core/transcript/summary/sessionSummaryCache'
@@ -64,5 +64,60 @@ describe('listSessionsHandler summary reads', () => {
     const result = await listSessionsHandler({ ...ctx.deps, summaryCache }, listRequest)
     expect(result.ok && result.value.length).toBe(9)
     expect(peak).toBe(MAX_CONCURRENT_SUMMARIES)
+  })
+
+  describe('sharing by file state', () => {
+    /** Runs two listings, changing the transcript's mtime between their discoveries. */
+    async function readsForTwoListings(changeBetween: boolean): Promise<number> {
+      let reads = 0
+      let runs = 0
+      const signal = {
+        release: (): void => {},
+        firstRead: (): void => {},
+        secondRun: (): void => {}
+      }
+      const gate = new Promise<void>((resolve) => {
+        signal.release = resolve
+      })
+      const firstReadStarted = new Promise<void>((resolve) => {
+        signal.firstRead = resolve
+      })
+      const secondRunCalled = new Promise<void>((resolve) => {
+        signal.secondRun = resolve
+      })
+      const inner = createSessionSummaryCache()
+      const summaryCache: IpcDeps['summaryCache'] = {
+        read: async (file) => {
+          reads += 1
+          if (reads === 1) signal.firstRead()
+          await gate
+          return inner.read(file)
+        }
+      }
+      const summaries: IpcDeps['summaries'] = {
+        run: (key, task) => {
+          runs += 1
+          if (runs === 2) signal.secondRun()
+          return ctx.deps.summaries.run(key, task)
+        }
+      }
+      const gated = { ...ctx.deps, summaryCache, summaries }
+      const first = listSessionsHandler(gated, listRequest)
+      await firstReadStarted
+      if (changeBetween) await utimes(ctx.tree.sessionPath, new Date(), new Date(1_000_000))
+      const second = listSessionsHandler(gated, listRequest)
+      await secondRunCalled
+      signal.release()
+      await Promise.all([first, second])
+      return reads
+    }
+
+    it('does not share a read between listings that saw different file states', async () => {
+      expect(await readsForTwoListings(true)).toBe(2)
+    })
+
+    it('still shares a read between listings that saw the same file state', async () => {
+      expect(await readsForTwoListings(false)).toBe(1)
+    })
   })
 })

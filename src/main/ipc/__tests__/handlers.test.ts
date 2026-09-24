@@ -140,6 +140,7 @@ describe('getSessionHandler', () => {
         ok: false,
         error: { code: 'unreadable' }
       })
+      expect(result.ok && result.value.reconciliation.totals.transcriptPartial).toBe(true)
     } finally {
       await chmod(dir, 0o755)
     }

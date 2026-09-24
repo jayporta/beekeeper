@@ -23,7 +23,9 @@ async function mapSession(
   }
 
   const file = entry.transcript.value
-  const summary = await deps.summaries.run(file.path, () => deps.summaryCache.read(file))
+  const summary = await deps.summaries.run(`${file.path}\0${file.mtimeMs}\0${file.size}`, () =>
+    deps.summaryCache.read(file)
+  )
   return {
     sessionId: entry.sessionId,
     modifiedMs: file.mtimeMs,
@@ -48,7 +50,7 @@ async function mapSession(
 
 /**
  * Lists a project's sessions with their summaries, read through the
- * app-lifetime cache. Summary reads are shared per transcript and capped by
+ * app-lifetime cache. Summary reads are shared per transcript state (path, mtime, size) and capped by
  * the summaries scheduler.
  *
  * @param deps - The projects root, the summary cache, and the summaries scheduler.

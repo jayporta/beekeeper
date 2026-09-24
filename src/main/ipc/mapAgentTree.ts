@@ -3,7 +3,8 @@ import type { SubagentMetaStatus } from '../../core/session/subagentMetaStatus'
 import type { AgentMetaStatusDto, AgentNodeDto } from '../../shared/ipc/agentDto'
 
 function mapMetaStatus(status: SubagentMetaStatus): AgentMetaStatusDto {
-  if (status.status !== 'ok') return status
+  if (status.status === 'absent') return { status: 'absent' }
+  if (status.status === 'error') return { status: 'error', reason: status.reason }
   const { meta } = status
   return {
     status: 'ok',

@@ -9,8 +9,9 @@ import { mapSessionScan } from './mapSessionScan'
 import { toIpcErrorCode } from './toIpcErrorCode'
 
 /**
- * Scans one session in full. Concurrent calls for the same session share one
- * scan, and the scheduler caps how many sessions scan at once.
+ * Scans one session in full. Concurrent calls for the same session state
+ * (same transcript size and mtime) share one scan, and the scheduler caps
+ * how many sessions scan at once.
  *
  * @param deps - The projects root and the scan scheduler.
  * @param payload - The renderer's payload, validated here.
@@ -38,10 +39,13 @@ export async function getSessionHandler(
   const { transcript, subagents } = found.session
   if (!transcript.ok) return errResult(toIpcErrorCode(transcript.error))
 
-  const scan = await deps.scans.run(`${projectDirName}\0${sessionId}`, () =>
+  const { path, mtimeMs, size } = transcript.value
+  const scanKey = [projectDirName, sessionId, mtimeMs, size, subagents.ok].join('\0')
+  const scan = await deps.scans.run(scanKey, () =>
     scanSession({
-      leadPath: transcript.value.path,
-      subagents: subagents.ok ? subagents.value : []
+      leadPath: path,
+      subagents: subagents.ok ? subagents.value : [],
+      subagentsUnreadable: !subagents.ok
     })
   )
   const subagentsError = subagents.ok ? null : toIpcErrorCode(subagents.error)
