@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { toAgentId, type AgentId } from '../../transcript/ids'
 import type { AgentTreeInput } from '../agentTree'
 import { resolveSpawnContexts } from '../resolveSpawnContexts'
+import type { SpawnContext } from '../spawnContext'
 import type { BranchSighting, ObservedSpawn, TranscriptSpawns } from '../spawnObserver'
 
 function agent(id: string, meta: Record<string, unknown> | null): AgentTreeInput {
@@ -31,12 +32,11 @@ const lead = transcript(
 
 function resolve(
   subagents: AgentTreeInput[],
-  others: Record<string, TranscriptSpawns> = {},
-  leadTranscript: TranscriptSpawns = lead
-): ReadonlyMap<AgentId, import('../spawnContext').SpawnContext> {
+  others: Record<string, TranscriptSpawns> = {}
+): ReadonlyMap<AgentId, SpawnContext> {
   return resolveSpawnContexts({
     subagents,
-    leadTranscript,
+    leadTranscript: lead,
     subagentTranscripts: new Map(Object.entries(others).map(([id, t]) => [toAgentId(id), t]))
   })
 }
@@ -150,7 +150,11 @@ describe('resolveSpawnContexts', () => {
   })
 
   it('leaves a subagent out when nothing resolves', () => {
-    const result = resolve([agent('a', {})], {}, transcript())
+    const result = resolveSpawnContexts({
+      subagents: [agent('a', {})],
+      leadTranscript: transcript(),
+      subagentTranscripts: new Map()
+    })
 
     expect(result.size).toBe(0)
   })
