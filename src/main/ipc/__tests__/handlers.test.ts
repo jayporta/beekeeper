@@ -124,50 +124,56 @@ describe('getSessionHandler', () => {
     expect(await getSessionHandler(ctx.deps, request)).toEqual(notFound)
   })
 
-  it('reports an unreadable subagents folder as a code-only error', async () => {
-    const dir = join(
-      ctx.tree.home,
-      '.claude',
-      'projects',
-      TEST_PROJECT,
-      TEST_SESSION_ID,
-      'subagents'
-    )
-    await chmod(dir, 0o000)
-    try {
-      const result = await getSessionHandler(ctx.deps, request)
-      expect(result.ok && result.value.subagents).toEqual({
-        ok: false,
-        error: { code: 'unreadable' }
-      })
-      expect(result.ok && result.value.reconciliation.totals.transcriptPartial).toBe(true)
-    } finally {
-      await chmod(dir, 0o755)
+  it.skipIf(process.getuid?.() === 0)(
+    'reports an unreadable subagents folder as a code-only error',
+    async () => {
+      const dir = join(
+        ctx.tree.home,
+        '.claude',
+        'projects',
+        TEST_PROJECT,
+        TEST_SESSION_ID,
+        'subagents'
+      )
+      await chmod(dir, 0o000)
+      try {
+        const result = await getSessionHandler(ctx.deps, request)
+        expect(result.ok && result.value.subagents).toEqual({
+          ok: false,
+          error: { code: 'unreadable' }
+        })
+        expect(result.ok && result.value.reconciliation.totals.transcriptPartial).toBe(true)
+      } finally {
+        await chmod(dir, 0o755)
+      }
     }
-  })
+  )
 
-  it('reports an unreadable subagent transcript as a code-only error for that agent', async () => {
-    const dir = join(
-      ctx.tree.home,
-      '.claude',
-      'projects',
-      TEST_PROJECT,
-      TEST_SESSION_ID,
-      'subagents'
-    )
-    const transcript = join(dir, 'agent-a1.jsonl')
-    await chmod(transcript, 0o000)
-    try {
-      const result = await getSessionHandler(ctx.deps, request)
-      const subagents = result.ok && result.value.subagents
-      expect(subagents && subagents.ok && subagents.value[0]?.report).toEqual({
-        ok: false,
-        error: { code: 'unreadable' }
-      })
-    } finally {
-      await chmod(transcript, 0o644)
+  it.skipIf(process.getuid?.() === 0)(
+    'reports an unreadable subagent transcript as a code-only error for that agent',
+    async () => {
+      const dir = join(
+        ctx.tree.home,
+        '.claude',
+        'projects',
+        TEST_PROJECT,
+        TEST_SESSION_ID,
+        'subagents'
+      )
+      const transcript = join(dir, 'agent-a1.jsonl')
+      await chmod(transcript, 0o000)
+      try {
+        const result = await getSessionHandler(ctx.deps, request)
+        const subagents = result.ok && result.value.subagents
+        expect(subagents && subagents.ok && subagents.value[0]?.report).toEqual({
+          ok: false,
+          error: { code: 'unreadable' }
+        })
+      } finally {
+        await chmod(transcript, 0o644)
+      }
     }
-  })
+  )
 
   it('returns not-found through the guard when the transcript vanishes mid-scan', async () => {
     const vanishing: IpcDeps['scans'] = {

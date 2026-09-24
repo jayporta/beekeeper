@@ -36,17 +36,20 @@ describe('getSessionHandler scan sharing', () => {
     expect(keys[0]).not.toBe(keys[1])
   })
 
-  it('uses a different scan key once the subagents folder becomes unreadable', async () => {
-    const keys: string[] = []
-    const deps = { projectsRoot: ctx.deps.projectsRoot, scans: recordKeys(keys) }
-    const subagentsDir = join(dirname(ctx.tree.sessionPath), TEST_SESSION_ID, 'subagents')
-    await getSessionHandler(deps, request)
-    await chmod(subagentsDir, 0o000)
-    try {
+  it.skipIf(process.getuid?.() === 0)(
+    'uses a different scan key once the subagents folder becomes unreadable',
+    async () => {
+      const keys: string[] = []
+      const deps = { projectsRoot: ctx.deps.projectsRoot, scans: recordKeys(keys) }
+      const subagentsDir = join(dirname(ctx.tree.sessionPath), TEST_SESSION_ID, 'subagents')
       await getSessionHandler(deps, request)
-    } finally {
-      await chmod(subagentsDir, 0o755)
+      await chmod(subagentsDir, 0o000)
+      try {
+        await getSessionHandler(deps, request)
+      } finally {
+        await chmod(subagentsDir, 0o755)
+      }
+      expect(keys[0]).not.toBe(keys[1])
     }
-    expect(keys[0]).not.toBe(keys[1])
-  })
+  )
 })
