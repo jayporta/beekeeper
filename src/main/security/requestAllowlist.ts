@@ -54,7 +54,7 @@ export function isDevServerUrl(url: string, devServerUrl: string | undefined): b
  * `fileURLToPath` decodes percent-encoding; `relative` then normalizes
  * away any `..` segments before the containment check runs.
  */
-function isInsideRendererRoot(fileUrl: string, rendererRoot: string): boolean {
+export function isInsideRendererRoot(fileUrl: string, rendererRoot: string): boolean {
   let filePath: string
   try {
     filePath = fileURLToPath(fileUrl)

@@ -1,7 +1,10 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { createIpcDeps } from './ipc/createIpcDeps'
+import { registerIpcHandlers } from './ipc/registerIpcHandlers'
+import { isTrustedSender } from './ipc/senderValidation'
 import { hardenDefaultSession } from './security/session'
 import { hardenWebContents } from './security/windowSecurity'
 
@@ -43,6 +46,14 @@ app.enableSandbox()
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.jayporta.beekeeper')
   hardenDefaultSession({ rendererRoot, devServerUrl })
+
+  // Registered once, before any window: `activate` recreates windows, and a
+  // channel can't be registered twice.
+  registerIpcHandlers({
+    ipcMain,
+    isTrusted: (event) => isTrustedSender(event, { rendererRoot, devServerUrl }),
+    deps: createIpcDeps(app.getPath('home'))
+  })
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
