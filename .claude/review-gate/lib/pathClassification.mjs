@@ -12,6 +12,7 @@ const SECURITY_DIR_PREFIXES = [
   '.github/',
   '.claude/hooks/',
   '.githooks/',
+  '.claude/review-gate/',
   'scripts/',
   AGENTS_PREFIX,
   'resources/'
@@ -63,8 +64,8 @@ function hasExtension(path, extensions) {
  * Checks whether a path touches a security-sensitive surface: the
  * main/preload/shared/core sources, the renderer's TS/TSX/HTML files
  * (it displays untrusted transcript content), the review gate itself
- * (`.githooks/`, `scripts/`) and its Claude Code guard (`.claude/hooks/`),
- * reviewer agent prompts (they steer the gate), or the app's build,
+ * (`.githooks/`, `.claude/review-gate/`) and its Claude Code guard
+ * (`.claude/hooks/`), build scripts (`scripts/`), reviewer agent prompts (they steer the gate), or the app's build,
  * dependency, CI, and hook configuration. Callers should skip test
  * paths first.
  * @param {string} path - A path from the diff, relative to the repo root.

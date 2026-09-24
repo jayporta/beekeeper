@@ -104,17 +104,18 @@ export function createTestRepo(options = {}) {
 
 /**
  * Creates a temporary git repository with its own self-contained copy
- * of the review gate (`scripts/review-gate` and `.githooks`), but no
- * `core.hooksPath` set, so `installHooks.mjs`'s own file-relative paths
+ * of the review gate (`.claude/review-gate` and `.githooks`), but no
+ * `core.hooksPath` set, so the installer's own file-relative paths
  * resolve inside it and its "not installed yet" behavior can be
  * exercised against a real repo instead of the one running the tests.
- * @returns {{ repoDir: string, installScript: string, cleanup: () => void }} The repo's path, its copy of installHooks.mjs, and a function that removes it.
+ * @returns {{ repoDir: string, cliScript: string, cleanup: () => void }} The repo's path, its copy of cli.mjs (run it with `install`), and a function that removes it.
  */
 export function createUninstalledRepo() {
   const repoDir = mkdtempSync(join(tmpdir(), 'beekeeper-install-'))
   initRepo(repoDir, { ...DEFAULT_SCRIPTS })
 
-  cpSync(REVIEW_GATE_DIR, join(repoDir, 'scripts', 'review-gate'), {
+  const gateCopy = join(repoDir, '.claude', 'review-gate')
+  cpSync(REVIEW_GATE_DIR, gateCopy, {
     recursive: true,
     filter: (src) => !src.includes('__tests__')
   })
@@ -125,7 +126,7 @@ export function createUninstalledRepo() {
 
   return {
     repoDir,
-    installScript: join(repoDir, 'scripts', 'review-gate', 'installHooks.mjs'),
+    cliScript: join(gateCopy, 'cli.mjs'),
     cleanup: () => rmSync(repoDir, { recursive: true, force: true })
   }
 }

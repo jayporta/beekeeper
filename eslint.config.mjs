@@ -11,7 +11,7 @@ const NETWORK_MODULE_MESSAGE =
   'Beekeeper makes no network calls. See the no-network promise in the README.'
 
 export default defineConfig(
-  { ignores: ['**/node_modules', '**/dist', '**/out'] },
+  { ignores: ['**/node_modules', '**/dist', '**/out', '.claude/worktrees/**'] },
   tseslint.configs.recommended,
   eslintPluginReact.configs.flat.recommended,
   eslintPluginReact.configs.flat['jsx-runtime'],
@@ -96,7 +96,7 @@ export default defineConfig(
     }
   },
   {
-    files: ['scripts/**/*.mjs', '.claude/hooks/**/*.mjs'],
+    files: ['.claude/{hooks,review-gate}/**/*.mjs'],
     languageOptions: {
       globals: {
         process: 'readonly',
