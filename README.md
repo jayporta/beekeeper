@@ -13,9 +13,9 @@ Tools like Langfuse, Braintrust, and Helicone are built to trace single requests
 A rough roadmap, in build order:
 
 - [x] Project scaffold, security hardening, lint, tests, and CI
-- [ ] Read and parse Claude Code transcripts
-- [ ] Agent tree, token usage, and cost estimates
-- [ ] Worktree diffs
+- [x] Read and parse Claude Code transcripts
+- [x] Agent tree, token usage, and cost estimates
+- [ ] Worktree diffs (in progress)
 - [ ] Sessions list
 - [ ] Session detail: agents, timeline, and files
 
