@@ -13,11 +13,9 @@ Beekeeper is a local-only, read-only Electron app that reads Claude Code's sessi
 
 ## Workflow
 
-- Branch off `main` for every change. Never commit directly to `main`.
+- Work in small, human-reviewable chunks, each on its own branch off `main`. Never commit directly to `main`. Finish, review, and commit one chunk before starting the next. Once its commits pass the pre-commit review, push the branch and open a pull request into `main`. The maintainer and other agents review the pull request.
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `ci:`), with an optional scope such as `feat(transcript):`. Keep descriptions concise. Don't be wordy.
-- Work in small, human-reviewable chunks. Finish, review, and commit one chunk before starting the next.
 - Track all work on the [Beekeeper project board](https://github.com/users/jayporta/projects/4). Each task is an issue, and the [v1 roadmap](https://github.com/jayporta/beekeeper/issues/2) holds the plan and links every task as a sub-issue. Move a card when its state changes, file new work as an issue before starting it, and put `Closes #n` in PR bodies.
-- Each chunk gets its own branch. Once its commits pass the pre-commit review, push the branch and open a pull request into `main`. The maintainer and other agents review the pull request.
 - CI (lint, format check, typecheck, tests, build on macOS and Ubuntu) must pass before merge.
 
 ### Pre-commit review
@@ -37,7 +35,7 @@ Commit exactly what was reviewed: stage the change, keep no unstaged edits to tr
 The loop:
 
 1. Stage the change, then run `npm run lint`, `npm run format:check`, `npm run typecheck`, and `npm test`. Fix failures before paying for any review.
-2. Run the required reviews in parallel, each by a fresh reviewer that didn't write the code, against the staged diff.
+2. Run the required reviews in parallel, each by a fresh reviewer that didn't write the code, against the staged diff. For an AI agent that means a fresh subagent, not a fork: a reviewer that inherits the author's context shares the author's blind spots.
 3. Fix every finding, or, if a finding is wrong, say why in the commit body. Re-stage.
 4. Re-run the required reviews on the new diff. Repeat until every review reports clean on the same diff. After three rounds with findings left, stop and ask the maintainer.
 5. Record the receipt with `npm run review:record`, then commit.
@@ -69,8 +67,7 @@ src/renderer/src/features/<feature>/   UI, co-located by feature
 
 - **Vertical slices.** Code is organized by feature, and everything a feature needs lives in its folder. Feature-specific helpers stay in the feature, not in a global `utils` or `lib` folder. Truly shared, feature-agnostic pieces (design-system components, pure functions) live in shared locations.
 - **Dependencies run one way.** `core` depends on nothing app-specific. `main` depends on `core` and `shared`. The renderer depends on `shared` and never on `main` or `core` directly. Components can depend on services, never the reverse.
-- **Single responsibility.** One component, hook, or logical flow per file. No catch-all files of unrelated constants and helpers.
-- **One component per file, one hook per file,** and never a hook or a Context in the same file as a component.
+- **Single responsibility.** One component, hook, or logical flow per file, and never a hook or a Context in the same file as a component. No catch-all files of unrelated constants and helpers.
 - **Size threshold.** When a source file passes 250 lines, or a change would add more than 50 lines of new logic to an existing file, extract discrete pieces (sub-components, pure transformations) into co-located files first. Before adding a function to a large file, state why it belongs there rather than in a new file. Generated data files are exempt.
 - **DRY.** Keep a single source of truth. Don't duplicate anything that can be derived, read, or called.
 - **Naming.** Components, types, and classes are `PascalCase`. Modules, variables, and functions are `camelCase`. Component files are `ComponentName.tsx`, and hooks are `useThing.ts`. ESLint (`unicorn/filename-case`) enforces file names in `src/`.
