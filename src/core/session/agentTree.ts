@@ -6,16 +6,11 @@ import {
   subagentIdentity,
   type AgentIdentity
 } from './agentIdentity'
-import { findCycleMembers } from './findCycleMembers'
+import { dedupeByAgentId, resolveParents, type ParentLinkInput } from './resolveParents'
 import type { SubagentMetaStatus } from './subagentMetaStatus'
 
 /** One subagent's id and its resolved meta status, as input to {@link buildAgentTree}. */
-export interface AgentTreeInput {
-  /** The subagent's id. */
-  readonly agentId: AgentId
-  /** The subagent's resolved meta status. */
-  readonly metaStatus: SubagentMetaStatus
-}
+export type AgentTreeInput = ParentLinkInput
 
 /** One node in a session's agent tree: the lead, a subagent, or a teammate. */
 export interface AgentTreeNode {
@@ -38,12 +33,6 @@ interface TreeContext {
 /** {@link TreeContext} plus every node {@link buildTree} has assembled so far. */
 interface NodeBuildContext extends TreeContext {
   readonly builtByKey: ReadonlyMap<string, AgentTreeNode>
-}
-
-/** A subagent's raw parent link plus which subagents fall back to the lead. */
-interface ParentResolution {
-  readonly rawParentOf: ReadonlyMap<string, AgentId>
-  readonly onCycle: ReadonlySet<string>
 }
 
 /**
@@ -73,12 +62,14 @@ interface ParentResolution {
 export function buildAgentTree(subagents: readonly AgentTreeInput[]): AgentTreeNode {
   const deduped = dedupeByAgentId(subagents)
   const inputByAgentId = new Map<string, AgentTreeInput>(deduped.map((s) => [s.agentId, s]))
-  const rawParentOf = buildRawParentMap(deduped, inputByAgentId)
-  const resolution: ParentResolution = { rawParentOf, onCycle: findCycleMembers(rawParentOf) }
+  const parentOf = resolveParents(deduped)
 
   const childIdsByParentKey = new Map<string, AgentId[]>()
   for (const subagent of deduped) {
-    const parentKey = resolveParentKey(subagent.agentId, resolution)
+    const parent = parentOf.get(subagent.agentId)
+    const parentKey = agentIdentityKey(
+      parent === undefined ? leadIdentity : subagentIdentity(parent)
+    )
     const group = childIdsByParentKey.get(parentKey)
     if (group) group.push(subagent.agentId)
     else childIdsByParentKey.set(parentKey, [subagent.agentId])
@@ -86,62 +77,6 @@ export function buildAgentTree(subagents: readonly AgentTreeInput[]): AgentTreeN
   for (const group of childIdsByParentKey.values()) group.sort(compareCodeUnits)
 
   return buildTree({ inputByAgentId, childIdsByParentKey })
-}
-
-/**
- * Keeps only the first occurrence of each agent id, so a repeated id in the
- * input can't add the same child twice under its parent.
- */
-function dedupeByAgentId(subagents: readonly AgentTreeInput[]): readonly AgentTreeInput[] {
-  const seen = new Set<string>()
-  const deduped: AgentTreeInput[] = []
-  for (const subagent of subagents) {
-    if (seen.has(subagent.agentId)) continue
-    seen.add(subagent.agentId)
-    deduped.push(subagent)
-  }
-  return deduped
-}
-
-/**
- * Builds the map of each subagent's raw, unvalidated parent: only the
- * entries whose meta resolved and whose `parentAgentId` names another
- * known subagent, resolved to that subagent's properly branded id. A
- * dangling reference, or a subagent whose meta didn't resolve, is simply
- * absent, which {@link resolveParentKey} already treats as "parent is the
- * lead".
- */
-function buildRawParentMap(
-  subagents: readonly AgentTreeInput[],
-  inputByAgentId: ReadonlyMap<string, AgentTreeInput>
-): ReadonlyMap<string, AgentId> {
-  const rawParentOf = new Map<string, AgentId>()
-
-  for (const subagent of subagents) {
-    if (subagent.metaStatus.status !== 'ok') continue
-
-    const parentAgentId = subagent.metaStatus.meta.parentAgentId
-    if (parentAgentId === undefined) continue
-
-    const parentInput = inputByAgentId.get(parentAgentId)
-    if (parentInput !== undefined) rawParentOf.set(subagent.agentId, parentInput.agentId)
-  }
-
-  return rawParentOf
-}
-
-/**
- * Resolves the identity key a subagent should be grouped under: its raw
- * parent when it isn't on a cycle and that parent resolves, otherwise the
- * lead.
- */
-function resolveParentKey(agentId: string, resolution: ParentResolution): string {
-  if (resolution.onCycle.has(agentId)) return agentIdentityKey(leadIdentity)
-
-  const rawParent = resolution.rawParentOf.get(agentId)
-  return rawParent === undefined
-    ? agentIdentityKey(leadIdentity)
-    : agentIdentityKey(subagentIdentity(rawParent))
 }
 
 /**

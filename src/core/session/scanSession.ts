@@ -13,13 +13,17 @@ import {
 } from './agentIdentity'
 import { buildAgentTree, type AgentTreeInput, type AgentTreeNode } from './agentTree'
 import type { AgentUsage } from './agentUsage'
+import { combineObservers } from './combineObservers'
 import { collectAgentReports, type AgentReports } from './collectAgentReports'
 import type { FileTouch } from './fileTouchCollector'
 import { createFilesLedger, type FileTouchEntry, type FilesLedger } from './filesLedger'
 import { groupByOwner } from './groupByOwner'
 import { reconcileUsage, type UsageReconciliation } from './reconcileUsage'
 import { readSubagentTranscript } from './readSubagentTranscript'
+import { resolveSpawnContexts } from './resolveSpawnContexts'
 import { resolveSubagentMeta } from './resolveSubagentMeta'
+import type { SpawnContext } from './spawnContext'
+import { createSpawnObserver, type TranscriptSpawns } from './spawnObserver'
 import { tapRecords } from './tapRecords'
 import { groupTokensByModelAndSpeed } from './tokenGroup'
 import { createUsageLedger, type LedgerEntry, type UsageLedger } from './usageLedger'
@@ -64,6 +68,11 @@ export interface SessionScan {
    * the lead and every readable subagent.
    */
   readonly reconciliation: UsageReconciliation
+  /**
+   * Where each subagent was spawned from, for the subagents that resolved a
+   * context. Read from every transcript, since a subagent can spawn others.
+   */
+  readonly spawnContexts: ReadonlyMap<AgentId, SpawnContext>
 }
 
 /**
@@ -97,8 +106,13 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
   const filesLedger = createFilesLedger()
 
   const lastCostState = createLastCostState()
+  const leadSpawns = createSpawnObserver()
+  const subagentSpawns = new Map<AgentId, TranscriptSpawns>()
   const leadReports = await collectAgentReports(
-    tapRecords(readRecords(leadPath, readOptions), lastCostState.observe),
+    tapRecords(
+      readRecords(leadPath, readOptions),
+      combineObservers(lastCostState.observe, leadSpawns.observe)
+    ),
     leadIdentity
   )
   applyAgentReports({ usageLedger, filesLedger, identity: leadIdentity, agentReports: leadReports })
@@ -108,9 +122,15 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
 
   for (const subagent of subagents) {
     const identity = subagentIdentity(subagent.agentId)
-    const readResult = await readSubagentTranscript({ subagent, readOptions })
+    const spawnObserver = createSpawnObserver()
+    const readResult = await readSubagentTranscript({
+      subagent,
+      readOptions,
+      observe: spawnObserver.observe
+    })
     if (readResult.ok) {
       applyAgentReports({ usageLedger, filesLedger, identity, agentReports: readResult.value })
+      subagentSpawns.set(subagent.agentId, spawnObserver.result())
     }
     subagentReadResults.set(subagent.agentId, readResult)
 
@@ -158,6 +178,11 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
       unreadableAgents:
         subagentReports.size + 1 - readableAgents.length + (subagentsUnreadable ? 1 : 0),
       costState: lastCostState.latest()
+    }),
+    spawnContexts: resolveSpawnContexts({
+      subagents: treeInputs,
+      leadTranscript: leadSpawns.result(),
+      subagentTranscripts: subagentSpawns
     })
   }
 }
