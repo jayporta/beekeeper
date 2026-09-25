@@ -57,18 +57,16 @@ Beekeeper never reads `~/.claude/sessions/*.key` (a peer token, not session data
 Beekeeper needs Node 22 or newer (CI runs on Node 24).
 
 ```bash
-npm install           # also installs the pre-commit review hook
+npm install           # install dependencies
 npm run dev           # run the app
 npm run lint          # eslint
 npm run format:check  # prettier, check only
 npm run typecheck     # tsc, no emit
 npm test              # vitest
 npm run build         # typecheck, then electron-vite build
-npm run review:plan   # which reviews the staged change needs
-npm run review:record # record that those reviews came back clean
 ```
 
-Commits go through a pre-commit review gate. `npm install` sets this clone's `core.hooksPath` to `.githooks/`, and the hook blocks `git commit` until the checks pass and a code, security, or accessibility review (whichever the change needs) has come back clean for the exact staged content. See the "Pre-commit review" section of [AGENTS.md](./AGENTS.md) for how the reviews work.
+Contributors can turn on an optional pre-commit review gate with `node .claude/review-gate/cli.mjs install`. It sets this clone's `core.hooksPath` to `.githooks/`, and the hook (which runs the gate code in `.claude/review-gate/`) then blocks `git commit` until the checks pass and a code, security, or accessibility review (whichever the change needs) has come back clean for the exact staged content. See the "Pre-commit review" section of [AGENTS.md](./AGENTS.md) for how the reviews work.
 
 ## License
 

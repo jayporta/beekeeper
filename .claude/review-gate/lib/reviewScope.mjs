@@ -32,7 +32,7 @@ export function requiredReviews(paths) {
  * Hashes a diff's exact bytes with SHA-256. The diff is expected to be
  * the output of
  * `git diff --cached --binary --no-ext-diff --no-textconv --no-color`,
- * so the pre-commit hook and `npm run review:record` always hash the
+ * so the pre-commit hook and `node .claude/review-gate/cli.mjs record` always hash the
  * same bytes for the same index.
  * @param {string | Buffer} diffText - The diff's contents, as text or raw bytes.
  * @returns {string} The hex-encoded digest.

@@ -1,2 +1,2 @@
 #!/bin/sh
-exec node "$(dirname "$0")/../scripts/review-gate/preCommit.mjs"
+exec node "$(dirname "$0")/../.claude/review-gate/preCommit.mjs"

@@ -23,7 +23,10 @@ const DEFAULT_SCRIPTS = {
  * `CLAUDE*` variable removed, so the tests prove the hook gates a
  * human or CI commit too, and so a real enclosing git hook (if these
  * tests are themselves run from one) can't leak into a nested fixture
- * repo, then any caller-supplied overrides on top.
+ * repo. Git is also told to ignore the machine's global and system
+ * config, so a developer's own settings (such as a global hooks
+ * directory) can't change a fixture's behavior. Caller-supplied
+ * overrides go on top of all of that.
  * @param {NodeJS.ProcessEnv} [overrides] - Extra environment variables.
  * @returns {NodeJS.ProcessEnv} The environment to spawn with.
  */
@@ -31,7 +34,7 @@ function plainEnv(overrides) {
   const base = Object.fromEntries(
     Object.entries(withoutGitEnv(process.env)).filter(([key]) => !key.startsWith('CLAUDE'))
   )
-  return { ...base, ...overrides }
+  return { ...base, GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1', ...overrides }
 }
 
 /**
@@ -101,17 +104,18 @@ export function createTestRepo(options = {}) {
 
 /**
  * Creates a temporary git repository with its own self-contained copy
- * of the review gate (`scripts/review-gate` and `.githooks`), but no
- * `core.hooksPath` set, so `installHooks.mjs`'s own file-relative paths
+ * of the review gate (`.claude/review-gate` and `.githooks`), but no
+ * `core.hooksPath` set, so the installer's own file-relative paths
  * resolve inside it and its "not installed yet" behavior can be
  * exercised against a real repo instead of the one running the tests.
- * @returns {{ repoDir: string, installScript: string, cleanup: () => void }} The repo's path, its copy of installHooks.mjs, and a function that removes it.
+ * @returns {{ repoDir: string, cliScript: string, cleanup: () => void }} The repo's path, its copy of cli.mjs (run it with `install`), and a function that removes it.
  */
 export function createUninstalledRepo() {
   const repoDir = mkdtempSync(join(tmpdir(), 'beekeeper-install-'))
   initRepo(repoDir, { ...DEFAULT_SCRIPTS })
 
-  cpSync(REVIEW_GATE_DIR, join(repoDir, 'scripts', 'review-gate'), {
+  const gateCopy = join(repoDir, '.claude', 'review-gate')
+  cpSync(REVIEW_GATE_DIR, gateCopy, {
     recursive: true,
     filter: (src) => !src.includes('__tests__')
   })
@@ -122,7 +126,7 @@ export function createUninstalledRepo() {
 
   return {
     repoDir,
-    installScript: join(repoDir, 'scripts', 'review-gate', 'installHooks.mjs'),
+    cliScript: join(gateCopy, 'cli.mjs'),
     cleanup: () => rmSync(repoDir, { recursive: true, force: true })
   }
 }
@@ -165,6 +169,21 @@ export function stageFile(repoDir, relativePath, content) {
 export function runGitAllowingFailure(repoDir, args, env) {
   const result = spawnSync('git', args, { cwd: repoDir, encoding: 'utf8', env: plainEnv(env) })
   return { status: result.status, stdout: result.stdout, stderr: result.stderr }
+}
+
+/**
+ * Reads the `core.hooksPath` that a repository's own `.git/config` sets,
+ * without following includes.
+ * @param {string} repoDir - The repository's directory.
+ * @returns {string} The value, or an empty string when `.git/config` doesn't set it.
+ */
+export function readLocalHooksPath(repoDir) {
+  return runGitAllowingFailure(repoDir, [
+    'config',
+    '--local',
+    '--get',
+    'core.hooksPath'
+  ]).stdout.trim()
 }
 
 /**

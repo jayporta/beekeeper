@@ -33,16 +33,20 @@ describe('requiredReviews', () => {
   })
 
   it('needs code review and security for the pre-commit hook entry', () => {
-    expect(requiredReviews(['scripts/review-gate/preCommit.mjs'])).toEqual([
+    expect(requiredReviews(['.claude/review-gate/preCommit.mjs'])).toEqual([
       'code-review',
       'security'
     ])
   })
 
   it('needs only a code review for a review-gate test file', () => {
-    expect(requiredReviews(['scripts/review-gate/lib/__tests__/reviewScope.test.mjs'])).toEqual([
+    expect(requiredReviews(['.claude/review-gate/lib/__tests__/reviewScope.test.mjs'])).toEqual([
       'code-review'
     ])
+  })
+
+  it('needs code review and security for a build or CI script', () => {
+    expect(requiredReviews(['scripts/build.mjs'])).toEqual(['code-review', 'security'])
   })
 
   it('needs code review and security for the git hooks shim', () => {

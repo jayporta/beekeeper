@@ -43,6 +43,6 @@ export function buildReviewMessage(reviews) {
     'Commit exactly the staged index you recorded (a plain git commit, not -a or a pathspec).',
     '',
     'Then record the reviewed diff:',
-    '  npm run review:record'
+    '  node .claude/review-gate/cli.mjs record'
   ].join('\n')
 }

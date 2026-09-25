@@ -22,7 +22,7 @@ describe('gate receipt lifecycle', () => {
     expect(result.stderr).toContain('security-reviewer')
   })
 
-  it('allows the commit once review:record has run and the checks pass', () => {
+  it('allows the commit once the record command has run and the checks pass', () => {
     activeRepo = createTestRepo()
     stageFile(activeRepo.repoDir, 'src/main/foo.ts', 'export const foo = 1\n')
 
