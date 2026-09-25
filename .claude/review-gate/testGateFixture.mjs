@@ -172,6 +172,21 @@ export function runGitAllowingFailure(repoDir, args, env) {
 }
 
 /**
+ * Reads the `core.hooksPath` that a repository's own `.git/config` sets,
+ * without following includes.
+ * @param {string} repoDir - The repository's directory.
+ * @returns {string} The value, or an empty string when `.git/config` doesn't set it.
+ */
+export function readLocalHooksPath(repoDir) {
+  return runGitAllowingFailure(repoDir, [
+    'config',
+    '--local',
+    '--get',
+    'core.hooksPath'
+  ]).stdout.trim()
+}
+
+/**
  * Runs a real `git commit`, through the repo's configured hooks, and
  * reports the result instead of throwing on a non-zero exit.
  * @param {string} repoDir - The repository's directory.
