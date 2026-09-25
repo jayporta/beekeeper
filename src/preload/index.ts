@@ -11,7 +11,9 @@ const api: BeekeeperApi = {
   listSessions: (projectDirName) =>
     ipcRenderer.invoke(IPC_CHANNELS.listSessions, { projectDirName }),
   getSession: (projectDirName, sessionId) =>
-    ipcRenderer.invoke(IPC_CHANNELS.getSession, { projectDirName, sessionId })
+    ipcRenderer.invoke(IPC_CHANNELS.getSession, { projectDirName, sessionId }),
+  getWorktreeDiffs: (projectDirName, sessionId) =>
+    ipcRenderer.invoke(IPC_CHANNELS.getWorktreeDiffs, { projectDirName, sessionId })
 }
 
 contextBridge.exposeInMainWorld('beekeeper', api)
