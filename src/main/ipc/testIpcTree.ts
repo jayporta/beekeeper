@@ -8,9 +8,12 @@ import {
 import { buildDiscoveryTree, type DiscoveryTree } from '../../core/transcript/testDiscoveryTree'
 import { createIpcDeps } from './createIpcDeps'
 import type { IpcDeps } from './ipcDeps'
+import type { SessionScanCache } from './sessionScanCache'
 
 /** A synthetic project folder name. */
 export const TEST_PROJECT = '-Users-test-proj'
+/** A scan cache that never hits, so every scan reaches the scheduler. */
+export const NO_SCAN_CACHE: SessionScanCache = { get: () => undefined, set: () => {} }
 /** A synthetic session id. */
 export const TEST_SESSION_ID = '1a1a1a1a-1111-4111-8111-11111111111b'
 /** A meta field no whitelist knows about, to prove it is dropped. */

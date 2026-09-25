@@ -1,19 +1,18 @@
-import { scanSession } from '../../core/session/scanSession'
 import type { IpcResult } from '../../shared/ipc/ipcResult'
-import { getSessionRequestSchema } from '../../shared/ipc/requestSchemas'
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
-import { findSession } from './findProject'
+import { findRequestedSession } from './findRequestedSession'
 import type { IpcDeps } from './ipcDeps'
-import { errResult, okResult } from './ipcResults'
+import { okResult } from './ipcResults'
 import { mapSessionScan } from './mapSessionScan'
+import { scanFoundSession } from './scanFoundSession'
 import { toIpcErrorCode } from './toIpcErrorCode'
 
 /**
- * Scans one session in full. Concurrent calls for the same session state
- * (same transcript size and mtime) share one scan, and the scheduler caps
- * how many sessions scan at once.
+ * Scans one session in full. Calls for the same session state (same lead
+ * and subagent files) share one scan or its cached result, and the scheduler
+ * caps how many sessions scan at once.
  *
- * @param deps - The projects root and the scan scheduler.
+ * @param deps - The projects root, the scan scheduler, and the scan cache.
  * @param payload - The renderer's payload, validated here.
  * @returns The session detail, `invalid-request` for a bad payload, or
  * `not-found` when the project or session isn't in a fresh listing. A
@@ -22,32 +21,15 @@ import { toIpcErrorCode } from './toIpcErrorCode'
  * inside the detail as `subagents: { ok: false }`.
  */
 export async function getSessionHandler(
-  deps: Pick<IpcDeps, 'projectsRoot' | 'scans'>,
+  deps: Pick<IpcDeps, 'projectsRoot' | 'scans' | 'scanCache'>,
   payload: unknown
 ): Promise<IpcResult<SessionDetailDto>> {
-  const request = getSessionRequestSchema.safeParse(payload)
-  if (!request.success) return errResult('invalid-request')
+  const requested = await findRequestedSession(deps, payload)
+  if (!requested.ok) return requested
 
-  const { projectDirName, sessionId } = request.data
-  const found = await findSession({
-    projectsRoot: deps.projectsRoot,
-    dirName: projectDirName,
-    sessionId
-  })
-  if (found === undefined) return errResult('not-found')
-
-  const { transcript, subagents } = found.session
-  if (!transcript.ok) return errResult(toIpcErrorCode(transcript.error))
-
-  const { path, mtimeMs, size } = transcript.value
-  const scanKey = [projectDirName, sessionId, mtimeMs, size, subagents.ok].join('\0')
-  const scan = await deps.scans.run(scanKey, () =>
-    scanSession({
-      leadPath: path,
-      subagents: subagents.ok ? subagents.value : [],
-      subagentsUnreadable: !subagents.ok
-    })
-  )
+  const { sessionId, found, transcript } = requested.value
+  const scan = await scanFoundSession({ deps, found, transcript })
+  const { subagents } = found.session
   const subagentsError = subagents.ok ? null : toIpcErrorCode(subagents.error)
   return okResult(mapSessionScan({ sessionId, scan, subagentsError }))
 }
