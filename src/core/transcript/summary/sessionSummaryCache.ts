@@ -34,8 +34,9 @@ export interface SessionSummaryCache {
 /**
  * Creates a summary cache keyed by transcript path, holding one entry per
  * transcript it has scanned and evicting none. An entry holds a capped
- * title, a cost total, two timestamps, and a count, so a `~/.claude` of a
- * few thousand sessions costs a few megabytes; an eviction policy waits
+ * title, a cost total, two timestamps, a count, and a role carrying at most
+ * three capped strings, so a `~/.claude` of a few thousand sessions costs a
+ * few megabytes; an eviction policy waits
  * until there's an access pattern to base one on.
  *
  * An entry is reused only while the file's `mtimeMs` and `size` both match

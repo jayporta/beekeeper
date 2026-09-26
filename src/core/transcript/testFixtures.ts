@@ -64,6 +64,30 @@ export function buildAssistantRecord(
   }
 }
 
+/** Builds a synthetic `agent-setting` record, as a teammate agent's transcript begins with. */
+export function buildAgentSettingRecord(
+  agentSetting: unknown = 'general-purpose'
+): Record<string, unknown> {
+  return { type: 'agent-setting', agentSetting }
+}
+
+interface UserRecordOverrides {
+  /** Merged onto the built record as top-level fields, e.g. to set `agentName` or `teamName`. */
+  readonly extra?: Record<string, unknown>
+}
+
+/** Builds a minimal synthetic `user` record. */
+export function buildUserRecord(overrides: UserRecordOverrides = {}): Record<string, unknown> {
+  const { extra = {} } = overrides
+
+  return {
+    type: 'user',
+    timestamp: '2026-01-01T00:00:00.000Z',
+    message: { role: 'user', content: 'hello' },
+    ...extra
+  }
+}
+
 /**
  * Builds two `assistant` records sharing one `message.id`, as one API
  * response split across lines, with `output_tokens` growing on the second.
