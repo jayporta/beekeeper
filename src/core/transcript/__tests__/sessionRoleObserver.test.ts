@@ -3,6 +3,14 @@ import type { SessionRole } from '../sessionRole'
 import { createSessionRoleObserver } from '../sessionRoleObserver'
 import { buildAgentSettingRecord, buildAssistantRecord, buildUserRecord } from '../testFixtures'
 
+/**
+ * The observer's own cap on an agent type, name, or team, in UTF-16 code
+ * units. Kept here rather than exported from the module, and pinned by the
+ * pair of tests that a value of exactly this length is kept and one code
+ * unit more is not.
+ */
+const CAP_CODE_UNITS = 256
+
 function observeAll(records: readonly Record<string, unknown>[]): SessionRole {
   const observer = createSessionRoleObserver()
   for (const record of records) observer.observe(record)
@@ -59,7 +67,9 @@ describe('createSessionRoleObserver', () => {
   })
 
   it('stores null for an oversized value but keeps the agent classification', () => {
-    expect(observeAll([buildUserRecord({ extra: { teamName: 'x'.repeat(257) } })])).toEqual({
+    const overCap = 'x'.repeat(CAP_CODE_UNITS + 1)
+
+    expect(observeAll([buildUserRecord({ extra: { teamName: overCap } })])).toEqual({
       kind: 'agent',
       agentType: null,
       agentName: null,
@@ -84,10 +94,19 @@ describe('createSessionRoleObserver', () => {
   })
 
   it('keeps a value of exactly the cap', () => {
-    const atCap = 'x'.repeat(256)
+    const atCap = 'x'.repeat(CAP_CODE_UNITS)
 
     expect(observeAll([buildUserRecord({ extra: { teamName: atCap } })])).toMatchObject({
       teamName: atCap
+    })
+  })
+
+  it('stores null for a value that NFC expands past the cap', () => {
+    const expanding = '\u0958'.repeat(CAP_CODE_UNITS)
+
+    expect(observeAll([buildUserRecord({ extra: { teamName: expanding } })])).toMatchObject({
+      kind: 'agent',
+      teamName: null
     })
   })
 

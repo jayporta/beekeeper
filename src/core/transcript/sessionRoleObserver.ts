@@ -29,18 +29,21 @@ export interface SessionRoleObserver {
 
 /**
  * A printable string within the cap that isn't blank, trimmed and normalized
- * to NFC, or `null`. The cap is checked first, so an oversized value is
- * rejected without being scanned. Trimming and normalizing matter because
- * these values name a session's team and agent: `"scout "` and `"scout"`, or
- * a precomposed and a decomposed spelling of one name, display identically,
- * and storing both verbatim would show one agent as two.
+ * to NFC, or `null`. The cap is checked before anything scans the value, so
+ * an oversized one costs nothing, and again after normalizing, since NFC
+ * expands a code point excluded from composition rather than shortening it.
+ * Trimming and normalizing matter because these values name a session's team
+ * and agent: `"scout "` and `"scout"`, or a precomposed and a decomposed
+ * spelling of one name, display identically, and storing both verbatim would
+ * show one agent as two.
  */
 function usable(value: unknown): string | null {
   if (typeof value !== 'string' || value.length > MAX_ROLE_FIELD_CODE_UNITS) return null
   if (UNPRINTABLE_PATTERN.test(value)) return null
 
   const trimmed = value.trim().normalize('NFC')
-  return trimmed === '' ? null : trimmed
+  if (trimmed === '' || trimmed.length > MAX_ROLE_FIELD_CODE_UNITS) return null
+  return trimmed
 }
 
 /**
