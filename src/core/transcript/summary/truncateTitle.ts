@@ -1,3 +1,5 @@
+import { detachFromParent } from '../detachFromParent'
+
 /**
  * The longest title the summary keeps, in UTF-16 code units, so a character
  * outside the Basic Multilingual Plane counts as two. Real titles are a
@@ -33,22 +35,4 @@ export function truncateTitle(title: string): string {
   const endsMidPair = lastUnit >= HIGH_SURROGATE_FIRST && lastUnit <= HIGH_SURROGATE_LAST
 
   return detachFromParent(endsMidPair ? prefix.slice(0, -1) : prefix)
-}
-
-/**
- * Copies a short string so it stops referencing the one it was sliced from.
- *
- * V8 represents a slice of a long string as a view onto its parent, so
- * returning the slice alone would keep the whole untrusted title alive for
- * as long as the summary is cached, which is what the cap exists to
- * prevent. Rebuilding the string from its parts allocates one that stands
- * on its own. This is deliberate rather than redundant: dropping it
- * restores the alias, and the cost is bounded because the input is already
- * capped.
- *
- * @param text - An already-capped string.
- * @returns An equal string that holds no reference to a larger one.
- */
-function detachFromParent(text: string): string {
-  return [...text].join('')
 }

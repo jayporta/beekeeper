@@ -9,6 +9,7 @@ import {
   buildJsonlTextWithPartialLastLine,
   buildUserRecord
 } from '../../testFixtures'
+import { buildTaskStopRecord, buildTeammateSpawnRecord } from '../../testTeammateFixtures'
 import { scanSessionSummary } from '../scanSessionSummary'
 import { createTranscriptDir, type TranscriptDir } from '../testTranscriptDir'
 
@@ -171,7 +172,8 @@ describe('scanSessionSummary', () => {
       cost: null,
       activity: null,
       skippedLines: 0,
-      role: { kind: 'lead' }
+      role: { kind: 'lead' },
+      teamSpawns: { spawns: [], stops: [], truncated: false }
     })
   })
 
@@ -193,7 +195,8 @@ describe('scanSessionSummary', () => {
         latestMs: Date.parse('2026-01-01T00:02:00.000Z')
       },
       skippedLines: 0,
-      role: { kind: 'lead' }
+      role: { kind: 'lead' },
+      teamSpawns: { spawns: [], stops: [], truncated: false }
     })
   })
 
@@ -291,6 +294,37 @@ describe('scanSessionSummary', () => {
       const summary = await scanSessionSummary(filePath)
 
       expect([summary.role.kind, summary.skippedLines]).toEqual(['agent', 1])
+    })
+  })
+
+  describe('team spawns', () => {
+    it('returns empty lists for a transcript that spawned no teammate', async () => {
+      const filePath = writeTranscript(buildJsonlText([buildUserRecord(), buildAssistantRecord()]))
+
+      expect((await scanSessionSummary(filePath)).teamSpawns).toEqual({
+        spawns: [],
+        stops: [],
+        truncated: false
+      })
+    })
+
+    it('collects a spawn and a stop from one pass', async () => {
+      const filePath = writeTranscript(
+        buildJsonlText([buildTeammateSpawnRecord(), buildTaskStopRecord({ taskId: 'scout' })])
+      )
+
+      expect((await scanSessionSummary(filePath)).teamSpawns).toEqual({
+        spawns: [
+          {
+            agentName: 'scout',
+            teamName: 'team-1',
+            agentType: 'Explore',
+            rawToolUseId: 'toolu_spawn'
+          }
+        ],
+        stops: [{ agentName: 'scout', teamName: 'team-1' }],
+        truncated: false
+      })
     })
   })
 })
