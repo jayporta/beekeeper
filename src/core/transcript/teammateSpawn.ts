@@ -6,8 +6,16 @@ export interface TeammateSpawn {
   readonly teamName: string | null
   /** The teammate's agent type, or `null` when the spawn recorded none. */
   readonly agentType: string | null
-  /** The id of the `Agent` call that spawned it, or `null` when the result carried none. */
-  readonly toolUseId: string | null
+  /**
+   * The id of the `Agent` call that spawned it, exactly as the transcript
+   * wrote it, or `null` when the record carried no `tool_result` block or
+   * several, or when its id was empty or longer than the block cap, which
+   * drops the whole block.
+   * Kept byte for byte because it joins a teammate to its spawning call, so
+   * unlike the labels beside it, it is not sanitized: a consumer that shows
+   * one has to make it safe to display.
+   */
+  readonly rawToolUseId: string | null
 }
 
 /** One teammate a transcript stopped with `TaskStop`, paired with the team it most plausibly belonged to. */

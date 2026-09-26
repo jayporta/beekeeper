@@ -315,7 +315,12 @@ describe('scanSessionSummary', () => {
 
       expect((await scanSessionSummary(filePath)).teamSpawns).toEqual({
         spawns: [
-          { agentName: 'scout', teamName: 'team-1', agentType: 'Explore', toolUseId: 'toolu_spawn' }
+          {
+            agentName: 'scout',
+            teamName: 'team-1',
+            agentType: 'Explore',
+            rawToolUseId: 'toolu_spawn'
+          }
         ],
         stops: [{ agentName: 'scout', teamName: 'team-1' }],
         truncated: false

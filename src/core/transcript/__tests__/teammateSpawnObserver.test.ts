@@ -25,7 +25,7 @@ function collect(records: readonly Record<string, unknown>[]): TranscriptTeamSpa
 describe('createTeammateSpawnObserver', () => {
   it('collects a teammate spawn with its name, team and type', () => {
     expect(collect([buildTeammateSpawnRecord()]).spawns).toEqual([
-      { agentName: 'scout', teamName: 'team-1', agentType: 'Explore', toolUseId: 'toolu_spawn' }
+      { agentName: 'scout', teamName: 'team-1', agentType: 'Explore', rawToolUseId: 'toolu_spawn' }
     ])
   })
 
@@ -44,7 +44,7 @@ describe('createTeammateSpawnObserver', () => {
     ])
 
     expect(result.spawns).toEqual([
-      { agentName: 'scout', teamName: 'team-1', agentType: 'Explore', toolUseId: 'toolu_spawn' }
+      { agentName: 'scout', teamName: 'team-1', agentType: 'Explore', rawToolUseId: 'toolu_spawn' }
     ])
   })
 
@@ -103,17 +103,31 @@ describe('createTeammateSpawnObserver', () => {
   it('collects the tool_use_id of the spawning call', () => {
     const record = buildTeammateSpawnRecord({ toolUseId: 'toolu_abc' })
 
-    expect(collect([record]).spawns[0]?.toolUseId).toBe('toolu_abc')
+    expect(collect([record]).spawns[0]?.rawToolUseId).toBe('toolu_abc')
   })
 
-  it('records a null toolUseId when the id is not a printable label', () => {
-    const record = buildTeammateSpawnRecord({ toolUseId: 'toolu\nabc' })
+  it('keeps a rawToolUseId verbatim, since it joins a spawn rather than labelling it', () => {
+    const record = buildTeammateSpawnRecord({ toolUseId: ' toolu\nabc ' })
 
-    expect(collect([record]).spawns[0]?.toolUseId).toBeNull()
+    expect(collect([record]).spawns[0]?.rawToolUseId).toBe(' toolu\nabc ')
   })
 
-  it('records a null toolUseId when no tool_result block carries one', () => {
-    expect(collect([buildTeammateSpawnRecord({ toolUseId: null })]).spawns[0]?.toolUseId).toBeNull()
+  it('records a null rawToolUseId for an empty id', () => {
+    expect(
+      collect([buildTeammateSpawnRecord({ toolUseId: '' })]).spawns[0]?.rawToolUseId
+    ).toBeNull()
+  })
+
+  it('records a null rawToolUseId for an id over the block cap', () => {
+    const record = buildTeammateSpawnRecord({ toolUseId: 'x'.repeat(257) })
+
+    expect(collect([record]).spawns[0]?.rawToolUseId).toBeNull()
+  })
+
+  it('records a null rawToolUseId when no tool_result block carries one', () => {
+    expect(
+      collect([buildTeammateSpawnRecord({ toolUseId: null })]).spawns[0]?.rawToolUseId
+    ).toBeNull()
   })
 
   it('records a null agent type when the result has none', () => {

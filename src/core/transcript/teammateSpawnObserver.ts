@@ -22,10 +22,7 @@ const TEAMMATE_TASK_TYPE = 'in_process_teammate'
 
 /**
  * The id of the tool call a record's sole `tool_result` block answers, exactly
- * as written, or `null` when it has none or several. Ids are identifiers, so
- * matching them uses this raw value rather than a cleaned one. A spawn that
- * keeps its id still cleans it, because that copy outlives the scan in the
- * summary cache and so has to be capped and detached like any other value.
+ * as written, or `null` when it has none or several.
  */
 function resultToolUseId(record: Record<string, unknown>): string | null {
   const block = parseSoleToolResultBlock(messageContentBlocks(record))
@@ -48,10 +45,10 @@ interface StopCandidate {
  * discriminator: a named `Agent` call may be a fork or a background agent.
  *
  * A spawn without a usable name is skipped, and a repeated (team, name)
- * keeps its first entry, so its `agentType` and `toolUseId` describe the
+ * keeps its first entry, so its `agentType` and `rawToolUseId` describe the
  * first call. The team is the result's `team_name`, falling back to what
  * follows the last `@` in `agent_id` when `team_name` is absent or unusable.
- * A spawn's `toolUseId` is read from the record's `tool_result` block, only
+ * A spawn's `rawToolUseId` is read from the record's `tool_result` block, only
  * for records that are spawns.
  *
  * One record's `TaskStop` blocks are collected before its own
@@ -117,11 +114,13 @@ export function createTeammateSpawnObserver(): TeammateSpawnObserver {
       return
     }
     spawnKeys.add(key)
+    const toolUseId = resultToolUseId(record)
     spawns.push({
       agentName,
       teamName,
       agentType: toAgentLabel(parsed.data.agent_type),
-      toolUseId: toAgentLabel(resultToolUseId(record))
+      // An empty string is not an identifier, so it joins nothing.
+      rawToolUseId: toolUseId === '' ? null : toolUseId
     })
   }
 
