@@ -1,11 +1,13 @@
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
+  buildAgentSettingRecord,
   buildAiTitleRecord,
   buildAssistantRecord,
   buildCostStateRecord,
   buildJsonlText,
-  buildJsonlTextWithPartialLastLine
+  buildJsonlTextWithPartialLastLine,
+  buildUserRecord
 } from '../../testFixtures'
 import { scanSessionSummary } from '../scanSessionSummary'
 import { createTranscriptDir, type TranscriptDir } from '../testTranscriptDir'
@@ -164,7 +166,13 @@ describe('scanSessionSummary', () => {
 
     const summary = await scanSessionSummary(filePath)
 
-    expect(summary).toEqual({ title: null, cost: null, activity: null, skippedLines: 0 })
+    expect(summary).toEqual({
+      title: null,
+      cost: null,
+      activity: null,
+      skippedLines: 0,
+      role: { kind: 'lead' }
+    })
   })
 
   it('summarizes a subagent transcript, which carries no title and no cost-state', async () => {
@@ -184,7 +192,8 @@ describe('scanSessionSummary', () => {
         earliestMs: Date.parse('2026-01-01T00:02:00.000Z'),
         latestMs: Date.parse('2026-01-01T00:02:00.000Z')
       },
-      skippedLines: 0
+      skippedLines: 0,
+      role: { kind: 'lead' }
     })
   })
 
@@ -231,5 +240,57 @@ describe('scanSessionSummary', () => {
 
   it('rejects a transcript that does not exist', async () => {
     await expect(scanSessionSummary(join(dir.root, 'missing.jsonl'))).rejects.toThrow()
+  })
+
+  describe('role', () => {
+    it('reads a transcript with no agent markers as a lead', async () => {
+      const filePath = writeTranscript(buildJsonlText([buildUserRecord(), buildAssistantRecord()]))
+
+      expect((await scanSessionSummary(filePath)).role).toEqual({ kind: 'lead' })
+    })
+
+    it('reads an empty file as a lead', async () => {
+      expect((await scanSessionSummary(writeTranscript(''))).role).toEqual({ kind: 'lead' })
+    })
+
+    it('reads an agent session with its type, name, and team', async () => {
+      const filePath = writeTranscript(
+        buildJsonlText([
+          buildAgentSettingRecord('Explore'),
+          buildUserRecord({ extra: { agentName: 'scout', teamName: 'team-1' } })
+        ])
+      )
+
+      expect((await scanSessionSummary(filePath)).role).toEqual({
+        kind: 'agent',
+        agentType: 'Explore',
+        agentName: 'scout',
+        teamName: 'team-1'
+      })
+    })
+
+    it('reads an agent session with no teamName as having a null team', async () => {
+      const filePath = writeTranscript(
+        buildJsonlText([
+          buildAgentSettingRecord('Explore'),
+          buildUserRecord({ extra: { agentName: 'scout' } })
+        ])
+      )
+
+      expect((await scanSessionSummary(filePath)).role).toMatchObject({
+        kind: 'agent',
+        teamName: null
+      })
+    })
+
+    it('classifies an agent session whose first line is unparseable and still counts the line', async () => {
+      const filePath = writeTranscript(
+        'not json\n' + buildJsonlText([buildAgentSettingRecord('Explore')])
+      )
+
+      const summary = await scanSessionSummary(filePath)
+
+      expect([summary.role.kind, summary.skippedLines]).toEqual(['agent', 1])
+    })
   })
 })

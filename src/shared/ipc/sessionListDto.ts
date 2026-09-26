@@ -1,4 +1,5 @@
 import type { IpcResult } from './ipcResult'
+import type { SessionRoleDto } from './sessionRoleDto'
 
 /** What a scan of a session's transcript found, without its agent tree. */
 export interface SessionSummaryDto {
@@ -10,6 +11,8 @@ export interface SessionSummaryDto {
   readonly activity: { readonly earliestMs: number; readonly latestMs: number } | null
   /** How many lines could not be read as records. */
   readonly skippedLines: number
+  /** Whether the session is a lead or a teammate agent; `lead` means no agent marker was seen. */
+  readonly role: SessionRoleDto
 }
 
 /** One session in a project's session list. */

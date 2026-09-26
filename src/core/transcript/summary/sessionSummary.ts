@@ -1,3 +1,5 @@
+import type { SessionRole } from '../sessionRole'
+
 /**
  * The window a transcript's records cover, taken as the smallest and
  * largest timestamp in the file rather than its first and last lines, since
@@ -48,4 +50,11 @@ export interface SessionSummary {
    * content, since transcripts are untrusted input.
    */
   readonly skippedLines: number
+  /**
+   * Whether the transcript belongs to a lead session or a teammate agent.
+   * Meaningful only for a top-level transcript: `lead` means no agent
+   * marker was seen, as in a subagent transcript or one written by an older
+   * Claude Code version, rather than a claim that a session led a team.
+   */
+  readonly role: SessionRole
 }

@@ -5,6 +5,7 @@ import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
 import { findProject } from './findProject'
 import type { IpcDeps } from './ipcDeps'
 import { errResult, okResult } from './ipcResults'
+import { mapSessionRole } from './mapSessionRole'
 import { toIpcErrorCode } from './toIpcErrorCode'
 
 async function mapSession(
@@ -42,7 +43,8 @@ async function mapSession(
                   earliestMs: summary.value.activity.earliestMs,
                   latestMs: summary.value.activity.latestMs
                 },
-          skippedLines: summary.value.skippedLines
+          skippedLines: summary.value.skippedLines,
+          role: mapSessionRole(summary.value.role)
         })
       : errResult(toIpcErrorCode(summary.error))
   }
