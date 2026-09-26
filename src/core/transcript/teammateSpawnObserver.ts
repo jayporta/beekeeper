@@ -34,6 +34,12 @@ interface StopCandidate {
   readonly agentName: string
   /** The team the `task_id` itself named, or `null` when it had no `@team`. */
   readonly statedTeam: string | null
+  /**
+   * The team the name's latest spawn had when the stop occurred: `null` when
+   * that spawn named no team, and `undefined` when no spawn of the name had
+   * been seen yet, which is the only case that defers to the end of the file.
+   */
+  readonly observedTeam: string | null | undefined
   /** Set once the result reports a task that is not a teammate. */
   excluded: boolean
 }
@@ -68,9 +74,11 @@ interface StopCandidate {
  * result is read, then the survivors are listed once per (team, name) in
  * file order, so a shell stop named like a teammate can't erase the
  * teammate's real stop. A stop's team is its stated team, else the team of
- * the most recent observed spawn of that name, wherever in the file it sits,
- * else `null`, since the spawning transcript may be another one. That is a
- * best guess when a name was reused across teams.
+ * the name's latest spawn observed when the stop occurred, which may itself
+ * be none. Only a stop with no spawn of its name observed at all falls back
+ * to the name's final team, so a stop whose spawn comes later in the file
+ * still gets one, and `null` remains for a name this transcript never
+ * spawned, since the spawning transcript may be another one.
  *
  * Spawns and `TaskStop` calls are each capped at {@link MAX_TEAMMATE_ENTRIES}
  * and `truncated` is set whenever one is dropped for it. A call still
@@ -138,7 +146,14 @@ export function createTeammateSpawnObserver(): TeammateSpawnObserver {
       return
     }
 
-    const candidate: StopCandidate = { agentName, statedTeam, excluded: false }
+    const candidate: StopCandidate = {
+      agentName,
+      statedTeam,
+      observedTeam: latestTeamByName.has(agentName)
+        ? (latestTeamByName.get(agentName) ?? null)
+        : undefined,
+      excluded: false
+    }
     candidates.push(candidate)
     const parsed = toolUseBlockSchema.safeParse(block)
     if (parsed.success) pendingById.set(parsed.data.id, candidate)
@@ -162,9 +177,11 @@ export function createTeammateSpawnObserver(): TeammateSpawnObserver {
 
   function resolvedStops(): TeammateStop[] {
     const stops = new Map<string, TeammateStop>()
-    for (const { agentName, statedTeam, excluded } of candidates) {
+    for (const { agentName, statedTeam, observedTeam, excluded } of candidates) {
       if (excluded) continue
-      const teamName = statedTeam ?? latestTeamByName.get(agentName) ?? null
+      const observed =
+        observedTeam === undefined ? (latestTeamByName.get(agentName) ?? null) : observedTeam
+      const teamName = statedTeam ?? observed
       const key = `${teamName ?? ''}\0${agentName}`
       if (!stops.has(key)) stops.set(key, { agentName, teamName })
     }
