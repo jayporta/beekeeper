@@ -3,6 +3,7 @@ import type { ReadJsonlLinesOptions } from '../readJsonlLines'
 import { readRecords } from '../readRecords'
 import { aiTitleRecordSchema } from '../schemas'
 import { createSessionRoleObserver } from '../sessionRoleObserver'
+import { createTeammateSpawnObserver } from '../teammateSpawnObserver'
 import { recordTimestampMs } from './recordTimestampMs'
 import type { ActivitySpan, RecordedCost, SessionSummary } from './sessionSummary'
 import { truncateTitle } from './truncateTitle'
@@ -10,7 +11,8 @@ import { truncateTitle } from './truncateTitle'
 /**
  * Reads a transcript once and reports what a sessions list needs to show:
  * its title, its recorded cost, the span its records cover, and whether it
- * is a lead or a teammate agent session.
+ * is a lead or a teammate agent session, and which teammates it spawned
+ * and stopped.
  *
  * Every line is parsed. A substring prefilter ahead of `JSON.parse` was
  * measured against real transcripts and skips 1.4% of their bytes, so
@@ -22,8 +24,9 @@ import { truncateTitle } from './truncateTitle'
  * transcript run backwards.
  *
  * Only what the summary displays is kept: the title is capped at a
- * displayable length, the cost state is reduced to its total, and the
- * role's agent type, name and team are capped and dropped unless printable,
+ * displayable length, the cost state is reduced to its total, the role's
+ * agent type, name and team are capped and dropped unless printable, and
+ * the spawn and stop lists hold only those labels, deduplicated and capped,
  * so an oversized or padded record can't sit in the summary cache for as
  * long as the app runs.
  *
@@ -45,6 +48,7 @@ export async function scanSessionSummary(
   let title: string | null = null
   const lastCostState = createLastCostState()
   const roleObserver = createSessionRoleObserver()
+  const teammateObserver = createTeammateSpawnObserver()
   let earliestMs: number | null = null
   let latestMs: number | null = null
   let skippedLines = 0
@@ -64,6 +68,7 @@ export async function scanSessionSummary(
 
     lastCostState.observe(record)
     roleObserver.observe(record)
+    teammateObserver.observe(record)
     if (record.type === 'ai-title') {
       const aiTitle = aiTitleRecordSchema.safeParse(record)
       if (aiTitle.success) title = truncateTitle(aiTitle.data.aiTitle)
@@ -76,5 +81,12 @@ export async function scanSessionSummary(
   const activity: ActivitySpan | null =
     earliestMs === null || latestMs === null ? null : { earliestMs, latestMs }
 
-  return { title, cost, activity, skippedLines, role: roleObserver.role() }
+  return {
+    title,
+    cost,
+    activity,
+    skippedLines,
+    role: roleObserver.role(),
+    teamSpawns: teammateObserver.result()
+  }
 }
