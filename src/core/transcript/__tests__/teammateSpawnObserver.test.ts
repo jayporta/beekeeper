@@ -204,6 +204,15 @@ describe('createTeammateSpawnObserver', () => {
     expect(result.stops).toEqual([])
   })
 
+  it('excludes a stop whose block id is empty, since its result can still match it', () => {
+    const result = collect([
+      buildTaskStopRecord({ toolUseId: '' }),
+      buildTaskStopResultRecord('local_bash', '')
+    ])
+
+    expect(result.stops).toEqual([])
+  })
+
   it('keeps a stop whose result reports an in_process_teammate task', () => {
     const result = collect([
       buildTaskStopRecord(),
@@ -269,6 +278,32 @@ describe('createTeammateSpawnObserver', () => {
     expect(result.stops).toEqual([{ agentName: 'scout', teamName: null }])
   })
 
+  it('flags truncated when a genuine stop is dropped before an excluding result arrives', () => {
+    const others = Array.from({ length: MAX_TEAMMATE_ENTRIES - 1 }, (_, index) =>
+      buildTaskStopRecord({ taskId: `other-${index}`, toolUseId: `toolu_${index}` })
+    )
+    const result = collect([
+      buildTaskStopRecord({ toolUseId: 'toolu_bash' }),
+      ...others,
+      buildTaskStopRecord({ toolUseId: 'toolu_real' }),
+      buildTaskStopResultRecord('local_bash', 'toolu_bash')
+    ])
+
+    expect([result.stops.some((stop) => stop.agentName === 'scout'), result.truncated]).toEqual([
+      false,
+      true
+    ])
+  })
+
+  it('does not resolve a result whose tool_use_id differs only by a trailing space', () => {
+    const result = collect([
+      buildTaskStopRecord({ toolUseId: 'toolu_a' }),
+      buildTaskStopResultRecord('local_bash', 'toolu_a ')
+    ])
+
+    expect(result.stops).toEqual([{ agentName: 'scout', teamName: null }])
+  })
+
   it('flags truncated when excluded stops fill the cap and a genuine stop is dropped', () => {
     const excluded = Array.from({ length: MAX_TEAMMATE_ENTRIES }, (_, index) => [
       buildTaskStopRecord({ toolUseId: `toolu_${index}` }),
@@ -316,20 +351,11 @@ describe('createTeammateSpawnObserver', () => {
     expect(collect([buildTaskStopRecord({ taskId })]).stops).toEqual([])
   })
 
-  it('does not count a repeated stop of one name toward the cap or truncated', () => {
+  it('lists one stop for repeats past the cap and flags truncated, over-reporting rather than risk hiding a drop', () => {
     const records = Array.from({ length: MAX_TEAMMATE_ENTRIES + 5 }, () => buildTaskStopRecord())
     const result = collect(records)
 
-    expect([result.stops.length, result.truncated]).toEqual([1, false])
-  })
-
-  it('matches a stop to its result when the cleaner alters the id', () => {
-    const result = collect([
-      buildTaskStopRecord({ toolUseId: ' toolu_a ' }),
-      buildTaskStopResultRecord('local_bash', 'toolu_a')
-    ])
-
-    expect(result.stops).toEqual([])
+    expect([result.stops.length, result.truncated]).toEqual([1, true])
   })
   it('keeps a stop whose name matches no spawn with a null team', () => {
     const result = collect([

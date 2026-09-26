@@ -1,7 +1,7 @@
 import { toAgentLabel } from './agentLabel'
 import { isRecordObject } from './isRecordObject'
 import { messageContentBlocks } from './messageContentBlocks'
-import { teammateSpawnResultSchema } from './schemas'
+import { teammateSpawnResultSchema, toolUseBlockSchema } from './schemas'
 import { parseSoleToolResultBlock } from './soleToolResultBlock'
 import { splitTeamSuffix } from './splitTeamSuffix'
 import type { TeammateSpawn, TeammateStop, TranscriptTeamSpawns } from './teammateSpawn'
@@ -20,10 +20,16 @@ export interface TeammateSpawnObserver {
 /** The `TaskStop` `task_type` of a teammate, as its result record reports it. */
 const TEAMMATE_TASK_TYPE = 'in_process_teammate'
 
-/** The cleaned id of the tool call a record's sole `tool_result` block answers, or `null` when it has none or several. */
+/**
+ * The id of the tool call a record's sole `tool_result` block answers, exactly
+ * as written, or `null` when it has none or several. Ids are identifiers, so
+ * matching them uses this raw value rather than a cleaned one. A spawn that
+ * keeps its id still cleans it, because that copy outlives the scan in the
+ * summary cache and so has to be capped and detached like any other value.
+ */
 function resultToolUseId(record: Record<string, unknown>): string | null {
   const block = parseSoleToolResultBlock(messageContentBlocks(record))
-  return block === null ? null : toAgentLabel(block.tool_use_id)
+  return block === null ? null : block.tool_use_id
 }
 
 /** A `TaskStop` call awaiting the result record that says what it stopped. */
@@ -33,8 +39,6 @@ interface StopCandidate {
   readonly statedTeam: string | null
   /** Set once the result reports a task that is not a teammate. */
   excluded: boolean
-  /** The key this candidate holds in the held-keys set, released when it is excluded. */
-  readonly key: string
 }
 
 /**
@@ -67,14 +71,14 @@ interface StopCandidate {
  * best guess when a name was reused across teams.
  *
  * Spawns and `TaskStop` calls are each capped at {@link MAX_TEAMMATE_ENTRIES}
- * and `truncated` is set when one is dropped for it, except a stop that
- * repeats a held (stated team, name), which adds nothing; an excluded call
- * releases its key. A call still occupies cap space after it is excluded, so
- * a crafted transcript can push genuine stops out by filling the cap with
- * excluded ones, but only with `truncated` set. `truncated` can over-report:
- * holding is keyed on the stated team while the result dedupes on the
- * resolved one, so a dropped call may have merged away anyway. It is never
- * left unset when an entry is genuinely missing. The name-to-team map is
+ * and `truncated` is set whenever one is dropped for it. A call still
+ * occupies cap space after it is excluded, so a crafted transcript can push
+ * genuine stops out by filling the cap with excluded ones, but only with
+ * `truncated` set. `truncated` can over-report: a dropped call may be a
+ * repeat that would have merged away at resolution anyway. No cap drop ever
+ * leaves it unset. It says nothing about a call this reducer never accepted,
+ * such as a `task_id` over the label cap, which `splitTeamSuffix` refuses
+ * whole and which is discarded silently. The name-to-team map is
  * bounded by the same cap, and past it a new name gets no team on its stops;
  * that loses no spawn or stop, so it does not set `truncated`.
  *
@@ -85,7 +89,6 @@ export function createTeammateSpawnObserver(): TeammateSpawnObserver {
   const spawnKeys = new Set<string>()
   const latestTeamByName = new Map<string, string | null>()
   const candidates: StopCandidate[] = []
-  const heldStopKeys = new Set<string>()
   const pendingById = new Map<string, StopCandidate>()
   let truncated = false
 
@@ -113,7 +116,7 @@ export function createTeammateSpawnObserver(): TeammateSpawnObserver {
       agentName,
       teamName,
       agentType: toAgentLabel(parsed.data.agent_type),
-      toolUseId: resultToolUseId(record)
+      toolUseId: toAgentLabel(resultToolUseId(record))
     })
   }
 
@@ -126,17 +129,15 @@ export function createTeammateSpawnObserver(): TeammateSpawnObserver {
     if (split === null || agentName === null) return
 
     const statedTeam = toAgentLabel(split.team)
-    const key = `${statedTeam ?? ''}\0${agentName}`
     if (candidates.length >= MAX_TEAMMATE_ENTRIES) {
-      if (!heldStopKeys.has(key)) truncated = true
+      truncated = true
       return
     }
 
-    const candidate: StopCandidate = { agentName, statedTeam, excluded: false, key }
-    heldStopKeys.add(key)
+    const candidate: StopCandidate = { agentName, statedTeam, excluded: false }
     candidates.push(candidate)
-    const id = toAgentLabel(block.id)
-    if (id !== null) pendingById.set(id, candidate)
+    const parsed = toolUseBlockSchema.safeParse(block)
+    if (parsed.success) pendingById.set(parsed.data.id, candidate)
   }
 
   function resolveStop(record: Record<string, unknown>): void {
@@ -152,7 +153,6 @@ export function createTeammateSpawnObserver(): TeammateSpawnObserver {
     pendingById.delete(id)
     if (taskType !== TEAMMATE_TASK_TYPE) {
       candidate.excluded = true
-      heldStopKeys.delete(candidate.key)
     }
   }
 

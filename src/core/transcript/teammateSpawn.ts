@@ -27,6 +27,10 @@ export interface TranscriptTeamSpawns {
   readonly spawns: readonly TeammateSpawn[]
   /** Distinct stopped teammate names in file order, whether or not a spawn matches; stops of shells and background agents are excluded. */
   readonly stops: readonly TeammateStop[]
-  /** Whether a list hit its cap and dropped entries, so the lists undercount. */
+  /**
+   * Whether a list hit its cap and dropped calls. It can over-report, since a
+   * dropped call may be a repeat that would have merged away anyway, so it
+   * means "may undercount" rather than "does".
+   */
   readonly truncated: boolean
 }

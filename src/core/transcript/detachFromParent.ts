@@ -10,8 +10,14 @@
  * redundant: dropping it restores the alias. The cost is bounded because the
  * input is already capped.
  *
+ * A string of a single code point is returned as is, since spreading it yields
+ * a one-element array that `join` hands back unchanged. That is harmless: it
+ * can retain at most the capped string it came from, which every caller
+ * passes through a length check first.
+ *
  * @param text - An already-capped string.
- * @returns An equal string that holds no reference to a larger one.
+ * @returns An equal string that holds no reference to a larger one, except
+ * for a single-code-point string, which is returned as is.
  */
 export function detachFromParent(text: string): string {
   return [...text].join('')
