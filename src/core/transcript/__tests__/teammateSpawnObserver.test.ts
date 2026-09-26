@@ -213,6 +213,23 @@ describe('createTeammateSpawnObserver', () => {
     expect(result.stops).toEqual([])
   })
 
+  it('excludes a stop whose own record also carries the non-teammate result', () => {
+    const stop = buildTaskStopRecord()
+    const record = {
+      ...stop,
+      toolUseResult: { task_type: 'local_bash' },
+      message: {
+        id: 'msg_both',
+        content: [
+          ...(stop.message as { content: readonly unknown[] }).content,
+          { type: 'tool_result', tool_use_id: 'toolu_stop', content: 'stopped' }
+        ]
+      }
+    }
+
+    expect(collect([record]).stops).toEqual([])
+  })
+
   it('keeps a stop whose result reports an in_process_teammate task', () => {
     const result = collect([
       buildTaskStopRecord(),

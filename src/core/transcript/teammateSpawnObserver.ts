@@ -54,11 +54,16 @@ interface StopCandidate {
  * A spawn's `toolUseId` is read from the record's `tool_result` block, only
  * for records that are spawns.
  *
+ * One record's `TaskStop` blocks are collected before its own
+ * `toolUseResult` is resolved, so a record carrying both still excludes its
+ * own stop. Claude Code splits the two across records, but a transcript is
+ * free not to.
+ *
  * A stop is read from the block's `input.task_id`, not the result's
  * `task_id`, which is an internal id. A `task_id` of the form `name@team`
  * is split at its last `@`, and the team it states wins over an inferred
  * one. Whether a stop targeted a teammate is only known from its result
- * record, which follows the block: a result whose `task_type` is present and
+ * record, which never precedes the block: a result whose `task_type` is present and
  * is not `in_process_teammate` (a shell, a background agent) excludes the
  * stop, matched by the block's `id` to the result's `tool_use_id`. A stop
  * whose result never arrives is kept, since a missing result is not evidence
@@ -169,12 +174,12 @@ export function createTeammateSpawnObserver(): TeammateSpawnObserver {
 
   return {
     observe(record) {
+      if (record.type === 'assistant') {
+        for (const block of messageContentBlocks(record)) addStop(block)
+      }
       if (record.toolUseResult !== undefined) {
         addSpawn(record)
         resolveStop(record)
-      }
-      if (record.type === 'assistant') {
-        for (const block of messageContentBlocks(record)) addStop(block)
       }
     },
     result: () => ({
