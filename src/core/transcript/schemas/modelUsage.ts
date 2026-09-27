@@ -5,8 +5,9 @@ import { z } from 'zod'
  * map. Shaped nothing like `assistant.message.usage`: fields are
  * camelCase, and every one is validated as optional since these fields drift
  * between Claude Code versions. The fields Beekeeper reads (tokens and
- * `costUSD`) must also be non-negative; the unused ones are left loose so
- * a bad value can't reject the record.
+ * `costUSD`) must also be non-negative. Unknown fields are kept rather than
+ * stripped, since the parsed output is reduced to totals right away and never
+ * retained.
  */
 export const modelUsageSchema = z
   .object({
@@ -14,8 +15,6 @@ export const modelUsageSchema = z
     outputTokens: z.number().nonnegative().optional(),
     cacheReadInputTokens: z.number().nonnegative().optional(),
     cacheCreationInputTokens: z.number().nonnegative().optional(),
-    thinkingTokens: z.number().optional(),
-    webSearchRequests: z.number().optional(),
     costUSD: z.number().nonnegative().optional()
   })
   .loose()

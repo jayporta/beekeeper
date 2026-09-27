@@ -27,6 +27,21 @@ describe('collectAgentReports', () => {
     expect(reports[0]?.messageId).toBe('msg_1')
   })
 
+  it('counts the usage of a record whose unread fields are malformed', async () => {
+    const record = buildAssistantRecord({
+      messageId: 'msg_1',
+      inputTokens: 5,
+      outputTokens: 10,
+      extra: { isSidechain: 'yes', parentUuid: 42, timestamp: 'not a date' }
+    })
+
+    const { reports, skippedLines } = await collectAgentReports(recordsOf(ok(record)), leadIdentity)
+
+    expect(skippedLines).toBe(0)
+    expect(reports).toHaveLength(1)
+    expect(reports[0]?.tokens).toMatchObject({ input: 5, output: 10 })
+  })
+
   it('counts a skipped-line result without producing a report', async () => {
     const { reports, skippedLines } = await collectAgentReports(
       recordsOf(err({ reason: 'invalid-json' })),

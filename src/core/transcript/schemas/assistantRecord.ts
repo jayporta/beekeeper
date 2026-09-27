@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { timestampSchema } from './timestamp'
 import { usageSchema } from './usage'
 
 /** The longest `message.id` or `message.model` this schema accepts; real values run under ~40 chars. */
@@ -15,9 +14,6 @@ const MAX_MESSAGE_FIELD_CHARS = 256
 export const assistantRecordSchema = z
   .object({
     type: z.literal('assistant'),
-    timestamp: timestampSchema,
-    parentUuid: z.string().nullable().optional(),
-    isSidechain: z.boolean().optional(),
     message: z
       .object({
         id: z.string().max(MAX_MESSAGE_FIELD_CHARS),
