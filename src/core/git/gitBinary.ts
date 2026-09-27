@@ -1,4 +1,4 @@
-import { isAbsolutePath } from './gitPath'
+import { isAbsolutePath } from '../shared/absolutePath'
 
 declare const gitBinaryBrand: unique symbol
 

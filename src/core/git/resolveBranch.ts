@@ -1,7 +1,7 @@
-import { err, ok, type Result } from '../transcript/result'
+import { isAbsolutePath } from '../shared/absolutePath'
+import { err, ok, type Result } from '../shared/result'
 import { parseCommitSha, type CommitSha } from './commitSha'
 import type { GitBinary } from './gitBinary'
-import { isAbsolutePath } from './gitPath'
 import { runGit, type GitRunError } from './runGit'
 
 /** Why a branch name could not be resolved to a commit. */

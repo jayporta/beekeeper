@@ -1,5 +1,5 @@
 import { createReadStream } from 'node:fs'
-import { err, ok, type Result } from './result'
+import { err, ok, type Result } from '../shared/result'
 
 /** The largest line {@link readJsonlLines} will buffer, in UTF-16 code units, by default. */
 const DEFAULT_MAX_LINE_CHARS = 64 * 1024 * 1024

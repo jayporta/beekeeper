@@ -8,8 +8,8 @@ import {
 } from '../../core/git/worktreeDiffStat'
 import type { AgentTreeNode } from '../../core/session/agentTree'
 import type { SessionScan } from '../../core/session/scanSession'
+import { err, ok, type Result } from '../../core/shared/result'
 import type { AgentId } from '../../core/transcript/ids'
-import { err, ok, type Result } from '../../core/transcript/result'
 import type { ScanScheduler } from '../ipc/scanScheduler'
 import { createRepoConfiner, type ConfineRepoError } from './confineRepo'
 

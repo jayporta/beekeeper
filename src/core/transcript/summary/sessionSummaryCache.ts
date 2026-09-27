@@ -1,5 +1,5 @@
+import { ok, type Result } from '../../shared/result'
 import { captureSystemError } from '../captureSystemError'
-import { ok, type Result } from '../result'
 import type { TranscriptFileInfo } from '../statTranscriptFile'
 import type { UnreadableError } from '../unreadableError'
 import { scanSessionSummary } from './scanSessionSummary'

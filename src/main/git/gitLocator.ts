@@ -1,6 +1,6 @@
 import type { GitBinary } from '../../core/git/gitBinary'
 import { locateGit } from '../../core/git/locateGit'
-import type { Result } from '../../core/transcript/result'
+import type { Result } from '../../core/shared/result'
 
 /** The outcome of looking for a usable git executable. */
 export type GitLocation = Result<GitBinary, 'git-not-found' | 'git-too-old'>

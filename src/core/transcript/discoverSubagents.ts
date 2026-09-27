@@ -1,5 +1,5 @@
 import { join, resolve } from 'node:path'
-import { compareCodeUnits } from './compareCodeUnits'
+import { compareCodeUnits } from '../shared/compareCodeUnits'
 import { toAgentId, type AgentId } from './ids'
 import { isRealDirectory } from './isRealDirectory'
 import { readDirentsOrEmpty } from './readDirentsOrEmpty'

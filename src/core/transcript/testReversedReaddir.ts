@@ -1,6 +1,6 @@
 import type { Dirent } from 'node:fs'
 import type * as fsPromises from 'node:fs/promises'
-import { compareCodeUnits } from './compareCodeUnits'
+import { compareCodeUnits } from '../shared/compareCodeUnits'
 
 /**
  * Mutable state shared between a test file's `node:fs/promises` mock

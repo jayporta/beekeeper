@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { ok, type Result } from '../../shared/result'
 import type { SkippedLineError } from '../../transcript/readRecords'
-import { ok, type Result } from '../../transcript/result'
 import { tapRecords } from '../tapRecords'
 
 async function* fromResults(

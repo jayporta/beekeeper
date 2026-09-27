@@ -1,4 +1,4 @@
-import { err, ok, type Result } from './result'
+import { err, ok, type Result } from '../shared/result'
 
 /**
  * Why a line could not be parsed as JSON. Never carries the line's

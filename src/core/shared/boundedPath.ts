@@ -1,3 +1,4 @@
+import { isAbsolutePath } from './absolutePath'
 import { isWithinCodeUnits } from './isWithinCodeUnits'
 
 /**
@@ -27,5 +28,5 @@ export function isPathWithinCap(value: unknown): value is string {
  * @returns Whether `value` is an absolute path within the cap.
  */
 export function isAbsolutePathWithinCap(value: unknown): value is string {
-  return isPathWithinCap(value) && value.startsWith('/')
+  return isPathWithinCap(value) && isAbsolutePath(value)
 }

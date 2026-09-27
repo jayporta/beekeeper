@@ -1,5 +1,5 @@
-import { errorCode } from './errorCode'
-import { err, ok, type Result } from './result'
+import { errorCode } from '../shared/errorCode'
+import { err, ok, type Result } from '../shared/result'
 import type { UnreadableError } from './unreadableError'
 
 /**

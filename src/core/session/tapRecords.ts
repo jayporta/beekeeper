@@ -1,5 +1,5 @@
+import type { Result } from '../shared/result'
 import type { SkippedLineError } from '../transcript/readRecords'
-import type { Result } from '../transcript/result'
 
 /**
  * Passes a transcript's records through unchanged while showing each valid

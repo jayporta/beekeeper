@@ -1,4 +1,4 @@
-import { errorCode } from '../core/transcript/errorCode'
+import { errorCode } from '../core/shared/errorCode'
 
 /** The code a window load rejects with when it is cut short. */
 const ABORTED_LOAD = 'ERR_ABORTED'

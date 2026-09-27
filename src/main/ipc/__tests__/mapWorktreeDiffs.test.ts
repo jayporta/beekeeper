@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { err, ok } from '../../../core/shared/result'
 import { toAgentId } from '../../../core/transcript/ids'
-import { err, ok } from '../../../core/transcript/result'
 import type { AgentWorktreeDiff } from '../../git/sessionWorktreeDiffs'
 import { mapWorktreeDiffs } from '../mapWorktreeDiffs'
 

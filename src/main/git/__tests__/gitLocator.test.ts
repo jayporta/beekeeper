@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { toGitBinary } from '../../../core/git/gitBinary'
-import { err, ok } from '../../../core/transcript/result'
+import { err, ok } from '../../../core/shared/result'
 import { createGitLocator, type GitLocation } from '../gitLocator'
 
 const found: GitLocation = ok(toGitBinary('/opt/homebrew/bin/git'))
