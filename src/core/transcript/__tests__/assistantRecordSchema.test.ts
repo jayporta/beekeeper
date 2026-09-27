@@ -26,15 +26,8 @@ describe('assistantRecordSchema', () => {
     }
   })
 
-  it('accepts a null parentUuid', () => {
-    const record = buildAssistantRecord({ parentUuid: null })
-
-    expect(assistantRecordSchema.safeParse(record).success).toBe(true)
-  })
-
-  it('accepts a missing parentUuid', () => {
-    const record = buildAssistantRecord()
-    delete (record as { parentUuid?: unknown }).parentUuid
+  it('accepts a malformed isSidechain and parentUuid, which it does not read', () => {
+    const record = buildAssistantRecord({ extra: { isSidechain: 'yes', parentUuid: 42 } })
 
     expect(assistantRecordSchema.safeParse(record).success).toBe(true)
   })

@@ -6,13 +6,14 @@ import { filePathSchema } from './filePath'
  * user record carries alongside its `tool_result` content block. Validates
  * `filePath` and `type`; fields like `content` and `structuredPatch` are
  * tolerated but ignored.
+ *
+ * Unknown keys (file contents, patches) are stripped rather than kept, unlike
+ * the record schemas.
  */
-export const writeToolUseResultSchema = z
-  .object({
-    filePath: filePathSchema,
-    type: z.enum(['create', 'update'])
-  })
-  .loose()
+export const writeToolUseResultSchema = z.object({
+  filePath: filePathSchema,
+  type: z.enum(['create', 'update'])
+})
 
 /** A validated `Write` tool call result. */
 export type WriteToolUseResult = z.infer<typeof writeToolUseResultSchema>

@@ -7,10 +7,14 @@ describe('writeToolUseResultSchema', () => {
     expect(writeToolUseResultSchema.safeParse(buildWriteToolUseResult()).success).toBe(true)
   })
 
-  it('accepts unknown extra fields (schema drift)', () => {
+  it('accepts an unknown key but strips it from the parsed data', () => {
     const result = { ...buildWriteToolUseResult(), memdirStamped: true }
 
-    expect(writeToolUseResultSchema.safeParse(result).success).toBe(true)
+    const parsed = writeToolUseResultSchema.safeParse(result)
+
+    expect(parsed.success).toBe(true)
+    if (!parsed.success) return
+    expect(parsed.data).not.toHaveProperty('memdirStamped')
   })
 
   it('rejects a result missing the required filePath', () => {

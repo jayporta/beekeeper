@@ -97,8 +97,7 @@ export interface ReconcileUsageInput {
  * billing speeds and agents. A model present on only one side still gets a
  * row, with the other side `null`. Totals are `partial` when a group is
  * unpriced, an agent's transcript skipped lines, or a subagent transcript
- * was unreadable. `thinkingTokens` and `webSearchRequests` are not token
- * classes and are ignored.
+ * was unreadable.
  *
  * @param input - The agents' usage and the lead's cost-state.
  * @returns The per-model rows and session totals.

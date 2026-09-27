@@ -44,9 +44,7 @@ describe('subagentMetaSchema', () => {
     ['an oversized worktreePath', { worktreePath: '/' + 'a'.repeat(4096) }],
     ['a non-string worktreePath', { worktreePath: 7 }],
     ['an empty worktreeBranch', { worktreeBranch: '' }],
-    ['an oversized worktreeBranch', { worktreeBranch: 'b'.repeat(256) }],
-    ['a non-boolean spawnedWithWorktree', { spawnedWithWorktree: 'yes' }],
-    ['a non-boolean worktreeCleanlyRemoved', { worktreeCleanlyRemoved: 1 }]
+    ['an oversized worktreeBranch', { worktreeBranch: 'b'.repeat(256) }]
   ])('keeps the meta and reads %s as absent', (_label, bad) => {
     const parsed = subagentMetaSchema.safeParse({ ...buildMinimalSubagentMeta('reviewer'), ...bad })
 
@@ -58,20 +56,21 @@ describe('subagentMetaSchema', () => {
     }
   })
 
-  it('reads valid worktree fields and the worktree flags', () => {
+  it('reads valid worktree fields', () => {
     const parsed = subagentMetaSchema.parse({
       agentType: 'x',
       worktreePath: '/tmp/tree',
-      worktreeBranch: 'feat/a',
-      spawnedWithWorktree: true,
-      worktreeCleanlyRemoved: false
+      worktreeBranch: 'feat/a'
     })
 
-    expect(parsed).toMatchObject({
-      worktreePath: '/tmp/tree',
-      worktreeBranch: 'feat/a',
-      spawnedWithWorktree: true,
-      worktreeCleanlyRemoved: false
-    })
+    expect(parsed).toMatchObject({ worktreePath: '/tmp/tree', worktreeBranch: 'feat/a' })
+  })
+
+  it('accepts an unknown key but strips it from the parsed data', () => {
+    const parsed = subagentMetaSchema.safeParse({ agentType: 'x', futureField: 'kept?' })
+
+    expect(parsed.success).toBe(true)
+    if (!parsed.success) return
+    expect(parsed.data).not.toHaveProperty('futureField')
   })
 })

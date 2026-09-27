@@ -6,12 +6,13 @@ import { filePathSchema } from './filePath'
  * user record carries alongside its `tool_result` content block. Validates
  * only `filePath`; fields like `oldString`, `newString`, and
  * `structuredPatch` are tolerated but ignored.
+ *
+ * Unknown keys (file contents, patches) are stripped rather than kept, unlike
+ * the record schemas.
  */
-export const editToolUseResultSchema = z
-  .object({
-    filePath: filePathSchema
-  })
-  .loose()
+export const editToolUseResultSchema = z.object({
+  filePath: filePathSchema
+})
 
 /** A validated `Edit` tool call result. */
 export type EditToolUseResult = z.infer<typeof editToolUseResultSchema>

@@ -7,10 +7,14 @@ describe('editToolUseResultSchema', () => {
     expect(editToolUseResultSchema.safeParse(buildEditToolUseResult()).success).toBe(true)
   })
 
-  it('accepts unknown extra fields such as memdirStamped', () => {
+  it('accepts an unknown key but strips it from the parsed data', () => {
     const result = { ...buildEditToolUseResult(), memdirStamped: true, staleRecovered: false }
 
-    expect(editToolUseResultSchema.safeParse(result).success).toBe(true)
+    const parsed = editToolUseResultSchema.safeParse(result)
+
+    expect(parsed.success).toBe(true)
+    if (!parsed.success) return
+    expect(parsed.data).not.toHaveProperty('memdirStamped')
   })
 
   it('rejects a result missing the required filePath', () => {
