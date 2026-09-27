@@ -41,7 +41,7 @@ function diff(
   })
 }
 
-describe.skipIf(process.platform === 'win32')('working-tree diff is read-only', () => {
+describe('working-tree diff is read-only', () => {
   it('leaves the index bytes and mtime unchanged when its stat data is stale', async (context) => {
     const git = testGit.requireGit(context)
     const stale = await setUpStale(git)

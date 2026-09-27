@@ -22,7 +22,7 @@ function diffStat(
   })
 }
 
-describe.skipIf(process.platform === 'win32')('worktreeDiffStat', () => {
+describe('worktreeDiffStat', () => {
   it('diffs a committed agent branch from its merge base', async (context) => {
     const gitBinary = testGit.requireGit(context)
     const repo = await testGit.baseRepo(gitBinary)

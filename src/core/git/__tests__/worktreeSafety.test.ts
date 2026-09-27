@@ -16,7 +16,7 @@ async function setUp(binary: GitBinary): Promise<{ repo: TestRepo; worktree: str
   return { repo, worktree }
 }
 
-describe.skipIf(process.platform === 'win32')('worktree safety', () => {
+describe('worktree safety', () => {
   it('does not run a planted clean filter and falls back to the committed diff', async (context) => {
     const git = testGit.requireGit(context)
     const { repo, worktree } = await setUp(git)
