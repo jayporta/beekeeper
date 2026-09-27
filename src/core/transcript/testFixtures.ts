@@ -88,19 +88,6 @@ export function buildUserRecord(overrides: UserRecordOverrides = {}): Record<str
   }
 }
 
-/**
- * Builds two `assistant` records sharing one `message.id`, as one API
- * response split across lines, with `output_tokens` growing on the second.
- */
-export function buildSplitAssistantRecords(
-  messageId = 'msg_split'
-): [Record<string, unknown>, Record<string, unknown>] {
-  return [
-    buildAssistantRecord({ messageId, outputTokens: 12 }),
-    buildAssistantRecord({ messageId, outputTokens: 47 })
-  ]
-}
-
 /** Builds an `assistant` record whose usage carries several iterations. */
 export function buildAssistantRecordWithIterations(): Record<string, unknown> {
   return {
@@ -125,24 +112,6 @@ export function buildAssistantRecordWithIterations(): Record<string, unknown> {
 /** Builds an `assistant` record with unrelated, unknown extra fields (schema drift). */
 export function buildAssistantRecordWithUnknownFields(): Record<string, unknown> {
   return buildAssistantRecord({ extra: { futureField: 'unreleased', nested: { newer: true } } })
-}
-
-/** Builds a record of a type this schema set has never seen. */
-export function buildUnknownTypeRecord(): Record<string, unknown> {
-  return { type: 'some-future-record-type', payload: { anything: 'goes' } }
-}
-
-/** Builds a synthetic `fork-context-ref` record. */
-export function buildForkContextRefRecord(
-  overrides: Partial<Record<string, unknown>> = {}
-): Record<string, unknown> {
-  return {
-    type: 'fork-context-ref',
-    parentSessionId: 'session-parent-1',
-    parentLastUuid: 'uuid-last-1',
-    contextLength: 4096,
-    ...overrides
-  }
 }
 
 /** Builds a synthetic `cost-state` record with a raw, bracketed model id. */

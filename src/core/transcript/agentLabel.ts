@@ -1,5 +1,3 @@
-import { detachFromParent } from './detachFromParent'
-
 /**
  * The longest agent label kept, in UTF-16 code units, so a character outside
  * the Basic Multilingual Plane counts as two. Real values run under ~30 code
@@ -28,6 +26,10 @@ const UNPRINTABLE_PATTERN = /[\p{Cc}\p{Cf}\p{Cs}\p{Co}]|[^\S ]/u
  * spelling of one name, display identically, and storing both verbatim would
  * show one agent as two.
  *
+ * The label can share storage with `value`, so `value` must not be a slice of
+ * a string longer than {@link MAX_LABEL_CODE_UNITS}: the length check can't
+ * see the parent a slice keeps alive.
+ *
  * @param value - A candidate agent type, agent name, or team name.
  * @returns The label, a printable non-blank string within the cap, trimmed
  * and normalized to NFC, or `null` when `value` is unusable.
@@ -38,5 +40,5 @@ export function toAgentLabel(value: unknown): string | null {
 
   const trimmed = value.trim().normalize('NFC')
   if (trimmed === '' || trimmed.length > MAX_LABEL_CODE_UNITS) return null
-  return detachFromParent(trimmed)
+  return trimmed
 }
