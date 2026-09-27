@@ -1,7 +1,17 @@
 import { z } from 'zod'
+import { isLabelWithinCap, MAX_LABEL_CODE_UNITS } from '../boundedLabel'
 
-/** The longest `agent_id`, `name`, `team_name` or `agent_type` this schema accepts; real values run under ~50. */
-const MAX_SPAWN_FIELD_CHARS = 256
+/**
+ * A schema for a field bounded to {@link MAX_LABEL_CODE_UNITS} UTF-16 code
+ * units, since `agent_id`, `name`, `team_name` and `agent_type` all end up
+ * shown or matched as agent labels. Bounding by `.refine` on the label
+ * predicate, rather than by `.max()`, keeps the cap in code units: a value
+ * under a code-point cap but over this one is a value `toAgentLabel` and
+ * `splitTeamSuffix` would refuse anyway.
+ */
+const spawnLabelField = z.string().refine(isLabelWithinCap, {
+  message: `must be at most ${MAX_LABEL_CODE_UNITS} UTF-16 code units`
+})
 
 /**
  * The `toolUseResult` a teammate spawn writes onto its `user` record.
@@ -20,10 +30,10 @@ const MAX_SPAWN_FIELD_CHARS = 256
  */
 export const teammateSpawnResultSchema = z.object({
   status: z.literal('teammate_spawned'),
-  agent_id: z.string().max(MAX_SPAWN_FIELD_CHARS).optional().catch(undefined),
-  name: z.string().max(MAX_SPAWN_FIELD_CHARS),
-  team_name: z.string().max(MAX_SPAWN_FIELD_CHARS).optional().catch(undefined),
-  agent_type: z.string().max(MAX_SPAWN_FIELD_CHARS).optional().catch(undefined)
+  agent_id: spawnLabelField.optional().catch(undefined),
+  name: spawnLabelField,
+  team_name: spawnLabelField.optional().catch(undefined),
+  agent_type: spawnLabelField.optional().catch(undefined)
 })
 
 /** A validated teammate spawn result. */

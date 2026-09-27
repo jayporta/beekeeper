@@ -1,3 +1,5 @@
+import { isBranchNameWithinCap } from '../shared/boundedBranch'
+import { isAbsolutePathWithinCap } from '../shared/boundedPath'
 import { messageContentBlocks } from '../transcript/messageContentBlocks'
 import { toolUseBlockSchema } from '../transcript/schemas'
 import { recordTimestampMs } from '../transcript/summary/recordTimestampMs'
@@ -8,9 +10,6 @@ const SPAWN_TOOL_NAME = 'Agent'
 
 /** The `gitBranch` a record carries when no branch is checked out. */
 export const DETACHED_BRANCH = 'HEAD'
-
-const MAX_CWD_CHARS = 4096
-const MAX_BRANCH_CHARS = 255
 
 /**
  * The most timeline entries a transcript may hold before it stops
@@ -69,15 +68,11 @@ export interface SpawnObserver {
 }
 
 function validCwd(value: unknown): string | undefined {
-  return typeof value === 'string' && value.startsWith('/') && value.length <= MAX_CWD_CHARS
-    ? value
-    : undefined
+  return isAbsolutePathWithinCap(value) ? value : undefined
 }
 
 function validBranch(value: unknown): string | undefined {
-  return typeof value === 'string' && value.length > 0 && value.length <= MAX_BRANCH_CHARS
-    ? value
-    : undefined
+  return isBranchNameWithinCap(value) ? value : undefined
 }
 
 /**
@@ -85,9 +80,10 @@ function validBranch(value: unknown): string | undefined {
  * block records the `cwd` and `gitBranch` of its record; a repeated id keeps
  * its first entry. A `HEAD` branch means no base, so the spawn takes the
  * nearest earlier named branch of any record in the same transcript and the
- * same `cwd`, tracked per `cwd`. A `cwd` that isn't absolute and at most
- * 4096 characters, or a `gitBranch` that isn't a non-empty string of at
- * most 255, counts as absent; a spawn with no valid `cwd` is not recorded.
+ * same `cwd`, tracked per `cwd`. A `cwd` that isn't an absolute path within
+ * the cap ({@link isAbsolutePathWithinCap}), or a `gitBranch` that isn't a
+ * non-empty name within the cap ({@link isBranchNameWithinCap}), counts as
+ * absent; a spawn with no valid `cwd` is not recorded.
  *
  * Records with a valid `cwd` and a valid branch (`HEAD` included) feed the
  * timeline, each run keeping the first parseable timestamp among its records

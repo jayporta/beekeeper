@@ -74,8 +74,9 @@ export interface SessionScan {
    */
   readonly spawnContexts: ReadonlyMap<AgentId, SpawnContext>
   /**
-   * The `cwd` of the lead transcript's first record with a valid one
-   * (absolute, at most 4096 characters), or `undefined` when none had one.
+   * The `cwd` of the lead transcript's first record with a valid one, meaning
+   * an absolute path within the observer's cap, or `undefined` when none had
+   * one.
    */
   readonly leadFirstCwd: string | undefined
 }

@@ -1,0 +1,26 @@
+import { z } from 'zod'
+import { isWithinCodeUnits } from '../../shared/isWithinCodeUnits'
+
+/**
+ * The longest identifier a transcript schema accepts, in UTF-16 code units,
+ * so a character outside the Basic Multilingual Plane counts as two. Real
+ * values run well under this; the cap bounds the memory a record's parsed
+ * identifiers can retain in the scan cache.
+ *
+ * It matches the label cap in `boundedLabel.ts` by coincidence, not by
+ * derivation: an identifier is only ever matched against another identifier,
+ * while a label is shown and joins a session to its team, so either bound can
+ * move without the other.
+ */
+export const MAX_IDENTIFIER_CODE_UNITS = 256
+
+/**
+ * A short identifier a reader matches records and content blocks by: an id,
+ * a name, or a model. Bounded to {@link MAX_IDENTIFIER_CODE_UNITS} UTF-16
+ * code units, rather than by `.max()`, which counts code points.
+ */
+export const boundedIdentifierSchema = z
+  .string()
+  .refine((value) => isWithinCodeUnits(value, MAX_IDENTIFIER_CODE_UNITS), {
+    message: `must be at most ${MAX_IDENTIFIER_CODE_UNITS} UTF-16 code units`
+  })

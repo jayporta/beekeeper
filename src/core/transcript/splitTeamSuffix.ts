@@ -1,4 +1,4 @@
-import { MAX_LABEL_CODE_UNITS } from './agentLabel'
+import { MAX_LABEL_CODE_UNITS } from './boundedLabel'
 
 /** A `name@team` string taken apart at its last `@`. */
 export interface TeamSuffixSplit {
@@ -15,7 +15,7 @@ export interface TeamSuffixSplit {
  *
  * The length gate lives here because a slice of a long string keeps the
  * whole string alive, so a crafted value must be refused before it is cut.
- * It is the agent label cap, and that module owns the number. A value over
+ * It is the agent label cap, and `boundedLabel` owns the number. A value over
  * it is refused whole, so an oversized team suffix discards a usable name
  * along with it.
  *

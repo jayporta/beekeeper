@@ -1,8 +1,6 @@
 import { z } from 'zod'
+import { boundedIdentifierSchema } from './boundedIdentifier'
 import { usageSchema } from './usage'
-
-/** The longest `message.id` or `message.model` this schema accepts; real values run under ~40 chars. */
-const MAX_MESSAGE_FIELD_CHARS = 256
 
 /**
  * An `assistant` transcript record: one API response, possibly one of
@@ -16,8 +14,8 @@ export const assistantRecordSchema = z
     type: z.literal('assistant'),
     message: z
       .object({
-        id: z.string().max(MAX_MESSAGE_FIELD_CHARS),
-        model: z.string().max(MAX_MESSAGE_FIELD_CHARS),
+        id: boundedIdentifierSchema,
+        model: boundedIdentifierSchema,
         usage: usageSchema
       })
       .loose()

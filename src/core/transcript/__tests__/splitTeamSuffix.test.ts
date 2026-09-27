@@ -26,4 +26,9 @@ describe('splitTeamSuffix', () => {
   it('returns null for a value one code unit over the cap', () => {
     expect(splitTeamSuffix(`${'n'.repeat(CAP - 1)}@t`)).toBeNull()
   })
+
+  it('returns null for a non-BMP value under the code-point cap but over the code-unit cap', () => {
+    // 199 non-BMP characters plus "@t": 201 code points, but 400 UTF-16 code units.
+    expect(splitTeamSuffix(`${'😀'.repeat(199)}@t`)).toBeNull()
+  })
 })
