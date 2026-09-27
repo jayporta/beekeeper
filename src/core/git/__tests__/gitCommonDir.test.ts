@@ -28,6 +28,7 @@ describe('realCommonDir', () => {
       realCommonDir({ git, dir: worktree })
     ])
 
+    expect(fromWorktree).toEqual({ ok: true, value: await realpath(join(repo.dir, '.git')) })
     expect(fromWorktree).toEqual(fromRepo)
   })
 
