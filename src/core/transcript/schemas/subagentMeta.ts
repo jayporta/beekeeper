@@ -8,8 +8,8 @@ const MAX_WORKTREE_BRANCH_CHARS = 255
 
 /**
  * A subagent's `.meta.json` sidecar. `agentType` is the only field every
- * subagent has; a teammate spawned into a team has no `toolUseId`, and any
- * other field may be absent depending on how the subagent was spawned.
+ * subagent has; any other field, `toolUseId` included, may be absent
+ * depending on how the subagent was spawned.
  *
  * The worktree fields are hardened because they later reach git: an invalid
  * `worktreePath` (not absolute, or too long) or `worktreeBranch` (empty, or

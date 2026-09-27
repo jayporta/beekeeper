@@ -62,15 +62,15 @@ describe('scanSession spawn contexts', () => {
     })
   })
 
-  it("gives a teammate with no toolUseId the lead's branch, borrowing past a trailing HEAD", async () => {
-    const mate = dir.addSubagent('m', {
+  it("gives a subagent with no toolUseId the lead's branch, borrowing past a trailing HEAD", async () => {
+    const subagent = dir.addSubagent('m', {
       transcript: buildJsonlText([]),
-      meta: { agentType: 'x', teamName: 'core' }
+      meta: { agentType: 'x' }
     })
 
     const result = await scan(
       [buildBranchRecord('feat/last', '/lead-repo'), buildBranchRecord('HEAD', '/lead-repo')],
-      [mate]
+      [subagent]
     )
 
     expect(result.spawnContexts.get(toAgentId('m'))).toEqual({
@@ -81,12 +81,12 @@ describe('scanSession spawn contexts', () => {
   })
 
   it('has no context when the session recorded no valid branch and no spawn', async () => {
-    const mate = dir.addSubagent('m', {
+    const subagent = dir.addSubagent('m', {
       transcript: buildJsonlText([]),
       meta: { agentType: 'x' }
     })
 
-    const result = await scan([buildBranchRecord(undefined)], [mate])
+    const result = await scan([buildBranchRecord(undefined)], [subagent])
 
     expect(result.spawnContexts.size).toBe(0)
   })

@@ -36,7 +36,6 @@ export function mapAgentNode(node: AgentTreeNode): AgentNodeDto {
   return {
     agentId: node.identity.kind === 'lead' ? null : node.identity.agentId,
     meta: mapMetaStatus(node.metaStatus),
-    isTeammate: node.isTeammate,
     children: node.children.map(mapAgentNode)
   }
 }

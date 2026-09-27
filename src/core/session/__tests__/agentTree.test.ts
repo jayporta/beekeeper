@@ -92,7 +92,6 @@ describe('buildAgentTree', () => {
 
     expect(tree.identity).toEqual({ kind: 'lead' })
     expect(tree.metaStatus).toEqual({ status: 'absent' })
-    expect(tree.isTeammate).toBe(false)
     expect(tree.children).toEqual([])
   })
 
@@ -114,7 +113,6 @@ describe('buildAgentTree', () => {
 
     expect(tree.children.map((c) => c.identity)).toEqual([{ kind: 'subagent', agentId: 'a' }])
     expect(tree.children[0]?.metaStatus).toEqual({ status: 'error', reason: 'invalid-shape' })
-    expect(tree.children[0]?.isTeammate).toBe(false)
   })
 
   it('parents a subagent under the lead when parentAgentId is absent', () => {
@@ -202,18 +200,6 @@ describe('buildAgentTree', () => {
     )
     expect(nodeA?.children.map((c) => c.identity)).toEqual([{ kind: 'subagent', agentId: 'c' }])
     expect(nodeB?.children).toEqual([])
-  })
-
-  it('marks a subagent with a teamName as a teammate', () => {
-    const tree = buildAgentTree([input('a', buildSubagentMeta({ teamName: 'core-team' }))])
-
-    expect(tree.children[0]?.isTeammate).toBe(true)
-  })
-
-  it('does not mark a subagent with no teamName as a teammate, even without toolUseId', () => {
-    const tree = buildAgentTree([input('a', buildSubagentMeta())])
-
-    expect(tree.children[0]?.isTeammate).toBe(false)
   })
 
   it('orders children by agent id', () => {
