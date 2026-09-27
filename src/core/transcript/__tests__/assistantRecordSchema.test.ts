@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { assistantRecordSchema } from '../schemas/assistantRecord'
+import { MAX_IDENTIFIER_CODE_UNITS } from '../schemas/boundedIdentifier'
 import {
   buildAssistantRecord,
   buildAssistantRecordWithIterations,
@@ -48,26 +49,39 @@ describe('assistantRecordSchema', () => {
   })
 
   it('rejects an oversized message.id', () => {
-    const record = buildAssistantRecord({ messageId: 'x'.repeat(257) })
+    const record = buildAssistantRecord({ messageId: 'x'.repeat(MAX_IDENTIFIER_CODE_UNITS + 1) })
 
     expect(assistantRecordSchema.safeParse(record).success).toBe(false)
   })
 
   it('rejects an oversized message.model', () => {
-    const record = buildAssistantRecord({ model: 'x'.repeat(257) })
+    const record = buildAssistantRecord({ model: 'x'.repeat(MAX_IDENTIFIER_CODE_UNITS + 1) })
 
     expect(assistantRecordSchema.safeParse(record).success).toBe(false)
   })
 
   it('accepts a message.id of exactly the cap', () => {
-    const record = buildAssistantRecord({ messageId: 'x'.repeat(256) })
+    const record = buildAssistantRecord({ messageId: 'x'.repeat(MAX_IDENTIFIER_CODE_UNITS) })
 
     expect(assistantRecordSchema.safeParse(record).success).toBe(true)
   })
 
   it('accepts a message.model of exactly the cap', () => {
-    const record = buildAssistantRecord({ model: 'x'.repeat(256) })
+    const record = buildAssistantRecord({ model: 'x'.repeat(MAX_IDENTIFIER_CODE_UNITS) })
 
     expect(assistantRecordSchema.safeParse(record).success).toBe(true)
+  })
+
+  it('rejects a message.id under the code-point cap but over the code-unit cap', () => {
+    // 200 non-BMP characters: 200 code points, but 400 UTF-16 code units.
+    const record = buildAssistantRecord({ messageId: '😀'.repeat(200) })
+
+    expect(assistantRecordSchema.safeParse(record).success).toBe(false)
+  })
+
+  it('rejects a message.model under the code-point cap but over the code-unit cap', () => {
+    const record = buildAssistantRecord({ model: '😀'.repeat(200) })
+
+    expect(assistantRecordSchema.safeParse(record).success).toBe(false)
   })
 })

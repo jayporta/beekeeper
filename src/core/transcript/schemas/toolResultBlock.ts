@@ -1,7 +1,5 @@
 import { z } from 'zod'
-
-/** The longest `tool_use_id` this schema accepts; real values run well under this. */
-const MAX_TOOL_USE_ID_CHARS = 256
+import { boundedIdentifierSchema } from './boundedIdentifier'
 
 /**
  * A `tool_result` content block inside a user message: one tool call's
@@ -13,7 +11,7 @@ const MAX_TOOL_USE_ID_CHARS = 256
 export const toolResultBlockSchema = z
   .object({
     type: z.literal('tool_result'),
-    tool_use_id: z.string().max(MAX_TOOL_USE_ID_CHARS)
+    tool_use_id: boundedIdentifierSchema
   })
   .loose()
 

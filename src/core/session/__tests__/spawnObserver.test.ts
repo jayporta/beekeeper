@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { MAX_BRANCH_CODE_UNITS } from '../../shared/boundedBranch'
+import { MAX_PATH_CODE_UNITS } from '../../shared/boundedPath'
 import { createSpawnObserver } from '../spawnObserver'
 import { buildBranchRecord, buildSpawnRecord, observeAll, stampRecord } from '../testSpawnFixtures'
 
@@ -46,7 +48,9 @@ describe('createSpawnObserver', () => {
   it.each([
     ['missing', undefined],
     ['relative', 'repo'],
-    ['oversized', '/' + 'a'.repeat(4096)],
+    ['oversized', '/' + 'a'.repeat(MAX_PATH_CODE_UNITS)],
+    // 3000 non-BMP characters: 3000 code points, but 6000 UTF-16 code units.
+    ['non-BMP under the code-point cap but over the code-unit cap', '/' + '😀'.repeat(3000)],
     ['not a string', 5]
   ])('records no spawn when the cwd is %s', (_label, cwd) => {
     const observer = observeAll([buildSpawnRecord({ cwd })])
@@ -57,7 +61,9 @@ describe('createSpawnObserver', () => {
   it.each([
     ['missing', undefined],
     ['empty', ''],
-    ['oversized', 'b'.repeat(256)],
+    ['oversized', 'b'.repeat(MAX_BRANCH_CODE_UNITS + 1)],
+    // 200 non-BMP characters: 200 code points, but 400 UTF-16 code units.
+    ['non-BMP under the code-point cap but over the code-unit cap', '😀'.repeat(200)],
     ['not a string', 5]
   ])('records the spawn with no base when the branch is %s', (_label, gitBranch) => {
     const observer = observeAll([buildSpawnRecord({ gitBranch })])

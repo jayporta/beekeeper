@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { toAgentLabel } from '../agentLabel'
 
 /**
- * The label cap in UTF-16 code units. Kept here rather than exported from
- * `agentLabel.ts`, and pinned by the boundary tests below.
+ * The label cap in UTF-16 code units. Kept here rather than imported from
+ * `boundedLabel.ts`, and pinned by the boundary tests below.
  */
 const CAP = 256
 
@@ -18,6 +18,11 @@ describe('toAgentLabel', () => {
 
   it('rejects a value one code unit over the cap', () => {
     expect(toAgentLabel('x'.repeat(CAP + 1))).toBeNull()
+  })
+
+  it('rejects a non-BMP value under the code-point cap but over the code-unit cap', () => {
+    // 200 non-BMP characters: 200 code points, but 400 UTF-16 code units.
+    expect(toAgentLabel('😀'.repeat(200))).toBeNull()
   })
 
   it('rejects a value that NFC normalization expands past the cap', () => {

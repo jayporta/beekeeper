@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { MAX_LABEL_CODE_UNITS } from '../boundedLabel'
 import { teammateSpawnResultSchema } from '../schemas'
 
 const valid = { status: 'teammate_spawned', agent_id: 'scout@team-1', name: 'scout' }
@@ -15,7 +16,7 @@ describe('teammateSpawnResultSchema', () => {
   })
 
   it.each([
-    ['team_name', { team_name: 'x'.repeat(257) }],
+    ['team_name', { team_name: 'x'.repeat(MAX_LABEL_CODE_UNITS + 1) }],
     ['agent_type', { agent_type: null }],
     ['agent_id', { agent_id: 42 }]
   ])('reads an unusable %s as absent rather than failing', (field, override) => {
@@ -48,8 +49,23 @@ describe('teammateSpawnResultSchema', () => {
   })
 
   it('rejects an oversized name', () => {
-    expect(teammateSpawnResultSchema.safeParse({ ...valid, name: 'x'.repeat(257) }).success).toBe(
-      false
-    )
+    expect(
+      teammateSpawnResultSchema.safeParse({ ...valid, name: 'x'.repeat(MAX_LABEL_CODE_UNITS + 1) })
+        .success
+    ).toBe(false)
+  })
+
+  it('rejects a name under the code-point cap but over the code-unit cap', () => {
+    // 200 non-BMP characters: 200 code points, but 400 UTF-16 code units.
+    const name = '😀'.repeat(200)
+
+    expect(teammateSpawnResultSchema.safeParse({ ...valid, name }).success).toBe(false)
+  })
+
+  it('reads a non-BMP agent_id under the code-point cap but over the code-unit cap as absent', () => {
+    const agentId = '😀'.repeat(200)
+    const parsed = teammateSpawnResultSchema.safeParse({ ...valid, agent_id: agentId })
+
+    expect([parsed.success, parsed.data?.agent_id]).toEqual([true, undefined])
   })
 })

@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { MAX_BRANCH_CODE_UNITS } from '../../shared/boundedBranch'
+import { MAX_PATH_CODE_UNITS } from '../../shared/boundedPath'
 import { subagentMetaSchema } from '../schemas/subagentMeta'
 import { buildMinimalSubagentMeta } from '../testFixtures'
 
@@ -41,10 +43,20 @@ describe('subagentMetaSchema', () => {
 
   it.each([
     ['a relative worktreePath', { worktreePath: 'relative/tree' }],
-    ['an oversized worktreePath', { worktreePath: '/' + 'a'.repeat(4096) }],
+    ['an oversized worktreePath', { worktreePath: '/' + 'a'.repeat(MAX_PATH_CODE_UNITS) }],
     ['a non-string worktreePath', { worktreePath: 7 }],
+    // 3000 non-BMP characters: 3000 code points, but 6000 UTF-16 code units.
+    [
+      'a non-BMP worktreePath under the code-point cap but over the code-unit cap',
+      { worktreePath: '/' + '😀'.repeat(3000) }
+    ],
     ['an empty worktreeBranch', { worktreeBranch: '' }],
-    ['an oversized worktreeBranch', { worktreeBranch: 'b'.repeat(256) }]
+    ['an oversized worktreeBranch', { worktreeBranch: 'b'.repeat(MAX_BRANCH_CODE_UNITS + 1) }],
+    // 200 non-BMP characters: 200 code points, but 400 UTF-16 code units.
+    [
+      'a non-BMP worktreeBranch under the code-point cap but over the code-unit cap',
+      { worktreeBranch: '😀'.repeat(200) }
+    ]
   ])('keeps the meta and reads %s as absent', (_label, bad) => {
     const parsed = subagentMetaSchema.safeParse({ ...buildMinimalSubagentMeta('reviewer'), ...bad })
 
