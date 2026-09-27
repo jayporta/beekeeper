@@ -2,32 +2,15 @@ import { app, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { errorCode } from '../core/transcript/errorCode'
 import { createIpcDeps } from './ipc/createIpcDeps'
 import { registerIpcHandlers } from './ipc/registerIpcHandlers'
 import { isTrustedSender } from './ipc/senderValidation'
 import { hardenDefaultSession } from './security/session'
 import { hardenWebContents } from './security/windowSecurity'
+import { describeError, isFatalLoadFailure } from './startupFailure'
 
 const devServerUrl = is.dev ? process.env['ELECTRON_RENDERER_URL'] : undefined
 const rendererRoot = join(__dirname, '../renderer')
-
-/** The code a load rejects with when a newer navigation replaces it, which is not a failure. */
-const SUPERSEDED_LOAD = 'ERR_ABORTED'
-
-// Names an error by its code, else its class, never its message, which can
-// hold absolute paths.
-function describeError(error: unknown): string {
-  return errorCode(error) ?? (error instanceof Error ? error.name : 'unknown error')
-}
-
-// Electron attaches a no-op handler to a load's rejection, so without this a
-// failed load leaves the hidden window hidden.
-function exitOnLoadFailure(error: unknown): void {
-  if (errorCode(error) === SUPERSEDED_LOAD) return
-  console.error(`Beekeeper could not load its window (${describeError(error)}).`)
-  app.exit(1)
-}
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -45,7 +28,9 @@ function createWindow(): void {
     }
   })
 
-  hardenWebContents(mainWindow.webContents, devServerUrl)
+  // Held directly: once the window is destroyed, `mainWindow.webContents` throws.
+  const { webContents } = mainWindow
+  hardenWebContents(webContents, devServerUrl)
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
@@ -54,7 +39,15 @@ function createWindow(): void {
   const load = devServerUrl
     ? mainWindow.loadURL(devServerUrl)
     : mainWindow.loadFile(join(rendererRoot, 'index.html'))
-  load.catch(exitOnLoadFailure)
+  // Electron attaches a no-op handler to a load's rejection, so without this a
+  // failed load leaves the hidden window hidden. A window closed or quit
+  // mid-load was closed on purpose, and its webContents can't be queried.
+  load.catch((error: unknown) => {
+    if (webContents.isDestroyed()) return
+    if (!isFatalLoadFailure(error, webContents.isLoadingMainFrame())) return
+    console.error(`Beekeeper could not load its window (${describeError(error)}).`)
+    app.exit(1)
+  })
 }
 
 // Must run before the app is ready.
