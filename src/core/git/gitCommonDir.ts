@@ -1,8 +1,8 @@
 import { realpath } from 'node:fs/promises'
-import type { GitBinary } from '../../core/git/gitBinary'
-import { isAbsoluteDir } from '../../core/git/gitPath'
-import { runGit, type GitRunError } from '../../core/git/runGit'
-import { err, ok, type Result } from '../../core/transcript/result'
+import { err, ok, type Result } from '../transcript/result'
+import type { GitBinary } from './gitBinary'
+import { isAbsolutePath } from './gitPath'
+import { runGit, type GitRunError } from './runGit'
 
 /** Options for {@link realCommonDir}. */
 export interface RealCommonDirOptions {
@@ -28,7 +28,7 @@ export async function realCommonDir(
   })
   if (!output.ok) return err(output.error)
   const path = output.value.stdout.toString('utf-8').trim()
-  if (output.value.exitCode !== 0 || !isAbsoluteDir(path)) return err('not-a-repo')
+  if (output.value.exitCode !== 0 || !isAbsolutePath(path)) return err('not-a-repo')
   try {
     return ok(await realpath(path))
   } catch {

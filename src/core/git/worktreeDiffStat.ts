@@ -1,7 +1,8 @@
 import { err, ok, type Result } from '../transcript/result'
 import { parseCommitSha, type CommitSha } from './commitSha'
+import { DIFF_ARGS, UNTRACKED_ARGS } from './gitAllowlist'
 import type { GitBinary } from './gitBinary'
-import { isAbsoluteDir } from './gitPath'
+import { isAbsolutePath } from './gitPath'
 import { parseNumstat, type NumstatEntry } from './parseNumstat'
 import { resolveBranch, type ResolveBranchError } from './resolveBranch'
 import { checkWorktree } from './worktreeSafety'
@@ -48,15 +49,6 @@ export interface WorktreeDiffStat {
 export type WorktreeDiffStatError =
   ResolveBranchError | 'no-common-ancestor' | 'malformed-numstat' | GitRunError
 
-const DIFF_FLAGS = [
-  '--numstat',
-  '-z',
-  '--no-ext-diff',
-  '--no-textconv',
-  '--find-renames',
-  '--ignore-submodules=dirty'
-]
-
 interface MergeBaseOptions {
   readonly git: GitBinary
   readonly repoDir: string
@@ -86,15 +78,7 @@ async function listUntracked(
   const result = await runGit({
     git,
     dir: worktreeDir,
-    args: [
-      'ls-files',
-      '--others',
-      '--exclude-standard',
-      '--directory',
-      '--no-empty-directory',
-      '-z',
-      '--'
-    ]
+    args: ['ls-files', ...UNTRACKED_ARGS, '--']
   })
   if (!result.ok) return err(result.error)
   if (result.value.exitCode !== 0) return err('git-failed')
@@ -114,7 +98,7 @@ async function diffFiles(
   options: DiffFilesOptions
 ): Promise<Result<NumstatEntry[], WorktreeDiffStatError>> {
   const { git, dir, revisions, command } = options
-  const diff = await runGit({ git, dir, args: [command, ...DIFF_FLAGS, ...revisions, '--'] })
+  const diff = await runGit({ git, dir, args: [command, ...DIFF_ARGS, ...revisions, '--'] })
   if (!diff.ok) return err(diff.error)
   if (diff.value.exitCode !== 0) return err('git-failed')
   return parseNumstat(diff.value.stdout)
@@ -140,7 +124,7 @@ export async function worktreeDiffStat(
   const { git, repoDir, worktreeDir, agentBranch } = options
   const baseSha = parseCommitSha(options.baseSha)
   if (baseSha === undefined) return err('invalid-ref')
-  if (!isAbsoluteDir(repoDir) || (worktreeDir !== undefined && !isAbsoluteDir(worktreeDir))) {
+  if (!isAbsolutePath(repoDir) || (worktreeDir !== undefined && !isAbsolutePath(worktreeDir))) {
     return err('invalid-path')
   }
 

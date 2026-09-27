@@ -3,7 +3,7 @@ import { promisify } from 'node:util'
 import { err, ok, type Result } from '../transcript/result'
 import { assertAllowedGitArgs } from './gitAllowlist'
 import { GIT_ENV } from './gitEnv'
-import { isAbsoluteDir } from './gitPath'
+import { isAbsolutePath } from './gitPath'
 import type { GitBinary } from './gitBinary'
 
 const execFileAsync = promisify(execFile)
@@ -120,7 +120,7 @@ function classifyFailure(error: unknown): Result<GitOutput, GitRunError> {
  */
 export async function runGit(options: RunGitOptions): Promise<Result<GitOutput, GitRunError>> {
   assertAllowedGitArgs(options.args)
-  if (!isAbsoluteDir(options.dir)) throw new Error('git-dir-not-absolute')
+  if (!isAbsolutePath(options.dir)) throw new Error('git-dir-not-absolute')
   const exec = options.exec ?? defaultExec
   const args = [...GLOBAL_ARGS, '-C', options.dir, ...options.args]
   try {

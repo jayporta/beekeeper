@@ -1,3 +1,6 @@
+/** The minimal `PATH` a git child process, or a probe for one, is allowed to see. */
+export const SYSTEM_PATH = '/usr/bin:/bin'
+
 /**
  * The complete environment for a git child process, built from scratch so
  * nothing inherited from the app (`GIT_DIR`, `GIT_WORK_TREE`, pagers, user
@@ -11,5 +14,5 @@ export const GIT_ENV: Readonly<Record<string, string>> = Object.freeze({
   GIT_NO_LAZY_FETCH: '1',
   GIT_PAGER: 'cat',
   LC_ALL: 'C',
-  PATH: '/usr/bin:/bin'
+  PATH: SYSTEM_PATH
 })

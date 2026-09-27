@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path'
 import { afterEach, beforeAll, type TestContext } from 'vitest'
 import { parseCommitSha, type CommitSha } from './commitSha'
 import type { GitBinary } from './gitBinary'
+import { SYSTEM_PATH } from './gitEnv'
 import { locateGit } from './locateGit'
 
 /** Options for {@link TestRepo.write}. */
@@ -52,7 +53,7 @@ export async function createTestRepo(git: GitBinary): Promise<TestRepo> {
   const dir = join(root, 'repo')
   await mkdir(dir)
   const env = {
-    PATH: '/usr/bin:/bin',
+    PATH: SYSTEM_PATH,
     GIT_CONFIG_GLOBAL: '/dev/null',
     GIT_CONFIG_NOSYSTEM: '1',
     GIT_AUTHOR_NAME: 'Test',

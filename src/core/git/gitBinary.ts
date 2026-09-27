@@ -1,3 +1,5 @@
+import { isAbsolutePath } from './gitPath'
+
 declare const gitBinaryBrand: unique symbol
 
 /**
@@ -13,6 +15,6 @@ export type GitBinary = string & { readonly [gitBinaryBrand]: true }
  * @throws {Error} When `path` isn't absolute.
  */
 export function toGitBinary(path: string): GitBinary {
-  if (!path.startsWith('/')) throw new Error('git-binary-not-absolute')
+  if (!isAbsolutePath(path)) throw new Error('git-binary-not-absolute')
   return path as GitBinary
 }

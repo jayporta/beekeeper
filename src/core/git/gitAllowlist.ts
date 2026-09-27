@@ -1,12 +1,31 @@
-const DIFF_FLAGS: ReadonlySet<string> = new Set([
+/**
+ * Flags every diff-like read passes: numeric line counts, NUL-separated
+ * records, no external diff or textconv hooks, rename detection, and a
+ * submodule's uncommitted edits ignored so only its recorded commit shows.
+ */
+export const DIFF_ARGS: readonly string[] = [
   '--numstat',
   '-z',
   '--no-ext-diff',
   '--no-textconv',
   '--find-renames',
-  '--ignore-submodules=dirty',
-  '--'
-])
+  '--ignore-submodules=dirty'
+]
+
+/**
+ * Flags `ls-files` passes to list untracked paths outside ignore rules, one
+ * NUL-separated entry per file or directory.
+ */
+export const UNTRACKED_ARGS: readonly string[] = [
+  '--others',
+  '--exclude-standard',
+  '--directory',
+  '--no-empty-directory',
+  '-z'
+]
+
+const DIFF_FLAGS: ReadonlySet<string> = new Set([...DIFF_ARGS, '--'])
+const UNTRACKED_FLAGS: ReadonlySet<string> = new Set([...UNTRACKED_ARGS, '--'])
 
 /** Flags each allowlisted git subcommand may receive. Anything else is refused. */
 const ALLOWED_OPTIONS: Readonly<Record<string, ReadonlySet<string>>> = {
@@ -23,14 +42,7 @@ const ALLOWED_OPTIONS: Readonly<Record<string, ReadonlySet<string>>> = {
   'merge-base': new Set(),
   diff: DIFF_FLAGS,
   'diff-index': DIFF_FLAGS,
-  'ls-files': new Set([
-    '--others',
-    '--exclude-standard',
-    '--directory',
-    '--no-empty-directory',
-    '-z',
-    '--'
-  ]),
+  'ls-files': UNTRACKED_FLAGS,
   'check-ref-format': new Set(),
   config: new Set()
 }
