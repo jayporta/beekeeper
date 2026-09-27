@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
-import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import { optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { createIpcDeps } from './ipc/createIpcDeps'
 import { registerIpcHandlers } from './ipc/registerIpcHandlers'
@@ -56,7 +56,6 @@ app.enableSandbox()
 app
   .whenReady()
   .then(() => {
-    electronApp.setAppUserModelId('com.jayporta.beekeeper')
     hardenDefaultSession({ rendererRoot, devServerUrl })
 
     // Registered once, before any window: `activate` recreates windows, and a
