@@ -2,7 +2,8 @@ import { lstat, realpath } from 'node:fs/promises'
 import { errorCode } from '../transcript/errorCode'
 import { err, ok, type Result } from '../transcript/result'
 import type { GitBinary } from './gitBinary'
-import { isAbsoluteDir } from './gitPath'
+import { realCommonDir, type RealCommonDirOptions } from './gitCommonDir'
+import { isAbsolutePath } from './gitPath'
 import { runGit, type GitRunError } from './runGit'
 
 /** Options for {@link checkWorktree}. */
@@ -59,6 +60,15 @@ async function realpathOrUndefined(path: string | undefined): Promise<string | u
   }
 }
 
+/** Reads a repository's common dir, treating `not-a-repo` as absent rather than as a failure. */
+async function commonDirOrUndefined(
+  options: RealCommonDirOptions
+): Promise<Result<string | undefined, GitRunError>> {
+  const result = await realCommonDir(options)
+  if (result.ok) return ok(result.value)
+  return result.error === 'not-a-repo' ? ok(undefined) : err(result.error)
+}
+
 async function definesFilters(
   git: GitBinary,
   dir: string
@@ -88,14 +98,13 @@ export async function checkWorktree(
   options: CheckWorktreeOptions
 ): Promise<Result<WorktreeVerdict, GitRunError | 'git-failed' | 'invalid-path'>> {
   const { git, repoDir, worktreeDir } = options
-  if (!isAbsoluteDir(repoDir) || !isAbsoluteDir(worktreeDir)) return err('invalid-path')
+  if (!isAbsolutePath(repoDir) || !isAbsolutePath(worktreeDir)) return err('invalid-path')
   if (await isMissing(worktreeDir)) return ok('no-worktree')
-  const commonArgs = ['rev-parse', '--path-format=absolute', '--git-common-dir']
   const [filters, top, common, repoCommon, head, gitDir] = await Promise.all([
     definesFilters(git, worktreeDir),
     gitText({ git, dir: worktreeDir, args: ['rev-parse', '--show-toplevel'] }),
-    gitText({ git, dir: worktreeDir, args: commonArgs }),
-    gitText({ git, dir: repoDir, args: commonArgs }),
+    commonDirOrUndefined({ git, dir: worktreeDir }),
+    commonDirOrUndefined({ git, dir: repoDir }),
     gitText({ git, dir: worktreeDir, args: ['rev-parse', '--symbolic-full-name', 'HEAD'] }),
     gitText({ git, dir: worktreeDir, args: ['rev-parse', '--absolute-git-dir'] })
   ])
@@ -105,20 +114,18 @@ export async function checkWorktree(
   if (!head.ok) return err(head.error)
   if (!gitDir.ok) return err(gitDir.error)
 
-  const [realWorktree, realTop, realCommon, realRepoCommon, realGitDir] = await Promise.all([
+  const [realWorktree, realTop, realGitDir] = await Promise.all([
     realpathOrUndefined(worktreeDir),
     realpathOrUndefined(top.value),
-    realpathOrUndefined(common.value),
-    realpathOrUndefined(repoCommon.value),
     realpathOrUndefined(gitDir.value)
   ])
   const matches =
     realWorktree !== undefined &&
     realWorktree === realTop &&
-    realCommon !== undefined &&
-    realCommon === realRepoCommon &&
+    common.value !== undefined &&
+    common.value === repoCommon.value &&
     realGitDir !== undefined &&
-    realGitDir !== realCommon &&
+    realGitDir !== common.value &&
     head.value === `refs/heads/${options.agentBranch}`
   if (!matches) return ok('worktree-mismatch')
 

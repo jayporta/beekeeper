@@ -2,7 +2,7 @@ import type { GitBinary } from '../../core/git/gitBinary'
 import { realpath } from 'node:fs/promises'
 import { err, ok, type Result } from '../../core/transcript/result'
 import { isInside } from './containment'
-import { realCommonDir } from './gitCommonDir'
+import { realCommonDir } from '../../core/git/gitCommonDir'
 import { verifyRepo, type VerifyRepoError } from './verifyRepo'
 
 /** Why a spawn's repository was refused or could not be checked. */

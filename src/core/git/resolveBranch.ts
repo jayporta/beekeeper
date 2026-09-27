@@ -1,7 +1,7 @@
 import { err, ok, type Result } from '../transcript/result'
 import { parseCommitSha, type CommitSha } from './commitSha'
 import type { GitBinary } from './gitBinary'
-import { isAbsoluteDir } from './gitPath'
+import { isAbsolutePath } from './gitPath'
 import { runGit, type GitRunError } from './runGit'
 
 /** Why a branch name could not be resolved to a commit. */
@@ -36,21 +36,21 @@ export async function resolveBranch(
   options: ResolveBranchOptions
 ): Promise<Result<CommitSha, ResolveBranchError>> {
   const { git, repoDir, branch } = options
-  if (!isAbsoluteDir(repoDir)) return err('invalid-path')
+  if (!isAbsolutePath(repoDir)) return err('invalid-path')
   if (branch.length === 0 || branch.startsWith('-') || branch.includes('@{')) {
     return err('invalid-ref')
   }
 
+  const fullName = `refs/heads/${branch}`
   const format = await runGit({
     git,
     dir: repoDir,
-    args: ['check-ref-format', `refs/heads/${branch}`]
+    args: ['check-ref-format', fullName]
   })
   if (!format.ok) return err(format.error)
   if (format.value.exitCode === 1) return err('invalid-ref')
   if (format.value.exitCode !== 0) return err('git-failed')
 
-  const fullName = `refs/heads/${branch}`
   const [parsed, symbolic] = await Promise.all([
     runGit({
       git,

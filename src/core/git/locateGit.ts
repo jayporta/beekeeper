@@ -3,6 +3,8 @@ import { access, constants } from 'node:fs/promises'
 import { promisify } from 'node:util'
 import { err, ok, type Result } from '../transcript/result'
 import { toGitBinary, type GitBinary } from './gitBinary'
+import { SYSTEM_PATH } from './gitEnv'
+import { isAbsolutePath } from './gitPath'
 import { isSupportedGitVersion, parseGitVersion } from './gitVersion'
 
 const execFileAsync = promisify(execFile)
@@ -12,7 +14,7 @@ const XCRUN = '/usr/bin/xcrun'
 /** On macOS this is a shim that can open the Command Line Tools install dialog, so it is only probed elsewhere. */
 const SHIM_GIT = '/usr/bin/git'
 const PROBE_TIMEOUT_MS = 5000
-const PROBE_ENV = { PATH: '/usr/bin:/bin' }
+const PROBE_ENV = { PATH: SYSTEM_PATH }
 
 /** Absolute paths probed for a git executable, in order. */
 export const DEFAULT_GIT_CANDIDATES: readonly string[] = [
@@ -64,7 +66,7 @@ async function findViaCommandLineTools(
   try {
     await run(XCODE_SELECT, ['-p'])
     const found = (await run(XCRUN, ['--find', 'git'])).trim()
-    if (!found.startsWith('/') || found === SHIM_GIT) return undefined
+    if (!isAbsolutePath(found) || found === SHIM_GIT) return undefined
     return (await isExecutable(found, check)) ? found : undefined
   } catch {
     return undefined

@@ -1,6 +1,6 @@
 import { lstat, realpath } from 'node:fs/promises'
 import type { GitBinary } from '../../core/git/gitBinary'
-import { isAbsoluteDir } from '../../core/git/gitPath'
+import { isAbsolutePath } from '../../core/git/gitPath'
 import { runGit, type GitRunError } from '../../core/git/runGit'
 import { err, ok, type Result } from '../../core/transcript/result'
 
@@ -32,7 +32,7 @@ export interface VerifyRepoOptions {
 export async function verifyRepo(
   options: VerifyRepoOptions
 ): Promise<Result<string, VerifyRepoError>> {
-  if (!isAbsoluteDir(options.dir)) return err('repo-missing')
+  if (!isAbsolutePath(options.dir)) return err('repo-missing')
   let real: string
   try {
     real = await realpath(options.dir)
@@ -49,7 +49,7 @@ export async function verifyRepo(
   if (!output.ok) return err(output.error)
   if (output.value.exitCode !== 0) return err('not-a-repo')
   const top = output.value.stdout.toString('utf-8').trim()
-  if (!isAbsoluteDir(top)) return err('not-a-repo')
+  if (!isAbsolutePath(top)) return err('not-a-repo')
   try {
     return ok(await realpath(top))
   } catch {
