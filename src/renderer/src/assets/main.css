@@ -1,18 +1,22 @@
-@import './base.css';
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+}
 
 body {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+  color: var(--color-text);
+  background: var(--color-bg);
+  line-height: var(--line-height-body);
+  font-family: var(--font-sans);
   text-align: center;
-}
-
-main {
-  padding: 0 24px;
-}
-
-p {
-  color: var(--ev-c-text-2);
-  font-size: 16px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }

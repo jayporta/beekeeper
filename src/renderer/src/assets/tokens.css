@@ -1,0 +1,14 @@
+/* The single source of design tokens: color, type, and spacing for every component. */
+:root {
+  color-scheme: dark;
+
+  --color-bg: #1b1b1f;
+  --color-text: #dfdfd7;
+  --color-text-muted: #98989f;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --line-height-body: 1.6;
+  --font-size-body: 1rem;
+
+  --space-6: 1.5rem;
+}
