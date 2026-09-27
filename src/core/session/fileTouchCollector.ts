@@ -1,11 +1,10 @@
 import { messageContentBlocks } from '../transcript/messageContentBlocks'
 import {
   editToolUseResultSchema,
-  toolResultBlockSchema,
   toolUseBlockSchema,
-  writeToolUseResultSchema,
-  type ToolResultBlock
+  writeToolUseResultSchema
 } from '../transcript/schemas'
+import { parseSoleToolResultBlock } from '../transcript/soleToolResultBlock'
 
 /** Tool names whose result the collector turns into a file touch. */
 const TRACKED_TOOL_NAMES = new Set(['Edit', 'Write'])
@@ -80,27 +79,6 @@ export function createFileTouchCollector(): FileTouchCollector {
     },
     touches: () => touches
   }
-}
-
-/**
- * Parses a user record's content blocks as `tool_result` blocks, each
- * exactly once, and returns the sole match.
- * @param blocks - The record's `message.content` blocks, unvalidated.
- * @returns The one parsed `tool_result` block, or `null` when none or more
- * than one of `blocks` validates as one.
- */
-function parseSoleToolResultBlock(blocks: readonly unknown[]): ToolResultBlock | null {
-  let matchCount = 0
-  let matched: ToolResultBlock | null = null
-
-  for (const block of blocks) {
-    const parsed = toolResultBlockSchema.safeParse(block)
-    if (!parsed.success) continue
-    matchCount += 1
-    matched = parsed.data
-  }
-
-  return matchCount === 1 ? matched : null
 }
 
 /** Input for {@link buildFileTouch}. */

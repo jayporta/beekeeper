@@ -3,14 +3,6 @@ import type { SessionRole } from '../sessionRole'
 import { createSessionRoleObserver } from '../sessionRoleObserver'
 import { buildAgentSettingRecord, buildAssistantRecord, buildUserRecord } from '../testFixtures'
 
-/**
- * The observer's own cap on an agent type, name, or team, in UTF-16 code
- * units. Kept here rather than exported from the module, and pinned by the
- * pair of tests that a value of exactly this length is kept and one code
- * unit more is not.
- */
-const CAP_CODE_UNITS = 256
-
 function observeAll(records: readonly Record<string, unknown>[]): SessionRole {
   const observer = createSessionRoleObserver()
   for (const record of records) observer.observe(record)
@@ -57,121 +49,28 @@ describe('createSessionRoleObserver', () => {
     expect(observeAll([buildUserRecord({ extra: { agentName: 42 } })])).toEqual({ kind: 'lead' })
   })
 
+  it('routes each value through the label cleaner, keeping the classification', () => {
+    const record = buildUserRecord({ extra: { agentName: 'a\nb', teamName: 'c\nd' } })
+
+    expect(observeAll([record])).toEqual({
+      kind: 'agent',
+      agentType: null,
+      agentName: null,
+      teamName: null
+    })
+  })
+
+  it('routes an agent type through the label cleaner', () => {
+    expect(observeAll([buildAgentSettingRecord('Ex\nplore')])).toMatchObject({
+      kind: 'agent',
+      agentType: null
+    })
+  })
   it('normalizes an empty agentName to null while still classifying an agent', () => {
     expect(observeAll([buildUserRecord({ extra: { agentName: '' } })])).toEqual({
       kind: 'agent',
       agentType: null,
       agentName: null,
-      teamName: null
-    })
-  })
-
-  it('stores null for an oversized value but keeps the agent classification', () => {
-    const overCap = 'x'.repeat(CAP_CODE_UNITS + 1)
-
-    expect(observeAll([buildUserRecord({ extra: { teamName: overCap } })])).toEqual({
-      kind: 'agent',
-      agentType: null,
-      agentName: null,
-      teamName: null
-    })
-  })
-
-  it('stores null for a name carrying a newline but keeps the agent classification', () => {
-    expect(observeAll([buildUserRecord({ extra: { agentName: 'scout\nadmin' } })])).toEqual({
-      kind: 'agent',
-      agentType: null,
-      agentName: null,
-      teamName: null
-    })
-  })
-
-  it('stores null for a name carrying a non-whitespace control character', () => {
-    expect(observeAll([buildUserRecord({ extra: { agentName: 'scout\u0007' } })])).toMatchObject({
-      kind: 'agent',
-      agentName: null
-    })
-  })
-
-  it('keeps a value of exactly the cap', () => {
-    const atCap = 'x'.repeat(CAP_CODE_UNITS)
-
-    expect(observeAll([buildUserRecord({ extra: { teamName: atCap } })])).toMatchObject({
-      teamName: atCap
-    })
-  })
-
-  it('stores null for a value that NFC expands past the cap', () => {
-    const expanding = '\u0958'.repeat(CAP_CODE_UNITS)
-
-    expect(observeAll([buildUserRecord({ extra: { teamName: expanding } })])).toMatchObject({
-      kind: 'agent',
-      teamName: null
-    })
-  })
-
-  it('stores null for a name carrying a line separator', () => {
-    expect(
-      observeAll([buildUserRecord({ extra: { agentName: 'scout\u2028admin' } })])
-    ).toMatchObject({ kind: 'agent', agentName: null })
-  })
-
-  it('stores null for a team name carrying a non-breaking space', () => {
-    expect(observeAll([buildUserRecord({ extra: { teamName: 'team\u00a01' } })])).toMatchObject({
-      kind: 'agent',
-      teamName: null
-    })
-  })
-
-  it('stores null for a name carrying a lone surrogate', () => {
-    expect(observeAll([buildUserRecord({ extra: { agentName: 'scout\ud800' } })])).toMatchObject({
-      kind: 'agent',
-      agentName: null
-    })
-  })
-
-  it('stores null for a whitespace-only name', () => {
-    expect(observeAll([buildUserRecord({ extra: { agentName: '   ' } })])).toMatchObject({
-      kind: 'agent',
-      agentName: null
-    })
-  })
-
-  it('trims surrounding whitespace from a name', () => {
-    expect(observeAll([buildUserRecord({ extra: { agentName: '  scout  ' } })])).toMatchObject({
-      agentName: 'scout'
-    })
-  })
-
-  it('normalizes a decomposed name to NFC', () => {
-    expect(
-      observeAll([buildUserRecord({ extra: { agentName: 'cafe\u0301-review' } })])
-    ).toMatchObject({ agentName: 'caf\u00e9-review' })
-  })
-
-  it('stores null for a name carrying a private-use character', () => {
-    expect(observeAll([buildUserRecord({ extra: { agentName: 'scout\ue000' } })])).toMatchObject({
-      kind: 'agent',
-      agentName: null
-    })
-  })
-
-  it('stores null for a team name carrying a paragraph separator', () => {
-    expect(observeAll([buildUserRecord({ extra: { teamName: 'team\u20291' } })])).toMatchObject({
-      kind: 'agent',
-      teamName: null
-    })
-  })
-
-  it('keeps a name containing a plain space', () => {
-    expect(observeAll([buildUserRecord({ extra: { agentName: 'chunk 1 review' } })])).toMatchObject(
-      { agentName: 'chunk 1 review' }
-    )
-  })
-
-  it('stores null for a team name carrying a bidi override', () => {
-    expect(observeAll([buildUserRecord({ extra: { teamName: 'team-\u202e1' } })])).toMatchObject({
-      kind: 'agent',
       teamName: null
     })
   })

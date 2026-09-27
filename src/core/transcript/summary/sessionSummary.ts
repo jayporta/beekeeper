@@ -1,4 +1,5 @@
 import type { SessionRole } from '../sessionRole'
+import type { TranscriptTeamSpawns } from '../teammateSpawn'
 
 /**
  * The window a transcript's records cover, taken as the smallest and
@@ -57,4 +58,10 @@ export interface SessionSummary {
    * Claude Code version, rather than a claim that a session led a team.
    */
   readonly role: SessionRole
+  /**
+   * The teammates the transcript spawned and stopped, collected on every
+   * transcript, since an agent session can spawn teammates too. Both lists
+   * are empty for a transcript that spawned none.
+   */
+  readonly teamSpawns: TranscriptTeamSpawns
 }
