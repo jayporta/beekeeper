@@ -3,12 +3,12 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { Result } from '../../shared/result'
 import {
   readJsonlLines,
   type LineTooLongError,
   type ReadJsonlLinesOptions
 } from '../readJsonlLines'
-import type { Result } from '../result'
 import { buildJsonlTextWithPartialLastLine, MULTIBYTE_TEXT } from '../testFixtures'
 
 // Wraps the real `createReadStream` in a spy so the "closes early" test can

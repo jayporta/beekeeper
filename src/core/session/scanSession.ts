@@ -1,9 +1,9 @@
+import { ok, type Result } from '../shared/result'
 import type { SubagentEntry } from '../transcript/discoverSubagents'
 import { createLastCostState } from '../transcript/lastCostState'
 import type { AgentId } from '../transcript/ids'
 import type { ReadJsonlLinesOptions } from '../transcript/readJsonlLines'
 import { readRecords } from '../transcript/readRecords'
-import { ok, type Result } from '../transcript/result'
 import type { UnreadableError } from '../transcript/unreadableError'
 import {
   agentIdentityKey,

@@ -1,4 +1,4 @@
-import { errorCode } from '../../core/transcript/errorCode'
+import { errorCode } from '../../core/shared/errorCode'
 import type { IpcErrorCode } from '../../shared/ipc/ipcResult'
 
 /**

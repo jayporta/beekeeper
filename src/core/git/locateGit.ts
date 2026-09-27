@@ -1,10 +1,10 @@
 import { execFile } from 'node:child_process'
 import { access, constants } from 'node:fs/promises'
 import { promisify } from 'node:util'
-import { err, ok, type Result } from '../transcript/result'
+import { isAbsolutePath } from '../shared/absolutePath'
+import { err, ok, type Result } from '../shared/result'
 import { toGitBinary, type GitBinary } from './gitBinary'
 import { SYSTEM_PATH } from './gitEnv'
-import { isAbsolutePath } from './gitPath'
 import { isSupportedGitVersion, parseGitVersion } from './gitVersion'
 
 const execFileAsync = promisify(execFile)

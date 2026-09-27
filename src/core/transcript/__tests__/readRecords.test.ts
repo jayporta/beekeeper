@@ -2,8 +2,8 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import type { Result } from '../../shared/result'
 import { readRecords, type SkippedLineError } from '../readRecords'
-import type { Result } from '../result'
 import { buildAiTitleRecord, buildJsonlText, toJsonlLine } from '../testFixtures'
 
 let dir: string

@@ -1,8 +1,8 @@
 import { constants } from 'node:fs'
 import { open, type FileHandle } from 'node:fs/promises'
-import { errorCode } from './errorCode'
+import { errorCode } from '../shared/errorCode'
+import { err, ok, type Result } from '../shared/result'
 import { isMissingEntryError } from './isMissingEntryError'
-import { err, ok, type Result } from './result'
 import { subagentMetaSchema, type SubagentMeta } from './schemas'
 
 /** The largest `.meta.json` file this reads; the largest seen on disk is a few hundred bytes. */

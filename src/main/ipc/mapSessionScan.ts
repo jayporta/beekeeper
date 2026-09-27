@@ -1,5 +1,5 @@
-import { compareCodeUnits } from '../../core/transcript/compareCodeUnits'
 import type { SessionScan } from '../../core/session/scanSession'
+import { compareCodeUnits } from '../../core/shared/compareCodeUnits'
 import type { IpcErrorCode } from '../../shared/ipc/ipcResult'
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
 import { mapAgentReport } from './mapAgentReport'

@@ -1,6 +1,5 @@
 /**
- * Whether `path` is a non-empty absolute POSIX path: the only kind Beekeeper
- * hands to git as a working directory, or runs as a git executable.
+ * Whether `path` is a non-empty absolute POSIX path.
  * @param path - A path, possibly untrusted.
  * @returns `true` when it starts with `/`.
  */

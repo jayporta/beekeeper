@@ -1,5 +1,5 @@
 import { join, resolve } from 'node:path'
-import { compareCodeUnits } from './compareCodeUnits'
+import { compareCodeUnits } from '../shared/compareCodeUnits'
 import { toProjectDirName, type ProjectDirName } from './ids'
 import { readDirentsOrEmpty } from './readDirentsOrEmpty'
 

@@ -1,5 +1,5 @@
+import type { Result } from '../shared/result'
 import type { SkippedLineError } from '../transcript/readRecords'
-import type { Result } from '../transcript/result'
 import { assistantRecordSchema } from '../transcript/schemas'
 import type { AgentIdentity } from './agentIdentity'
 import { createFileTouchCollector, type FileTouch } from './fileTouchCollector'

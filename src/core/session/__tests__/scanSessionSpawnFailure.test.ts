@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ok, type Result } from '../../shared/result'
 import type { SkippedLineError } from '../../transcript/readRecords'
-import { ok, type Result } from '../../transcript/result'
 import { toAgentId } from '../../transcript/ids'
 import { buildJsonlText } from '../../transcript/testFixtures'
 import { scanSession } from '../scanSession'

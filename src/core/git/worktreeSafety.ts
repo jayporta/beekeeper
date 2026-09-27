@@ -1,9 +1,9 @@
 import { lstat, realpath } from 'node:fs/promises'
-import { errorCode } from '../transcript/errorCode'
-import { err, ok, type Result } from '../transcript/result'
+import { isAbsolutePath } from '../shared/absolutePath'
+import { errorCode } from '../shared/errorCode'
+import { err, ok, type Result } from '../shared/result'
 import type { GitBinary } from './gitBinary'
 import { realCommonDir, type RealCommonDirOptions } from './gitCommonDir'
-import { isAbsolutePath } from './gitPath'
 import { runGit, type GitRunError } from './runGit'
 
 /** Options for {@link checkWorktree}. */

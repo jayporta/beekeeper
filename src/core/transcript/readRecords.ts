@@ -1,7 +1,7 @@
+import { err, ok, type Result } from '../shared/result'
 import { isRecordObject } from './isRecordObject'
 import { parseRecord } from './parseRecord'
 import { readJsonlLines, type ReadJsonlLinesOptions } from './readJsonlLines'
-import { err, ok, type Result } from './result'
 
 /**
  * Why a transcript line didn't yield a record: it was too long to buffer,

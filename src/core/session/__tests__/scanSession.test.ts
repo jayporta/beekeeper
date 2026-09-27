@@ -1,7 +1,7 @@
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ok, type Result } from '../../shared/result'
 import type { SkippedLineError } from '../../transcript/readRecords'
-import { ok, type Result } from '../../transcript/result'
 import {
   buildAssistantToolUseRecord,
   buildEditToolUseResult,

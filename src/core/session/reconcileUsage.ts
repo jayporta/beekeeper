@@ -1,6 +1,6 @@
 import { normalizeModelId } from '../pricing/normalizeModelId'
 import type { PriceTokensResult } from '../pricing/priceTokens'
-import { compareCodeUnits } from '../transcript/compareCodeUnits'
+import { compareCodeUnits } from '../shared/compareCodeUnits'
 import type { CostStateRecord, ModelUsage } from '../transcript/schemas'
 import type { AgentUsage } from './agentUsage'
 

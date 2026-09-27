@@ -1,8 +1,8 @@
 import { lstat, realpath } from 'node:fs/promises'
 import type { GitBinary } from '../../core/git/gitBinary'
-import { isAbsolutePath } from '../../core/git/gitPath'
 import { runGit, type GitRunError } from '../../core/git/runGit'
-import { err, ok, type Result } from '../../core/transcript/result'
+import { isAbsolutePath } from '../../core/shared/absolutePath'
+import { err, ok, type Result } from '../../core/shared/result'
 
 /** Why a directory could not be confirmed as a repository. */
 export type VerifyRepoError = 'repo-missing' | 'not-a-repo' | GitRunError

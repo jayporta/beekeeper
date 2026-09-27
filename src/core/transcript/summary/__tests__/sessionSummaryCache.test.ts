@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import type { Result } from '../../result'
+import type { Result } from '../../../shared/result'
 import type { TranscriptFileInfo } from '../../statTranscriptFile'
 import { buildAiTitleRecord, buildJsonlText } from '../../testFixtures'
 import type { UnreadableError } from '../../unreadableError'

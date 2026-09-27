@@ -1,4 +1,4 @@
-import { compareCodeUnits } from '../transcript/compareCodeUnits'
+import { compareCodeUnits } from '../shared/compareCodeUnits'
 import type { AgentId } from '../transcript/ids'
 import {
   agentIdentityKey,

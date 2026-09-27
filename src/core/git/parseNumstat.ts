@@ -1,4 +1,4 @@
-import { err, ok, type Result } from '../transcript/result'
+import { err, ok, type Result } from '../shared/result'
 
 /** One file's line counts from `git diff --numstat -z`. */
 export interface NumstatEntry {

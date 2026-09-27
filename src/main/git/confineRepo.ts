@@ -1,6 +1,6 @@
 import type { GitBinary } from '../../core/git/gitBinary'
 import { realpath } from 'node:fs/promises'
-import { err, ok, type Result } from '../../core/transcript/result'
+import { err, ok, type Result } from '../../core/shared/result'
 import { isInside } from './containment'
 import { realCommonDir } from '../../core/git/gitCommonDir'
 import { verifyRepo, type VerifyRepoError } from './verifyRepo'

@@ -1,9 +1,9 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { err, ok, type Result } from '../transcript/result'
+import { isAbsolutePath } from '../shared/absolutePath'
+import { err, ok, type Result } from '../shared/result'
 import { assertAllowedGitArgs } from './gitAllowlist'
 import { GIT_ENV } from './gitEnv'
-import { isAbsolutePath } from './gitPath'
 import type { GitBinary } from './gitBinary'
 
 const execFileAsync = promisify(execFile)
