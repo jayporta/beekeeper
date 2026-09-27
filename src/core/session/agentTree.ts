@@ -12,14 +12,12 @@ import type { SubagentMetaStatus } from './subagentMetaStatus'
 /** One subagent's id and its resolved meta status, as input to {@link buildAgentTree}. */
 export type AgentTreeInput = ParentLinkInput
 
-/** One node in a session's agent tree: the lead, a subagent, or a teammate. */
+/** One node in a session's agent tree: the lead or a subagent. */
 export interface AgentTreeNode {
   /** Which agent this node represents. */
   readonly identity: AgentIdentity
   /** The node's meta status: `absent` for the lead, which never has one. */
   readonly metaStatus: SubagentMetaStatus
-  /** Whether this agent was spawned into a team, per its meta's `teamName`. */
-  readonly isTeammate: boolean
   /** This node's direct children, ordered by agent id. */
   readonly children: readonly AgentTreeNode[]
 }
@@ -44,12 +42,9 @@ interface NodeBuildContext extends TreeContext {
  * here), one on a subagent whose meta didn't resolve, or one on a subagent
  * that's part of a cycle all fall back to the lead; a subagent that merely
  * leads into a cycle it isn't part of (`c -> a -> b -> a`) keeps its own
- * raw parent. A subagent counts as a teammate when its meta carries a
- * `teamName`, since a teammate's meta doesn't always carry `toolUseId`
- * either, and neither does every non-team meta. Children at each level are
- * ordered by agent id. A repeated agent id in `subagents` keeps only its
- * first occurrence; later ones are ignored rather than added as a second
- * child under the same parent.
+ * raw parent. Children at each level are ordered by agent id. A repeated
+ * agent id in `subagents` keeps only its first occurrence; later ones are
+ * ignored rather than added as a second child under the same parent.
  *
  * Cycle detection and tree construction both run iteratively, in time
  * proportional to the number of subagents, so neither a long chain of
@@ -140,7 +135,6 @@ function buildNode(identity: AgentIdentity, context: NodeBuildContext): AgentTre
   return {
     identity,
     metaStatus,
-    isTeammate: metaStatus.status === 'ok' && metaStatus.meta.teamName !== undefined,
     children
   }
 }

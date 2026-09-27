@@ -6,7 +6,6 @@ function nodeWith(metaStatus: unknown): AgentTreeNode {
   return {
     identity: { kind: 'lead' },
     metaStatus,
-    isTeammate: false,
     children: []
   } as unknown as AgentTreeNode
 }

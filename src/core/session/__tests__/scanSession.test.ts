@@ -242,16 +242,15 @@ describe('scanSession tree', () => {
     expect(scan.tree).toEqual({
       identity: { kind: 'lead' },
       metaStatus: { status: 'absent' },
-      isTeammate: false,
       children: []
     })
   })
 
-  it('nests a subagent under its parent and marks a teammate, from meta read off disk', async () => {
+  it('nests a subagent under its parent from meta read off disk', async () => {
     const leadPath = dir.writeLead('')
     const parent = dir.addSubagent('parent', {
       transcript: '',
-      meta: { agentType: 'general-purpose', teamName: 'core-team' }
+      meta: { agentType: 'general-purpose' }
     })
     const child = dir.addSubagent('child', {
       transcript: '',
@@ -262,7 +261,6 @@ describe('scanSession tree', () => {
 
     const parentNode = scan.tree.children[0]
     expect(parentNode?.identity).toEqual({ kind: 'subagent', agentId: 'parent' })
-    expect(parentNode?.isTeammate).toBe(true)
     expect(parentNode?.children.map((c) => c.identity)).toEqual([
       { kind: 'subagent', agentId: 'child' }
     ])

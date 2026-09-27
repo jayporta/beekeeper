@@ -72,9 +72,9 @@ export interface AgentMetaDto {
   readonly worktreePath?: string
   /** The worktree branch it ran on. */
   readonly worktreeBranch?: string
-  /** The team it joined, when it is a teammate. */
+  /** The team named in the meta, if any. */
   readonly teamName?: string
-  /** Its name within the team. */
+  /** The name given in the meta, if any. */
   readonly name?: string
   /** The kind of task. */
   readonly taskKind?: string
@@ -104,8 +104,6 @@ export interface AgentNodeDto {
   readonly agentId: string | null
   /** Whether the agent's meta was found and readable. */
   readonly meta: AgentMetaStatusDto
-  /** Whether the agent joined a team. */
-  readonly isTeammate: boolean
   /** The agent's direct children, ordered by id. */
   readonly children: readonly AgentNodeDto[]
 }

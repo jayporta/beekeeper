@@ -120,8 +120,8 @@ describe('resolveSpawnContexts', () => {
     expect(result.get(toAgentId('b'))?.inferred).toBe(true)
   })
 
-  it('falls back to the lead branch and cwd for a teammate with no toolUseId', () => {
-    const result = resolve([agent('t', { teamName: 'core' })])
+  it('falls back to the lead branch and cwd for a subagent with no toolUseId', () => {
+    const result = resolve([agent('t', {})])
 
     expect(result.get(toAgentId('t'))).toEqual({ cwd: '/lead', baseBranch: 'main', inferred: true })
   })
