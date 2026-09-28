@@ -58,13 +58,14 @@ interface StopCandidate {
  * `tool_result` block, only for records that are spawns.
  *
  * A stop is read from a `TaskStop` block's `input.task_id`, split at its
- * last `@` into a name and a stated team. A stop whose result record
- * reports a `task_type` other than `in_process_teammate` (a shell, a
- * background agent) is excluded, and a stop whose result never arrives is
- * kept. Survivors are listed once per (team, name) in file order. A stop's
- * team is its stated team, else the team of the name's latest spawn
- * observed by then, falling back to the name's final team only when no
- * spawn of it was observed at all.
+ * last `@` into a name and a stated team. A stop is excluded when a result
+ * record whose sole `tool_result` block answers the stop's `id` reports a
+ * string `task_type` other than `in_process_teammate` (a shell, a
+ * background agent). Any other stop is kept, including one whose result
+ * never arrives. Survivors are listed once per (team, name) in file
+ * order. A stop's team is its stated team, else the team of the name's
+ * latest spawn observed by then, falling back to the name's final team
+ * only when no spawn of it was observed at all.
  *
  * Spawns and `TaskStop` calls are each capped at {@link MAX_TEAMMATE_ENTRIES}
  * and `truncated` is set whenever one is dropped for it. A call still
