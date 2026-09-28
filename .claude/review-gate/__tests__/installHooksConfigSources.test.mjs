@@ -1,4 +1,4 @@
-import { appendFileSync, readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { createUninstalledRepo, readLocalHooksPath, runGit, runNode } from '../testGateFixture.mjs'
@@ -85,30 +85,6 @@ describe('cli install with git location variables', () => {
       expect(readLocalHooksPath(activeRepo.repoDir)).toBe('')
     }
   )
-})
-
-describe('cli install with branch-conditional includes', () => {
-  it('warns when .git/config has an includeIf "onbranch:" section', () => {
-    activeRepo = createUninstalledRepo()
-    appendFileSync(
-      join(activeRepo.repoDir, '.git', 'config'),
-      `[includeIf "onbranch:feature"]\n\tpath = ${join(activeRepo.repoDir, 'feature.gitconfig')}\n`
-    )
-
-    const install = runNode(activeRepo.cliScript, ['install'], activeRepo.repoDir)
-
-    expect(install.status).toBe(0)
-    expect(install.stdout).toContain('includeIf "onbranch:" section')
-  })
-
-  it('does not warn about branch-conditional includes when there are none', () => {
-    activeRepo = createUninstalledRepo()
-
-    const install = runNode(activeRepo.cliScript, ['install'], activeRepo.repoDir)
-
-    expect(install.status).toBe(0)
-    expect(install.stdout).not.toContain('onbranch')
-  })
 })
 
 describe('cli install over a global value', () => {

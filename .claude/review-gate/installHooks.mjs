@@ -2,9 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { realpathSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { hasBranchConditionalInclude } from './branchConditionalIncludes.mjs'
 import { gitOrNull } from './lib/gitQuery.mjs'
-import { findOtherWorktreeHooks } from './otherWorktreeHooks.mjs'
 
 const HOOKS_PATH = '.githooks'
 /** Environment variables that make git use a repository other than the one around the installer. */
@@ -61,21 +59,22 @@ function gitFailureReason(error) {
 /**
  * Points `core.hooksPath` at `.githooks` so git runs the review gate on
  * every commit. It fails when this isn't a git work tree, when the
- * package isn't at the root of its work tree, or when the repository's own `core.hooksPath` is already set to something else, and
- * it leaves that value alone, since it never overwrites a local value. A
- * global or system value is overridden by the local one this sets, with a
- * warning that its hooks no longer run in this repository. When a scope
- * that outranks the local config (a per-worktree value) sets something
- * else, it fails without writing anything, since the local value is shared
- * by every worktree. A value given on the command line or via
- * `GIT_CONFIG_*` also fails without writing, whatever it is, since it hides
- * what applies without it. It refuses when `GIT_DIR`, `GIT_WORK_TREE` or
- * `GIT_COMMON_DIR` is set, since those can point git at another repository.
- * It also fails when git can't read or
- * write the config. On success it also warns about each other linked
- * worktree whose own per-worktree `core.hooksPath` keeps the gate off there,
- * and about any `includeIf "onbranch:…"` in the repository's own config.
- * @returns {{ ok: boolean, messages: string[] }} Whether the gate is now on, and the lines to show the user (success and warnings when ok, the reason otherwise).
+ * package isn't at the root of its work tree, or when the repository's
+ * own `core.hooksPath` is already set to something else, and it leaves
+ * that value alone, since it never overwrites a local value. A global or
+ * system value is overridden by the local one this sets, with a warning
+ * that its hooks no longer run in this repository. When a scope that
+ * outranks the local config (a per-worktree value) sets something else,
+ * it fails without writing anything, since the local value is shared by
+ * every worktree. A value given on the command line or via
+ * `GIT_CONFIG_*` also fails without writing, whatever it is, since it
+ * hides what applies without it. It refuses when `GIT_DIR`,
+ * `GIT_WORK_TREE` or `GIT_COMMON_DIR` is set, since those can point git
+ * at another repository. It also fails when git can't read or write the
+ * config.
+ * @returns {{ ok: boolean, messages: string[] }} Whether the gate is now
+ * on, and the lines to show the user (success and a warning when ok, the
+ * reason otherwise).
  */
 export function installHooks() {
   const redirects = GIT_LOCATION_VARIABLES.filter((name) => process.env[name])
@@ -92,7 +91,8 @@ export function installHooks() {
   try {
     toplevel = execFileSync('git', ['rev-parse', '--show-toplevel'], {
       cwd: repoRoot,
-      encoding: 'utf8'
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe']
     }).trim()
   } catch (error) {
     return {
@@ -171,35 +171,7 @@ function configureHooksPath() {
       `Beekeeper: ${HOOKS_PATH} now overrides core.hooksPath "${overridden}", so those hooks won't run in this repository.`
     )
   }
-  if (hasBranchConditionalInclude(repoRoot)) {
-    messages.push(
-      'Beekeeper: this repository\'s config has an includeIf "onbranch:" section. If one sets core.hooksPath, the review gate is off on the branches it matches.'
-    )
-  }
-  messages.push(...otherWorktreeWarnings())
   return { ok: true, messages }
-}
-
-/**
- * Warns about other linked worktrees where the review gate stays off. The
- * install has already succeeded by the time this runs, so a failed check is
- * a warning too, never a failure.
- * @returns {string[]} One warning per affected worktree, or one for a check that couldn't run.
- */
-function otherWorktreeWarnings() {
-  let others
-  try {
-    others = findOtherWorktreeHooks(repoRoot, HOOKS_PATH)
-  } catch (error) {
-    return [
-      `Beekeeper: couldn't check other worktrees for their own core.hooksPath (${gitFailureReason(error)}).`
-    ]
-  }
-  return others.map(({ path, value }) =>
-    value === null
-      ? `Beekeeper: git couldn't read the config of worktree ${path}, so the review gate may be off there.`
-      : `Beekeeper: the review gate stays off in ${path}, which sets core.hooksPath to "${value}" for that worktree.`
-  )
 }
 
 /**
