@@ -28,6 +28,12 @@ export interface TeamCostRollup {
    * that joined under that lead counts as missing here.
    */
   readonly missingTeammates: number
+  /**
+   * Whether the lead's spawn or stop list hit its cap, so `missingTeammates`
+   * may undercount and a teammate grouped under it may read as not stopped
+   * when it was.
+   */
+  readonly teamListsTruncated: boolean
 }
 
 function recordedTotal(session: SummarizedSession): number | null {
@@ -64,6 +70,7 @@ export function rollupTeamCost(group: LeadGroup): TeamCostRollup {
     leadUSD: recordedTotal(group.lead),
     teamUSD: known.length > 0 && Number.isFinite(sum) ? sum : null,
     sessionsWithoutCost: sessions.length - known.length,
-    missingTeammates: countMissingTeammates(group)
+    missingTeammates: countMissingTeammates(group),
+    teamListsTruncated: group.lead.summary.teamSpawns.truncated
   }
 }

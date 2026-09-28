@@ -30,9 +30,9 @@ export interface SessionListItemDto {
   readonly summary: IpcResult<SessionSummaryDto>
   /**
    * How the session relates to a team, or `null` when its transcript or
-   * summary couldn't be read, or when it is a lead with no teammates and no
-   * spawned teammate missing, since a solo lead's team total would only
-   * repeat its own cost.
+   * summary couldn't be read, or when it is a lead with no teammates, no
+   * spawned teammate missing, and no spawn or stop list that hit its cap,
+   * since a solo lead's team total would only repeat its own cost.
    */
   readonly team: SessionTeamDto | null
 }

@@ -131,6 +131,20 @@ describe('rollupTeamCost', () => {
     expect(rollups.map((r) => r.teamUSD)).toEqual([3, 30])
   })
 
+  it('reports teamListsTruncated when a lead list hit its cap', () => {
+    const lead = testLead(testRef('p', 'lead'), {
+      teamSpawns: { ...testTeamSpawns(), truncated: true }
+    })
+
+    expect(rollupOf([lead]).teamListsTruncated).toBe(true)
+  })
+
+  it('reports teamListsTruncated false when no lead list hit its cap', () => {
+    const lead = testLead(testRef('p', 'lead'))
+
+    expect(rollupOf([lead]).teamListsTruncated).toBe(false)
+  })
+
   it('counts a spawned pair with no matching session as a missing teammate', () => {
     const lead = testLead(testRef('p', 'lead'), {
       teamSpawns: testTeamSpawns([testSpawn('a', 'team'), testSpawn('ghost', 'team')])

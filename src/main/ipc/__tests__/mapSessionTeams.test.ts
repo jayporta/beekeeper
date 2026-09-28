@@ -28,7 +28,13 @@ describe('mapSessionTeams', () => {
     expect(teams.get('lead')).toEqual({
       kind: 'lead',
       teammateSessionIds: ['a', 'b'],
-      cost: { leadUSD: 1, teamUSD: 3, sessionsWithoutCost: 1, missingTeammates: 1 }
+      cost: {
+        leadUSD: 1,
+        teamUSD: 3,
+        sessionsWithoutCost: 1,
+        missingTeammates: 1,
+        teamListsTruncated: false
+      }
     })
   })
 
@@ -98,7 +104,32 @@ describe('mapSessionTeams', () => {
     expect(mapSessionTeams(groupTeams([waiting])).get('waiting')).toEqual({
       kind: 'lead',
       teammateSessionIds: [],
-      cost: { leadUSD: 5, teamUSD: 5, sessionsWithoutCost: 0, missingTeammates: 1 }
+      cost: {
+        leadUSD: 5,
+        teamUSD: 5,
+        sessionsWithoutCost: 0,
+        missingTeammates: 1,
+        teamListsTruncated: false
+      }
+    })
+  })
+
+  it('gives a lead with no teammates an entry when a spawn or stop list hit its cap', () => {
+    const capped = testLead(testRef('p', 'capped'), {
+      cost: testCost(5),
+      teamSpawns: { ...testTeamSpawns(), truncated: true }
+    })
+
+    expect(mapSessionTeams(groupTeams([capped])).get('capped')).toEqual({
+      kind: 'lead',
+      teammateSessionIds: [],
+      cost: {
+        leadUSD: 5,
+        teamUSD: 5,
+        sessionsWithoutCost: 0,
+        missingTeammates: 0,
+        teamListsTruncated: true
+      }
     })
   })
 })

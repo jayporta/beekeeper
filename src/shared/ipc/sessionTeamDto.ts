@@ -23,9 +23,18 @@ export interface TeamCostRollupDto {
    * joined under that lead counts as missing here.
    */
   readonly missingTeammates: number
+  /**
+   * Whether the lead's spawn or stop list hit its cap, so `missingTeammates`
+   * may undercount and a teammate grouped under it may read as not stopped
+   * when it was.
+   */
+  readonly teamListsTruncated: boolean
 }
 
-/** A lead session that has teammates grouped under it, or spawned ones that never appeared. */
+/**
+ * A lead session that has teammates grouped under it, spawned ones that
+ * never appeared, or a spawn or stop list that hit its cap.
+ */
 export interface LeadSessionTeamDto {
   /** Discriminates the entry. */
   readonly kind: 'lead'

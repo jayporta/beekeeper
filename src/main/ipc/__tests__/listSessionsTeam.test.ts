@@ -65,7 +65,13 @@ describe('listSessionsHandler team', () => {
     expect(teams.get(TEST_SESSION_ID)).toEqual({
       kind: 'lead',
       teammateSessionIds: [AGENT_SESSION_ID],
-      cost: { leadUSD: null, teamUSD: null, sessionsWithoutCost: 2, missingTeammates: 0 }
+      cost: {
+        leadUSD: null,
+        teamUSD: null,
+        sessionsWithoutCost: 2,
+        missingTeammates: 0,
+        teamListsTruncated: false
+      }
     })
     expect(teams.get(AGENT_SESSION_ID)).toEqual({
       kind: 'teammate',
