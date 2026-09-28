@@ -7,7 +7,7 @@ Instructions for anyone, human or AI agent, changing code in this repo. Where th
 Beekeeper is a local-only, read-only Electron app that reads Claude Code's session files in `~/.claude/projects` and shows what each agent did, changed, and cost. Every change must keep these promises:
 
 - **No network, ever.** No telemetry, no update checks, no remote fonts or assets. The session request allowlist (`src/main/security/`), the CSP, and the lint bans on network APIs enforce this. Never weaken them to make something work.
-- **Read-only.** Beekeeper never writes to `~/.claude` or to a user's repositories. Git commands are read-only (`diff`, `merge-base`, `rev-parse`) and run through `execFile` with argument arrays, never a shell string.
+- **Read-only.** Beekeeper never writes to `~/.claude` or to a user's repositories. Git commands are read-only: every command run in a repository is checked against the allowlist in `src/core/git/gitAllowlist.ts`, and all of them run through `execFile` with argument arrays, never a shell string.
 - **Transcripts are untrusted input.** They contain web pages, tool output, and possibly secrets. Render them as plain text. Never use `dangerouslySetInnerHTML`, and never log transcript content.
 - **The renderer has no Node access.** All file and git access happens in the main process and reaches the renderer through one typed preload API whose contract lives in `src/shared/`.
 

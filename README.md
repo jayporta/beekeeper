@@ -15,7 +15,7 @@ A rough roadmap, in build order:
 - [x] Project scaffold, security hardening, lint, tests, and CI
 - [x] Read and parse Claude Code transcripts
 - [x] Agent tree, token usage, and cost estimates
-- [ ] Worktree diffs (in progress)
+- [x] Worktree diffs
 - [ ] Sessions list
 - [ ] Session detail: agents, timeline, and files
 
@@ -31,8 +31,9 @@ Beekeeper is local-first and read-only. It makes zero network calls and collects
 
 - `~/.claude/projects/**/*.jsonl`: the main transcript and subagent transcripts for every session
 - `~/.claude/projects/**/subagents/*.meta.json`: per-agent metadata (type, model, team, worktree)
-- `~/.claude/sessions/*.json`: the live session registry, used for a "running now" badge
-- Read-only `git diff` and `git merge-base` inside your project and worktree folders, to show what a worktree agent changed
+- Read-only git commands inside your project and worktree folders, to show what a worktree agent changed: `rev-parse`, `merge-base`, `diff`, `diff-index`, and `ls-files` for the changes themselves, `check-ref-format` to validate a branch name, and `config --get-regexp` to find filter drivers, since a repo that defines one isn't diffed as a working tree. Beekeeper also runs `git --version` to find a usable git.
+
+Planned: `~/.claude/sessions/*.json`, the live session registry, for a "running now" badge.
 
 Beekeeper never reads `~/.claude/sessions/*.key` (a peer token, not session data), `~/.claude/history.jsonl` (your prompt history), or `~/.claude/file-history/` (Claude Code's own edit backups).
 
