@@ -1,6 +1,10 @@
 import { toProjectDirName, toSessionId } from '../transcript/ids'
 import type { SessionRole } from '../transcript/sessionRole'
-import type { ActivitySpan, SessionSummary } from '../transcript/summary/sessionSummary'
+import type {
+  ActivitySpan,
+  RecordedCost,
+  SessionSummary
+} from '../transcript/summary/sessionSummary'
 import type { TeammateSpawn, TeammateStop, TranscriptTeamSpawns } from '../transcript/teammateSpawn'
 import type { SessionRef, SummarizedSession } from './teamGrouping'
 
@@ -12,6 +16,11 @@ export function testRef(projectDirName: string, sessionId: string): SessionRef {
 /** Builds an {@link ActivitySpan} from plain numbers, for test fixtures. */
 export function testActivity(earliestMs: number, latestMs: number): ActivitySpan {
   return { earliestMs, latestMs }
+}
+
+/** Builds a {@link RecordedCost} with the given total, for test fixtures. */
+export function testCost(totalUSD: number | null): RecordedCost {
+  return { totalUSD }
 }
 
 /** Builds a {@link TeammateSpawn}, for test fixtures. */
@@ -38,6 +47,8 @@ interface TestSessionOptions {
   readonly activity?: ActivitySpan | null
   /** The teammates this session's own transcript spawned and stopped. Defaults to none. */
   readonly teamSpawns?: TranscriptTeamSpawns
+  /** What the session recorded about its own cost. Defaults to `null`, no record. */
+  readonly cost?: RecordedCost | null
 }
 
 function testSession(
@@ -46,7 +57,7 @@ function testSession(
 ): SummarizedSession {
   const summary: SessionSummary = {
     title: null,
-    cost: null,
+    cost: options.cost ?? null,
     activity: options.activity ?? null,
     skippedLines: 0,
     role: identity.role,

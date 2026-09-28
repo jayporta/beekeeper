@@ -1,3 +1,5 @@
+import type { SessionRole } from '../transcript/sessionRole'
+
 /**
  * Folds a label into a case- and normalization-insensitive comparison
  * form: NFKC-normalizes, lowercases, then strips combining marks after
@@ -22,4 +24,15 @@ export function foldLabel(label: string): string {
  */
 export function foldTeamKey(teamName: string, agentName: string): string {
   return `${foldLabel(teamName)}\0${foldLabel(agentName)}`
+}
+
+/**
+ * Folds a session's own role into its (team, name) pair key.
+ * @param role - A session's role.
+ * @returns The key {@link foldTeamKey} gives its team and name, or `null`
+ * for a lead role or an agent role missing either name.
+ */
+export function agentPairKey(role: SessionRole): string | null {
+  if (role.kind !== 'agent' || role.teamName === null || role.agentName === null) return null
+  return foldTeamKey(role.teamName, role.agentName)
 }

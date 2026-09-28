@@ -1,5 +1,6 @@
 import { compareByActivityThenRef, pickLead } from './pickLead'
-import { foldLabel, foldTeamKey } from './teamKey'
+import { spawnPairOrder } from './spawnPairOrder'
+import { agentPairKey, foldLabel, foldTeamKey } from './teamKey'
 import type {
   LeadGroup,
   SummarizedSession,
@@ -43,14 +44,11 @@ function indexLeads(leadSessions: readonly SummarizedSession[]): {
   const teamCandidates = new Map<string, SummarizedSession[]>()
 
   for (const lead of leadSessions) {
-    const pairOrder = new Map<string, number>()
+    const pairOrder = spawnPairOrder(lead.summary.teamSpawns.spawns)
     const teamsSeen = new Set<string>()
-    lead.summary.teamSpawns.spawns.forEach((spawn, order) => {
-      if (spawn.teamName === null) return
-      const pairKey = foldTeamKey(spawn.teamName, spawn.agentName)
-      if (!pairOrder.has(pairKey)) pairOrder.set(pairKey, order)
-      teamsSeen.add(foldLabel(spawn.teamName))
-    })
+    for (const spawn of lead.summary.teamSpawns.spawns) {
+      if (spawn.teamName !== null) teamsSeen.add(foldLabel(spawn.teamName))
+    }
     const stoppedPairs = new Set<string>()
     for (const stop of lead.summary.teamSpawns.stops) {
       if (stop.teamName !== null) stoppedPairs.add(foldTeamKey(stop.teamName, stop.agentName))
@@ -99,9 +97,8 @@ export function groupTeams(sessions: readonly SummarizedSession[]): TeamGrouping
     const role = session.summary.role
     if (role.kind !== 'agent') continue
 
-    const { agentName, teamName } = role
-    const pairKey =
-      agentName !== null && teamName !== null ? foldTeamKey(teamName, agentName) : null
+    const { teamName } = role
+    const pairKey = agentPairKey(role)
     const teamKey = teamName !== null ? foldLabel(teamName) : null
     const teammateStartMs = session.summary.activity?.earliestMs ?? null
 
