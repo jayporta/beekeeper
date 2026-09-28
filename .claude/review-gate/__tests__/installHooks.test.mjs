@@ -165,6 +165,16 @@ describe('cli install failure', () => {
     expect(install.stderr).toMatch(/Beekeeper: .*\(fatal: not a git repository/)
   })
 
+  it("prints git's fatal line exactly once, not once from git and once from Beekeeper", () => {
+    activeRepo = createUninstalledRepo()
+    rmSync(join(activeRepo.repoDir, '.git'), { recursive: true, force: true })
+
+    const install = runNode(activeRepo.cliScript, ['install'], activeRepo.repoDir)
+
+    const occurrences = install.stderr.split('fatal: not a git repository').length - 1
+    expect(occurrences).toBe(1)
+  })
+
   // Root can write to a read-only directory, so the failure can't happen there.
   it.skipIf(process.getuid?.() === 0)(
     'reports a config it cannot write instead of throwing',

@@ -65,9 +65,9 @@ function hasExtension(path, extensions) {
  * main/preload/shared/core sources, the renderer's TS/TSX/HTML files
  * (it displays untrusted transcript content), the review gate itself
  * (`.githooks/`, `.claude/review-gate/`) and its Claude Code guard
- * (`.claude/hooks/`), build scripts (`scripts/`), reviewer agent prompts (they steer the gate), or the app's build,
- * dependency, CI, and hook configuration. Callers should skip test
- * paths first.
+ * (`.claude/hooks/`), build scripts (`scripts/`), reviewer agent
+ * prompts (they steer the gate), or the app's build, dependency, CI,
+ * and hook configuration. Callers should skip test paths first.
  * @param {string} path - A path from the diff, relative to the repo root.
  * @returns {boolean} Whether the path requires a security review.
  */
