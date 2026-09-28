@@ -1,5 +1,5 @@
 import { normalizeModelId } from './normalizeModelId'
-import { pricedSpeeds, priceTableModels, type PricedSpeed } from './priceTable'
+import { DEFAULT_SPEED, pricedSpeeds, priceTableModels, type PricedSpeed } from './priceTable'
 import { tokenClasses } from './tokenClasses'
 import type { TokenCounts } from './tokenCounts'
 
@@ -74,7 +74,7 @@ export function priceTokens(options: PriceTokensOptions): PriceTokensResult {
  * @returns The matching {@link PricedSpeed}, or `undefined` when unknown.
  */
 function resolveSpeed(speed: unknown): PricedSpeed | undefined {
-  if (speed === undefined || speed === null) return 'standard'
+  if (speed === undefined || speed === null) return DEFAULT_SPEED
   if (typeof speed !== 'string') return undefined
   return isPricedSpeed(speed) ? speed : undefined
 }

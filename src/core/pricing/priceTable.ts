@@ -18,6 +18,9 @@ export const pricedSpeeds = ['standard'] as const
 /** One of the billing speeds in {@link pricedSpeeds}. */
 export type PricedSpeed = (typeof pricedSpeeds)[number]
 
+/** The billing speed a transcript with no explicit speed is treated as. */
+export const DEFAULT_SPEED: PricedSpeed = 'standard'
+
 /**
  * One model's prices. Requires every speed in {@link pricedSpeeds}, so a
  * speed can never exist in one without the other.

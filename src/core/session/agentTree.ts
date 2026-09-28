@@ -1,15 +1,16 @@
 import { compareCodeUnits } from '../shared/compareCodeUnits'
 import type { AgentId } from '../transcript/ids'
+import type { AgentHierarchy } from './agentHierarchy'
 import {
   agentIdentityKey,
   leadIdentity,
   subagentIdentity,
   type AgentIdentity
 } from './agentIdentity'
-import { dedupeByAgentId, resolveParents, type ParentLinkInput } from './resolveParents'
+import type { ParentLinkInput } from './resolveParents'
 import type { SubagentMetaStatus } from './subagentMetaStatus'
 
-/** One subagent's id and its resolved meta status, as input to {@link buildAgentTree}. */
+/** One subagent's id and its resolved meta status, as input to `resolveAgentHierarchy`. */
 export type AgentTreeInput = ParentLinkInput
 
 /** One node in a session's agent tree: the lead or a subagent. */
@@ -34,30 +35,25 @@ interface NodeBuildContext extends TreeContext {
 }
 
 /**
- * Builds a session's agent tree from its subagents, with the lead as root.
+ * Builds a session's agent tree from a resolved hierarchy, with the lead as
+ * root. A subagent with no `parentOf` entry hangs off the lead, and children
+ * at each level are ordered by agent id.
  *
- * A subagent's parent is its meta's `parentAgentId` when that names another
- * subagent in `subagents` and that subagent isn't itself on a cycle of raw
- * `parentAgentId` links. A dangling `parentAgentId` (naming no subagent
- * here), one on a subagent whose meta didn't resolve, or one on a subagent
- * that's part of a cycle all fall back to the lead; a subagent that merely
- * leads into a cycle it isn't part of (`c -> a -> b -> a`) keeps its own
- * raw parent. Children at each level are ordered by agent id. A repeated
- * agent id in `subagents` keeps only its first occurrence; later ones are
- * ignored rather than added as a second child under the same parent.
+ * Tree construction runs iteratively, in time proportional to the number of
+ * subagents, so a deep resulting tree costs neither quadratic time nor a
+ * stack overflow.
  *
- * Cycle detection and tree construction both run iteratively, in time
- * proportional to the number of subagents, so neither a long chain of
- * `parentAgentId` links nor a deep resulting tree costs quadratic time or
- * risks a stack overflow.
- *
- * @param subagents - The session's subagents, each with its resolved meta status.
+ * @param hierarchy - The session's subagents deduped by id, with each one's
+ * resolved parent, as {@link AgentHierarchy} describes. The list must hold no
+ * repeated id and `parentOf` must be acyclic, which
+ * `resolveAgentHierarchy` guarantees; given a repeated id a subtree appears
+ * twice, and given a cycle its members and everything beneath them are left
+ * out of the tree.
  * @returns The lead node, with every subagent nested somewhere beneath it.
  */
-export function buildAgentTree(subagents: readonly AgentTreeInput[]): AgentTreeNode {
-  const deduped = dedupeByAgentId(subagents)
+export function buildAgentTree(hierarchy: AgentHierarchy<AgentTreeInput>): AgentTreeNode {
+  const { subagents: deduped, parentOf } = hierarchy
   const inputByAgentId = new Map<string, AgentTreeInput>(deduped.map((s) => [s.agentId, s]))
-  const parentOf = resolveParents(deduped)
 
   const childIdsByParentKey = new Map<string, AgentId[]>()
   for (const subagent of deduped) {
