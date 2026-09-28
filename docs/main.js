@@ -8,6 +8,8 @@ const SPAWN_INTERVAL_MS = 5000
 const LINEUP_REFRESH_MS = 100
 /** Longest frame step, so bees don't jump after the tab was in the background. */
 const MAX_FRAME_SECONDS = 0.05
+/** Farthest a pointer can travel between press and release and still count as a tap, not a swipe. */
+const TAP_MOVEMENT_THRESHOLD_PX = 10
 
 const canvas = document.querySelector('#swarm')
 const context = canvas.getContext('2d')
@@ -29,6 +31,8 @@ let spawnTimer = 0
 let lastTime = 0
 /** Where the pointer was last seen, for showing a pointer cursor over bees. */
 let pointer = null
+/** Where each active pointer went down, keyed by pointer id, so a swipe that ends over a bee doesn't catch it. */
+const pointerDownAt = new Map()
 
 function readColors() {
   const style = getComputedStyle(document.documentElement)
@@ -121,8 +125,16 @@ function applyMotionPreference() {
 
 /** Catches the bee under a tap or primary-button click. Release buttons handle their own clicks. */
 function catchBee(event) {
+  const from = pointerDownAt.get(event.pointerId)
+  pointerDownAt.delete(event.pointerId)
   if (event.button !== 0) return
   if (event.target instanceof Element && event.target.closest('button')) return
+  if (
+    from &&
+    Math.hypot(event.clientX - from.x, event.clientY - from.y) > TAP_MOVEMENT_THRESHOLD_PX
+  ) {
+    return
+  }
   const bee = swarm.beeAt({ x: event.clientX, y: event.clientY })
   if (!bee) return
   swarm.catch(bee, bounds)
@@ -132,7 +144,13 @@ function catchBee(event) {
 resize()
 applyMotionPreference()
 window.addEventListener('resize', resize)
+window.addEventListener('pointerdown', (event) => {
+  pointerDownAt.set(event.pointerId, { x: event.clientX, y: event.clientY })
+})
 window.addEventListener('pointerup', catchBee)
+window.addEventListener('pointercancel', (event) => {
+  pointerDownAt.delete(event.pointerId)
+})
 window.addEventListener('pointermove', (event) => {
   pointer = { x: event.clientX, y: event.clientY }
   updateCursor()
