@@ -20,10 +20,10 @@ function slotsPerRow(width) {
 /**
  * Counts how many bees fit in the lineup without any card or button running off the page.
  * @param {{ width: number, height: number }} bounds - The page size in CSS pixels.
- * @returns {number} The number of slots, at least one row's worth.
+ * @returns {number} The number of slots, or 0 when not even one row fits.
  */
 export function lineupCapacity({ width, height }) {
-  const rows = Math.max(1, Math.floor((height - FIRST_ROW - SLOT_DEPTH) / ROW_HEIGHT) + 1)
+  const rows = Math.max(0, Math.floor((height - FIRST_ROW - SLOT_DEPTH) / ROW_HEIGHT) + 1)
   return rows * slotsPerRow(width)
 }
 

@@ -50,12 +50,7 @@ export function createLineupView({ layer, onRelease }) {
     hint.className = 'visually-hidden'
     hint.textContent = ' this bee'
     release.append('Release', hint)
-    release.addEventListener('click', () => {
-      // The group is removed on release, so keep keyboard focus on a neighboring Release button.
-      const neighbor = group.nextElementSibling ?? group.previousElementSibling
-      onRelease(bee)
-      neighbor?.querySelector('.release')?.focus()
-    })
+    release.addEventListener('click', () => onRelease(bee))
 
     group.append(card, release)
     layer.append(group)
@@ -79,10 +74,18 @@ export function createLineupView({ layer, onRelease }) {
     })
     for (const [bee, entry] of cards) {
       if (shown.has(bee)) continue
-      entry.group.remove()
+      removeCard(entry)
       cards.delete(bee)
     }
     keepLineupOrder(swarm.lineup)
+  }
+
+  /** Removes a card, moving keyboard focus to a neighboring Release button if the card had it. */
+  function removeCard({ group }) {
+    const hadFocus = group.contains(document.activeElement)
+    const neighbor = group.nextElementSibling ?? group.previousElementSibling
+    group.remove()
+    if (hadFocus) neighbor?.querySelector('.release')?.focus()
   }
 
   /** Puts cards in lineup order in the page, so Tab order and neighbors follow the rows. */
