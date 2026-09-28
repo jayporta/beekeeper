@@ -119,8 +119,9 @@ function applyMotionPreference() {
   else fly()
 }
 
-/** Catches the bee under a click. Clicks on Release buttons are left to them. */
+/** Catches the bee under a tap or primary-button click. Release buttons handle their own clicks. */
 function catchBee(event) {
+  if (event.button !== 0) return
   if (event.target instanceof Element && event.target.closest('button')) return
   const bee = swarm.beeAt({ x: event.clientX, y: event.clientY })
   if (!bee) return
@@ -131,7 +132,7 @@ function catchBee(event) {
 resize()
 applyMotionPreference()
 window.addEventListener('resize', resize)
-window.addEventListener('click', catchBee)
+window.addEventListener('pointerup', catchBee)
 window.addEventListener('pointermove', (event) => {
   pointer = { x: event.clientX, y: event.clientY }
   updateCursor()
