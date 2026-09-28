@@ -106,7 +106,7 @@ export default defineConfig(
     }
   },
   {
-    files: ['.claude/{hooks,review-gate}/**/*.mjs', 'landing_page/**/*.js'],
+    files: ['.claude/{hooks,review-gate}/**/*.mjs', 'docs/**/*.js'],
     rules: {
       // Plain JS has no type annotations to require; JSDoc carries the types.
       '@typescript-eslint/explicit-function-return-type': 'off'
