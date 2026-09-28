@@ -11,6 +11,7 @@ export interface TeammateSpawn {
    * wrote it, or `null` when the record carried no `tool_result` block or
    * several, or when its id was empty or longer than the block cap, which
    * drops the whole block.
+   *
    * Kept byte for byte because it joins a teammate to its spawning call, so
    * unlike the labels beside it, it is not sanitized: a consumer that shows
    * one has to make it safe to display.

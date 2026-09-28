@@ -30,7 +30,9 @@ export interface ResolveBranchOptions {
  * the returned SHA should reach later `merge-base` and `diff` calls.
  *
  * @param options - The repository and branch name.
- * @returns The commit SHA, or why the branch can't be used. A missing branch is `branch-not-found`, and a relative `repoDir` is `invalid-path`.
+ * @returns The commit SHA, or why the branch can't be used. A missing
+ * branch is `branch-not-found`, and a relative `repoDir` is
+ * `invalid-path`.
  */
 export async function resolveBranch(
   options: ResolveBranchOptions

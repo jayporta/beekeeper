@@ -13,7 +13,7 @@ export interface ReadJsonlLinesOptions {
    * code units (a JS string's `length`). A line at or past this size is
    * reported as a {@link LineTooLongError} instead of being buffered, so a
    * hostile or corrupted transcript cannot exhaust memory. Defaults to 64
-   * Mi code units; real transcript lines reach about 3.1 MB.
+   * Mi code units.
    */
   readonly maxLineChars?: number
 }
@@ -32,9 +32,9 @@ export interface LineTooLongError {
  * final line with no terminating `\n` (a live file caught mid-write, or an
  * oversized line that never finds one) is dropped rather than yielded
  * partially. A line that crosses `maxLineChars` is reported once, right
- * when its terminator is found; memory held for it is bounded to roughly
- * `maxLineChars` plus one chunk, never its full length. The underlying
- * stream is closed if the caller stops iterating before the file ends.
+ * when its terminator is found, with memory held for it bounded to
+ * roughly `maxLineChars` plus one chunk. The underlying stream is closed
+ * if the caller stops iterating before the file ends.
  *
  * @param filePath - Absolute path to the `.jsonl` file to read.
  * @param options - Stream tuning, mainly for tests.

@@ -44,11 +44,11 @@ interface NodeBuildContext extends TreeContext {
  * stack overflow.
  *
  * @param hierarchy - The session's subagents deduped by id, with each one's
- * resolved parent, as {@link AgentHierarchy} describes. The list must hold no
- * repeated id and `parentOf` must be acyclic, which
- * `resolveAgentHierarchy` guarantees; given a repeated id a subtree appears
- * twice, and given a cycle its members and everything beneath them are left
- * out of the tree.
+ * resolved parent, as {@link AgentHierarchy} describes. The list must hold
+ * no repeated id and `parentOf` must be acyclic, which
+ * `resolveAgentHierarchy` guarantees; given a repeated id a subtree
+ * appears twice, and given a cycle its members and everything beneath
+ * them are left out of the tree.
  * @returns The lead node, with every subagent nested somewhere beneath it.
  */
 export function buildAgentTree(hierarchy: AgentHierarchy<AgentTreeInput>): AgentTreeNode {

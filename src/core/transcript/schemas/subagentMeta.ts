@@ -9,9 +9,9 @@ import { isAbsolutePathWithinCap, MAX_PATH_CODE_UNITS } from '../../shared/bound
  *
  * The worktree fields are hardened because they later reach git: an invalid
  * `worktreePath` (not absolute, or over {@link MAX_PATH_CODE_UNITS} UTF-16
- * code units) or `worktreeBranch` (empty, or over
- * {@link MAX_BRANCH_CODE_UNITS} UTF-16 code units) reads as absent instead of
- * failing the whole meta, so `agentType` and the agent tree survive.
+ * code units) or `worktreeBranch` (empty, or over {@link MAX_BRANCH_CODE_UNITS}
+ * UTF-16 code units) reads as absent instead of failing the whole meta, so
+ * `agentType` and the agent tree survive.
  *
  * Unknown keys are stripped, unlike the record schemas that keep `.loose()`:
  * this schema's output is retained in the scan cache, while a record's is

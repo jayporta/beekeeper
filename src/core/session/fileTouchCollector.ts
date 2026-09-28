@@ -36,11 +36,11 @@ export interface FileTouchCollector {
  * a later `tool_result` can be matched back to the tool that produced it;
  * only `Edit`/`Write` calls are remembered, so the map doesn't grow with
  * every `Bash`, `Read`, or `Grep` call in the transcript. A user record
- * counts only when it holds exactly one `tool_result` block (no transcript
- * record on disk holds more, and more than one would make the matching
- * tool name ambiguous). A `tool_result` with no earlier tracked `tool_use`
- * is ignored, and so is a `toolUseResult` that isn't an object, since a
- * string result there means the call failed and never touched a file.
+ * counts only when it holds exactly one `tool_result` block, since more
+ * than one would make the matching tool name ambiguous. A `tool_result`
+ * with no earlier tracked `tool_use` is ignored, and so is a
+ * `toolUseResult` that isn't an object, since a string result there means
+ * the call failed and never touched a file.
  *
  * @returns A collector ready to `observe` a transcript's records in order.
  */

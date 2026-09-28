@@ -16,16 +16,16 @@ const HIGH_SURROGATE_LAST = 0xdbff
  * Caps a title read out of a transcript at a length worth displaying.
  *
  * Takes a bounded prefix by code unit rather than walking the whole string,
- * so an oversized title costs no more than the prefix; a title's length is
- * only bounded by the reader's line cap, and turning one into an array of
- * code points would cost gigabytes. Cutting by code unit can land inside a
- * surrogate pair, so a trailing unpaired high surrogate is dropped and the
- * cut never splits a pair in half. A title that already held an unpaired
- * surrogate keeps it: the cut repairs only the damage it would itself do.
+ * so an oversized title costs no more than the prefix. Cutting by code unit
+ * can land inside a surrogate pair, so a trailing unpaired high surrogate is
+ * dropped and the cut never splits a pair in half. A title that already held
+ * an unpaired surrogate keeps it: the cut repairs only the damage it would
+ * itself do.
  *
  * @param title - A title as it appeared in the transcript.
- * @returns The title, shortened to at most {@link MAX_TITLE_CODE_UNITS} code
- * units when it was longer, and never sharing storage with it.
+ * @returns The shortened title, sharing no storage with the input, when it
+ * exceeds {@link MAX_TITLE_CODE_UNITS} code units; a title within the cap is
+ * returned unchanged.
  */
 export function truncateTitle(title: string): string {
   if (title.length <= MAX_TITLE_CODE_UNITS) return title

@@ -5,19 +5,19 @@ import { err, ok, type Result } from '../shared/result'
 import { isMissingEntryError } from './isMissingEntryError'
 import { subagentMetaSchema, type SubagentMeta } from './schemas'
 
-/** The largest `.meta.json` file this reads; the largest seen on disk is a few hundred bytes. */
+/** The largest `.meta.json` file this reads. */
 const MAX_META_BYTES = 64 * 1024
 
 /**
  * Why a subagent's `.meta.json` couldn't be read into a valid
  * {@link SubagentMeta}.
  *
- * `missing` when the file doesn't exist, `symlink` when the path's last
- * component is a symlink (rejected rather than followed, since discovery
- * already resolved real meta files and a symlink appearing here means the
- * path changed underneath it), `not-a-file` when it opens but isn't a
- * regular file (a directory, FIFO, or other special file), `too-large`
- * when it exceeds {@link MAX_META_BYTES}, `invalid-json` when it isn't
+ * `missing` when the file doesn't exist. `symlink` when the path's last
+ * component is a symlink, rejected rather than followed since discovery
+ * already resolved real meta files, so a symlink appearing here means the
+ * path changed underneath it. `not-a-file` when it opens but isn't a
+ * regular file (a directory, FIFO, or other special file). `too-large`
+ * when it exceeds {@link MAX_META_BYTES}. `invalid-json` when it isn't
  * parseable JSON, and `invalid-shape` when it parses but fails schema
  * validation.
  */
