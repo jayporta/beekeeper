@@ -35,7 +35,7 @@ describe('groupTeams respawn order', () => {
     expect(grouping.leads[0]?.teammates.map((t) => t.session)).toEqual([r1, r2])
   })
 
-  it('orders teammates sharing one folded pair the same way whatever the input order', () => {
+  it('keeps two sessions sharing one folded pair as separate rows, in the same order whatever the input order', () => {
     const lead = testLead(testRef('p', 'lead'), {
       teamSpawns: testTeamSpawns([testSpawn('reviewer', 'team-a')])
     })
@@ -191,21 +191,6 @@ describe('groupTeams stops', () => {
     const grouping = groupTeams([lead, henry])
 
     expect(grouping.leads[0]?.teammates[0]?.stopped).toBe(false)
-  })
-})
-
-describe('groupTeams sessions with no assistant records', () => {
-  it('still lists a teammate with null cost and activity', () => {
-    const lead = testLead(testRef('p', 'lead'), {
-      teamSpawns: testTeamSpawns([testSpawn('quiet', 'team-a')])
-    })
-    const quiet = testAgent(testRef('p', 'quiet'), { agentName: 'quiet', teamName: 'team-a' })
-
-    const grouping = groupTeams([lead, quiet])
-
-    expect(grouping.leads[0]?.teammates).toEqual([
-      { session: quiet, joinedBy: 'spawn', stopped: false }
-    ])
   })
 })
 

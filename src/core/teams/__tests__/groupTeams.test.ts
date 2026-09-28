@@ -37,25 +37,6 @@ describe('groupTeams pair join', () => {
     expect(grouping.leads[0]?.teammates.map((t) => t.session)).toEqual([alpha, beta])
   })
 
-  it('joins two distinct agent sessions that share a folded pair as two separate rows', () => {
-    const lead = testLead(testRef('p', 'lead'), {
-      teamSpawns: testTeamSpawns([testSpawn('reviewer', 'team-a')])
-    })
-    const first = testAgent(testRef('p', 'reviewer-1'), {
-      agentName: 'reviewer',
-      teamName: 'team-a'
-    })
-    const second = testAgent(testRef('p', 'reviewer-2'), {
-      agentName: 'reviewer',
-      teamName: 'team-a'
-    })
-
-    const grouping = groupTeams([lead, first, second])
-
-    expect(grouping.leads[0]?.teammates).toHaveLength(2)
-    expect(grouping.leads[0]?.teammates.map((t) => t.session)).toEqual([first, second])
-  })
-
   it('does not cross-join a name reused across two different teams', () => {
     const leadA = testLead(testRef('p', 'lead-a'), {
       teamSpawns: testTeamSpawns([testSpawn('reviewer', 'team-a')])
