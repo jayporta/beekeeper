@@ -8,7 +8,8 @@ interface Owned {
 /**
  * Groups ledger entries by their owning agent, keyed by
  * {@link agentIdentityKey}. Shared by the usage and files ledgers, whose
- * entries both carry an `owner`, so a session scan groups either the same way.
+ * entries both carry an `owner`, so a session scan groups either the same
+ * way.
  *
  * @param entries - Every entry a ledger has seen, in first-reported order.
  * @returns A map from each owner's identity key to its entries, in the

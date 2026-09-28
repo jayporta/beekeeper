@@ -25,21 +25,22 @@ export interface ResolveSpawnContextsInput {
  * transcript of the subagent named by `parentAgentId`, or the lead's when
  * there is none. Parents come from the hierarchy the caller supplies, so a
  * dangling link or a cycle member (including a self-parent) has the lead as
- * parent. A match is exact. Otherwise the context is inferred from the branch
- * and cwd the parent's transcript showed when the subagent started: the last
- * timeline entry in file order at or before the subagent's own start time,
- * then each further ancestor's, then the lead's, every level using the
- * subagent's start. A `HEAD` entry borrows the nearest earlier named branch
- * in the same cwd that was also seen at or before the start. Entries with no
- * timestamp are skipped when the start is known. An ancestor with no
- * readable transcript, or no entry at or before the start, contributes
- * nothing. When the subagent's own
- * transcript is unreadable or has no timestamps, the latest entry is used
- * instead, still flagged inferred. The walk visits at most
- * {@link MAX_ANCESTOR_DEPTH} ancestors, then goes straight to the lead. A
- * subagent none of these reach is left out.
+ * parent. A match is exact. Otherwise the context is inferred from the
+ * branch and cwd the parent's transcript showed when the subagent started:
+ * the last timeline entry in file order at or before the subagent's own
+ * start time, then each further ancestor's, then the lead's, every level
+ * using the subagent's start. A `HEAD` entry borrows the nearest earlier
+ * named branch in the same cwd that was also seen at or before the start.
+ * Entries with no timestamp are skipped when the start is known. An
+ * ancestor with no readable transcript, or no entry at or before the
+ * start, contributes nothing. When the subagent's own transcript is
+ * unreadable or has no timestamps, the latest entry is used instead, still
+ * flagged inferred. The walk visits at most {@link MAX_ANCESTOR_DEPTH}
+ * ancestors, then goes straight to the lead. A subagent none of these
+ * reach is left out.
  *
- * @param input - The session's agent hierarchy and each transcript's observed spawns.
+ * @param input - The session's agent hierarchy and each transcript's
+ * observed spawns.
  * @returns The context of each subagent that resolved one.
  */
 export function resolveSpawnContexts(

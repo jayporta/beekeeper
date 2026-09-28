@@ -9,7 +9,7 @@ import type { Usage, UsageEntry } from '../transcript/schemas'
  * otherwise uses the top-level snapshot. Cache-write tokens come from the
  * 5-minute/1-hour split in `cache_creation` when present; when it's absent
  * but an unsplit `cache_creation_input_tokens` total is, the whole total
- * counts as 5-minute (defensive only, since every record on disk splits).
+ * counts as 5-minute.
  *
  * @param usage - The validated usage object from an assistant message.
  * @returns The message's token counts across every billing class.

@@ -6,7 +6,7 @@ import { parseSoleToolResultBlock } from './soleToolResultBlock'
 import { splitTeamSuffix } from './splitTeamSuffix'
 import type { TeammateSpawn, TeammateStop, TranscriptTeamSpawns } from './teammateSpawn'
 
-/** The most spawns and, separately, the most stops kept; real transcripts peak near 63. */
+/** The most spawns and, separately, the most stops kept. */
 const MAX_TEAMMATE_ENTRIES = 128
 
 /** Collects a transcript's teammate spawns and stops from the records it observes. */
@@ -53,44 +53,27 @@ interface StopCandidate {
  * A spawn without a usable name is skipped, and a repeated (team, name)
  * keeps its first entry, so its `agentType` and `rawToolUseId` describe the
  * first call. The team is the result's `team_name`, falling back to what
- * follows the last `@` in `agent_id` when `team_name` is absent or unusable.
- * A spawn's `rawToolUseId` is read from the record's `tool_result` block, only
- * for records that are spawns.
+ * follows the last `@` in `agent_id` when `team_name` is absent or
+ * unusable. A spawn's `rawToolUseId` is read from the record's
+ * `tool_result` block, only for records that are spawns.
  *
- * One record's `TaskStop` blocks are collected before its own
- * `toolUseResult` is resolved, so a record carrying both still excludes its
- * own stop. Claude Code splits the two across records, but a transcript is
- * free not to.
- *
- * A stop is read from the block's `input.task_id`, not the result's
- * `task_id`, which is an internal id. A `task_id` of the form `name@team`
- * is split at its last `@`, and the team it states wins over an inferred
- * one. Whether a stop targeted a teammate is only known from its result
- * record, which never precedes the block: a result whose `task_type` is present and
- * is not `in_process_teammate` (a shell, a background agent) excludes the
- * stop, matched by the block's `id` to the result's `tool_use_id`. A stop
- * whose result never arrives is kept, since a missing result is not evidence
- * of a shell. Every call is held and the excluded ones are dropped when the
- * result is read, then the survivors are listed once per (team, name) in
- * file order, so a shell stop named like a teammate can't erase the
- * teammate's real stop. A stop's team is its stated team, else the team of
- * the name's latest spawn observed when the stop occurred, which may itself
- * be none. Only a stop with no spawn of its name observed at all falls back
- * to the name's final team, so a stop whose spawn comes later in the file
- * still gets one, and `null` remains for a name this transcript never
- * spawned, since the spawning transcript may be another one.
+ * A stop is read from a `TaskStop` block's `input.task_id`, split at its
+ * last `@` into a name and a stated team. A stop is excluded when a result
+ * record whose sole `tool_result` block answers the stop's `id` reports a
+ * string `task_type` other than `in_process_teammate` (a shell, a
+ * background agent). Any other stop is kept, including one whose result
+ * never arrives. Survivors are listed once per (team, name) in file
+ * order. A stop's team is its stated team, else the team of the name's
+ * latest spawn observed by then, falling back to the name's final team
+ * only when no spawn of it was observed at all.
  *
  * Spawns and `TaskStop` calls are each capped at {@link MAX_TEAMMATE_ENTRIES}
  * and `truncated` is set whenever one is dropped for it. A call still
- * occupies cap space after it is excluded, so a crafted transcript can push
+ * occupies cap space once excluded, so a crafted transcript can push
  * genuine stops out by filling the cap with excluded ones, but only with
- * `truncated` set. `truncated` can over-report: a dropped call may be a
- * repeat that would have merged away at resolution anyway. No cap drop ever
- * leaves it unset. It says nothing about a call this reducer never accepted,
- * such as a `task_id` over the label cap, which `splitTeamSuffix` refuses
- * whole and which is discarded silently. The name-to-team map is
- * bounded by the same cap, and past it a new name gets no team on its stops;
- * that loses no spawn or stop, so it does not set `truncated`.
+ * `truncated` set. The name-to-team map is bounded by the same cap, and
+ * past it a new name gets no team on its stops; that loses no spawn or
+ * stop, so it does not set `truncated`.
  *
  * @returns A reducer ready to `observe` a transcript's records in order.
  */

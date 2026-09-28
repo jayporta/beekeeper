@@ -19,10 +19,11 @@ export const SCAN_CACHE_CAPACITY = 4
 
 /**
  * Builds the handlers' dependencies for the app's lifetime: the projects
- * root under the user's home, one summary cache, and the schedulers that share and cap summary reads
- * and full scans, a small scan cache, and a lazy git locator.
- * Worktree diffs are never cached, since a worktree can change while its
- * transcript doesn't.
+ * root under the user's home, one summary cache, and the schedulers that
+ * share and cap summary reads and full scans, a small scan cache, and a
+ * lazy git locator. Worktree diffs are never cached, since a worktree can
+ * change while its transcript doesn't.
+ *
  * @param homeDir - The user's home directory.
  * @returns The dependencies.
  */

@@ -52,12 +52,14 @@ async function mapSession(
 
 /**
  * Lists a project's sessions with their summaries, read through the
- * app-lifetime cache. Summary reads are shared per transcript state (path, mtime, size) and capped by
- * the summaries scheduler.
+ * app-lifetime cache. Summary reads are shared per transcript state
+ * (path, mtime, size) and capped by the summaries scheduler.
  *
- * @param deps - The projects root, the summary cache, and the summaries scheduler.
+ * @param deps - The projects root, the summary cache, and the summaries
+ * scheduler.
  * @param payload - The renderer's payload, validated here.
- * @returns The sessions, `invalid-request` for a bad payload, or `not-found` for an unknown project.
+ * @returns The sessions, `invalid-request` for a bad payload, or
+ * `not-found` for an unknown project.
  */
 export async function listSessionsHandler(
   deps: Pick<IpcDeps, 'projectsRoot' | 'summaryCache' | 'summaries'>,

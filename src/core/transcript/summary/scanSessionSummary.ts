@@ -14,14 +14,11 @@ import { truncateTitle } from './truncateTitle'
  * is a lead or a teammate agent session, and which teammates it spawned
  * and stopped.
  *
- * Every line is parsed. A substring prefilter ahead of `JSON.parse` was
- * measured against real transcripts and skips 1.4% of their bytes, so
- * scanning for the substring costs more than parsing the lines it saves.
- * The title and the cost state are the last valid record of their type by
- * line order, since neither carries a timestamp and a session rewrites
- * both as it runs. The activity span is the smallest and largest timestamp
- * found, not the first and last lines, because timestamps within a
- * transcript run backwards.
+ * Every line is parsed. The title and the cost state are the last valid
+ * record of their type by line order, since neither carries a timestamp
+ * and a session rewrites both as it runs. The activity span is the
+ * smallest and largest timestamp found, not the first and last lines,
+ * because timestamps within a transcript run backwards.
  *
  * Only what the summary displays is kept: the title is capped at a
  * displayable length, the cost state is reduced to its total, the role's
