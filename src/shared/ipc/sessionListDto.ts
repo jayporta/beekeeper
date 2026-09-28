@@ -1,5 +1,6 @@
 import type { IpcResult } from './ipcResult'
 import type { SessionRoleDto } from './sessionRoleDto'
+import type { SessionTeamDto } from './sessionTeamDto'
 
 /** What a scan of a session's transcript found, without its agent tree. */
 export interface SessionSummaryDto {
@@ -27,4 +28,11 @@ export interface SessionListItemDto {
   readonly subagentCount: number | null
   /** The session's summary, or why it is unavailable. */
   readonly summary: IpcResult<SessionSummaryDto>
+  /**
+   * How the session relates to a team, or `null` when its transcript or
+   * summary couldn't be read, or when it is a lead with no teammates and no
+   * spawned teammate missing, since a solo lead's team total would only
+   * repeat its own cost.
+   */
+  readonly team: SessionTeamDto | null
 }

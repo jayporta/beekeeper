@@ -1,0 +1,68 @@
+import type { SessionEntry } from '../../core/transcript/discoverSessions'
+import type { Result } from '../../core/shared/result'
+import type { SessionSummary } from '../../core/transcript/summary/sessionSummary'
+import type { UnreadableError } from '../../core/transcript/unreadableError'
+import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
+import type { SessionTeamDto } from '../../shared/ipc/sessionTeamDto'
+import { errResult, okResult } from './ipcResults'
+import { mapSessionRole } from './mapSessionRole'
+import { toIpcErrorCode } from './toIpcErrorCode'
+
+/** One discovered session with the outcome of reading its summary. */
+export interface ScannedSession {
+  /** The session as discovery found it. */
+  readonly entry: SessionEntry
+  /** The summary read, or why there is none. A failed transcript stat carries its own error. */
+  readonly summary: Result<SessionSummary, UnreadableError>
+}
+
+/**
+ * Maps a scanned session to its list item, field by field, so no unknown
+ * summary field crosses the bridge.
+ *
+ * @param scanned - The session and its summary read.
+ * @param team - The session's team entry, or `null` when it has none.
+ * @returns The item as sent to the renderer. Its `team` is `null` whenever
+ * the transcript or summary could not be read.
+ */
+export function mapSessionListItem(
+  scanned: ScannedSession,
+  team: SessionTeamDto | null
+): SessionListItemDto {
+  const { entry, summary } = scanned
+  const subagentCount = entry.subagents.ok ? entry.subagents.value.length : null
+  if (!entry.transcript.ok) {
+    return {
+      sessionId: entry.sessionId,
+      modifiedMs: null,
+      sizeBytes: null,
+      subagentCount,
+      summary: errResult(toIpcErrorCode(entry.transcript.error)),
+      team: null
+    }
+  }
+
+  const file = entry.transcript.value
+  return {
+    sessionId: entry.sessionId,
+    modifiedMs: file.mtimeMs,
+    sizeBytes: file.size,
+    subagentCount,
+    summary: summary.ok
+      ? okResult({
+          title: summary.value.title,
+          cost: summary.value.cost === null ? null : { totalUSD: summary.value.cost.totalUSD },
+          activity:
+            summary.value.activity === null
+              ? null
+              : {
+                  earliestMs: summary.value.activity.earliestMs,
+                  latestMs: summary.value.activity.latestMs
+                },
+          skippedLines: summary.value.skippedLines,
+          role: mapSessionRole(summary.value.role)
+        })
+      : errResult(toIpcErrorCode(summary.error)),
+    team: summary.ok ? team : null
+  }
+}
