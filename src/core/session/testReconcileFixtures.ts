@@ -1,3 +1,4 @@
+import { DEFAULT_SPEED } from '../pricing/priceTable'
 import type { PriceTokensResult } from '../pricing/priceTokens'
 import { emptyTokenCounts } from '../pricing/tokenCounts'
 import type { CostStateRecord } from '../transcript/schemas'
@@ -20,7 +21,7 @@ export function group(
 ): TokenGroup {
   return {
     model,
-    speed: overrides.speed ?? 'standard',
+    speed: overrides.speed ?? DEFAULT_SPEED,
     tokens: { ...emptyTokenCounts, ...overrides.tokens },
     price: overrides.price ?? { kind: 'priced', usd: 1 }
   }

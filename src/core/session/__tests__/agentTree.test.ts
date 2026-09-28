@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { toAgentId } from '../../transcript/ids'
-import type { SubagentMeta } from '../../transcript/schemas'
 import { buildSubagentMeta } from '../../transcript/testFixtures'
+import { resolveAgentHierarchy } from '../agentHierarchy'
 import { buildAgentTree, type AgentTreeInput, type AgentTreeNode } from '../agentTree'
-import type { SubagentMetaStatus } from '../subagentMetaStatus'
+import { buildTreeInput } from '../testAgentTreeFixtures'
 
-function input(agentId: string, meta: Record<string, unknown> | null): AgentTreeInput {
-  const metaStatus: SubagentMetaStatus =
-    meta === null ? { status: 'absent' } : { status: 'ok', meta: meta as SubagentMeta }
-  return { agentId: toAgentId(agentId), metaStatus }
+/** Builds the tree from raw subagent inputs, resolving the hierarchy first. */
+function buildTestTree(subagents: readonly AgentTreeInput[]): AgentTreeNode {
+  return buildAgentTree(resolveAgentHierarchy(subagents))
 }
 
 /** Builds a linear chain of `length` subagents: `a0` has no parent, and each `ai`'s parent is `a(i-1)`. */
@@ -16,7 +15,7 @@ function buildLinearChain(length: number): AgentTreeInput[] {
   const chain: AgentTreeInput[] = []
   for (let i = 0; i < length; i += 1) {
     const meta = i === 0 ? buildSubagentMeta() : buildSubagentMeta({ parentAgentId: `a${i - 1}` })
-    chain.push(input(`a${i}`, meta))
+    chain.push(buildTreeInput(`a${i}`, meta))
   }
   return chain
 }
@@ -58,7 +57,7 @@ function buildBranchingTree(branchingFactor: number, depth: number): BranchingTr
   }
 
   const rootId = makeId()
-  subagents.push(input(rootId, buildSubagentMeta()))
+  subagents.push(buildTreeInput(rootId, buildSubagentMeta()))
   expectedChildIdsByNodeKey.set('lead', [rootId])
 
   let currentLevel = [rootId]
@@ -68,7 +67,7 @@ function buildBranchingTree(branchingFactor: number, depth: number): BranchingTr
       const children: string[] = []
       for (let i = 0; i < branchingFactor; i += 1) {
         const childId = makeId()
-        subagents.push(input(childId, buildSubagentMeta({ parentAgentId: parentId })))
+        subagents.push(buildTreeInput(childId, buildSubagentMeta({ parentAgentId: parentId })))
         children.push(childId)
         nextLevel.push(childId)
       }
@@ -88,7 +87,7 @@ function nodeKey(node: AgentTreeNode): string {
 
 describe('buildAgentTree', () => {
   it('builds a lead-only tree when there are no subagents', () => {
-    const tree = buildAgentTree([])
+    const tree = buildTestTree([])
 
     expect(tree.identity).toEqual({ kind: 'lead' })
     expect(tree.metaStatus).toEqual({ status: 'absent' })
@@ -96,7 +95,7 @@ describe('buildAgentTree', () => {
   })
 
   it('parents a subagent with no meta under the lead', () => {
-    const tree = buildAgentTree([input('a', null)])
+    const tree = buildTestTree([buildTreeInput('a', null)])
 
     expect(tree.children).toHaveLength(1)
     expect(tree.children[0]?.identity).toEqual({ kind: 'subagent', agentId: 'a' })
@@ -109,22 +108,22 @@ describe('buildAgentTree', () => {
       metaStatus: { status: 'error', reason: 'invalid-shape' }
     }
 
-    const tree = buildAgentTree([errorInput])
+    const tree = buildTestTree([errorInput])
 
     expect(tree.children.map((c) => c.identity)).toEqual([{ kind: 'subagent', agentId: 'a' }])
     expect(tree.children[0]?.metaStatus).toEqual({ status: 'error', reason: 'invalid-shape' })
   })
 
   it('parents a subagent under the lead when parentAgentId is absent', () => {
-    const tree = buildAgentTree([input('a', buildSubagentMeta())])
+    const tree = buildTestTree([buildTreeInput('a', buildSubagentMeta())])
 
     expect(tree.children.map((c) => c.identity)).toEqual([{ kind: 'subagent', agentId: 'a' }])
   })
 
   it('nests a subagent under its named parent', () => {
-    const tree = buildAgentTree([
-      input('parent', buildSubagentMeta()),
-      input('child', buildSubagentMeta({ parentAgentId: 'parent' }))
+    const tree = buildTestTree([
+      buildTreeInput('parent', buildSubagentMeta()),
+      buildTreeInput('child', buildSubagentMeta({ parentAgentId: 'parent' }))
     ])
 
     const parentNode = tree.children.find(
@@ -136,10 +135,10 @@ describe('buildAgentTree', () => {
   })
 
   it('nests three levels deep', () => {
-    const tree = buildAgentTree([
-      input('grandparent', buildSubagentMeta()),
-      input('parent', buildSubagentMeta({ parentAgentId: 'grandparent' })),
-      input('child', buildSubagentMeta({ parentAgentId: 'parent' }))
+    const tree = buildTestTree([
+      buildTreeInput('grandparent', buildSubagentMeta()),
+      buildTreeInput('parent', buildSubagentMeta({ parentAgentId: 'grandparent' })),
+      buildTreeInput('child', buildSubagentMeta({ parentAgentId: 'parent' }))
     ])
 
     const grandparent = tree.children[0]
@@ -152,22 +151,24 @@ describe('buildAgentTree', () => {
   })
 
   it('falls back to the lead when parentAgentId names no known subagent', () => {
-    const tree = buildAgentTree([input('a', buildSubagentMeta({ parentAgentId: 'nobody' }))])
+    const tree = buildTestTree([
+      buildTreeInput('a', buildSubagentMeta({ parentAgentId: 'nobody' }))
+    ])
 
     expect(tree.children.map((c) => c.identity)).toEqual([{ kind: 'subagent', agentId: 'a' }])
   })
 
   it('falls back to the lead when a subagent names itself as its own parent', () => {
-    const tree = buildAgentTree([input('a', buildSubagentMeta({ parentAgentId: 'a' }))])
+    const tree = buildTestTree([buildTreeInput('a', buildSubagentMeta({ parentAgentId: 'a' }))])
 
     expect(tree.children.map((c) => c.identity)).toEqual([{ kind: 'subagent', agentId: 'a' }])
     expect(tree.children[0]?.children).toEqual([])
   })
 
   it('falls back to the lead for both agents in a mutual parent cycle', () => {
-    const tree = buildAgentTree([
-      input('a', buildSubagentMeta({ parentAgentId: 'b' })),
-      input('b', buildSubagentMeta({ parentAgentId: 'a' }))
+    const tree = buildTestTree([
+      buildTreeInput('a', buildSubagentMeta({ parentAgentId: 'b' })),
+      buildTreeInput('b', buildSubagentMeta({ parentAgentId: 'a' }))
     ])
 
     expect(tree.children.map((c) => c.identity)).toEqual([
@@ -181,10 +182,10 @@ describe('buildAgentTree', () => {
     // c -> a -> b -> a: a and b cycle between themselves and both fall
     // back to the lead, but c's own link to a is still well-formed, so c
     // stays nested under a rather than also falling back.
-    const tree = buildAgentTree([
-      input('c', buildSubagentMeta({ parentAgentId: 'a' })),
-      input('a', buildSubagentMeta({ parentAgentId: 'b' })),
-      input('b', buildSubagentMeta({ parentAgentId: 'a' }))
+    const tree = buildTestTree([
+      buildTreeInput('c', buildSubagentMeta({ parentAgentId: 'a' })),
+      buildTreeInput('a', buildSubagentMeta({ parentAgentId: 'b' })),
+      buildTreeInput('b', buildSubagentMeta({ parentAgentId: 'a' }))
     ])
 
     expect(tree.children.map((c) => c.identity)).toEqual([
@@ -203,9 +204,9 @@ describe('buildAgentTree', () => {
   })
 
   it('orders children by agent id', () => {
-    const tree = buildAgentTree([
-      input('zed', buildSubagentMeta()),
-      input('alpha', buildSubagentMeta())
+    const tree = buildTestTree([
+      buildTreeInput('zed', buildSubagentMeta()),
+      buildTreeInput('alpha', buildSubagentMeta())
     ])
 
     expect(tree.children.map((c) => c.identity)).toEqual([
@@ -217,7 +218,7 @@ describe('buildAgentTree', () => {
   it('builds a 20,000-deep linear chain without throwing, with the correct depth', () => {
     const chainLength = 20_000
 
-    const tree = buildAgentTree(buildLinearChain(chainLength))
+    const tree = buildTestTree(buildLinearChain(chainLength))
 
     expect(chainDepth(tree)).toBe(chainLength)
   })
@@ -227,7 +228,7 @@ describe('buildAgentTree', () => {
     const depth = 5
     const { subagents, expectedChildIdsByNodeKey } = buildBranchingTree(branchingFactor, depth)
 
-    const tree = buildAgentTree(subagents)
+    const tree = buildTestTree(subagents)
 
     let visitedCount = 0
     const stack: AgentTreeNode[] = [tree]
@@ -248,10 +249,10 @@ describe('buildAgentTree', () => {
   })
 
   it('keeps only the first occurrence of a duplicate agent id, without multiplying its subtree', () => {
-    const tree = buildAgentTree([
-      input('a', buildSubagentMeta({ agentType: 'first' })),
-      input('a', buildSubagentMeta({ agentType: 'second' })),
-      input('child', buildSubagentMeta({ parentAgentId: 'a' }))
+    const tree = buildTestTree([
+      buildTreeInput('a', buildSubagentMeta({ agentType: 'first' })),
+      buildTreeInput('a', buildSubagentMeta({ agentType: 'second' })),
+      buildTreeInput('child', buildSubagentMeta({ parentAgentId: 'a' }))
     ])
 
     expect(tree.children).toHaveLength(1)

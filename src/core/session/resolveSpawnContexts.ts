@@ -1,6 +1,6 @@
 import type { AgentId } from '../transcript/ids'
+import type { AgentHierarchy } from './agentHierarchy'
 import type { AgentTreeInput } from './agentTree'
-import { dedupeByAgentId, resolveParents } from './resolveParents'
 import type { SpawnContext } from './spawnContext'
 import { pickSighting, type PickedLocation } from './pickSighting'
 import type { TranscriptSpawns } from './spawnObserver'
@@ -10,8 +10,8 @@ export const MAX_ANCESTOR_DEPTH = 64
 
 /** Input for {@link resolveSpawnContexts}. */
 export interface ResolveSpawnContextsInput {
-  /** The session's subagents with their resolved meta status. */
-  readonly subagents: readonly AgentTreeInput[]
+  /** The session's subagents deduped by id, with each one's resolved parent. */
+  readonly hierarchy: AgentHierarchy<AgentTreeInput>
   /** What the lead's transcript showed. */
   readonly leadTranscript: TranscriptSpawns
   /** What each successfully read subagent transcript showed. Unreadable ones are absent. */
@@ -23,10 +23,10 @@ export interface ResolveSpawnContextsInput {
  *
  * A subagent's `toolUseId` is looked up only in its parent's transcript: the
  * transcript of the subagent named by `parentAgentId`, or the lead's when
- * there is none. Parents are the ones `buildAgentTree` uses, so a dangling
- * link or a cycle member (including a self-parent) has the lead as parent. A
- * match is exact. Otherwise the context is inferred from the branch and cwd
- * the parent's transcript showed when the subagent started: the last
+ * there is none. Parents come from the hierarchy the caller supplies, so a
+ * dangling link or a cycle member (including a self-parent) has the lead as
+ * parent. A match is exact. Otherwise the context is inferred from the branch
+ * and cwd the parent's transcript showed when the subagent started: the last
  * timeline entry in file order at or before the subagent's own start time,
  * then each further ancestor's, then the lead's, every level using the
  * subagent's start. A `HEAD` entry borrows the nearest earlier named branch
@@ -39,14 +39,14 @@ export interface ResolveSpawnContextsInput {
  * {@link MAX_ANCESTOR_DEPTH} ancestors, then goes straight to the lead. A
  * subagent none of these reach is left out.
  *
- * @param input - The subagents and each transcript's observed spawns.
+ * @param input - The session's agent hierarchy and each transcript's observed spawns.
  * @returns The context of each subagent that resolved one.
  */
 export function resolveSpawnContexts(
   input: ResolveSpawnContextsInput
 ): ReadonlyMap<AgentId, SpawnContext> {
-  const { subagents, leadTranscript, subagentTranscripts } = input
-  const parentOf = resolveParents(subagents)
+  const { hierarchy, leadTranscript, subagentTranscripts } = input
+  const { subagents, parentOf } = hierarchy
 
   const transcriptOf = (agentId: AgentId | undefined): TranscriptSpawns | undefined =>
     agentId === undefined ? leadTranscript : subagentTranscripts.get(agentId)
@@ -64,7 +64,7 @@ export function resolveSpawnContexts(
   }
 
   const contexts = new Map<AgentId, SpawnContext>()
-  for (const agent of dedupeByAgentId(subagents)) {
+  for (const agent of subagents) {
     const toolUseId = agent.metaStatus.status === 'ok' ? agent.metaStatus.meta.toolUseId : undefined
     const exact =
       toolUseId === undefined

@@ -5,6 +5,7 @@ import type { ReadJsonlLinesOptions } from '../transcript/readJsonlLines'
 import { readRecords } from '../transcript/readRecords'
 import { ok, type Result } from '../transcript/result'
 import type { UnreadableError } from '../transcript/unreadableError'
+import { resolveAgentHierarchy } from './agentHierarchy'
 import {
   agentIdentityKey,
   leadIdentity,
@@ -175,20 +176,22 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
     lead,
     ...[...subagentReports.values()].flatMap((r) => (r.ok ? [r.value] : []))
   ]
+  const unreadableSubagents = [...subagentReports.values()].filter((r) => !r.ok).length
+
+  const hierarchy = resolveAgentHierarchy(treeInputs)
 
   return {
-    tree: buildAgentTree(treeInputs),
+    tree: buildAgentTree(hierarchy),
     lead,
     subagents: subagentReports,
     reconciliation: reconcileUsage({
       agents: readableAgents.map((agent) => agent.usage),
-      unreadableAgents:
-        subagentReports.size + 1 - readableAgents.length + (subagentsUnreadable ? 1 : 0),
+      unreadableAgents: unreadableSubagents + (subagentsUnreadable ? 1 : 0),
       costState: lastCostState.latest()
     }),
     leadFirstCwd: leadSpawnsResult.firstCwd,
     spawnContexts: resolveSpawnContexts({
-      subagents: treeInputs,
+      hierarchy,
       leadTranscript: leadSpawnsResult,
       subagentTranscripts: subagentSpawns
     })

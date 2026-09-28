@@ -1,3 +1,4 @@
+import { DEFAULT_SPEED } from '../pricing/priceTable'
 import { priceTokens, type PriceTokensResult } from '../pricing/priceTokens'
 import { combineTokenCounts, type TokenCounts } from '../pricing/tokenCounts'
 import type { LedgerEntry } from './usageLedger'
@@ -7,9 +8,10 @@ export interface TokenGroup {
   /** The raw model id exactly as recorded, before normalization. */
   readonly model: string
   /**
-   * The resolved billing speed: `'standard'` when no message in this group
-   * ever carried an explicit speed, otherwise the speed as narrowed by the
-   * usage schema (a bounded string, or the `'unknown'` sentinel).
+   * The resolved billing speed: {@link DEFAULT_SPEED} when no message in
+   * this group ever carried an explicit speed, otherwise the speed as
+   * narrowed by the usage schema (a bounded string, or the `'unknown'`
+   * sentinel).
    */
   readonly speed: string
   /** The group's token counts, summed across every message in it. */
@@ -21,9 +23,9 @@ export interface TokenGroup {
 /**
  * Groups one agent's ledger entries by raw model id and resolved billing
  * speed, summing each group's token counts and pricing the result. An
- * absent speed resolves to `'standard'`, so a message that never stated
- * its speed groups with one that explicitly did, rather than showing as a
- * separate bucket.
+ * absent speed resolves to {@link DEFAULT_SPEED}, so a message that never
+ * stated its speed groups with one that explicitly did, rather than showing
+ * as a separate bucket.
  *
  * @param entries - The ledger entries owned by one agent.
  * @returns The agent's token usage, one entry per (model, speed) pair.
@@ -52,5 +54,5 @@ export function groupTokensByModelAndSpeed(entries: readonly LedgerEntry[]): rea
 }
 
 function resolveDisplaySpeed(speed: string | undefined): string {
-  return speed ?? 'standard'
+  return speed ?? DEFAULT_SPEED
 }
