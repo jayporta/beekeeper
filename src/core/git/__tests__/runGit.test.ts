@@ -129,6 +129,28 @@ describe('runGit', () => {
     )
   })
 
+  it('allows the check-attr form with -z and -- only', async () => {
+    const result = await runGit({
+      git,
+      dir: '/repo',
+      args: ['check-attr', '-z', 'filter', '--', 'a.bin', '--stdin'],
+      exec: recordingExec([])
+    })
+    expect(result.ok).toBe(true)
+  })
+
+  it.each([
+    [['check-attr', '--stdin', 'filter']],
+    [['check-attr', '--all', '--', 'a.bin']],
+    [['check-attr', '--source=HEAD', 'filter', '--', 'a.bin']],
+    [['check-attr', '--source', 'HEAD', 'filter', '--', 'a.bin']],
+    [['check-attr', '-a', '--', 'a.bin']]
+  ])('throws for the check-attr flag in %j', async (args) => {
+    await expect(runGit({ git, dir: '/repo', args, exec: recordingExec([]) })).rejects.toThrow(
+      'git-option-not-allowed'
+    )
+  })
+
   it('does not inspect operands after --', async () => {
     const result = await runGit({
       git,

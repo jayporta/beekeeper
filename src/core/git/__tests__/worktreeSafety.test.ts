@@ -2,6 +2,7 @@ import { access } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { CommitSha } from '../commitSha'
+import { CHECK_ATTR_BATCH_SIZE } from '../filterAttributes'
 import { toGitBinary, type GitBinary } from '../gitBinary'
 import { registerTestGit, type TestRepo } from '../testGitRepo'
 import { worktreeDiffStat } from '../worktreeDiffStat'
@@ -38,6 +39,94 @@ describe('worktree safety', () => {
       value: { files: [], untracked: [], uncommitted: 'skipped-filters' }
     })
     await expect(access(marker)).rejects.toMatchObject({ code: 'ENOENT' })
+  })
+
+  describe('filters assigned by attributes', () => {
+    /** Commits `.gitattributes` and a binary file in the worktree, then edits the file again. */
+    async function committedBinaryThenEdited(options: {
+      readonly repo: TestRepo
+      readonly worktree: string
+      readonly attributes: string
+    }): Promise<void> {
+      const { repo, worktree, attributes } = options
+      await repo.write({ path: '.gitattributes', content: attributes, dir: worktree })
+      await repo.write({ path: 'data.bin', content: 'v1\n', dir: worktree })
+      repo.git(['add', '-A'], worktree)
+      repo.git(['commit', '--quiet', '-m', 'bin'], worktree)
+      await repo.write({ path: 'data.bin', content: 'v2\nmore\nlines\n', dir: worktree })
+    }
+
+    async function diffOf(options: {
+      readonly git: GitBinary
+      readonly repo: TestRepo
+      readonly worktree: string
+    }): ReturnType<typeof worktreeDiffStat> {
+      const { git, repo, worktree } = options
+      return worktreeDiffStat({
+        git,
+        repoDir: repo.dir,
+        baseSha: repo.sha('main'),
+        agentBranch: 'agent',
+        worktreeDir: worktree
+      })
+    }
+
+    it('falls back to the committed diff when an attribute assigns a filter no config defines', async (context) => {
+      const git = testGit.requireGit(context)
+      const { repo, worktree } = await setUp(git)
+      await committedBinaryThenEdited({ repo, worktree, attributes: '*.bin filter=lfs\n' })
+
+      const result = await diffOf({ git, repo, worktree })
+
+      const value = result.ok ? result.value : undefined
+      expect(value?.uncommitted).toBe('skipped-filters')
+      expect(value?.untracked).toEqual([])
+      // The committed change has one line; the edited working file has three.
+      expect(value?.files.find((file) => file.path === 'data.bin')?.added).toBe(1)
+    })
+
+    async function expectIncluded(options: {
+      readonly git: GitBinary
+      readonly attributes: string
+    }): Promise<void> {
+      const { git, attributes } = options
+      const { repo, worktree } = await setUp(git)
+      await committedBinaryThenEdited({ repo, worktree, attributes })
+
+      const result = await diffOf({ git, repo, worktree })
+
+      const value = result.ok ? result.value : undefined
+      expect(value?.uncommitted).toBe('included')
+      expect(value?.files.find((file) => file.path === 'data.bin')?.added).toBe(3)
+    }
+
+    it('still includes uncommitted work when the filter attribute is switched off', async (context) => {
+      await expectIncluded({ git: testGit.requireGit(context), attributes: '*.bin -filter\n' })
+    })
+
+    it('still includes uncommitted work when attributes assign no filter', async (context) => {
+      await expectIncluded({ git: testGit.requireGit(context), attributes: '*.bin text\n' })
+    })
+
+    it('checks every changed path, past one check-attr batch', async (context) => {
+      const git = testGit.requireGit(context)
+      const { repo, worktree } = await setUp(git)
+      const names = Array.from({ length: CHECK_ATTR_BATCH_SIZE + 44 }, (_, n) => `f${n}.txt`)
+      const write = (content: string): Promise<void[]> =>
+        Promise.all(
+          [...names, 'zzz.bin'].map((path) => repo.write({ path, content, dir: worktree }))
+        )
+      await repo.write({ path: '.gitattributes', content: '*.bin filter=lfs\n', dir: worktree })
+      await write('v1\n')
+      repo.git(['add', '-A'], worktree)
+      repo.git(['commit', '--quiet', '-m', 'many'], worktree)
+      await write('v2\n')
+
+      const result = await diffOf({ git, repo, worktree })
+
+      // zzz.bin sorts last, so only the second batch names it.
+      expect(result.ok ? result.value.uncommitted : undefined).toBe('skipped-filters')
+    })
   })
 
   it('falls back when the worktree has a different branch checked out', async (context) => {

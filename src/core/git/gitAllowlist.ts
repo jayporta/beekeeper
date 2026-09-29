@@ -27,6 +27,14 @@ export const UNTRACKED_ARGS: readonly string[] = [
 const DIFF_FLAGS: ReadonlySet<string> = new Set([...DIFF_ARGS, '--'])
 const UNTRACKED_FLAGS: ReadonlySet<string> = new Set([...UNTRACKED_ARGS, '--'])
 
+/**
+ * The only flags `check-attr` may receive: NUL-separated output, and the
+ * separator before the paths. `--stdin`, `--all`, and `--source` stay refused,
+ * so it reads the attribute named on the command line for the paths named
+ * there, from the worktree's own attribute files.
+ */
+const CHECK_ATTR_FLAGS: ReadonlySet<string> = new Set(['-z', '--'])
+
 /** Flags each allowlisted git subcommand may receive. Anything else is refused. */
 const ALLOWED_OPTIONS: Readonly<Record<string, ReadonlySet<string>>> = {
   'rev-parse': new Set([
@@ -44,7 +52,8 @@ const ALLOWED_OPTIONS: Readonly<Record<string, ReadonlySet<string>>> = {
   'diff-index': DIFF_FLAGS,
   'ls-files': UNTRACKED_FLAGS,
   'check-ref-format': new Set(),
-  config: new Set()
+  config: new Set(),
+  'check-attr': CHECK_ATTR_FLAGS
 }
 
 /**
@@ -54,7 +63,8 @@ const ALLOWED_OPTIONS: Readonly<Record<string, ReadonlySet<string>>> = {
  * The subcommand must be allowlisted. `config` is limited to the exact form
  * `config --get-regexp <pattern>`. Every other argument starting with `-`
  * must be in the subcommand's flag set (for example `diff --output=<path>`
- * writes a file, so it isn't). Arguments after `--` or `--end-of-options`
+ * writes a file, so it isn't). `check-attr` takes `-z` and `--` only, with the
+ * attribute name before `--`. Arguments after `--` or `--end-of-options`
  * are operands and aren't inspected.
  *
  * @param args - The subcommand followed by its arguments.
