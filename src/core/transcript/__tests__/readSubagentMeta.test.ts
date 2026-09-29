@@ -161,16 +161,19 @@ describe('readSubagentMeta', () => {
     expect(result).toEqual({ ok: false, error: { reason: 'symlink' } })
   })
 
-  it('rejects when the file cannot be opened for a reason other than missing or a symlink', async () => {
-    const path = writeMeta('agent-locked.meta.json', JSON.stringify(buildMinimalSubagentMeta()))
-    chmodSync(path, 0o000)
+  it.skipIf(process.getuid?.() === 0)(
+    'rejects when the file cannot be opened for a reason other than missing or a symlink',
+    async () => {
+      const path = writeMeta('agent-locked.meta.json', JSON.stringify(buildMinimalSubagentMeta()))
+      chmodSync(path, 0o000)
 
-    try {
-      await expect(readSubagentMeta(path)).rejects.toMatchObject({ code: 'EACCES' })
-    } finally {
-      chmodSync(path, 0o600)
+      try {
+        await expect(readSubagentMeta(path)).rejects.toMatchObject({ code: 'EACCES' })
+      } finally {
+        chmodSync(path, 0o600)
+      }
     }
-  })
+  )
 
   it('assembles a meta file delivered across several short reads', async () => {
     const path = writeMeta(
