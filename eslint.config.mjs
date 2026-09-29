@@ -11,7 +11,7 @@ const NETWORK_MODULE_MESSAGE =
   'Beekeeper makes no network calls. See the no-network promise in the README.'
 
 export default defineConfig(
-  { ignores: ['**/node_modules', '**/dist', '**/out', '.claude/worktrees/**'] },
+  { ignores: ['**/node_modules', '**/dist', '**/out', '.claude/worktrees/**', '.remember/**'] },
   tseslint.configs.recommended,
   eslintPluginReact.configs.flat.recommended,
   eslintPluginReact.configs.flat['jsx-runtime'],
