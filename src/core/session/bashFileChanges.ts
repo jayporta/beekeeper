@@ -63,6 +63,21 @@ function fileEntries(files: readonly unknown[]): FileEntry[] {
   return entries
 }
 
+/**
+ * The distinct entries of `named`, first occurrence first, walking it only
+ * until {@link MAX_BASH_CHANGED_FILES} + 1 are found. The extra one tells the
+ * caller the list is over the cap, and stopping there keeps a crafted list of
+ * millions of entries from costing more than the paths that are kept.
+ */
+function distinctPathsUpToCap(named: readonly unknown[]): unknown[] {
+  const distinct = new Set<unknown>()
+  for (const path of named) {
+    distinct.add(path)
+    if (distinct.size > MAX_BASH_CHANGED_FILES) break
+  }
+  return [...distinct]
+}
+
 /** Whether the result carries a `bashEditDiff` that is neither absent nor `null`, whatever its shape. */
 function hasUnparsableDiff(rawResult: unknown): boolean {
   return isRecordObject(rawResult) && rawResult.bashEditDiff != null
@@ -93,7 +108,9 @@ export function readBashFileChanges(rawResult: unknown): BashFileChanges | null 
 
   const entries = fileEntries(diff.files ?? [])
   const operations = new Map(entries.map((entry) => [entry.filePath, entry.operation]))
-  const namedPaths = [...new Set(diff.changedFiles ?? entries.map((entry) => entry.filePath))]
+  const namedPaths = distinctPathsUpToCap(
+    diff.changedFiles ?? entries.map((entry) => entry.filePath)
+  )
 
   const changes: BashFileChange[] = []
   let dropped = false

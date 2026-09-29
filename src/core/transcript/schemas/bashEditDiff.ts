@@ -4,6 +4,14 @@ import { z } from 'zod'
 const flagSchema = z.boolean().optional().catch(undefined)
 
 /**
+ * A list that reads as absent when it is not an array. Its entries are left
+ * unvalidated and the array is passed through as is, not walked or copied, so
+ * a crafted list of millions of entries costs nothing here: the reader walks
+ * only as far as its cap.
+ */
+const unboundedListSchema = z.custom<unknown[]>(Array.isArray).optional().catch(undefined)
+
+/**
  * One file entry of a Bash result's `bashEditDiff`. Validates only the path
  * and the `created`/`deleted` flags; the hunks are stripped, never kept.
  */
@@ -27,8 +35,8 @@ export const bashEditFileSchema = z.object({
  * `moreFiles` only says the hunks were truncated, and is not read.
  */
 export const bashEditDiffSchema = z.object({
-  changedFiles: z.array(z.unknown()).optional().catch(undefined),
-  files: z.array(z.unknown()).optional().catch(undefined),
+  changedFiles: unboundedListSchema,
+  files: unboundedListSchema,
   unavailable: flagSchema,
   shared: flagSchema,
   skipped: flagSchema

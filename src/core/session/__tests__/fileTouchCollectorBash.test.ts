@@ -158,6 +158,26 @@ describe('createFileTouchCollector Bash results', () => {
     expect(collector.incompleteToolUseIds()).toEqual([])
   })
 
+  it('stops walking changedFiles once MAX_BASH_CHANGED_FILES + 1 distinct paths are seen', () => {
+    const repeats = Array.from({ length: 300 }, () => '/repo/a.ts')
+    const distinct = paths(MAX_BASH_CHANGED_FILES)
+    const walked = [...repeats, ...distinct]
+    const stopIndex = walked.length
+    const changedFiles = new Proxy([...walked, '/repo/never-read.ts'], {
+      get(target, property, receiver) {
+        if (typeof property === 'string' && Number(property) >= stopIndex) {
+          throw new Error(`read past the stop point: ${property}`)
+        }
+        return Reflect.get(target, property, receiver)
+      }
+    })
+
+    const collector = observeBash(buildBashToolUseResult({ changedFiles }))
+
+    expect(collector.touches()).toHaveLength(MAX_BASH_CHANGED_FILES)
+    expect(collector.incompleteToolUseIds()).toEqual(['toolu_bash'])
+  })
+
   it('keeps a path repeated across different results, one touch per result', () => {
     const collector = createFileTouchCollector()
     for (const toolUseId of ['toolu_1', 'toolu_2']) {
