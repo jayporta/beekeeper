@@ -67,7 +67,7 @@ npm test              # vitest
 npm run build         # typecheck, then electron-vite build
 ```
 
-Contributors can turn on an optional pre-commit review gate with `node .claude/review-gate/cli.mjs install`. It sets this clone's `core.hooksPath` to `.githooks/`, and the hook (which runs the gate code in `.claude/review-gate/`) then blocks `git commit` until the checks pass and a code, security, or accessibility review (whichever the change needs) has come back clean for the exact staged content. See the "Pre-commit review" section of [AGENTS.md](./AGENTS.md) for how the reviews work.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for how to contribute and what every change must meet.
 
 ## License
 
