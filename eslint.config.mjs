@@ -96,17 +96,7 @@ export default defineConfig(
     }
   },
   {
-    files: ['.claude/{hooks,review-gate}/**/*.mjs'],
-    languageOptions: {
-      globals: {
-        process: 'readonly',
-        console: 'readonly',
-        Buffer: 'readonly'
-      }
-    }
-  },
-  {
-    files: ['.claude/{hooks,review-gate}/**/*.mjs', 'docs/**/*.js'],
+    files: ['docs/**/*.js'],
     rules: {
       // Plain JS has no type annotations to require; JSDoc carries the types.
       '@typescript-eslint/explicit-function-return-type': 'off'
