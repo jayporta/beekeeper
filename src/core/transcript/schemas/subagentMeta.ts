@@ -23,11 +23,15 @@ const optionalAgentLabelSchema = z
  * subagent has; any other field, `toolUseId` included, may be absent
  * depending on how the subagent was spawned.
  *
- * `agentType`, `teamName` and `name` are labels: each is trimmed and
- * normalized to NFC, and must be printable and within the label cap, by the
- * same rule a session's role uses (see {@link toAgentLabel}). An unusable
- * `agentType` fails the whole meta, like a non-string one. An unusable or
- * non-string `teamName` or `name` reads as absent, so the subagent is kept.
+ * `agentType`, `teamName`, `name`, `description`, `model`, `toolUseId`,
+ * `parentAgentId` and `taskKind` are labels: each is trimmed and normalized
+ * to NFC, and must be printable and within the label cap, by the same rule a
+ * session's role uses (see {@link toAgentLabel}). An unusable `agentType`
+ * fails the whole meta, like a non-string one. An unusable or non-string
+ * value in any other label field reads as absent, so the subagent is kept.
+ * The rule leaves real values unchanged: the model and the ids are short
+ * ASCII identifiers, and `description` is the Agent tool's short task
+ * description, which fits the label cap.
  *
  * The worktree fields are hardened because they later reach git: an invalid
  * `worktreePath` (not absolute, or over {@link MAX_PATH_CODE_UNITS} UTF-16
@@ -41,10 +45,10 @@ const optionalAgentLabelSchema = z
  */
 export const subagentMetaSchema = z.object({
   agentType: requiredAgentLabelSchema,
-  description: z.string().optional(),
-  model: z.string().optional(),
-  toolUseId: z.string().optional(),
-  parentAgentId: z.string().optional(),
+  description: optionalAgentLabelSchema,
+  model: optionalAgentLabelSchema,
+  toolUseId: optionalAgentLabelSchema,
+  parentAgentId: optionalAgentLabelSchema,
   spawnDepth: z.number().optional(),
   stoppedByUser: z.boolean().optional(),
   worktreePath: z
@@ -63,7 +67,7 @@ export const subagentMetaSchema = z.object({
     .catch(undefined),
   teamName: optionalAgentLabelSchema,
   name: optionalAgentLabelSchema,
-  taskKind: z.string().optional(),
+  taskKind: optionalAgentLabelSchema,
   isFork: z.boolean().optional()
 })
 

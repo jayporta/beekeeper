@@ -69,7 +69,15 @@ describe('subagentMetaSchema', () => {
     }
   })
 
-  describe.each(['teamName', 'name'] as const)('%s label', (field) => {
+  describe.each([
+    'teamName',
+    'name',
+    'description',
+    'model',
+    'toolUseId',
+    'parentAgentId',
+    'taskKind'
+  ] as const)('%s label', (field) => {
     it.each([
       ['an oversized value', 'x'.repeat(MAX_LABEL_CODE_UNITS + 1)],
       // Each U+0344 is one code unit that NFC expands to two: 200 fit the cap, 400 do not.
@@ -118,6 +126,20 @@ describe('subagentMetaSchema', () => {
 
       expect(parsed[field]).toBe('core-team_2')
     })
+  })
+
+  it('keeps real-looking ids, model and description unchanged', () => {
+    const real = {
+      toolUseId: 'toolu_01AbC',
+      parentAgentId: 'a1b2c3d4e5f6',
+      model: 'claude-opus-5-5[1m]',
+      description: 'Review the staged diff for bugs',
+      taskKind: 'review'
+    }
+
+    const parsed = subagentMetaSchema.parse({ ...buildMinimalSubagentMeta('reviewer'), ...real })
+
+    expect(parsed).toMatchObject(real)
   })
 
   it.each([
