@@ -131,7 +131,7 @@ describe('rollupTeamCost', () => {
     expect(rollups.map((r) => r.teamUSD)).toEqual([3, 30])
   })
 
-  it('reports teamListsTruncated when a lead list hit its cap', () => {
+  it('reports teamListsTruncated when lead spawns or stops hit their cap', () => {
     const lead = testLead(testRef('p', 'lead'), {
       teamSpawns: { ...testTeamSpawns(), truncated: true }
     })
@@ -139,7 +139,7 @@ describe('rollupTeamCost', () => {
     expect(rollupOf([lead]).teamListsTruncated).toBe(true)
   })
 
-  it('reports teamListsTruncated false when no lead list hit its cap', () => {
+  it('reports teamListsTruncated false when lead spawns and stops stay under their cap', () => {
     const lead = testLead(testRef('p', 'lead'))
 
     expect(rollupOf([lead]).teamListsTruncated).toBe(false)

@@ -31,8 +31,9 @@ export interface SessionListItemDto {
   /**
    * How the session relates to a team, or `null` when its transcript or
    * summary couldn't be read, or when it is a lead with no teammates, no
-   * spawned teammate missing, and no spawn or stop list that hit its cap,
-   * since a solo lead's team total would only repeat its own cost.
+   * spawned teammate missing, and no capped spawns or stops (see
+   * `TeamCostRollupDto.teamListsTruncated`), since a solo lead's team total
+   * would only repeat its own cost.
    */
   readonly team: SessionTeamDto | null
 }

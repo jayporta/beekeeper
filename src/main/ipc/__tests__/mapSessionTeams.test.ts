@@ -114,7 +114,7 @@ describe('mapSessionTeams', () => {
     })
   })
 
-  it('gives a lead with no teammates an entry when a spawn or stop list hit its cap', () => {
+  it('gives a lead with no teammates an entry when its spawns or stops hit their cap', () => {
     const capped = testLead(testRef('p', 'capped'), {
       cost: testCost(5),
       teamSpawns: { ...testTeamSpawns(), truncated: true }

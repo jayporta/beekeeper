@@ -35,8 +35,8 @@ function mapLeadGroup(group: LeadGroup, into: Map<string, SessionTeamDto>): void
  * Maps a team grouping to what each session's list item carries, field by
  * field, so no summary field (its spawn and stop labels among them) crosses
  * the bridge. A lead with no teammates, no missing spawned teammate, and no
- * spawn or stop list that hit its cap gets no entry, since its team total
- * would only repeat its own cost.
+ * capped spawns or stops (see `teamListsTruncated`) gets no entry, since
+ * its team total would only repeat its own cost.
  *
  * @param grouping - The grouping of one project's sessions.
  * @returns Each grouped or ungrouped session's id mapped to its team entry.

@@ -24,16 +24,21 @@ export interface TeamCostRollupDto {
    */
   readonly missingTeammates: number
   /**
-   * Whether the lead's spawn or stop list hit its cap, so `missingTeammates`
-   * may undercount and a teammate grouped under it may read as not stopped
-   * when it was.
+   * Whether the lead's spawns or its `TaskStop` calls hit their cap and
+   * one was dropped. It can over-report, since a dropped call may have been
+   * a repeat or a stop that would have been excluded. When set,
+   * `missingTeammates` may undercount, since a dropped spawn's pair is never
+   * counted; `teamUSD` may too, when that teammate joined another lead or
+   * stayed ungrouped; and a teammate grouped under this lead may read as
+   * joined by team rather than by spawn, or as not stopped when it was.
    */
   readonly teamListsTruncated: boolean
 }
 
 /**
  * A lead session that has teammates grouped under it, spawned ones that
- * never appeared, or a spawn or stop list that hit its cap.
+ * never appeared, or capped spawns or stops (see
+ * {@link TeamCostRollupDto.teamListsTruncated}).
  */
 export interface LeadSessionTeamDto {
   /** Discriminates the entry. */
