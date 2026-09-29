@@ -6,4 +6,4 @@ out
 *.tsbuildinfo
 *.log*
 .claude/worktrees
-.remember
+/.remember
