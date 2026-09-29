@@ -129,11 +129,11 @@ describe('runGit', () => {
     )
   })
 
-  it('allows the check-attr form with -z and -- only', async () => {
+  it('allows the check-attr form with -z, --all, and -- only', async () => {
     const result = await runGit({
       git,
       dir: '/repo',
-      args: ['check-attr', '-z', 'filter', '--', 'a.bin', '--stdin'],
+      args: ['check-attr', '-z', '--all', '--', 'a.bin', '--stdin'],
       exec: recordingExec([])
     })
     expect(result.ok).toBe(true)
@@ -141,7 +141,7 @@ describe('runGit', () => {
 
   it.each([
     [['check-attr', '--stdin', 'filter']],
-    [['check-attr', '--all', '--', 'a.bin']],
+    [['check-attr', '--all', '--stdin', '--', 'a.bin']],
     [['check-attr', '--source=HEAD', 'filter', '--', 'a.bin']],
     [['check-attr', '--source', 'HEAD', 'filter', '--', 'a.bin']],
     [['check-attr', '-a', '--', 'a.bin']]

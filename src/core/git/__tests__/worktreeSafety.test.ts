@@ -71,10 +71,13 @@ describe('worktree safety', () => {
       })
     }
 
-    it('falls back to the committed diff when an attribute assigns a filter no config defines', async (context) => {
-      const git = testGit.requireGit(context)
+    async function expectSkipped(options: {
+      readonly git: GitBinary
+      readonly attributes: string
+    }): Promise<void> {
+      const { git, attributes } = options
       const { repo, worktree } = await setUp(git)
-      await committedBinaryThenEdited({ repo, worktree, attributes: '*.bin filter=lfs\n' })
+      await committedBinaryThenEdited({ repo, worktree, attributes })
 
       const result = await diffOf({ git, repo, worktree })
 
@@ -83,6 +86,21 @@ describe('worktree safety', () => {
       expect(value?.untracked).toEqual([])
       // The committed change has one line; the edited working file has three.
       expect(value?.files.find((file) => file.path === 'data.bin')?.added).toBe(1)
+    }
+
+    it('falls back to the committed diff when an attribute assigns a filter no config defines', async (context) => {
+      await expectSkipped({ git: testGit.requireGit(context), attributes: '*.bin filter=lfs\n' })
+    })
+
+    it('falls back when the filter attribute is switched off, which git reports as a driver named unset', async (context) => {
+      await expectSkipped({ git: testGit.requireGit(context), attributes: '*.bin -filter\n' })
+    })
+
+    it('falls back when a driver is literally named unspecified', async (context) => {
+      await expectSkipped({
+        git: testGit.requireGit(context),
+        attributes: '*.bin filter=unspecified\n'
+      })
     })
 
     async function expectIncluded(options: {
@@ -100,12 +118,15 @@ describe('worktree safety', () => {
       expect(value?.files.find((file) => file.path === 'data.bin')?.added).toBe(3)
     }
 
-    it('still includes uncommitted work when the filter attribute is switched off', async (context) => {
-      await expectIncluded({ git: testGit.requireGit(context), attributes: '*.bin -filter\n' })
-    })
-
     it('still includes uncommitted work when attributes assign no filter', async (context) => {
       await expectIncluded({ git: testGit.requireGit(context), attributes: '*.bin text\n' })
+    })
+
+    it('still includes uncommitted work when the path has other attributes but no filter', async (context) => {
+      await expectIncluded({
+        git: testGit.requireGit(context),
+        attributes: '*.bin text diff -merge\n'
+      })
     })
 
     it('checks every changed path, past one check-attr batch', async (context) => {

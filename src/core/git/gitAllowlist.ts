@@ -28,12 +28,12 @@ const DIFF_FLAGS: ReadonlySet<string> = new Set([...DIFF_ARGS, '--'])
 const UNTRACKED_FLAGS: ReadonlySet<string> = new Set([...UNTRACKED_ARGS, '--'])
 
 /**
- * The only flags `check-attr` may receive: NUL-separated output, and the
- * separator before the paths. `--stdin`, `--all`, and `--source` stay refused,
- * so it reads the attribute named on the command line for the paths named
- * there, from the worktree's own attribute files.
+ * The only flags `check-attr` may receive: NUL-separated output, every
+ * attribute rather than one named, and the separator before the paths.
+ * `-a`, `--stdin`, and `--source` stay refused, so it reads the paths named on
+ * the command line from the worktree's own attribute files.
  */
-const CHECK_ATTR_FLAGS: ReadonlySet<string> = new Set(['-z', '--'])
+const CHECK_ATTR_FLAGS: ReadonlySet<string> = new Set(['-z', '--all', '--'])
 
 /** Flags each allowlisted git subcommand may receive. Anything else is refused. */
 const ALLOWED_OPTIONS: Readonly<Record<string, ReadonlySet<string>>> = {
@@ -63,9 +63,9 @@ const ALLOWED_OPTIONS: Readonly<Record<string, ReadonlySet<string>>> = {
  * The subcommand must be allowlisted. `config` is limited to the exact form
  * `config --get-regexp <pattern>`. Every other argument starting with `-`
  * must be in the subcommand's flag set (for example `diff --output=<path>`
- * writes a file, so it isn't). `check-attr` takes `-z` and `--` only, with the
- * attribute name before `--`. Arguments after `--` or `--end-of-options`
- * are operands and aren't inspected.
+ * writes a file, so it isn't). `check-attr` takes `-z`, `--all`, and `--`
+ * only. Arguments after `--` or `--end-of-options` are operands and aren't
+ * inspected.
  *
  * @param args - The subcommand followed by its arguments.
  * @throws {Error} With message `git-subcommand-not-allowed` or `git-option-not-allowed`.
