@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildAssistantToolUseRecord,
+  buildBashToolUseResult,
   buildEditToolUseResult,
   buildToolResultBlock,
   buildUserToolResultRecord,
@@ -61,15 +62,17 @@ describe('createFileTouchCollector', () => {
     ])
   })
 
-  it('ignores a tool not tracked for file touches, such as Bash', () => {
+  it.each([
+    ['Edit', buildEditToolUseResult('/a.ts')],
+    ['Bash', buildBashToolUseResult({ changedFiles: ['/a.ts'] })]
+  ])('counts a second %s result carrying the same tool_use_id only once', (toolName, result) => {
     const collector = createFileTouchCollector()
 
-    collector.observe(buildAssistantToolUseRecord({ toolUseId: 'toolu_4', toolName: 'Bash' }))
-    collector.observe(
-      buildUserToolResultRecord({ toolUseId: 'toolu_4', toolUseResult: { filePath: '/a.ts' } })
-    )
+    collector.observe(buildAssistantToolUseRecord({ toolUseId: 'toolu_4', toolName }))
+    collector.observe(buildUserToolResultRecord({ toolUseId: 'toolu_4', toolUseResult: result }))
+    collector.observe(buildUserToolResultRecord({ toolUseId: 'toolu_4', toolUseResult: result }))
 
-    expect(collector.touches()).toEqual([])
+    expect(collector.touches()).toHaveLength(1)
   })
 
   it('ignores a tool_result with no earlier tool_use', () => {

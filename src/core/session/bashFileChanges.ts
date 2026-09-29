@@ -66,8 +66,9 @@ function fileEntries(files: readonly unknown[]): FileEntry[] {
 /**
  * The distinct entries of `named`, first occurrence first, walking it only
  * until {@link MAX_BASH_CHANGED_FILES} + 1 are found. The extra one tells the
- * caller the list is over the cap, and stopping there keeps a crafted list of
- * millions of entries from costing more than the paths that are kept.
+ * caller the list is over the cap. A list that repeats a few paths is walked
+ * once in full, at about the cost of the `JSON.parse` that built it, and is
+ * bounded by the transcript's line-length cap.
  */
 function distinctPathsUpToCap(named: readonly unknown[]): unknown[] {
   const distinct = new Set<unknown>()
