@@ -116,6 +116,9 @@ export async function sessionWorktreeDiffs(
     return base
   }
 
+  const inferredBaseOf = (agent: WorktreeAgent): boolean =>
+    scan.spawnContexts.get(agent.agentId)?.inferred ?? false
+
   async function computeDiff(
     input: DiffInput
   ): Promise<Result<WorktreeDiffStat, WorktreeDiffCode>> {
@@ -138,7 +141,7 @@ export async function sessionWorktreeDiffs(
 
   async function diffAgent(agent: WorktreeAgent): Promise<AgentWorktreeDiff> {
     const context = scan.spawnContexts.get(agent.agentId)
-    const inferredBase = context?.inferred ?? false
+    const inferredBase = inferredBaseOf(agent)
     if (context?.baseBranch === undefined) {
       return { agentId: agent.agentId, inferredBase, result: err('no-base') }
     }
@@ -158,8 +161,11 @@ export async function sessionWorktreeDiffs(
   }
 
   function refuseAgent(agent: WorktreeAgent): AgentWorktreeDiff {
-    const inferredBase = scan.spawnContexts.get(agent.agentId)?.inferred ?? false
-    return { agentId: agent.agentId, inferredBase, result: err('too-many-agents') }
+    return {
+      agentId: agent.agentId,
+      inferredBase: inferredBaseOf(agent),
+      result: err('too-many-agents')
+    }
   }
 
   return Promise.all(

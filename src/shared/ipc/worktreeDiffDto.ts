@@ -7,8 +7,8 @@ export type UncommittedStatusDto =
 
 /**
  * Why one agent's worktree diff is unavailable. `too-many-agents` marks an
- * agent past the per-request cap (64 agents, in tree order), whose diff was
- * not attempted.
+ * agent past the per-request cap on worktree agents, in tree order, whose
+ * diff was not attempted.
  */
 export type WorktreeDiffCodeDto =
   | 'invalid-ref'
