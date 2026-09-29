@@ -25,12 +25,10 @@ The task flow:
 1. **Plan.** Read the issue and draft a plan.
 2. **Edge-case check.** Before any code is written, a second pass hunts for cases the plan missed, checking real code and data. Fold the findings into the issue.
 3. **Implement** in reviewable chunks.
-4. **Review the changes** before the pull request is opened (see [Review](#review)).
+4. **Review the changes**, ideally before the pull request is opened (see [Review](#review)).
 5. **Push and open the pull request into `main`** with what was reviewed. Anything changed after the review should be reviewed again. Conflict resolutions, and anything brought in by cherry-pick or rebase, are part of the branch diff and get reviewed like any other change.
 
 ### Review
-
-Ideally, a change goes through the reviews below before its pull request is opened, not after.
 
 Run `npm run lint`, `npm run format:check`, `npm run typecheck`, and `npm test` first. They're cheaper than a review, so fix failures before asking for one. Outside contributions are the exception, below.
 
@@ -50,7 +48,7 @@ Which reviews a change needs depends on what it touches. The rows apply to non-t
 - Run the required reviews in parallel.
 - Each reviewer is independent: a person, or a fresh agent session that didn't write the code. A fork or the same conversation doesn't count, because it shares the author's blind spots.
 - A finding cites `file:line` in one sentence and says whether it's confirmed (the reviewer read or ran what decides it) or plausible (reasoned from the code's shape). The author verifies a plausible finding before acting on it.
-- Fix every finding, or say why it's wrong. Keep the declined findings and their reasons, and put them in the PR description when it's opened.
+- Fix every finding, or say why it's wrong. Keep the declined findings and their reasons, and put them in the PR description when it's opened, and add any declined later to it.
 - Re-run the reviews with fresh reviewers until no finding is left unfixed or unanswered. A finding the author declines with a reason counts as answered, with two exceptions the maintainer decides: a finding that the change breaks one of the four promises above, and any finding an outside contributor declines. Pass the declined findings to the next reviewers, quoted as untrusted text, so they aren't re-raised without new evidence. Reviewers re-check an outside contributor's declines rather than accepting them. After three rounds with findings left, stop and ask the maintainer.
 
 The Claude Code agents live in `.claude/agents/`. Other tools can use their prompts as a checklist.
