@@ -4,6 +4,7 @@ import type {
   AgentWorktreeDiffDto,
   GitAvailabilityDto,
   NumstatEntryDto,
+  SharedWorktreeDto,
   WorktreeDiffsDto,
   WorktreeDiffStatDto
 } from '../../shared/ipc/worktreeDiffDto'
@@ -43,14 +44,29 @@ export interface MapWorktreeDiffsOptions {
   readonly git: GitAvailabilityDto
   /** The computed diffs. */
   readonly agents: readonly AgentWorktreeDiff[]
+  /** The teammate's shared worktree, or `null`. */
+  readonly sharedWorktree: SharedWorktreeDto | null
 }
 
 /**
  * Maps a session's worktree diffs onto their transfer shape, copying only
  * the whitelisted fields.
- * @param options - The git availability and the core diffs.
+ * @param options - The git availability, the core diffs, and the shared worktree.
  * @returns The DTO.
  */
 export function mapWorktreeDiffs(options: MapWorktreeDiffsOptions): WorktreeDiffsDto {
-  return { git: options.git, agents: options.agents.map(mapAgent) }
+  return {
+    git: options.git,
+    agents: options.agents.map(mapAgent),
+    sharedWorktree:
+      options.sharedWorktree === null
+        ? null
+        : {
+            lead: {
+              projectDirName: options.sharedWorktree.lead.projectDirName,
+              sessionId: options.sharedWorktree.lead.sessionId
+            },
+            agentId: options.sharedWorktree.agentId
+          }
+  }
 }

@@ -1,16 +1,12 @@
-import { groupTeams } from '../../core/teams/groupTeams'
-import { projectFamilyOf } from '../../core/teams/projectFamily'
 import { discoverProjects } from '../../core/transcript/discoverProjects'
 import type { IpcResult } from '../../shared/ipc/ipcResult'
 import { listSessionsRequestSchema } from '../../shared/ipc/requestSchemas'
 import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
 import type { SessionTeamDto } from '../../shared/ipc/sessionTeamDto'
-import { describeError } from '../startupFailure'
+import { groupProjectFamily } from './groupProjectFamily'
 import type { IpcDeps } from './ipcDeps'
 import { errResult, okResult } from './ipcResults'
 import { mapSessionListItem, type ScannedSession } from './mapSessionListItem'
-import { mapSessionTeams } from './mapSessionTeams'
-import { scanProjectSessions, summarizedSessions } from './scanProjectSessions'
 import { sessionRefKey } from './sessionRefKey'
 
 function teamKeyOf(session: ScannedSession): string {
@@ -41,12 +37,8 @@ function isListedFor(projectDirName: string, { session, team }: ListedSession): 
  * folder grouped as a teammate under one of the project's leads; that
  * teammate is also listed in its own folder, under the same lead. Summary
  * reads are shared per transcript state (path, mtime, size) and capped by the
- * summaries scheduler. Only sessions whose summaries were read take part in
- * team grouping. A sibling family folder whose scan fails is logged and left
- * out: its teammates count as missing from their lead's team, and a teammate
- * whose lead it held is grouped as if that lead were absent (ungrouped, or
- * under another lead of its team). The requested folder failing to read
- * still throws.
+ * summaries scheduler. See {@link groupProjectFamily} for how an unreadable
+ * sibling folder is treated.
  *
  * @param deps - The projects root, the summary cache, and the summaries
  * scheduler.
@@ -65,24 +57,7 @@ export async function listSessionsHandler(
   const project = projects.find((entry) => entry.dirName === request.data.projectDirName)
   if (project === undefined) return errResult('not-found')
 
-  const familyNames = projectFamilyOf(
-    project.dirName,
-    projects.map((entry) => entry.dirName)
-  )
-  const family = projects.filter((entry) => familyNames.includes(entry.dirName))
-  const scanned = (
-    await Promise.all(
-      family.map((folder) =>
-        folder.dirName === project.dirName
-          ? scanProjectSessions(folder, deps)
-          : scanProjectSessions(folder, deps).catch((error: unknown): ScannedSession[] => {
-              console.warn(`Beekeeper skipped a project family folder (${describeError(error)}).`)
-              return []
-            })
-      )
-    )
-  ).flat()
-  const teams = mapSessionTeams(groupTeams(summarizedSessions(scanned)))
+  const { scanned, teams } = await groupProjectFamily({ deps, project, projects })
 
   const items = scanned.map((session): ListedSession => ({
     session,

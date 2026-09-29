@@ -1,3 +1,5 @@
+import type { SessionRefDto } from './sessionRefDto'
+
 /** Whether git was usable: found and new enough, or why not. */
 export type GitAvailabilityDto = 'ok' | 'git-not-found' | 'git-too-old'
 
@@ -60,10 +62,28 @@ export interface AgentWorktreeDiffDto {
     | { readonly ok: false; readonly code: WorktreeDiffCodeDto }
 }
 
+/** A teammate session's worktree, owned by one of its lead's subagents. */
+export interface SharedWorktreeDto {
+  /** The lead session that holds the subagent. */
+  readonly lead: SessionRefDto
+  /** The lead's subagent whose worktree the teammate works in. Its diff is in the lead session's worktree diffs. */
+  readonly agentId: string
+}
+
 /** The worktree diffs of one session. */
 export interface WorktreeDiffsDto {
   /** Whether git was usable. Anything but `ok` leaves `agents` empty. */
   readonly git: GitAvailabilityDto
   /** One entry per agent whose meta names a worktree branch, in tree order. */
   readonly agents: readonly AgentWorktreeDiffDto[]
+  /**
+   * Set when the session is a teammate grouped under a lead and its first cwd
+   * equals, as exact text, the `worktreePath` of one of that lead's
+   * subagents that names a worktree branch (the first in tree order). The
+   * teammate has no branch of its own, so its changes are part of that
+   * subagent's diff in the lead session, which covers the whole worktree:
+   * the subagent's work, the lead's, and any other teammate's there. `null`
+   * otherwise. Independent of `git`.
+   */
+  readonly sharedWorktree: SharedWorktreeDto | null
 }

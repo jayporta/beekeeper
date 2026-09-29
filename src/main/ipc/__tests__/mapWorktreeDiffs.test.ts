@@ -20,10 +20,11 @@ describe('mapWorktreeDiffs', () => {
       result: ok(stat)
     }
 
-    const dto = mapWorktreeDiffs({ git: 'ok', agents: [agent] })
+    const dto = mapWorktreeDiffs({ git: 'ok', agents: [agent], sharedWorktree: null })
 
     expect(dto).toEqual({
       git: 'ok',
+      sharedWorktree: null,
       agents: [
         {
           agentId: 'a',
@@ -52,7 +53,7 @@ describe('mapWorktreeDiffs', () => {
         untracked: []
       })
     }
-    const [mapped] = mapWorktreeDiffs({ git: 'ok', agents: [agent] }).agents
+    const [mapped] = mapWorktreeDiffs({ git: 'ok', agents: [agent], sharedWorktree: null }).agents
     const files = mapped?.result.ok === true ? mapped.result.diff.files : []
     expect(files[0]).not.toHaveProperty('oldPath')
   })
@@ -63,9 +64,26 @@ describe('mapWorktreeDiffs', () => {
       inferredBase: false,
       result: err('outside-project')
     }
-    expect(mapWorktreeDiffs({ git: 'ok', agents: [agent] }).agents[0]?.result).toEqual({
+    expect(
+      mapWorktreeDiffs({ git: 'ok', agents: [agent], sharedWorktree: null }).agents[0]?.result
+    ).toEqual({
       ok: false,
       code: 'outside-project'
+    })
+  })
+
+  it('copies only the whitelisted fields of a shared worktree', () => {
+    const forged = {
+      lead: { projectDirName: 'p', sessionId: 's', extra: 'x' },
+      agentId: 'a',
+      extra: 'y'
+    }
+
+    const dto = mapWorktreeDiffs({ git: 'ok', agents: [], sharedWorktree: forged })
+
+    expect(dto.sharedWorktree).toEqual({
+      lead: { projectDirName: 'p', sessionId: 's' },
+      agentId: 'a'
     })
   })
 })

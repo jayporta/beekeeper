@@ -3,10 +3,29 @@ import { discoverSessions, type SessionEntry } from '../../core/transcript/disco
 import type { ProjectEntry } from '../../core/transcript/discoverProjects'
 import type { ProjectDirName } from '../../core/transcript/ids'
 import type { SummarizedSession } from '../../core/teams/teamGrouping'
+import type { TranscriptFileInfo } from '../../core/transcript/statTranscriptFile'
 import type { IpcDeps } from './ipcDeps'
 import type { ScannedSession } from './mapSessionListItem'
 
 type ScanDeps = Pick<IpcDeps, 'summaryCache' | 'summaries'>
+
+/**
+ * Reads a transcript's summary through the summary cache. The read is shared
+ * per transcript state (path, mtime, size) and capped by the summaries
+ * scheduler.
+ *
+ * @param file - The transcript's location and stat.
+ * @param deps - The summary cache and the summaries scheduler.
+ * @returns The summary, or why it could not be read.
+ */
+export function readSessionSummary(
+  file: TranscriptFileInfo,
+  deps: ScanDeps
+): Promise<ScannedSession['summary']> {
+  return deps.summaries.run(`${file.path}\0${file.mtimeMs}\0${file.size}`, () =>
+    deps.summaryCache.read(file)
+  )
+}
 
 async function scanSession(
   located: { readonly projectDirName: ProjectDirName; readonly entry: SessionEntry },
@@ -15,10 +34,7 @@ async function scanSession(
   const { projectDirName, entry } = located
   if (!entry.transcript.ok) return { projectDirName, entry, summary: err(entry.transcript.error) }
 
-  const file = entry.transcript.value
-  const summary = await deps.summaries.run(`${file.path}\0${file.mtimeMs}\0${file.size}`, () =>
-    deps.summaryCache.read(file)
-  )
+  const summary = await readSessionSummary(entry.transcript.value, deps)
   return { projectDirName, entry, summary }
 }
 

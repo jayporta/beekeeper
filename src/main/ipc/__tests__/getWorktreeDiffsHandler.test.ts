@@ -56,7 +56,7 @@ describe('getWorktreeDiffsHandler', () => {
     const { deps, counts } = countingDeps(ctx.deps)
     expect(await getWorktreeDiffsHandler(deps, request)).toEqual({
       ok: true,
-      value: { git: 'git-not-found', agents: [] }
+      value: { git: 'git-not-found', agents: [], sharedWorktree: null }
     })
     expect(counts.scans).toBe(0)
   })
@@ -66,7 +66,7 @@ describe('getWorktreeDiffsHandler', () => {
     const deps = { ...ctx.deps, git: () => Promise.resolve(ok(git)) }
     expect(await getWorktreeDiffsHandler(deps, request)).toEqual({
       ok: true,
-      value: { git: 'ok', agents: [] }
+      value: { git: 'ok', agents: [], sharedWorktree: null }
     })
   })
 
@@ -136,6 +136,7 @@ describe('getWorktreeDiffsHandler on a real repository', () => {
       ok: true,
       value: {
         git: 'ok',
+        sharedWorktree: null,
         agents: [
           {
             agentId: 'a',
