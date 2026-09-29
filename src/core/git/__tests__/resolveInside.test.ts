@@ -154,10 +154,26 @@ describe('resolveInside', () => {
     })
   })
 
-  it('reports a component below a file as not-found', async () => {
+  it('refuses a plain path that goes through a file as not-a-directory', async () => {
     expect(await resolveInside({ root, path: join(root, 'file.txt', 'x') })).toEqual({
       ok: false,
-      error: 'not-found'
+      error: 'not-a-directory'
     })
+  })
+
+  it('refuses a link whose target goes through a file and climbs back out with ..', async () => {
+    // The kernel fails file.txt/.. with ENOTDIR; climbing out of the file would land in dir.
+    await symlink('file.txt/../dir', join(root, 'sneaky'))
+
+    expect(await resolveInside({ root, path: join(root, 'sneaky') })).toEqual({
+      ok: false,
+      error: 'not-a-directory'
+    })
+  })
+
+  it('returns a file that is the last component of the path', async () => {
+    const path = join(root, 'file.txt')
+
+    expect(await resolveInside({ root, path })).toEqual({ ok: true, value: path })
   })
 })

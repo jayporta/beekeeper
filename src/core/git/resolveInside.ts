@@ -28,8 +28,10 @@ export const MAX_WALK_STEPS = 1024
  * link leads, is not inside the root; `dotdot` when the path itself has a `.`
  * or `..` component; `too-many-links` past {@link MAX_LINK_HOPS};
  * `too-many-steps` past {@link MAX_WALK_STEPS}; `not-found` when a component
- * is missing or is not a directory; and `unreadable` for any other failure
- * reading a component.
+ * is missing; `not-a-directory` when a component that is neither a directory
+ * nor a link has more components after it, as the kernel's `ENOTDIR`; and
+ * `unreadable` for any other failure reading a component. A file as the last
+ * component is not refused.
  */
 export type ResolveInsideError =
   | 'too-long'
@@ -38,6 +40,7 @@ export type ResolveInsideError =
   | 'too-many-links'
   | 'too-many-steps'
   | 'not-found'
+  | 'not-a-directory'
   | 'unreadable'
 
 /** Options for {@link resolveInside}. */
@@ -102,8 +105,10 @@ export async function resolveInside(
 
     const candidate = join(current, next)
     let target: string | undefined
+    let isDirectory = false
     try {
       const stats = await lstat(candidate)
+      isDirectory = stats.isDirectory()
       if (stats.isSymbolicLink()) target = await readlink(candidate)
     } catch (error) {
       const code = errorCode(error)
@@ -111,6 +116,9 @@ export async function resolveInside(
     }
 
     if (target === undefined) {
+      // A file with components still to walk is where the kernel fails with ENOTDIR,
+      // even when a later `..` would climb back out of it.
+      if (!isDirectory && pending.length > 0) return err('not-a-directory')
       current = candidate
       continue
     }

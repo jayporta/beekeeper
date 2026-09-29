@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, realpath, rm, symlink } from 'node:fs/promises'
+import { mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -107,6 +107,25 @@ describe('sessionWorktreeDiffs confinement', () => {
     })
 
     expect(entry?.result).toEqual({ ok: false, error: 'outside-project' })
+  })
+
+  it('reports repo-missing for a spawn cwd that goes through a file', async (context) => {
+    const git = gitContext.requireGit(context)
+    const repo = await gitContext.baseRepo(git)
+    await writeFile(join(repo.dir, 'notes.txt'), 'not a directory\n')
+    const { scan } = await fixture({
+      cwd: repo.dir,
+      agents: [{ agentId: 'a', worktreeBranch: 'agent' }]
+    })
+
+    const [entry] = await sessionWorktreeDiffs({
+      git,
+      scan: withSpawnCwd({ scan, agentId: 'a', cwd: join(repo.dir, 'notes.txt', 'sub') }),
+      projectDirName: encodeProjectDir(repo.dir),
+      scheduler: createScanScheduler({ maxConcurrent: 3 })
+    })
+
+    expect(entry?.result).toEqual({ ok: false, error: 'repo-missing' })
   })
 
   it('gives a branch-only diff when the worktree path is outside the project', async (context) => {

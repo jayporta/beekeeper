@@ -109,11 +109,14 @@ function rebase(project: Project, path: string): { root: string; path: string } 
  * Maps why a path walk stopped onto the confiner's codes: a path that leaves
  * the project, is over the path cap (`too-long`), holds a `.` or `..`
  * component, or takes too many links or too many steps to resolve
- * (`too-many-links`, `too-many-steps`), is `outside-project`; one that is
- * missing or unreadable is `repo-missing`.
+ * (`too-many-links`, `too-many-steps`), is `outside-project`; one that does
+ * not resolve (missing, or a file with more path after it: `not-found`,
+ * `not-a-directory`) or is unreadable is `repo-missing`.
  */
 function refusalOf(reason: ResolveInsideError | 'outside-spelling'): ConfineRepoError {
-  return reason === 'not-found' || reason === 'unreadable' ? 'repo-missing' : 'outside-project'
+  return reason === 'not-found' || reason === 'not-a-directory' || reason === 'unreadable'
+    ? 'repo-missing'
+    : 'outside-project'
 }
 
 /**
