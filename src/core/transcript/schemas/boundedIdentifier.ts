@@ -8,9 +8,9 @@ import { isWithinCodeUnits } from '../../shared/isWithinCodeUnits'
  * identifiers can retain in the scan cache.
  *
  * It matches the label cap in `boundedLabel.ts` by coincidence, not by
- * derivation: an identifier is only ever matched against another identifier,
- * while a label is shown and joins a session to its team, so either bound can
- * move without the other.
+ * derivation: an identifier is matched or shown exactly as written, never
+ * cleaned, while a label is cleaned before it is shown or joins a session to
+ * its team, so either bound can move without the other.
  */
 export const MAX_IDENTIFIER_CODE_UNITS = 256
 

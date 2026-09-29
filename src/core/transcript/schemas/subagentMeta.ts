@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { isBranchNameWithinCap, MAX_BRANCH_CODE_UNITS } from '../../shared/boundedBranch'
 import { isAbsolutePathWithinCap, MAX_PATH_CODE_UNITS } from '../../shared/boundedPath'
 import { toAgentLabel } from '../agentLabel'
+import { boundedIdentifierSchema } from './boundedIdentifier'
 
 /** A string cleaned by {@link toAgentLabel}, failing the parse when it is unusable. */
 const requiredAgentLabelSchema = z
@@ -18,20 +19,27 @@ const optionalAgentLabelSchema = z
   .optional()
   .catch(undefined)
 
+/** An identifier kept exactly as written, reading as absent when it is over the cap or not a string. */
+const optionalIdentifierSchema = boundedIdentifierSchema.optional().catch(undefined)
+
 /**
  * A subagent's `.meta.json` sidecar. `agentType` is the only field every
  * subagent has; any other field, `toolUseId` included, may be absent
  * depending on how the subagent was spawned.
  *
- * `agentType`, `teamName`, `name`, `description`, `model`, `toolUseId`,
- * `parentAgentId` and `taskKind` are labels: each is trimmed and normalized
- * to NFC, and must be printable and within the label cap, by the same rule a
- * session's role uses (see {@link toAgentLabel}). An unusable `agentType`
- * fails the whole meta, like a non-string one. An unusable or non-string
- * value in any other label field reads as absent, so the subagent is kept.
- * The rule leaves real values unchanged: the model and the ids are short
- * ASCII identifiers, and `description` is the Agent tool's short task
- * description, which fits the label cap.
+ * `agentType`, `teamName`, `name` and `description` are labels, shown to
+ * the reader: each is trimmed and normalized to NFC, and must be printable
+ * and within the label cap, by the same rule a session's role uses (see
+ * {@link toAgentLabel}). An unusable `agentType` fails the whole meta, like a
+ * non-string one. An unusable or non-string `teamName`, `name` or
+ * `description` reads as absent, so the subagent is kept. `description` is
+ * the Agent tool's short task description, which fits the label cap.
+ *
+ * `toolUseId`, `parentAgentId`, `model` and `taskKind` are identifiers,
+ * matched or shown as they are: only capped (see
+ * {@link boundedIdentifierSchema}), never trimmed or normalized, since
+ * cleaning one would change what it matches. An over-cap or non-string value
+ * reads as absent, so the subagent is kept.
  *
  * The worktree fields are hardened because they later reach git: an invalid
  * `worktreePath` (not absolute, or over {@link MAX_PATH_CODE_UNITS} UTF-16
@@ -46,9 +54,9 @@ const optionalAgentLabelSchema = z
 export const subagentMetaSchema = z.object({
   agentType: requiredAgentLabelSchema,
   description: optionalAgentLabelSchema,
-  model: optionalAgentLabelSchema,
-  toolUseId: optionalAgentLabelSchema,
-  parentAgentId: optionalAgentLabelSchema,
+  model: optionalIdentifierSchema,
+  toolUseId: optionalIdentifierSchema,
+  parentAgentId: optionalIdentifierSchema,
   spawnDepth: z.number().optional(),
   stoppedByUser: z.boolean().optional(),
   worktreePath: z
@@ -67,7 +75,7 @@ export const subagentMetaSchema = z.object({
     .catch(undefined),
   teamName: optionalAgentLabelSchema,
   name: optionalAgentLabelSchema,
-  taskKind: optionalAgentLabelSchema,
+  taskKind: optionalIdentifierSchema,
   isFork: z.boolean().optional()
 })
 
