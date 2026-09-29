@@ -75,6 +75,23 @@ describe('createFileTouchCollector', () => {
     expect(collector.touches()).toHaveLength(1)
   })
 
+  it.each(['Read', 'Grep'])(
+    'ignores a %s result even when its toolUseResult has the shape of a Write',
+    (toolName) => {
+      const collector = createFileTouchCollector()
+
+      collector.observe(buildAssistantToolUseRecord({ toolUseId: 'toolu_untracked', toolName }))
+      collector.observe(
+        buildUserToolResultRecord({
+          toolUseId: 'toolu_untracked',
+          toolUseResult: buildWriteToolUseResult('/a.ts', 'create')
+        })
+      )
+
+      expect(collector.touches()).toEqual([])
+    }
+  )
+
   it('ignores a tool_result with no earlier tool_use', () => {
     const collector = createFileTouchCollector()
 

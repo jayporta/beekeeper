@@ -6,7 +6,7 @@ const flagSchema = z.boolean().optional().catch(undefined)
 /**
  * A list that reads as absent when it is not an array. Its entries are left
  * unvalidated and the array is passed through as is, not walked or copied.
- * The reader walks it only until it finds one path past its per-result cap.
+ * The reader bounds each list itself, so the array's length is never trusted.
  */
 const unboundedListSchema = z.custom<unknown[]>(Array.isArray).optional().catch(undefined)
 
