@@ -9,6 +9,7 @@ import type {
   WorktreeDiffStatDto
 } from '../../shared/ipc/worktreeDiffDto'
 import type { AgentWorktreeDiff } from '../git/sessionWorktreeDiffs'
+import { mapSessionRef } from './mapSessionRef'
 
 function mapEntry(entry: NumstatEntry): NumstatEntryDto {
   return {
@@ -62,10 +63,7 @@ export function mapWorktreeDiffs(options: MapWorktreeDiffsOptions): WorktreeDiff
       options.sharedWorktree === null
         ? null
         : {
-            lead: {
-              projectDirName: options.sharedWorktree.lead.projectDirName,
-              sessionId: options.sharedWorktree.lead.sessionId
-            },
+            lead: mapSessionRef(options.sharedWorktree.lead),
             agentId: options.sharedWorktree.agentId
           }
   }

@@ -1,18 +1,10 @@
-import { writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import {
-  buildAgentSettingRecord,
-  buildJsonlText,
-  buildUserRecord
-} from '../../../core/transcript/testFixtures'
 import type { SessionRoleDto } from '../../../shared/ipc/sessionRoleDto'
 import { listSessionsHandler } from '../listSessionsHandler'
+import { AGENT_SESSION_ID, scoutRecords, writeTranscript } from '../testFamilyFixtures'
 import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
 
 const ctx = registerIpcTestTree()
-
-const AGENT_SESSION_ID = '2b2b2b2b-2222-4222-8222-22222222222c'
 
 /** Lists the test project's sessions and maps each session id to the role it was sent. */
 async function readRoles(): Promise<Map<string, SessionRoleDto | null>> {
@@ -30,14 +22,11 @@ async function readRoles(): Promise<Map<string, SessionRoleDto | null>> {
 
 /** Writes a teammate's own top-level transcript into the test project. */
 async function writeAgentTranscript(): Promise<void> {
-  const projectDir = join(ctx.tree.home, '.claude', 'projects', TEST_PROJECT)
-  await writeFile(
-    join(projectDir, `${AGENT_SESSION_ID}.jsonl`),
-    buildJsonlText([
-      buildAgentSettingRecord('Explore'),
-      buildUserRecord({ extra: { agentName: 'scout', teamName: 'team-1' } })
-    ])
-  )
+  await writeTranscript(ctx.tree.home, {
+    projectDirName: TEST_PROJECT,
+    sessionId: AGENT_SESSION_ID,
+    records: scoutRecords()
+  })
 }
 
 describe('listSessionsHandler role', () => {

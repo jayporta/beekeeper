@@ -1,11 +1,11 @@
 import type { AgentTreeNode } from '../../core/session/agentTree'
-import { discoverProjects } from '../../core/transcript/discoverProjects'
+import { discoverProjects, type ProjectEntry } from '../../core/transcript/discoverProjects'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
 import type { SharedWorktreeDto } from '../../shared/ipc/worktreeDiffDto'
-import { describeError } from '../startupFailure'
-import { findSession, type FoundSession } from './findProject'
+import { captureSystemError } from '../../core/transcript/captureSystemError'
+import type { FoundSession } from './findProject'
 import type { RequestedSession } from './findRequestedSession'
-import { groupProjectFamily } from './groupProjectFamily'
+import { groupProjectFamily, type ProjectFamilyGrouping } from './groupProjectFamily'
 import type { IpcDeps } from './ipcDeps'
 import { scanFoundSession } from './scanFoundSession'
 import { readSessionSummary } from './scanProjectSessions'
@@ -37,44 +37,55 @@ function findOwningSubagent(node: AgentTreeNode, worktreePath: string): string |
   return undefined
 }
 
-/**
- * Finds the lead in a fresh listing. A folder that cannot be read is logged
- * by error code and reads as no lead, so a best-effort pointer never fails
- * the whole response.
- */
-async function findLead(
-  deps: SharedWorktreeDeps,
-  lead: SessionRefDto
-): Promise<FoundSession | undefined> {
-  try {
-    return await findSession({
-      projectsRoot: deps.projectsRoot,
-      dirName: lead.projectDirName,
-      sessionId: lead.sessionId
-    })
-  } catch (error) {
-    console.warn(`Beekeeper could not look up a teammate's lead (${describeError(error)}).`)
-    return undefined
-  }
-}
-
 /** Options for {@link leadWorktreeOwner}. */
 interface LeadWorktreeOwnerOptions {
-  /** The lead session to look in. */
-  readonly lead: SessionRefDto
+  /** The lead session as the family grouping listed and scanned it. */
+  readonly lead: FoundSession
   /** The worktree path a subagent's meta must name. */
   readonly worktreePath: string
 }
 
+/**
+ * Scans the lead and finds the subagent owning `worktreePath`. A lead that
+ * cannot be read (a system error with a code) is logged by that code and
+ * reads as no owner, so a best-effort pointer never fails the whole response.
+ * Any other error, Node's own `ERR_*` programmer errors included, is a bug
+ * and is rethrown.
+ */
 async function leadWorktreeOwner(
   deps: SharedWorktreeDeps,
   options: LeadWorktreeOwnerOptions
 ): Promise<string | undefined> {
   const { lead, worktreePath } = options
-  const found = await findLead(deps, lead)
-  if (found === undefined || !found.session.transcript.ok) return undefined
-  const scan = await scanFoundSession({ deps, found, transcript: found.session.transcript.value })
-  return findOwningSubagent(scan.tree, worktreePath)
+  const { transcript } = lead.session
+  if (!transcript.ok) return undefined
+  const scan = await captureSystemError(() =>
+    scanFoundSession({ deps, found: lead, transcript: transcript.value })
+  )
+  if (!scan.ok) {
+    console.warn(`Beekeeper could not scan a teammate's lead (${scan.error.code}).`)
+    return undefined
+  }
+  return findOwningSubagent(scan.value.tree, worktreePath)
+}
+
+/**
+ * Picks the lead's project and session from what the family grouping listed,
+ * so the lead is not listed a second time.
+ */
+function pickLead(
+  listed: { readonly grouping: ProjectFamilyGrouping; readonly projects: readonly ProjectEntry[] },
+  lead: SessionRefDto
+): FoundSession | undefined {
+  const { grouping, projects } = listed
+  const project = projects.find((entry) => entry.dirName === lead.projectDirName)
+  const scanned = grouping.scanned.find(
+    (session) =>
+      session.projectDirName === lead.projectDirName && session.entry.sessionId === lead.sessionId
+  )
+  return project === undefined || scanned === undefined
+    ? undefined
+    : { project, session: scanned.entry }
 }
 
 /**
@@ -91,8 +102,10 @@ async function leadWorktreeOwner(
  * @returns The lead and the first subagent, in tree order, whose meta
  * `worktreePath` equals the session's first cwd and that names a worktree
  * branch; or `null` when the session is not an agent session, is not a
- * grouped teammate, has no cwd, its lead cannot be read, or no such subagent
- * exists.
+ * grouped teammate, has no cwd, its lead's scan fails with a system error,
+ * or no such subagent exists.
+ * @throws {Error} When the lead's scan fails with an error that has no system
+ * error code, or with one of Node's own `ERR_*` codes, since that is a bug.
  */
 export async function findSharedWorktree(
   deps: SharedWorktreeDeps,
@@ -103,16 +116,15 @@ export async function findSharedWorktree(
   if (!summary.ok || summary.value.role.kind !== 'agent') return null
 
   const projects = await discoverProjects(deps.projectsRoot)
-  const { teams } = await groupProjectFamily({ deps, project: found.project, projects })
-  const team = teams.get(sessionRefKey({ projectDirName, sessionId }))
+  const grouping = await groupProjectFamily({ deps, project: found.project, projects })
+  const team = grouping.teams.get(sessionRefKey({ projectDirName, sessionId }))
   if (team?.kind !== 'teammate') return null
 
   const own = await scanFoundSession({ deps, found, transcript })
   if (own.leadFirstCwd === undefined) return null
 
-  const agentId = await leadWorktreeOwner(deps, {
-    lead: team.lead,
-    worktreePath: own.leadFirstCwd
-  })
+  const lead = pickLead({ grouping, projects }, team.lead)
+  if (lead === undefined) return null
+  const agentId = await leadWorktreeOwner(deps, { lead, worktreePath: own.leadFirstCwd })
   return agentId === undefined ? null : { lead: team.lead, agentId }
 }

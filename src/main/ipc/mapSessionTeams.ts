@@ -1,16 +1,12 @@
 import { rollupTeamCost } from '../../core/teams/teamCost'
-import type { LeadGroup, SessionRef, TeamGrouping } from '../../core/teams/teamGrouping'
-import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
+import type { LeadGroup, TeamGrouping } from '../../core/teams/teamGrouping'
 import type { SessionTeamDto } from '../../shared/ipc/sessionTeamDto'
+import { mapSessionRef } from './mapSessionRef'
 import { sessionRefKey } from './sessionRefKey'
-
-function mapRef(ref: SessionRef): SessionRefDto {
-  return { projectDirName: ref.projectDirName, sessionId: ref.sessionId }
-}
 
 function mapLeadGroup(group: LeadGroup, into: Map<string, SessionTeamDto>): void {
   const cost = rollupTeamCost(group)
-  const lead = mapRef(group.lead.ref)
+  const lead = mapSessionRef(group.lead.ref)
 
   for (const teammate of group.teammates) {
     into.set(sessionRefKey(teammate.session.ref), {
@@ -26,7 +22,7 @@ function mapLeadGroup(group: LeadGroup, into: Map<string, SessionTeamDto>): void
   if (isSolo) return
   into.set(sessionRefKey(lead), {
     kind: 'lead',
-    teammates: group.teammates.map((teammate) => mapRef(teammate.session.ref)),
+    teammates: group.teammates.map((teammate) => mapSessionRef(teammate.session.ref)),
     cost: {
       leadUSD: cost.leadUSD,
       teamUSD: cost.teamUSD,
