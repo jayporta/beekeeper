@@ -34,24 +34,48 @@ function compareLatestStartThenRef(a: SummarizedSession, b: SummarizedSession): 
 }
 
 /**
+ * How long, in milliseconds, a lead's last record may precede a teammate's
+ * start before the lead no longer claims that teammate. The allowance keeps
+ * a lead that exits right after spawning its teammate as that teammate's lead.
+ */
+export const LEAD_END_GRACE_MS = 60_000
+
+/** Whether the candidate's activity is known and ended more than the grace period before the start. */
+function endedBefore(candidate: SummarizedSession, teammateStartMs: number): boolean {
+  const activity = candidate.summary.activity
+  return activity !== null && activity.latestMs + LEAD_END_GRACE_MS < teammateStartMs
+}
+
+/**
  * Picks the winning lead among candidates that spawned a teammate's pair
- * or team, by activity time: the candidate whose span contains the
- * teammate's start, else the latest candidate that started at or before
- * it, else the earliest candidate. Ties break by {@link SessionRef} order.
- * A candidate with no activity never contains or precedes the start, so
- * it wins only when no candidate does and none has activity at all; a
- * teammate with no activity gets the earliest-starting candidate.
+ * or team, by activity time. A candidate whose activity ended more than
+ * {@link LEAD_END_GRACE_MS} before the teammate started is dropped first,
+ * since a finished lead does not claim a later teammate that reuses its
+ * pair or team. Among the rest, the winner is the candidate whose span
+ * contains the teammate's start, else the latest candidate that started at
+ * or before it, else the earliest candidate. Ties break by
+ * {@link SessionRef} order. A candidate with no activity is never dropped,
+ * but never contains or precedes the start either, so it wins only when no
+ * remaining candidate has any activity; a teammate with no activity gets
+ * the earliest-starting candidate.
  *
- * @param candidates - The leads that spawned the teammate's pair or team; must be non-empty.
+ * @param allCandidates - The leads that spawned the teammate's pair or team; must be non-empty.
  * @param teammateStartMs - The teammate's `activity.earliestMs`, or `null` when it has none.
- * @returns The winning lead.
- * @throws {Error} When `candidates` is empty.
+ * @returns The winning lead, or `null` when every candidate's known activity
+ * ended more than {@link LEAD_END_GRACE_MS} before the teammate started.
+ * @throws {Error} When `allCandidates` is empty.
  */
 export function pickLead(
-  candidates: readonly SummarizedSession[],
+  allCandidates: readonly SummarizedSession[],
   teammateStartMs: number | null
-): SummarizedSession {
-  if (candidates.length === 0) throw new Error('pickLead requires at least one candidate')
+): SummarizedSession | null {
+  if (allCandidates.length === 0) throw new Error('pickLead requires at least one candidate')
+
+  const candidates =
+    teammateStartMs === null
+      ? allCandidates
+      : allCandidates.filter((c) => !endedBefore(c, teammateStartMs))
+  if (candidates.length === 0) return null
 
   if (teammateStartMs !== null) {
     const containing = candidates.filter((c) => {

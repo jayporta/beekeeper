@@ -61,7 +61,11 @@ function indexLeads(leadSessions: readonly SummarizedSession[]): {
   return { entries, pairCandidates, teamCandidates }
 }
 
-/** The lead a folded pair or team key's spawn pool resolves to, or `null` when nothing spawned it. */
+/**
+ * The lead a folded pair or team key's spawn pool resolves to, or `null`
+ * when nothing spawned it or every spawning lead ended more than the grace
+ * period {@link pickLead} allows before the teammate started.
+ */
 function resolveLead(options: {
   readonly candidates: ReadonlyMap<string, SummarizedSession[]>
   readonly key: string | null
@@ -83,7 +87,9 @@ function agentTeamName(session: SummarizedSession): string | null {
  * Joins a collection of session summaries into teams: every agent session
  * under the lead session that spawned it, matched by folded (team, name)
  * pair first and by folded team alone when no lead claims the pair, with
- * sessions no lead claims left ungrouped. See {@link TeamGrouping}.
+ * sessions no lead claims left ungrouped. A lead whose activity ended more
+ * than a grace period before the teammate started does not claim it. See
+ * {@link TeamGrouping} and {@link pickLead}.
  *
  * @param sessions - Every session summary to join, in no particular order.
  * @returns The grouping.

@@ -121,6 +121,31 @@ describe('groupTeams team spanning two lead transcripts', () => {
   })
 })
 
+describe('groupTeams expired pair lead', () => {
+  it('joins by team to an active lead when the only lead that spawned the pair ended long before', () => {
+    const expiredLead = testLead(testRef('p', 'expired'), {
+      activity: testActivity(0, 1_000),
+      teamSpawns: testTeamSpawns([testSpawn('alice', 'team-a')])
+    })
+    const activeLead = testLead(testRef('p', 'active'), {
+      activity: testActivity(190_000, 300_000),
+      teamSpawns: testTeamSpawns([testSpawn('bob', 'team-a')])
+    })
+    const alice = testAgent(testRef('p', 'alice'), {
+      agentName: 'alice',
+      teamName: 'team-a',
+      activity: testActivity(200_000, 210_000)
+    })
+
+    const grouping = groupTeams([expiredLead, activeLead, alice])
+
+    const groupOf = (sessionId: string): unknown =>
+      grouping.leads.find((g) => g.lead.ref.sessionId === sessionId)?.teammates
+    expect(groupOf('expired')).toEqual([])
+    expect(groupOf('active')).toEqual([{ session: alice, joinedBy: 'team', stopped: false }])
+  })
+})
+
 describe('groupTeams pair spawned by two leads', () => {
   it('breaks the tie by which candidate span contains the teammate start', () => {
     const lead1 = testLead(testRef('p', 'lead1'), {

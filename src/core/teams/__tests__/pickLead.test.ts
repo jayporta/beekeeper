@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { pickLead } from '../pickLead'
+import { LEAD_END_GRACE_MS, pickLead } from '../pickLead'
 import { testActivity, testLead, testRef } from '../testTeamFixtures'
 
 describe('pickLead', () => {
@@ -51,6 +51,39 @@ describe('pickLead', () => {
     const a = testLead(testRef('p', 'a'))
 
     expect(pickLead([b, a], null)).toBe(a)
+  })
+
+  it('returns null when the only candidate ended long before the teammate started', () => {
+    const expired = testLead(testRef('p', 'expired'), { activity: testActivity(0, 1_000) })
+
+    expect(pickLead([expired], 100_000)).toBeNull()
+  })
+
+  it('picks an active candidate over an expired one that started at or before the teammate', () => {
+    const expired = testLead(testRef('p', 'expired'), { activity: testActivity(0, 1_000) })
+    const active = testLead(testRef('p', 'active'), { activity: testActivity(200_000, 300_000) })
+
+    expect(pickLead([expired, active], 100_000)).toBe(active)
+  })
+
+  it('still picks a candidate whose activity ended exactly the grace period before the teammate', () => {
+    const justEnded = testLead(testRef('p', 'ended'), {
+      activity: testActivity(0, 1_000)
+    })
+
+    expect(pickLead([justEnded], 1_000 + LEAD_END_GRACE_MS)).toBe(justEnded)
+  })
+
+  it('drops a candidate whose activity ended one millisecond past the grace period', () => {
+    const expired = testLead(testRef('p', 'expired'), { activity: testActivity(0, 1_000) })
+
+    expect(pickLead([expired], 1_000 + LEAD_END_GRACE_MS + 1)).toBeNull()
+  })
+
+  it('keeps a candidate with no activity eligible however late the teammate started', () => {
+    const noActivity = testLead(testRef('p', 'quiet'))
+
+    expect(pickLead([noActivity], 1_000_000)).toBe(noActivity)
   })
 
   it('throws when given no candidates', () => {
