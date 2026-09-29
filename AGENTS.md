@@ -28,13 +28,13 @@ The task flow:
 4. **Review** the change (see [Review](#review)).
 5. **Commit exactly what was reviewed.** Anything changed after a review gets reviewed again. Stage the change, keep no unstaged edits to tracked files, and commit the index with a plain `git commit` (no `-a`, `-i`, `-o`, or pathspecs). Conflict resolutions, and anything brought in by cherry-pick or rebase, get reviewed like any other change. Then push and open a pull request into `main`.
 
-Before pushing a branch with several commits, run a code review over the whole `origin/main...HEAD` diff, since per-commit reviews don't see how the commits interact.
+Before pushing a branch with several commits, run a code review over the whole `origin/main...HEAD` diff, since per-commit reviews don't see how the commits interact. Docs-only branches skip it.
 
 ### Review
 
 Run `npm run lint`, `npm run format:check`, `npm run typecheck`, and `npm test` first. They're cheaper than a review, so fix failures before asking for one. Outside contributions are the exception, below.
 
-Code from an outside contributor is untrusted until reviewed, whoever opens the pull request and however its commits arrive. Unless the change is docs-only, a maintainer reviews it for security from a `main` checkout against the fetched pull request ref, at a specific commit SHA, before installing it, running its checks or tests, building or running it, or opening the branch in an editor or agent session, since each of those can execute the contributor's scripts, config, or agent instructions. Check out exactly the reviewed SHA in a separate worktree or clone, never in the checkout reviews run from, and review again if the branch has moved. CI already runs it safely, with a read-only token.
+Code from an outside contributor is untrusted until reviewed, whoever opens the pull request and however its commits arrive. Unless the change is docs-only, a maintainer reviews it for security from a `main` checkout against the fetched pull request ref, at a specific commit SHA, before installing it, running its checks or tests, building or running it, or opening the branch in an editor or agent session, since each of those can execute the contributor's scripts, config, or agent instructions. Check out exactly the reviewed SHA in a separate worktree or clone, never in the checkout reviews run from, with `GIT_LFS_SKIP_SMUDGE=1` so the ref's `.lfsconfig` can't replace reviewed LFS pointers with unreviewed content, and review again if the branch has moved. CI already runs it safely, with a read-only token.
 
 Which reviews a change needs depends on what it touches. The rows apply to non-test files. Test files are covered by the test-only rule below.
 
