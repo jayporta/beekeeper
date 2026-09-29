@@ -2,6 +2,7 @@ import { realpath } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { realCommonDir } from '../gitCommonDir'
+import { hangingFsRunner } from '../testFsRunner'
 import { registerTestGit } from '../testGitRepo'
 
 const testGit = registerTestGit()
@@ -37,5 +38,14 @@ describe('realCommonDir', () => {
     const { root } = await testGit.newRepo(git)
 
     expect(await realCommonDir({ git, dir: root })).toEqual({ ok: false, error: 'not-a-repo' })
+  })
+
+  it('reports timeout when resolving the git directory hangs', async (context) => {
+    const git = testGit.requireGit(context)
+    const repo = await testGit.baseRepo(git)
+
+    expect(
+      await realCommonDir({ git, dir: repo.dir, fsRunner: hangingFsRunner({ passes: 0 }) })
+    ).toEqual({ ok: false, error: 'timeout' })
   })
 })

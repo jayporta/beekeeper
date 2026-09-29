@@ -1,4 +1,5 @@
 import { lstat, realpath } from 'node:fs/promises'
+import { defaultFsRunner, isFsTimeout, type FsRunner } from '../../core/git/fsDeadline'
 import type { GitBinary } from '../../core/git/gitBinary'
 import { runGit, type GitRunError } from '../../core/git/runGit'
 import { isAbsolutePath } from '../../core/shared/absolutePath'
@@ -13,6 +14,8 @@ export interface VerifyRepoOptions {
   readonly git: GitBinary
   /** A directory taken from a transcript, so untrusted. */
   readonly dir: string
+  /** Runs the filesystem calls under a deadline. Defaults to the app-wide runner. */
+  readonly fsRunner?: FsRunner
 }
 
 /**
@@ -27,18 +30,20 @@ export interface VerifyRepoOptions {
  * @param options - The git binary and the directory to check.
  * @returns The real absolute top-level path, `repo-missing` when the
  * directory doesn't exist or isn't absolute, `not-a-repo` when it isn't a
- * directory in a working tree, or why git could not run.
+ * directory in a working tree, `timeout` when a filesystem call hangs past
+ * its deadline, or why git could not run.
  */
 export async function verifyRepo(
   options: VerifyRepoOptions
 ): Promise<Result<string, VerifyRepoError>> {
   if (!isAbsolutePath(options.dir)) return err('repo-missing')
+  const run = options.fsRunner ?? defaultFsRunner
   let real: string
   try {
-    real = await realpath(options.dir)
-    if (!(await lstat(real)).isDirectory()) return err('not-a-repo')
-  } catch {
-    return err('repo-missing')
+    real = await run(() => realpath(options.dir))
+    if (!(await run(() => lstat(real))).isDirectory()) return err('not-a-repo')
+  } catch (error) {
+    return err(isFsTimeout(error) ? 'timeout' : 'repo-missing')
   }
 
   const output = await runGit({
@@ -51,8 +56,8 @@ export async function verifyRepo(
   const top = output.value.stdout.toString('utf-8').trim()
   if (!isAbsolutePath(top)) return err('not-a-repo')
   try {
-    return ok(await realpath(top))
-  } catch {
-    return err('repo-missing')
+    return ok(await run(() => realpath(top)))
+  } catch (error) {
+    return err(isFsTimeout(error) ? 'timeout' : 'repo-missing')
   }
 }

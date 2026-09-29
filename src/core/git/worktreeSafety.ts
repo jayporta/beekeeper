@@ -2,6 +2,7 @@ import { lstat, realpath } from 'node:fs/promises'
 import { isAbsolutePath } from '../shared/absolutePath'
 import { errorCode } from '../shared/errorCode'
 import { err, ok, type Result } from '../shared/result'
+import { defaultFsRunner, isFsTimeout, type FsRunner } from './fsDeadline'
 import type { GitBinary } from './gitBinary'
 import { realCommonDir, type RealCommonDirOptions } from './gitCommonDir'
 import { runGit, type GitRunError } from './runGit'
@@ -16,6 +17,8 @@ export interface CheckWorktreeOptions {
   readonly worktreeDir: string
   /** The branch the worktree is expected to have checked out. */
   readonly agentBranch: string
+  /** Runs the filesystem calls under a deadline. Defaults to the app-wide runner. */
+  readonly fsRunner?: FsRunner
 }
 
 /**
@@ -41,20 +44,33 @@ async function gitText(options: GitTextOptions): Promise<Result<string | undefin
   return ok(result.value.exitCode === 0 ? text : undefined)
 }
 
-/** Whether the directory is gone (`true`), or present or unreadable (`false`). */
-async function isMissing(path: string): Promise<boolean> {
+/**
+ * Whether the directory is gone (`true`), or present or unreadable (`false`).
+ * A call that hangs past its deadline is `timeout`, so nothing later runs in a
+ * directory that can't be read.
+ */
+async function isMissing(path: string, run: FsRunner): Promise<Result<boolean, 'timeout'>> {
   try {
-    await lstat(path)
-    return false
+    await run(() => lstat(path))
+    return ok(false)
   } catch (error) {
-    return errorCode(error) === 'ENOENT'
+    if (isFsTimeout(error)) return err('timeout')
+    return ok(errorCode(error) === 'ENOENT')
   }
 }
 
-async function realpathOrUndefined(path: string | undefined): Promise<string | undefined> {
+/**
+ * Resolves a path, failing closed: a missing path, an unreadable one, and one
+ * that hangs past its deadline all come back `undefined`, which the caller
+ * treats as a mismatch.
+ */
+async function realpathOrUndefined(
+  path: string | undefined,
+  run: FsRunner
+): Promise<string | undefined> {
   if (path === undefined || path.length === 0) return undefined
   try {
-    return await realpath(path)
+    return await run(() => realpath(path))
   } catch {
     return undefined
   }
@@ -92,19 +108,22 @@ async function definesFilters(
  * `no-worktree`.
  *
  * @param options - The repository, worktree, and expected branch.
- * @returns The verdict, `invalid-path` for a relative directory, or why git could not be asked.
+ * @returns The verdict, `invalid-path` for a relative directory, `timeout` when a filesystem call hangs past its deadline, or why git could not be asked.
  */
 export async function checkWorktree(
   options: CheckWorktreeOptions
 ): Promise<Result<WorktreeVerdict, GitRunError | 'git-failed' | 'invalid-path'>> {
   const { git, repoDir, worktreeDir } = options
+  const run = options.fsRunner ?? defaultFsRunner
   if (!isAbsolutePath(repoDir) || !isAbsolutePath(worktreeDir)) return err('invalid-path')
-  if (await isMissing(worktreeDir)) return ok('no-worktree')
+  const missing = await isMissing(worktreeDir, run)
+  if (!missing.ok) return err(missing.error)
+  if (missing.value) return ok('no-worktree')
   const [filters, top, common, repoCommon, head, gitDir] = await Promise.all([
     definesFilters(git, worktreeDir),
     gitText({ git, dir: worktreeDir, args: ['rev-parse', '--show-toplevel'] }),
-    commonDirOrUndefined({ git, dir: worktreeDir }),
-    commonDirOrUndefined({ git, dir: repoDir }),
+    commonDirOrUndefined({ git, dir: worktreeDir, fsRunner: run }),
+    commonDirOrUndefined({ git, dir: repoDir, fsRunner: run }),
     gitText({ git, dir: worktreeDir, args: ['rev-parse', '--symbolic-full-name', 'HEAD'] }),
     gitText({ git, dir: worktreeDir, args: ['rev-parse', '--absolute-git-dir'] })
   ])
@@ -115,9 +134,9 @@ export async function checkWorktree(
   if (!gitDir.ok) return err(gitDir.error)
 
   const [realWorktree, realTop, realGitDir] = await Promise.all([
-    realpathOrUndefined(worktreeDir),
-    realpathOrUndefined(top.value),
-    realpathOrUndefined(gitDir.value)
+    realpathOrUndefined(worktreeDir, run),
+    realpathOrUndefined(top.value, run),
+    realpathOrUndefined(gitDir.value, run)
   ])
   const matches =
     realWorktree !== undefined &&
