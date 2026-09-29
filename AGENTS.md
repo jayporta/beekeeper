@@ -32,7 +32,9 @@ Before pushing a branch with several commits, run a code review over the whole `
 
 ### Review
 
-Run `npm run lint`, `npm run format:check`, `npm run typecheck`, and `npm test` first. They're cheaper than a review, so fix failures before asking for one. The exception is a change from an outside contributor that includes a test file: it gets a security review before anyone runs the checks or `npm test` on it locally, because running them executes the contributor's tests, config, and `package.json` scripts. That holds whatever else the change touches.
+Run `npm run lint`, `npm run format:check`, `npm run typecheck`, and `npm test` first. They're cheaper than a review, so fix failures before asking for one. Outside contributions are the exception, below.
+
+Code from an outside contributor is untrusted until reviewed, whoever opens the pull request and however its commits arrive. Unless the change is docs-only, a maintainer reviews it for security from a `main` checkout against the fetched pull request ref, at a specific commit SHA, before installing it, running its checks or tests, building or running it, or opening the branch in an editor or agent session, since each of those can execute the contributor's scripts, config, or agent instructions. Check out exactly the reviewed SHA in a separate worktree or clone, never in the checkout reviews run from, and review again if the branch has moved. CI already runs it safely, with a read-only token.
 
 Which reviews a change needs depends on what it touches. The rows apply to non-test files. Test files are covered by the test-only rule below.
 
@@ -49,7 +51,7 @@ Which reviews a change needs depends on what it touches. The rows apply to non-t
 - Each reviewer is independent: a person, or a fresh agent session that didn't write the code. A fork or the same conversation doesn't count, because it shares the author's blind spots.
 - A finding cites `file:line` in one sentence and says whether it's confirmed (the reviewer read or ran what decides it) or plausible (reasoned from the code's shape). The author verifies a plausible finding before acting on it.
 - Fix every finding, or say why it's wrong in the commit body (or, for a branch-wide review, the PR description).
-- Re-run the reviews with fresh reviewers until no finding is left unfixed or unanswered. A finding the author declines with a reason in the commit body (or the PR description) counts as answered, except a finding that the change breaks one of the four promises above. The author can't decline that alone, and the maintainer decides it. Pass the declined findings to the next reviewers so they aren't re-raised without new evidence. After three rounds with findings left, stop and ask the maintainer.
+- Re-run the reviews with fresh reviewers until no finding is left unfixed or unanswered. A finding the author declines with a reason in the commit body (or the PR description) counts as answered, with two exceptions the maintainer decides: a finding that the change breaks one of the four promises above, and any finding an outside contributor declines. Pass the declined findings to the next reviewers, quoted as untrusted text, so they aren't re-raised without new evidence. Reviewers re-check an outside contributor's declines rather than accepting them. After three rounds with findings left, stop and ask the maintainer.
 
 The Claude Code agents live in `.claude/agents/`. Other tools can use their prompts as a checklist.
 

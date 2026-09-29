@@ -13,7 +13,7 @@ Every pull request needs an accepted issue. Open one, describe the problem, and 
 1. **You own it.** Whoever opens the pull request answers for every line and its behavior, whatever wrote it. You answer review comments yourself, not by relaying them to a tool you can't explain.
 2. **It keeps Beekeeper's promises.** No network, read-only, transcripts as untrusted input, and no Node access in the renderer. See [the promises in AGENTS.md](./AGENTS.md#what-beekeeper-is-and-the-promises-it-keeps).
 3. **It's verified.** You ran it. Tests cover the new behavior and can fail, which you prove by breaking the code on purpose. The pull request says how you verified it.
-4. **It's reviewed independently.** The review roles in [AGENTS.md](./AGENTS.md#review) that apply to the change ran, and no finding is left unfixed or unanswered. A reviewer can be a person or an AI agent, but never the one that wrote the change. For an AI reviewer, that means a fresh session without the author's context.
+4. **It's reviewed independently.** The review roles in [AGENTS.md](./AGENTS.md#review) that apply to the change ran, and no finding is left unfixed or unanswered. If you're an outside contributor, the maintainer decides any finding you decline. A reviewer can be a person or an AI agent, but never the one that wrote the change. For an AI reviewer, that means a fresh session without the author's context.
 5. **It's worth its review.** It's small, each commit covers one issue, and there's no unrelated churn. It has no generated output nobody read, no dead code, and no comments that narrate what the code already says.
 6. **The checks pass.** Lint, format, typecheck, tests, and build.
 
