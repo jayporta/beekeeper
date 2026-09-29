@@ -3,9 +3,9 @@ import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MAX_PATH_CODE_UNITS } from '../../shared/boundedPath'
-import { hangingFsRunner } from '../testFsRunner'
+import { hangingFsRunner, neverSettles } from '../testFsRunner'
 import type { FsRunner } from '../fsDeadline'
-import { resolveInside } from '../resolveInside'
+import { MAX_WALK_MS, resolveInside } from '../resolveInside'
 
 let parent: string
 let root: string
@@ -224,6 +224,37 @@ describe('resolveInside', () => {
         ok: false,
         error: 'timeout'
       })
+    })
+
+    it('reports timeout when a call outlasts the walk budget, with no per-call deadline to end it', async () => {
+      vi.useFakeTimers()
+      const hung: FsRunner = () => neverSettles()
+      const walk = resolveInside({ root, path: join(root, 'dir'), fsRunner: hung })
+
+      await vi.advanceTimersByTimeAsync(MAX_WALK_MS)
+
+      expect(await walk).toEqual({ ok: false, error: 'timeout' })
+    })
+
+    it('does not cut a call short before the walk budget is spent', async () => {
+      vi.useFakeTimers()
+      const hung: FsRunner = () => neverSettles()
+      const watched = { done: false }
+      void resolveInside({ root, path: join(root, 'dir'), fsRunner: hung }).then(() => {
+        watched.done = true
+      })
+
+      await vi.advanceTimersByTimeAsync(MAX_WALK_MS - 1)
+
+      expect(watched.done).toBe(false)
+    })
+
+    it('leaves no timer running once the walk finishes', async () => {
+      vi.useFakeTimers()
+
+      await resolveInside({ root, path: join(root, 'dir', 'sub') })
+
+      expect(vi.getTimerCount()).toBe(0)
     })
   })
 })

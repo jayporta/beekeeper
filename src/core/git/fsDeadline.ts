@@ -42,12 +42,13 @@ export interface FsRunnerOptions {
  * most `maxUnsettled` calls that have not settled, counting both running calls
  * and ones it gave up on. A call submitted over the cap waits in a first-in,
  * first-out queue, and its deadline runs from submission. A call still queued
- * at its deadline is rejected without ever starting. A call that has started
- * is rejected at its deadline but keeps its slot until it actually settles,
- * and then the next queued call starts. So at most `maxUnsettled` calls hold
- * threads at any moment, and while hung calls fill every slot, new calls time
- * out at their deadline instead of starting. Timers never keep the process
- * alive.
+ * at its deadline is rejected without ever starting, including one whose
+ * deadline passed before its timer fired when a slot freed. A call that has
+ * started is rejected at its deadline but keeps its slot until it actually
+ * settles, and then the next queued call starts. So at most `maxUnsettled`
+ * calls hold threads at any moment, and while hung calls fill every slot, new
+ * calls time out at their deadline instead of starting. Timers never keep the
+ * process alive.
  *
  * @param options - The deadline and the cap.
  * @returns A runner. Each runner has its own cap and queue.
@@ -65,7 +66,14 @@ export function createFsRunner(options: FsRunnerOptions = {}): FsRunner {
 
   return <T>(call: () => Promise<T>): Promise<T> =>
     new Promise<T>((resolve, reject) => {
+      const submittedAt = Date.now()
       const start = (): void => {
+        if (Date.now() - submittedAt >= deadlineMs) {
+          clearTimeout(timer)
+          reject(new FsTimeoutError())
+          queue.shift()?.()
+          return
+        }
         unsettled += 1
         let pending: Promise<T>
         try {

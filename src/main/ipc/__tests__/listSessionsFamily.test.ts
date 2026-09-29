@@ -1,12 +1,13 @@
 import { chmod } from 'node:fs/promises'
 import { join } from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   buildAgentSettingRecord,
   buildAssistantRecord,
   buildUserRecord
 } from '../../../core/transcript/testFixtures'
 import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
+import type { IpcDeps } from '../ipcDeps'
 import { listProjectsHandler } from '../listProjectsHandler'
 import { listSessionsHandler } from '../listSessionsHandler'
 import {
@@ -110,6 +111,44 @@ describe('listSessionsHandler project family', () => {
       }
     }
   )
+
+  it.skipIf(process.getuid?.() === 0)(
+    'logs only the error code when a sibling family folder cannot be read',
+    async () => {
+      await writeLead(ctx.tree.home)
+      await writeScout(WORKTREE)
+      const unreadable = join(ctx.tree.home, '.claude', 'projects', WORKTREE)
+      await chmod(unreadable, 0o000)
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      try {
+        await listFolder(TEST_PROJECT)
+
+        expect(warn.mock.calls).toEqual([['Beekeeper skipped a project family folder (EACCES).']])
+      } finally {
+        await chmod(unreadable, 0o755)
+        vi.restoreAllMocks()
+      }
+    }
+  )
+
+  it('fails when a sibling family folder scan throws an error with no system code', async () => {
+    await writeLead(ctx.tree.home)
+    await writeScout(WORKTREE)
+    const deps: IpcDeps = {
+      ...ctx.deps,
+      summaryCache: {
+        read: (file) =>
+          file.path.includes(WORKTREE)
+            ? Promise.reject(new TypeError('bug'))
+            : ctx.deps.summaryCache.read(file)
+      }
+    }
+
+    await expect(listSessionsHandler(deps, { projectDirName: TEST_PROJECT })).rejects.toThrow(
+      TypeError
+    )
+  })
 
   it.skipIf(process.getuid?.() === 0)(
     'fails when the requested folder cannot be read',

@@ -192,6 +192,52 @@ describe('getWorktreeDiffsHandler sharedWorktree', () => {
     await expect(sharedWorktreeOf(WORKTREE, AGENT_SESSION_ID, deps)).rejects.toThrow(TypeError)
   })
 
+  describe('when the teammate own scan fails', () => {
+    /** Deps with no git, so only `findSharedWorktree` scans the teammate, that fail with `failure`. */
+    function depsFailingTeammateScan(failure: Error): IpcDeps {
+      return {
+        ...ctx.deps,
+        git: () => Promise.resolve(err('git-not-found')),
+        scans: {
+          run: (key, task) =>
+            key.includes(AGENT_SESSION_ID) ? Promise.reject(failure) : ctx.deps.scans.run(key, task)
+        }
+      }
+    }
+
+    afterEach(() => {
+      vi.restoreAllMocks()
+    })
+
+    it('gives null and logs only the error code for a system error', async () => {
+      await writeLead(ctx.tree.home)
+      await writeOwningSubagent()
+      await writeScout(CWD)
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const failure = Object.assign(new Error(`read ${ctx.tree.home} failed`), { code: 'EIO' })
+
+      const shared = await sharedWorktreeOf(
+        WORKTREE,
+        AGENT_SESSION_ID,
+        depsFailingTeammateScan(failure)
+      )
+
+      expect(shared).toBeNull()
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('EIO'))
+      expect(warn.mock.calls.flat().join(' ')).not.toContain(ctx.tree.home)
+    })
+
+    it('rejects for an error that has no system code', async () => {
+      await writeLead(ctx.tree.home)
+      await writeOwningSubagent()
+      await writeScout(CWD)
+
+      await expect(
+        sharedWorktreeOf(WORKTREE, AGENT_SESSION_ID, depsFailingTeammateScan(new TypeError('bug')))
+      ).rejects.toThrow(TypeError)
+    })
+  })
+
   describe.skipIf(process.getuid?.() === 0)('when the lead transcript becomes unreadable', () => {
     const leadPath = (): string =>
       join(ctx.tree.home, '.claude', 'projects', TEST_PROJECT, `${TEST_SESSION_ID}.jsonl`)

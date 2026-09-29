@@ -102,10 +102,11 @@ function pickLead(
  * @returns The lead and the first subagent, in tree order, whose meta
  * `worktreePath` equals the session's first cwd and that names a worktree
  * branch; or `null` when the session is not an agent session, is not a
- * grouped teammate, has no cwd, its lead's scan fails with a system error,
- * or no such subagent exists.
- * @throws {Error} When the lead's scan fails with an error that has no system
- * error code, or with one of Node's own `ERR_*` codes, since that is a bug.
+ * grouped teammate, has no cwd, its own scan or its lead's scan fails with a
+ * system error (logged by code alone), or no such subagent exists.
+ * @throws {Error} When the teammate's own scan or its lead's scan fails with an
+ * error that has no system error code, or with one of Node's own `ERR_*` codes,
+ * since that is a bug.
  */
 export async function findSharedWorktree(
   deps: SharedWorktreeDeps,
@@ -120,11 +121,16 @@ export async function findSharedWorktree(
   const team = grouping.teams.get(sessionRefKey({ projectDirName, sessionId }))
   if (team?.kind !== 'teammate') return null
 
-  const own = await scanFoundSession({ deps, found, transcript })
-  if (own.leadFirstCwd === undefined) return null
+  const own = await captureSystemError(() => scanFoundSession({ deps, found, transcript }))
+  if (!own.ok) {
+    console.warn(`Beekeeper could not scan a teammate session (${own.error.code}).`)
+    return null
+  }
+  const { leadFirstCwd } = own.value
+  if (leadFirstCwd === undefined) return null
 
   const lead = pickLead({ grouping, projects }, team.lead)
   if (lead === undefined) return null
-  const agentId = await leadWorktreeOwner(deps, { lead, worktreePath: own.leadFirstCwd })
+  const agentId = await leadWorktreeOwner(deps, { lead, worktreePath: leadFirstCwd })
   return agentId === undefined ? null : { lead: team.lead, agentId }
 }

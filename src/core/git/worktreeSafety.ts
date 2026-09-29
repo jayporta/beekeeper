@@ -60,19 +60,21 @@ async function isMissing(path: string, run: FsRunner): Promise<Result<boolean, '
 }
 
 /**
- * Resolves a path, failing closed: a missing path, an unreadable one, and one
- * that hangs past its deadline all come back `undefined`, which the caller
- * treats as a mismatch.
+ * Resolves a path, failing closed: a missing path and an unreadable one come
+ * back `undefined`, which the caller treats as a mismatch. A call that hangs
+ * past its deadline is `timeout`, so a directory that can't be read is not
+ * reported as a mismatch.
  */
 async function realpathOrUndefined(
   path: string | undefined,
   run: FsRunner
-): Promise<string | undefined> {
-  if (path === undefined || path.length === 0) return undefined
+): Promise<Result<string | undefined, 'timeout'>> {
+  if (path === undefined || path.length === 0) return ok(undefined)
   try {
-    return await run(() => realpath(path))
-  } catch {
-    return undefined
+    return ok(await run(() => realpath(path)))
+  } catch (error) {
+    if (isFsTimeout(error)) return err('timeout')
+    return ok(undefined)
   }
 }
 
@@ -133,11 +135,17 @@ export async function checkWorktree(
   if (!head.ok) return err(head.error)
   if (!gitDir.ok) return err(gitDir.error)
 
-  const [realWorktree, realTop, realGitDir] = await Promise.all([
+  const [worktreePath, topPath, gitDirPath] = await Promise.all([
     realpathOrUndefined(worktreeDir, run),
     realpathOrUndefined(top.value, run),
     realpathOrUndefined(gitDir.value, run)
   ])
+  if (!worktreePath.ok) return err(worktreePath.error)
+  if (!topPath.ok) return err(topPath.error)
+  if (!gitDirPath.ok) return err(gitDirPath.error)
+  const realWorktree = worktreePath.value
+  const realTop = topPath.value
+  const realGitDir = gitDirPath.value
   const matches =
     realWorktree !== undefined &&
     realWorktree === realTop &&

@@ -125,6 +125,26 @@ describe('createFsRunner unsettled cap', () => {
     expect(queued.started()).toBe(0)
   })
 
+  it('rejects a queued call whose deadline passed before its timer fired, and starts the one behind it', async () => {
+    const run = createFsRunner({ deadlineMs: 100, maxUnsettled: 1 })
+    const running = manualCall<string>()
+    const runningResult = run(running.call)
+    const expired = manualCall<string>()
+    const expiredSettled = expect(run(expired.call)).rejects.toBeInstanceOf(FsTimeoutError)
+    vi.setSystemTime(Date.now() + 200)
+    const fresh = manualCall<string>()
+    const freshResult = run(fresh.call)
+
+    running.resolve('done')
+    await runningResult
+    await expiredSettled
+
+    expect(expired.started()).toBe(0)
+    expect(fresh.started()).toBe(1)
+    fresh.resolve('fresh')
+    expect(await freshResult).toBe('fresh')
+  })
+
   it('starts the next queued call, in order, when a running call settles', async () => {
     const run = createFsRunner({ deadlineMs: 100, maxUnsettled: 1 })
     const first = manualCall<string>()

@@ -45,7 +45,7 @@ describe('checkWorktree when a filesystem call hangs', () => {
     expect(result).toEqual({ ok: false, error: 'timeout' })
   })
 
-  it('fails closed to worktree-mismatch when resolving the worktree paths hangs', async (context) => {
+  it('reports timeout, not worktree-mismatch, when resolving the worktree paths hangs', async (context) => {
     const git = testGit.requireGit(context)
     const { repo, worktree } = await setUp(git)
 
@@ -57,6 +57,6 @@ describe('checkWorktree when a filesystem call hangs', () => {
       fsRunner: hangingFsRunner({ passes: 3 })
     })
 
-    expect(result).toEqual({ ok: true, value: 'worktree-mismatch' })
+    expect(result).toEqual({ ok: false, error: 'timeout' })
   })
 })

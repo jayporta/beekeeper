@@ -5,6 +5,7 @@ import { errorCode } from '../shared/errorCode'
 import { err, ok, type Result } from '../shared/result'
 import { defaultFsRunner, isFsTimeout, type FsRunner } from './fsDeadline'
 import { isInside } from './isInside'
+import { withWalkBudget } from './withWalkBudget'
 
 /**
  * The most symbolic links {@link resolveInside} follows for one path. It
@@ -24,10 +25,11 @@ export const MAX_LINK_HOPS = 32
 export const MAX_WALK_STEPS = 1024
 
 /**
- * The most milliseconds one {@link resolveInside} walk may take, checked before
- * each component. Each filesystem call has its own deadline, but a mount that
- * answers just inside it could otherwise keep a walk of many steps going for
- * as long as it likes.
+ * The most milliseconds one {@link resolveInside} walk may take. It is checked
+ * before each component, and each `lstat` and `readlink` is also cut off when
+ * it runs out, so a call in flight ends with the walk. Each filesystem call has
+ * its own deadline, but a mount that answers just inside it could otherwise
+ * keep a walk of many steps going for as long as it likes.
  */
 export const MAX_WALK_MS = 10_000
 
@@ -40,8 +42,9 @@ export const MAX_WALK_MS = 10_000
  * is missing; `not-a-directory` when a component that is neither a directory
  * nor a link has more components after it, as the kernel's `ENOTDIR`;
  * `unreadable` for any other failure reading a component; and `timeout` when
- * reading a component hangs past its deadline, or the whole walk takes longer
- * than {@link MAX_WALK_MS}. A file as the last component is not refused.
+ * reading a component hangs past its deadline, or the whole walk, a call in
+ * flight included, runs past {@link MAX_WALK_MS}. A file as the last component
+ * is not refused.
  */
 export type ResolveInsideError =
   | 'too-long'
@@ -95,7 +98,8 @@ export async function resolveInside(
   options: ResolveInsideOptions
 ): Promise<Result<string, ResolveInsideError>> {
   const { root, path } = options
-  const run = options.fsRunner ?? defaultFsRunner
+  const startedAt = Date.now()
+  const run = withWalkBudget(options.fsRunner ?? defaultFsRunner, startedAt + MAX_WALK_MS)
   if (!isAbsolutePathWithinCap(path)) return err('too-long')
   if (path === root) return ok(root)
   const prefix = root.endsWith(sep) ? root : root + sep
@@ -104,7 +108,6 @@ export async function resolveInside(
   const pending = components(path.slice(prefix.length))
   if (pending.some((component) => component === '.' || component === '..')) return err('dotdot')
 
-  const startedAt = Date.now()
   let current = root
   let hops = 0
   let steps = 0
