@@ -117,11 +117,60 @@ describe('createFileTouchCollector Bash results', () => {
     expect(collector.incompleteToolUseIds()).toEqual([])
   })
 
-  it('adds nothing for a Bash result whose bashEditDiff is not an object', () => {
-    const collector = observeBash({ bashEditDiff: 'nope' })
+  it('adds nothing for a Bash result whose bashEditDiff is null', () => {
+    const collector = observeBash({ bashEditDiff: null })
 
     expect(collector.touches()).toEqual([])
     expect(collector.incompleteToolUseIds()).toEqual([])
+  })
+
+  it.each([
+    ['a string', 'nope'],
+    ['a number', 7],
+    ['an array', []]
+  ])(
+    'adds nothing but marks the result incomplete when bashEditDiff is %s',
+    (_name, bashEditDiff) => {
+      const collector = observeBash({ bashEditDiff })
+
+      expect(collector.touches()).toEqual([])
+      expect(collector.incompleteToolUseIds()).toEqual(['toolu_bash'])
+    }
+  )
+
+  it('lists a path repeated within one result once, and stays complete', () => {
+    const collector = observeBash(
+      buildBashToolUseResult({ changedFiles: ['/repo/a.ts', '/repo/b.ts', '/repo/a.ts'] })
+    )
+
+    expect(collector.touches().map((touch) => touch.filePath)).toEqual(['/repo/a.ts', '/repo/b.ts'])
+    expect(collector.incompleteToolUseIds()).toEqual([])
+  })
+
+  it('lists one change and stays complete for a result of more than MAX_BASH_CHANGED_FILES copies of one path', () => {
+    const collector = observeBash(
+      buildBashToolUseResult({
+        changedFiles: Array.from({ length: MAX_BASH_CHANGED_FILES + 44 }, () => '/repo/a.ts')
+      })
+    )
+
+    expect(collector.touches().map((touch) => touch.filePath)).toEqual(['/repo/a.ts'])
+    expect(collector.incompleteToolUseIds()).toEqual([])
+  })
+
+  it('keeps a path repeated across different results, one touch per result', () => {
+    const collector = createFileTouchCollector()
+    for (const toolUseId of ['toolu_1', 'toolu_2']) {
+      collector.observe(buildAssistantToolUseRecord({ toolUseId, toolName: 'Bash' }))
+      collector.observe(
+        buildUserToolResultRecord({
+          toolUseId,
+          toolUseResult: buildBashToolUseResult({ changedFiles: ['/repo/a.ts'] })
+        })
+      )
+    }
+
+    expect(collector.touches().map((touch) => touch.toolUseId)).toEqual(['toolu_1', 'toolu_2'])
   })
 
   it('adds nothing for a failed Bash call whose toolUseResult is a string', () => {
