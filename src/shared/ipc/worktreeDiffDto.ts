@@ -5,7 +5,11 @@ export type GitAvailabilityDto = 'ok' | 'git-not-found' | 'git-too-old'
 export type UncommittedStatusDto =
   'included' | 'no-worktree' | 'skipped-filters' | 'worktree-mismatch'
 
-/** Why one agent's worktree diff is unavailable. */
+/**
+ * Why one agent's worktree diff is unavailable. `too-many-agents` marks an
+ * agent past the per-request cap on worktree agents, in tree order, whose
+ * diff was not attempted.
+ */
 export type WorktreeDiffCodeDto =
   | 'invalid-ref'
   | 'invalid-path'
@@ -20,6 +24,7 @@ export type WorktreeDiffCodeDto =
   | 'not-a-repo'
   | 'outside-project'
   | 'no-base'
+  | 'too-many-agents'
 
 /** One changed file's line counts. */
 export interface NumstatEntryDto {

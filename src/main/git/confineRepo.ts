@@ -1,7 +1,9 @@
 import type { GitBinary } from '../../core/git/gitBinary'
 import { realpath } from 'node:fs/promises'
+import { sep } from 'node:path'
+import { resolveInside, type ResolveInsideError } from '../../core/git/resolveInside'
 import { err, ok, type Result } from '../../core/shared/result'
-import { isInside } from './containment'
+import { isInside } from '../../core/git/isInside'
 import { realCommonDir } from '../../core/git/gitCommonDir'
 import { verifyRepo, type VerifyRepoError } from './verifyRepo'
 
@@ -28,46 +30,106 @@ export function encodeProjectDir(cwd: string): string {
   return cwd.replace(/[^a-zA-Z0-9]/g, '-')
 }
 
+/** A spelling a project's directory may be reached by, and the real directory it names. */
+interface ProjectBase {
+  /** The directory as spelled, possibly through symlinks. */
+  readonly spelled: string
+  /** The real directory the spelling resolves to, inside the top-level. */
+  readonly real: string
+}
+
 /** What the session's first `cwd` established. */
 interface Project {
   /** The repository's real top-level. */
   readonly top: string
-  /** The session's first `cwd`, as written. */
-  readonly firstCwd: string
-  /** The top-level as spelled through the first `cwd`, which may cross symlinks. */
-  readonly lexicalTop: string
+  /** The spellings a path may start with to count as inside the project, real top-level first. */
+  readonly bases: readonly ProjectBase[]
   /** The repository's real `--git-common-dir`. */
   readonly common: string
 }
 
+/** What the first `cwd` resolves to, for the spellings a project accepts. */
+interface FirstCwdResolution {
+  /** The first `cwd`'s real path, or `undefined` when it can't be resolved or leaves the top-level. */
+  readonly real: string | undefined
+  /** The top-level's spelling recovered from the first `cwd`, or the real top-level. */
+  readonly lexicalTop: string
+}
+
 /**
- * Recovers the top-level's spelling from the first `cwd`, but only when that
- * spelling resolves to the top-level itself (such as `/var/x` for
- * `/private/var/x`). A symlink below the top-level would make it name
- * somewhere else, so the real top-level is used instead.
+ * Resolves the first `cwd` once, and recovers the top-level's spelling from
+ * it, but only when that spelling resolves to the top-level itself (such as
+ * `/var/x` for `/private/var/x`). A symlink below the top-level would make it
+ * name somewhere else, so the real top-level is used instead.
  */
-async function lexicalRoot(options: {
+async function resolveFirstCwd(options: {
   readonly cwd: string
   readonly top: string
-}): Promise<string> {
+}): Promise<FirstCwdResolution> {
   const { cwd, top } = options
   try {
     const real = await realpath(cwd)
-    if (!isInside(top, real)) return top
+    if (!isInside(top, real)) return { real: undefined, lexicalTop: top }
     const suffix = real.slice(top.length)
     const lexical = suffix === '' ? cwd : cwd.endsWith(suffix) ? cwd.slice(0, -suffix.length) : top
-    return (await realpath(lexical)) === top ? lexical : top
+    return { real, lexicalTop: (await realpath(lexical)) === top ? lexical : top }
   } catch {
-    return top
+    return { real: undefined, lexicalTop: top }
   }
 }
 
-function insideLexically(project: Project, path: string): boolean {
-  return (
-    isInside(project.top, path) ||
-    isInside(project.lexicalTop, path) ||
-    isInside(project.firstCwd, path)
-  )
+/** Drops the trailing separators of a spelled directory, except for a bare root. */
+function withoutTrailingSeparators(directory: string): string {
+  let end = directory.length
+  while (end > 1 && directory[end - 1] === sep) end -= 1
+  return directory.slice(0, end)
+}
+
+/**
+ * Re-spells a path that starts with one of the project's spellings under the
+ * real top-level, by text alone, so no filesystem call touches the path
+ * before it is known to be inside. The walk's root is always the real
+ * top-level, so a link under any spelling may lead anywhere else in the
+ * repository.
+ *
+ * @returns The real top-level and the path below it, or `undefined` when the
+ * path starts with none of the spellings.
+ */
+function rebase(project: Project, path: string): { root: string; path: string } | undefined {
+  for (const { spelled, real } of project.bases) {
+    const base = withoutTrailingSeparators(spelled)
+    if (path === base || path.startsWith(base === sep ? base : base + sep)) {
+      return { root: project.top, path: real + path.slice(base.length) }
+    }
+  }
+  return undefined
+}
+
+/**
+ * Maps why a path walk stopped onto the confiner's codes: a path that leaves
+ * the project, is over the path cap (`too-long`), holds a `.` or `..`
+ * component, or takes too many links or too many steps to resolve
+ * (`too-many-links`, `too-many-steps`), is `outside-project`; one that does
+ * not resolve (missing, or a file with more path after it: `not-found`,
+ * `not-a-directory`) or is unreadable is `repo-missing`.
+ */
+function refusalOf(reason: ResolveInsideError | 'outside-spelling'): ConfineRepoError {
+  return reason === 'not-found' || reason === 'not-a-directory' || reason === 'unreadable'
+    ? 'repo-missing'
+    : 'outside-project'
+}
+
+/**
+ * Resolves a transcript-supplied path that starts with a project spelling,
+ * following symlinks only while they stay inside the project.
+ * @returns The real path, or the reason the walk stopped.
+ */
+async function resolveInProject(
+  project: Project,
+  path: string
+): Promise<Result<string, ResolveInsideError | 'outside-spelling'>> {
+  const rebased = rebase(project, path)
+  return rebased === undefined ? err('outside-spelling') : resolveInside(rebased)
 }
 
 /** Vets the directories a transcript names against one session's project. */
@@ -96,8 +158,9 @@ export interface RepoConfiner {
  * The session's first `cwd` must encode to the project folder name (a
  * one-way check, so the lossy encoding is never reversed) and resolve to a
  * repository. A spawn `cwd` must then sit inside that repository's top-level
- * by path text before any file or git call touches it, sit inside it again
- * after symlinks resolve, and belong to the same repository (matching
+ * by path text before any file or git call touches it, resolve to somewhere
+ * inside it by a walk that follows symlinks only while they stay inside (see
+ * `resolveInside`), and belong to the same repository (matching
  * `--git-common-dir`, so linked worktrees pass while nested repos fail).
  * A refusal is `outside-project`; a check that could not finish reports its
  * own code. Nothing runs until the first call, and each distinct directory is
@@ -118,8 +181,13 @@ export function createRepoConfiner(options: RepoConfinerOptions): RepoConfiner {
     if (!top.ok) return top
     const common = await realCommonDir({ git, dir: top.value })
     if (!common.ok) return common
-    const lexicalTop = await lexicalRoot({ cwd: firstCwd, top: top.value })
-    return ok({ top: top.value, firstCwd, lexicalTop, common: common.value })
+    const resolved = await resolveFirstCwd({ cwd: firstCwd, top: top.value })
+    const bases: ProjectBase[] = [
+      { spelled: top.value, real: top.value },
+      { spelled: resolved.lexicalTop, real: top.value },
+      ...(resolved.real === undefined ? [] : [{ spelled: firstCwd, real: resolved.real }])
+    ]
+    return ok({ top: top.value, bases, common: common.value })
   }
   let project: Promise<Result<Project, ConfineRepoError>> | undefined
   const getProject = (): Promise<Result<Project, ConfineRepoError>> =>
@@ -128,13 +196,9 @@ export function createRepoConfiner(options: RepoConfinerOptions): RepoConfiner {
   async function confine(spawnCwd: string): Promise<Result<string, ConfineRepoError>> {
     const first = await getProject()
     if (!first.ok) return first
-    if (!insideLexically(first.value, spawnCwd)) return err('outside-project')
-    let real: string
-    try {
-      real = await realpath(spawnCwd)
-    } catch {
-      return err('repo-missing')
-    }
+    const resolved = await resolveInProject(first.value, spawnCwd)
+    if (!resolved.ok) return err(refusalOf(resolved.error))
+    const real = resolved.value
     if (!isInside(first.value.top, real)) return err('outside-project')
     const spawn = await verifyRepo({ git, dir: real })
     if (!spawn.ok) return spawn
@@ -155,14 +219,9 @@ export function createRepoConfiner(options: RepoConfinerOptions): RepoConfiner {
     async worktree(path) {
       const first = await getProject()
       if (!first.ok) return first
-      if (!insideLexically(first.value, path)) return ok(undefined)
-      let real: string
-      try {
-        real = await realpath(path)
-      } catch {
-        return ok(undefined)
-      }
-      if (!isInside(first.value.top, real)) return ok(undefined)
+      const resolved = await resolveInProject(first.value, path)
+      if (!resolved.ok || !isInside(first.value.top, resolved.value)) return ok(undefined)
+      const real = resolved.value
       const common = await realCommonDir({ git, dir: real })
       if (!common.ok) return common.error === 'not-a-repo' ? ok(undefined) : common
       return ok(common.value === first.value.common ? real : undefined)

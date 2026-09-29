@@ -1,6 +1,8 @@
+import { execFileSync } from 'node:child_process'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { GitBinary } from '../gitBinary'
+import { GIT_ENV } from '../gitEnv'
 import { runGit } from '../runGit'
 import { registerTestGit, type TestRepo } from '../testGitRepo'
 import { worktreeDiffStat, type WorktreeDiffStatOptions } from '../worktreeDiffStat'
@@ -20,6 +22,25 @@ function diffStat(
     agentBranch: 'agent',
     ...extra
   })
+}
+
+/**
+ * Commits a file whose path holds the byte 0xFF, which no UTF-8 name can. The
+ * path goes straight into the index, so the host filesystem never sees it.
+ */
+async function commitInvalidUtf8Path(git: GitBinary, repo: TestRepo): Promise<void> {
+  await repo.write({ path: 'blob.txt', content: 'hi\n' })
+  const blob = repo.git(['hash-object', '-w', 'blob.txt'])
+  execFileSync(git, ['update-index', '--index-info'], {
+    cwd: repo.dir,
+    env: { ...GIT_ENV },
+    input: Buffer.concat([
+      Buffer.from(`100644 ${blob}\t`),
+      Buffer.from([0xff]),
+      Buffer.from('bad.txt\n')
+    ])
+  })
+  repo.git(['commit', '--quiet', '-m', 'invalid path'])
 }
 
 describe('worktreeDiffStat', () => {
@@ -116,6 +137,46 @@ describe('worktreeDiffStat', () => {
     const result = await diffStat(gitBinary, repo, { agentBranch: 'unrelated' })
 
     expect(result).toEqual({ ok: false, error: 'no-common-ancestor' })
+  })
+
+  it('includes uncommitted work in a path holding a literal U+FFFD', async (context) => {
+    const gitBinary = testGit.requireGit(context)
+    const repo = await testGit.baseRepo(gitBinary)
+    const worktree = join(repo.root, 'wt')
+    repo.git(['worktree', 'add', '--quiet', worktree, 'agent'])
+    await repo.write({ path: 'bad\uFFFD.txt', content: 'v1\n', dir: worktree })
+    repo.git(['add', '-A'], worktree)
+    repo.git(['commit', '--quiet', '-m', 'replacement char'], worktree)
+    await repo.write({ path: 'bad\uFFFD.txt', content: 'v2\nmore\n', dir: worktree })
+
+    const result = await diffStat(gitBinary, repo, { worktreeDir: worktree })
+
+    expect(result).toEqual({
+      ok: true,
+      value: {
+        files: [{ path: 'bad\uFFFD.txt', added: 2, deleted: 0 }],
+        untracked: [],
+        uncommitted: 'included'
+      }
+    })
+  })
+
+  it('falls back to the committed diff when a changed path is not valid UTF-8', async (context) => {
+    const gitBinary = testGit.requireGit(context)
+    const repo = await testGit.baseRepo(gitBinary)
+    await commitInvalidUtf8Path(gitBinary, repo)
+    repo.git(['branch', '--force', 'agent', 'main'])
+    const worktree = join(repo.root, 'wt')
+    // Without a checkout, the working tree lacks every file, so the diff lists the invalid path as deleted.
+    repo.git(['worktree', 'add', '--quiet', '--no-checkout', worktree, 'agent'])
+    repo.git(['reset', '--quiet'], worktree)
+
+    const result = await diffStat(gitBinary, repo, { worktreeDir: worktree })
+
+    expect(result).toEqual({
+      ok: true,
+      value: { files: [], untracked: [], uncommitted: 'skipped-filters' }
+    })
   })
 
   it('refuses to run an unlisted subcommand against a real repo', async (context) => {

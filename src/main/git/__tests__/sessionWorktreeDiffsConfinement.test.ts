@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, realpath, rm, symlink } from 'node:fs/promises'
+import { mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -87,6 +87,45 @@ describe('sessionWorktreeDiffs confinement', () => {
 
     // A directory that doesn't exist would report `repo-missing` if it were ever probed.
     expect(entry?.result).toEqual({ ok: false, error: 'outside-project' })
+  })
+
+  it('refuses a spawn cwd that goes through a symlink out of the project without following it', async (context) => {
+    const git = gitContext.requireGit(context)
+    const repo = await gitContext.baseRepo(git)
+    // The link's target doesn't exist: following it, as realpath does, would report `repo-missing`.
+    await symlink(join(repo.root, 'never-created'), join(repo.dir, 'escape'))
+    const { scan } = await fixture({
+      cwd: repo.dir,
+      agents: [{ agentId: 'a', worktreeBranch: 'agent' }]
+    })
+
+    const [entry] = await sessionWorktreeDiffs({
+      git,
+      scan: withSpawnCwd({ scan, agentId: 'a', cwd: join(repo.dir, 'escape', 'sub') }),
+      projectDirName: encodeProjectDir(repo.dir),
+      scheduler: createScanScheduler({ maxConcurrent: 3 })
+    })
+
+    expect(entry?.result).toEqual({ ok: false, error: 'outside-project' })
+  })
+
+  it('reports repo-missing for a spawn cwd that goes through a file', async (context) => {
+    const git = gitContext.requireGit(context)
+    const repo = await gitContext.baseRepo(git)
+    await writeFile(join(repo.dir, 'notes.txt'), 'not a directory\n')
+    const { scan } = await fixture({
+      cwd: repo.dir,
+      agents: [{ agentId: 'a', worktreeBranch: 'agent' }]
+    })
+
+    const [entry] = await sessionWorktreeDiffs({
+      git,
+      scan: withSpawnCwd({ scan, agentId: 'a', cwd: join(repo.dir, 'notes.txt', 'sub') }),
+      projectDirName: encodeProjectDir(repo.dir),
+      scheduler: createScanScheduler({ maxConcurrent: 3 })
+    })
+
+    expect(entry?.result).toEqual({ ok: false, error: 'repo-missing' })
   })
 
   it('gives a branch-only diff when the worktree path is outside the project', async (context) => {
@@ -224,6 +263,26 @@ describe('sessionWorktreeDiffs confinement', () => {
       })
 
       expect(entries.map((entry) => entry.result.ok)).toEqual([true, true])
+    })
+
+    it('accepts a spawn cwd through a link under the first cwd to another folder of the repo', async (context) => {
+      const git = gitContext.requireGit(context)
+      const { repo, cwd } = await linkedProject(git)
+      await mkdir(join(repo.dir, 'lib'))
+      await symlink(join('..', '..', 'lib'), join(repo.dir, 'packages', 'app', 'shared'))
+      const { scan } = await fixture({
+        cwd,
+        agents: [{ agentId: 'a', worktreeBranch: 'agent' }]
+      })
+
+      const [entry] = await sessionWorktreeDiffs({
+        git,
+        scan: withSpawnCwd({ scan, agentId: 'a', cwd: join(cwd, 'shared') }),
+        projectDirName: encodeProjectDir(cwd),
+        scheduler: createScanScheduler({ maxConcurrent: 3 })
+      })
+
+      expect(entry?.result.ok).toBe(true)
     })
 
     it('refuses a sibling under the link root without running git there', async (context) => {

@@ -1,6 +1,8 @@
+import { isUtf8 } from 'node:buffer'
 import { isAbsolutePath } from '../shared/absolutePath'
 import { err, ok, type Result } from '../shared/result'
 import { parseCommitSha, type CommitSha } from './commitSha'
+import { pathsAssignFilters } from './filterAttributes'
 import { DIFF_ARGS, UNTRACKED_ARGS } from './gitAllowlist'
 import type { GitBinary } from './gitBinary'
 import { parseNumstat, type NumstatEntry } from './parseNumstat'
@@ -28,7 +30,10 @@ export interface WorktreeDiffStatOptions {
  * - `no-worktree`: no worktree was given or it no longer exists, so only
  *   committed work is shown.
  * - `skipped-filters`: the repo defines filter drivers that a working-tree
- *   diff would run, so only committed work is shown.
+ *   diff would run, or an attribute assigns a filter to a changed path (as
+ *   Git LFS does, with its driver defined outside the repo), or a changed
+ *   path isn't valid UTF-8 and can't be checked, so only committed work is
+ *   shown.
  * - `worktree-mismatch`: the directory exists but isn't the agent's linked
  *   worktree of this repo (the main checkout doesn't count), so only
  *   committed work is shown.
@@ -94,14 +99,68 @@ interface DiffFilesOptions {
   readonly revisions: readonly string[]
 }
 
+/** The changed files of one diff. */
+interface DiffFiles {
+  readonly files: NumstatEntry[]
+  /**
+   * Whether git's raw output is valid UTF-8. Numstat output is ASCII apart from
+   * paths, so `false` means some path (a rename's old path included) has a byte
+   * that decoding replaced with U+FFFD and can't be passed back to git.
+   */
+  readonly pathsAreUtf8: boolean
+}
+
 async function diffFiles(
   options: DiffFilesOptions
-): Promise<Result<NumstatEntry[], WorktreeDiffStatError>> {
+): Promise<Result<DiffFiles, WorktreeDiffStatError>> {
   const { git, dir, revisions, command } = options
   const diff = await runGit({ git, dir, args: [command, ...DIFF_ARGS, ...revisions, '--'] })
   if (!diff.ok) return err(diff.error)
   if (diff.value.exitCode !== 0) return err('git-failed')
-  return parseNumstat(diff.value.stdout)
+  const files = parseNumstat(diff.value.stdout)
+  if (!files.ok) return err(files.error)
+  return ok({ files: files.value, pathsAreUtf8: isUtf8(diff.value.stdout) })
+}
+
+interface DiffWorkingTreeOptions {
+  readonly git: GitBinary
+  readonly worktreeDir: string
+  readonly mergeSha: CommitSha
+}
+
+/** The paths a numstat names, a rename's old path included. */
+function changedPaths(files: readonly NumstatEntry[]): string[] {
+  return files.flatMap((file) =>
+    file.oldPath === undefined ? [file.path] : [file.oldPath, file.path]
+  )
+}
+
+/**
+ * Diffs a worktree's working tree against the merge base, and lists its
+ * untracked files. When any changed path has a `filter` attribute, or a path
+ * isn't valid UTF-8 (so it can't be checked), the diff is discarded and
+ * `skipped-filters` returned instead, since git can't apply the driver here and
+ * would report the files as spurious changes.
+ */
+async function diffWorkingTree(
+  options: DiffWorkingTreeOptions
+): Promise<Result<WorktreeDiffStat | 'skipped-filters', WorktreeDiffStatError>> {
+  const { git, worktreeDir, mergeSha } = options
+  const [files, untracked] = await Promise.all([
+    diffFiles({ git, dir: worktreeDir, command: 'diff-index', revisions: [mergeSha] }),
+    listUntracked(git, worktreeDir)
+  ])
+  if (!files.ok) return err(files.error)
+  if (!untracked.ok) return err(untracked.error)
+  if (!files.value.pathsAreUtf8) return ok('skipped-filters')
+  const filtered = await pathsAssignFilters({
+    git,
+    dir: worktreeDir,
+    paths: changedPaths(files.value.files)
+  })
+  if (!filtered.ok) return err(filtered.error)
+  if (filtered.value) return ok('skipped-filters')
+  return ok({ files: files.value.files, untracked: untracked.value, uncommitted: 'included' })
 }
 
 /**
@@ -112,8 +171,11 @@ async function diffFiles(
  * worktree passes {@link checkWorktree}, its working tree is diffed, so
  * uncommitted edits count, and untracked files are listed separately. The
  * working tree is read with `diff-index`, which never rewrites the index.
- * Otherwise the agent branch's tip is diffed from the main repository and
- * `uncommitted` says why. Renames are detected. Everything is read-only.
+ * Otherwise, or when a changed path has a `filter` attribute (or a path can't
+ * be checked, or too many paths changed to check them), the agent branch's
+ * tip is diffed from the main repository, so only committed work shows, and
+ * `uncommitted` says why.
+ * Renames are detected. Everything is read-only.
  *
  * @param options - The repository, base commit, agent branch, and optional worktree.
  * @returns The changed files, untracked files, and how uncommitted work was handled, or why the diff could not be computed. A relative or empty directory is `invalid-path`.
@@ -146,15 +208,12 @@ export async function worktreeDiffStat(
   const { agent, merge } = agentAndMerge.value
   if (!merge.ok) return err(merge.error)
 
-  const status = verdict.value === 'safe' ? 'included' : verdict.value
+  let status: UncommittedStatus = verdict.value === 'safe' ? 'included' : verdict.value
   if (worktreeDir !== undefined && status === 'included') {
-    const [files, untracked] = await Promise.all([
-      diffFiles({ git, dir: worktreeDir, command: 'diff-index', revisions: [merge.value] }),
-      listUntracked(git, worktreeDir)
-    ])
-    if (!files.ok) return err(files.error)
-    if (!untracked.ok) return err(untracked.error)
-    return ok({ files: files.value, untracked: untracked.value, uncommitted: 'included' })
+    const working = await diffWorkingTree({ git, worktreeDir, mergeSha: merge.value })
+    if (!working.ok) return err(working.error)
+    if (working.value !== 'skipped-filters') return ok(working.value)
+    status = 'skipped-filters'
   }
 
   const files = await diffFiles({
@@ -164,6 +223,6 @@ export async function worktreeDiffStat(
     revisions: [merge.value, agent]
   })
   return files.ok
-    ? ok({ files: files.value, untracked: [], uncommitted: status })
+    ? ok({ files: files.value.files, untracked: [], uncommitted: status })
     : err(files.error)
 }

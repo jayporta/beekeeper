@@ -13,8 +13,22 @@ import type { AgentId } from '../../core/transcript/ids'
 import type { ScanScheduler } from '../ipc/scanScheduler'
 import { createRepoConfiner, type ConfineRepoError } from './confineRepo'
 
-/** Why one agent's worktree diff is unavailable. */
-export type WorktreeDiffCode = WorktreeDiffStatError | ConfineRepoError | 'no-base'
+/**
+ * The most worktree agents whose diffs one request computes. Each computed
+ * diff spawns git, and a transcript is untrusted input, so the number of
+ * agents that reach git is bounded. Real sessions name a worktree branch on
+ * few agents (the largest session has 43 subagents in all), so 64 leaves
+ * room to spare. Agents past it, in tree order, are listed but not diffed.
+ */
+export const MAX_WORKTREE_AGENTS_PER_REQUEST = 64
+
+/**
+ * Why one agent's worktree diff is unavailable. `too-many-agents` marks an
+ * agent past {@link MAX_WORKTREE_AGENTS_PER_REQUEST}, whose diff was not
+ * attempted.
+ */
+export type WorktreeDiffCode =
+  WorktreeDiffStatError | ConfineRepoError | 'no-base' | 'too-many-agents'
 
 /** One worktree agent's diff, or the reason it couldn't be computed. */
 export interface AgentWorktreeDiff {
@@ -74,7 +88,9 @@ function collectWorktreeAgents(node: AgentTreeNode, found: WorktreeAgent[] = [])
  * each distinct (repository, base branch) resolved once. A worktree path
  * outside the project is ignored, leaving a branch-only diff. Every failure
  * is reported on its agent, so one bad agent never hides the others. A
- * session with no worktree agents runs no git.
+ * session with no worktree agents runs no git. Only the first
+ * {@link MAX_WORKTREE_AGENTS_PER_REQUEST} agents in tree order are diffed;
+ * the rest are listed with `too-many-agents` and run no git.
  *
  * @param options - The git binary, the scan, the project name, and the scheduler.
  * @returns One entry per agent whose meta names a worktree branch, in tree order.
@@ -100,6 +116,9 @@ export async function sessionWorktreeDiffs(
     return base
   }
 
+  const inferredBaseOf = (agent: WorktreeAgent): boolean =>
+    scan.spawnContexts.get(agent.agentId)?.inferred ?? false
+
   async function computeDiff(
     input: DiffInput
   ): Promise<Result<WorktreeDiffStat, WorktreeDiffCode>> {
@@ -122,7 +141,7 @@ export async function sessionWorktreeDiffs(
 
   async function diffAgent(agent: WorktreeAgent): Promise<AgentWorktreeDiff> {
     const context = scan.spawnContexts.get(agent.agentId)
-    const inferredBase = context?.inferred ?? false
+    const inferredBase = inferredBaseOf(agent)
     if (context?.baseBranch === undefined) {
       return { agentId: agent.agentId, inferredBase, result: err('no-base') }
     }
@@ -141,5 +160,17 @@ export async function sessionWorktreeDiffs(
     return { agentId: agent.agentId, inferredBase, result }
   }
 
-  return Promise.all(agents.map(diffAgent))
+  function refuseAgent(agent: WorktreeAgent): AgentWorktreeDiff {
+    return {
+      agentId: agent.agentId,
+      inferredBase: inferredBaseOf(agent),
+      result: err('too-many-agents')
+    }
+  }
+
+  return Promise.all(
+    agents.map((agent, index) =>
+      index < MAX_WORKTREE_AGENTS_PER_REQUEST ? diffAgent(agent) : refuseAgent(agent)
+    )
+  )
 }
