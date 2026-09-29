@@ -6,18 +6,12 @@ import type { ReadJsonlLinesOptions } from '../transcript/readJsonlLines'
 import { readRecords } from '../transcript/readRecords'
 import type { UnreadableError } from '../transcript/unreadableError'
 import { resolveAgentHierarchy } from './agentHierarchy'
-import {
-  agentIdentityKey,
-  leadIdentity,
-  subagentIdentity,
-  type AgentIdentity
-} from './agentIdentity'
+import { agentIdentityKey, leadIdentity, subagentIdentity } from './agentIdentity'
+import { applyAgentReports, buildAgentReport, type AgentReport } from './agentReports'
 import { buildAgentTree, type AgentTreeInput, type AgentTreeNode } from './agentTree'
-import type { AgentUsage } from './agentUsage'
 import { combineObservers } from './combineObservers'
-import { collectAgentReports, type AgentReports } from './collectAgentReports'
-import type { FileTouch } from './fileTouchCollector'
-import { createFilesLedger, type FileTouchEntry, type FilesLedger } from './filesLedger'
+import { collectAgentReports } from './collectAgentReports'
+import { createFilesLedger } from './filesLedger'
 import { groupByOwner } from './groupByOwner'
 import { reconcileUsage, type UsageReconciliation } from './reconcileUsage'
 import { readSubagentTranscript } from './readSubagentTranscript'
@@ -26,8 +20,7 @@ import { resolveSubagentMeta } from './resolveSubagentMeta'
 import type { SpawnContext } from './spawnContext'
 import { createSpawnObserver, type TranscriptSpawns } from './spawnObserver'
 import { tapRecords } from './tapRecords'
-import { groupTokensByModelAndSpeed } from './tokenGroup'
-import { createUsageLedger, type LedgerEntry, type UsageLedger } from './usageLedger'
+import { createUsageLedger } from './usageLedger'
 
 /** Options for {@link scanSession}. */
 export interface ScanSessionOptions extends ReadJsonlLinesOptions {
@@ -42,14 +35,6 @@ export interface ScanSessionOptions extends ReadJsonlLinesOptions {
    * @defaultValue `false`
    */
   readonly subagentsUnreadable?: boolean
-}
-
-/** One agent's usage and file touches, scanned from its transcript. */
-export interface AgentReport {
-  /** The agent's token usage. */
-  readonly usage: AgentUsage
-  /** The files the agent's `Edit`/`Write` tool calls touched. */
-  readonly fileTouches: readonly FileTouch[]
 }
 
 /** A session's agent tree, alongside each agent's usage and file touches. */
@@ -124,7 +109,9 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
   )
   applyAgentReports({ usageLedger, filesLedger, identity: leadIdentity, agentReports: leadReports })
 
-  const subagentReadResults = new Map<AgentId, Result<AgentReports, UnreadableError>>()
+  // Once a subagent's reports are in the ledgers, only its skipped-line count is
+  // needed, so the reports (touches, message reports) are not kept until the scan ends.
+  const subagentSkippedLines = new Map<AgentId, Result<number, UnreadableError>>()
   const treeInputs: AgentTreeInput[] = []
 
   for (const subagent of subagents) {
@@ -139,7 +126,10 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
       applyAgentReports({ usageLedger, filesLedger, identity, agentReports: readResult.value })
       subagentSpawns.set(subagent.agentId, spawnObserver.result())
     }
-    subagentReadResults.set(subagent.agentId, readResult)
+    subagentSkippedLines.set(
+      subagent.agentId,
+      readResult.ok ? ok(readResult.value.skippedLines) : readResult
+    )
 
     const metaStatus = await resolveSubagentMeta(subagent.metaPath)
     treeInputs.push({ agentId: subagent.agentId, metaStatus })
@@ -148,11 +138,12 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
   const leadSpawnsResult = leadSpawns.result()
   const usageByOwner = groupByOwner(usageLedger.entries())
   const touchesByOwner = groupByOwner(filesLedger.entries())
+  const incompleteOwners = new Set(filesLedger.incompleteOwners().map(agentIdentityKey))
 
   const subagentReports = new Map<AgentId, Result<AgentReport, UnreadableError>>()
-  for (const [agentId, readResult] of subagentReadResults) {
-    if (!readResult.ok) {
-      subagentReports.set(agentId, readResult)
+  for (const [agentId, skipped] of subagentSkippedLines) {
+    if (!skipped.ok) {
+      subagentReports.set(agentId, skipped)
       continue
     }
     const identity = subagentIdentity(agentId)
@@ -160,7 +151,8 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
       identity,
       usageByOwner,
       touchesByOwner,
-      skippedLines: readResult.value.skippedLines
+      incompleteOwners,
+      skippedLines: skipped.value
     })
     subagentReports.set(agentId, ok(report))
   }
@@ -169,6 +161,7 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
     identity: leadIdentity,
     usageByOwner,
     touchesByOwner,
+    incompleteOwners,
     skippedLines: leadReports.skippedLines
   })
 
@@ -195,51 +188,5 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
       leadTranscript: leadSpawnsResult,
       subagentTranscripts: subagentSpawns
     })
-  }
-}
-
-/** Input for {@link applyAgentReports}. */
-interface ApplyAgentReportsInput {
-  readonly usageLedger: UsageLedger
-  readonly filesLedger: FilesLedger
-  readonly identity: AgentIdentity
-  readonly agentReports: AgentReports
-}
-
-/** Applies one agent's already-read reports to the session's shared ledgers. */
-function applyAgentReports(input: ApplyAgentReportsInput): void {
-  const { usageLedger, filesLedger, identity, agentReports } = input
-  for (const report of agentReports.reports) usageLedger.report(report)
-  for (const touch of agentReports.fileTouches) filesLedger.report({ identity, touch })
-}
-
-/** Input for {@link buildAgentReport}. */
-interface BuildAgentReportInput {
-  readonly identity: AgentIdentity
-  readonly usageByOwner: ReadonlyMap<string, readonly LedgerEntry[]>
-  readonly touchesByOwner: ReadonlyMap<string, readonly FileTouchEntry[]>
-  readonly skippedLines: number
-}
-
-/**
- * Builds one agent's report from the ledger entries it owns.
- * @param input - The agent's identity, the grouped ledgers, and its
- * transcript's skipped-line count.
- * @returns The agent's usage and file touches.
- */
-function buildAgentReport(input: BuildAgentReportInput): AgentReport {
-  const { identity, usageByOwner, touchesByOwner, skippedLines } = input
-  const key = agentIdentityKey(identity)
-  const owned = usageByOwner.get(key) ?? []
-
-  const ownedTouches = touchesByOwner.get(key) ?? []
-
-  return {
-    usage: {
-      tokenGroups: groupTokensByModelAndSpeed(owned),
-      messageCount: owned.length,
-      skippedLines
-    },
-    fileTouches: ownedTouches.map((entry) => entry.touch)
   }
 }

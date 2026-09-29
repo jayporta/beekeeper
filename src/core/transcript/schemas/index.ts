@@ -1,5 +1,11 @@
 export { aiTitleRecordSchema, type AiTitleRecord } from './aiTitleRecord'
 export { assistantRecordSchema, type AssistantRecord } from './assistantRecord'
+export {
+  bashEditDiffSchema,
+  bashEditFileSchema,
+  bashToolUseResultSchema,
+  type BashEditDiff
+} from './bashEditDiff'
 export { costStateRecordSchema, type CostStateRecord } from './costStateRecord'
 export { editToolUseResultSchema, type EditToolUseResult } from './editToolUseResult'
 export { filePathSchema } from './filePath'

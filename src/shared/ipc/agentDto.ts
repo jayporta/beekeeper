@@ -32,12 +32,14 @@ export interface TokenGroupDto {
   readonly price: PriceDto
 }
 
-/** One file an agent's `Edit` or `Write` call touched. */
+/** One file an agent's `Edit` or `Write` call, or a Bash command, touched. */
 export interface FileTouchDto {
-  /** The path exactly as the tool reported it. Render as plain text only. */
+  /** The path as the tool reported it. Render as plain text only. */
   readonly filePath: string
-  /** What the tool did to the file. */
-  readonly operation: 'edit' | 'create' | 'update'
+  /** What the tool did to the file. `change`: changed, but the result gave no detail on how. */
+  readonly operation: 'edit' | 'create' | 'update' | 'delete' | 'change'
+  /** Which kind of call reported it: `edit-write` for an `Edit`/`Write` call, `bash` for a Bash command's detected changes. */
+  readonly source: 'edit-write' | 'bash'
 }
 
 /** One agent's usage and file touches. */
@@ -50,6 +52,21 @@ export interface AgentReportDto {
   readonly skippedLines: number
   /** The files its tool calls touched. */
   readonly fileTouches: readonly FileTouchDto[]
+  /**
+   * Whether `fileTouches` may be missing files: one of its Bash commands
+   * reported that it could not tell what changed (unavailable, shared, or
+   * skipped), changed more files than the per-result cap, named a path that
+   * could not be listed, or gave no usable list of changed files; or its Bash
+   * touches passed the per-transcript or per-session cap, or it had more
+   * incomplete results than are tracked. It can also over-report: a fork
+   * holds copies of the lead's incomplete results, which count toward its own
+   * limit, so a fork that copied past it is marked even if none were its own;
+   * past the session's limit on tracked incomplete results, a fork's copy of
+   * one marks the fork too; and a lead touch cut at the per-session cap is
+   * cut in a fork's copy as well, which marks the fork. Not set when a Bash
+   * result only truncated its diff hunks.
+   */
+  readonly fileListIncomplete: boolean
 }
 
 /** The subagent meta fields the renderer may see. Unknown fields are dropped. */

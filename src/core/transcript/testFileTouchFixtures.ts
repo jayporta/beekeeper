@@ -71,6 +71,16 @@ export function buildEditToolUseResult(filePath = '/repo/src/example.ts'): Recor
   return { filePath, oldString: 'a', newString: 'b' }
 }
 
+/**
+ * Builds a synthetic Bash tool call's `toolUseResult`, carrying a
+ * `bashEditDiff` when one is given.
+ */
+export function buildBashToolUseResult(
+  bashEditDiff?: Record<string, unknown>
+): Record<string, unknown> {
+  return { stdout: 'ok', stderr: '', ...(bashEditDiff !== undefined && { bashEditDiff }) }
+}
+
 /** Builds a synthetic `Write` tool call's `toolUseResult`. */
 export function buildWriteToolUseResult(
   filePath = '/repo/src/example.ts',

@@ -25,7 +25,7 @@ describe('createFileTouchCollector', () => {
     )
 
     expect(collector.touches()).toEqual([
-      { filePath: '/a.ts', operation: 'edit', toolUseId: 'toolu_1' }
+      { filePath: '/a.ts', operation: 'edit', source: 'edit-write', toolUseId: 'toolu_1' }
     ])
   })
 
@@ -41,7 +41,7 @@ describe('createFileTouchCollector', () => {
     )
 
     expect(collector.touches()).toEqual([
-      { filePath: '/new.ts', operation: 'create', toolUseId: 'toolu_2' }
+      { filePath: '/new.ts', operation: 'create', source: 'edit-write', toolUseId: 'toolu_2' }
     ])
   })
 
@@ -57,7 +57,7 @@ describe('createFileTouchCollector', () => {
     )
 
     expect(collector.touches()).toEqual([
-      { filePath: '/existing.ts', operation: 'update', toolUseId: 'toolu_3' }
+      { filePath: '/existing.ts', operation: 'update', source: 'edit-write', toolUseId: 'toolu_3' }
     ])
   })
 
