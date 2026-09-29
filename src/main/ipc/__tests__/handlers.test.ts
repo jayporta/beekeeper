@@ -25,7 +25,7 @@ describe('listProjectsHandler', () => {
   it('lists project folder names and nothing else', async () => {
     expect(await listProjectsHandler(ctx.deps)).toEqual({
       ok: true,
-      value: [{ dirName: TEST_PROJECT }]
+      value: [{ dirName: TEST_PROJECT, worktreeOf: null }]
     })
   })
 
