@@ -61,11 +61,13 @@ export async function groupProjectFamily(
   options: GroupProjectFamilyOptions
 ): Promise<ProjectFamilyGrouping> {
   const { deps, project, projects } = options
-  const familyNames = projectFamilyOf(
-    project.dirName,
-    projects.map((entry) => entry.dirName)
+  const familyNames = new Set(
+    projectFamilyOf(
+      project.dirName,
+      projects.map((entry) => entry.dirName)
+    )
   )
-  const family = projects.filter((entry) => familyNames.includes(entry.dirName))
+  const family = projects.filter((entry) => familyNames.has(entry.dirName))
   const scanned = (
     await Promise.all(
       family.map((folder) =>
