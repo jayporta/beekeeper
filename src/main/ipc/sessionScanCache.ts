@@ -1,5 +1,6 @@
 import type { AgentTreeNode } from '../../core/session/agentTree'
 import type { SessionScan } from '../../core/session/scanSession'
+import { createLruMap } from '../../core/shared/lruMap'
 
 /** A small least-recently-used cache of completed session scans. */
 export interface SessionScanCache {
@@ -52,24 +53,14 @@ function isCompleteScan(scan: SessionScan, subagentsListed: boolean): boolean {
  * @returns The cache.
  */
 export function createSessionScanCache(options: SessionScanCacheOptions): SessionScanCache {
-  const entries = new Map<string, SessionScan>()
+  const entries = createLruMap<string, SessionScan>({
+    maxWeight: options.capacity,
+    weigh: () => 1
+  })
   return {
-    get(key) {
-      const scan = entries.get(key)
-      if (scan === undefined) return undefined
-      entries.delete(key)
-      entries.set(key, scan)
-      return scan
-    },
+    get: (key) => entries.get(key),
     set(key, scan, subagentsListed) {
-      if (!isCompleteScan(scan, subagentsListed)) return
-      entries.delete(key)
-      entries.set(key, scan)
-      while (entries.size > options.capacity) {
-        const oldest = entries.keys().next()
-        if (oldest.done === true) return
-        entries.delete(oldest.value)
-      }
+      if (isCompleteScan(scan, subagentsListed)) entries.set(key, scan)
     }
   }
 }

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { MAX_BRANCH_CODE_UNITS } from '../../shared/boundedBranch'
 import { MAX_PATH_CODE_UNITS } from '../../shared/boundedPath'
+import { MAX_LABEL_CODE_UNITS } from '../boundedLabel'
+import { MAX_IDENTIFIER_CODE_UNITS } from '../schemas/boundedIdentifier'
 import { subagentMetaSchema } from '../schemas/subagentMeta'
 import { buildMinimalSubagentMeta } from '../testFixtures'
 
@@ -66,6 +68,123 @@ describe('subagentMetaSchema', () => {
     for (const key of Object.keys(bad)) {
       expect(parsed.data[key as keyof typeof parsed.data]).toBeUndefined()
     }
+  })
+
+  describe.each(['teamName', 'name', 'description'] as const)('%s label', (field) => {
+    it.each([
+      ['an oversized value', 'x'.repeat(MAX_LABEL_CODE_UNITS + 1)],
+      // Each U+0344 is one code unit that NFC expands to two: 200 fit the cap, 400 do not.
+      ['a value NFC expands past the cap', '̈́'.repeat(200)],
+      ['a value with a newline', 'sc\nout'],
+      ['a value with a bidi override', 'sc‮out'],
+      ['a blank value', '   ']
+    ])('keeps the meta and reads %s as absent', (_label, bad) => {
+      const parsed = subagentMetaSchema.safeParse({
+        ...buildMinimalSubagentMeta('reviewer'),
+        [field]: bad
+      })
+
+      expect(parsed.success).toBe(true)
+      if (!parsed.success) return
+      expect(parsed.data.agentType).toBe('reviewer')
+      expect(parsed.data[field]).toBeUndefined()
+    })
+
+    it('keeps the meta and reads a non-string value as absent', () => {
+      const parsed = subagentMetaSchema.safeParse({
+        ...buildMinimalSubagentMeta('reviewer'),
+        [field]: 7
+      })
+
+      expect(parsed.success).toBe(true)
+      if (!parsed.success) return
+      expect(parsed.data.agentType).toBe('reviewer')
+      expect(parsed.data[field]).toBeUndefined()
+    })
+
+    it('trims the value and normalizes it to NFC', () => {
+      const parsed = subagentMetaSchema.parse({
+        ...buildMinimalSubagentMeta('reviewer'),
+        [field]: '  café '
+      })
+
+      expect(parsed[field]).toBe('café')
+    })
+  })
+
+  describe.each(['toolUseId', 'parentAgentId', 'model', 'taskKind'] as const)(
+    '%s identifier',
+    (field) => {
+      it('keeps the meta and reads an over-cap value as absent', () => {
+        const parsed = subagentMetaSchema.safeParse({
+          ...buildMinimalSubagentMeta('reviewer'),
+          [field]: 'x'.repeat(MAX_IDENTIFIER_CODE_UNITS + 1)
+        })
+
+        expect(parsed.success).toBe(true)
+        if (!parsed.success) return
+        expect(parsed.data.agentType).toBe('reviewer')
+        expect(parsed.data[field]).toBeUndefined()
+      })
+
+      it('keeps the meta and reads a non-string value as absent', () => {
+        const parsed = subagentMetaSchema.safeParse({
+          ...buildMinimalSubagentMeta('reviewer'),
+          [field]: 7
+        })
+
+        expect(parsed.success).toBe(true)
+        if (!parsed.success) return
+        expect(parsed.data.agentType).toBe('reviewer')
+        expect(parsed.data[field]).toBeUndefined()
+      })
+
+      it.each([
+        ['surrounding spaces', '  id-1 '],
+        ['a decomposed accent', 'café'],
+        ['a newline', 'id\n1']
+      ])('keeps a value with %s exactly as written', (_label, value) => {
+        const parsed = subagentMetaSchema.parse({
+          ...buildMinimalSubagentMeta('reviewer'),
+          [field]: value
+        })
+
+        expect(parsed[field]).toBe(value)
+      })
+    }
+  )
+
+  it('keeps real-looking meta values unchanged', () => {
+    const real = {
+      toolUseId: 'toolu_01AbC',
+      parentAgentId: 'a1b2c3d4e5f6',
+      model: 'claude-opus-5-5[1m]',
+      description: 'Review the staged diff for bugs',
+      taskKind: 'review',
+      teamName: 'core-team_2',
+      name: 'reviewer-1'
+    }
+
+    const parsed = subagentMetaSchema.parse({ ...buildMinimalSubagentMeta('reviewer'), ...real })
+
+    expect(parsed).toMatchObject(real)
+  })
+
+  it.each([
+    ['an oversized agentType', 'x'.repeat(MAX_LABEL_CODE_UNITS + 1)],
+    ['an agentType NFC expands past the cap', '̈́'.repeat(200)],
+    ['an agentType with a newline', 'code\nreviewer'],
+    ['a blank agentType', '  ']
+  ])('rejects the whole meta for %s', (_label, agentType) => {
+    expect(subagentMetaSchema.safeParse({ agentType }).success).toBe(false)
+  })
+
+  it('trims an agentType and normalizes it to NFC', () => {
+    expect(subagentMetaSchema.parse({ agentType: ' café ' }).agentType).toBe('café')
+  })
+
+  it('keeps a real-looking agentType unchanged', () => {
+    expect(subagentMetaSchema.parse({ agentType: 'code-reviewer' }).agentType).toBe('code-reviewer')
   })
 
   it('reads valid worktree fields', () => {

@@ -1,9 +1,11 @@
+import { createLruMap } from '../../shared/lruMap'
 import { ok, type Result } from '../../shared/result'
 import { captureSystemError } from '../captureSystemError'
 import type { TranscriptFileInfo } from '../statTranscriptFile'
 import type { UnreadableError } from '../unreadableError'
 import { scanSessionSummary } from './scanSessionSummary'
 import type { SessionSummary } from './sessionSummary'
+import { summaryWeight } from './summaryWeight'
 
 /** A cached summary, alongside the file state it was scanned from. */
 interface CacheEntry {
@@ -31,13 +33,35 @@ export interface SessionSummaryCache {
   read(file: TranscriptFileInfo): Promise<Result<SessionSummary, UnreadableError>>
 }
 
+/** Options for {@link createSessionSummaryCache}. */
+export interface SessionSummaryCacheOptions {
+  /**
+   * The most total {@link summaryWeight}, in UTF-16 code units, the cache
+   * keeps.
+   * @defaultValue {@link SUMMARY_CACHE_MAX_WEIGHT}
+   */
+  readonly maxWeight?: number
+}
+
 /**
- * Creates a summary cache keyed by transcript path, holding one entry per
- * transcript it has scanned and evicting none. A typical entry holds a
- * capped title, a cost total, two timestamps, a count, a role carrying at
- * most three capped strings, and the spawn and stop lists. The worst case
- * is a crafted transcript, where each list holds up to 128 entries of
- * labels up to 256 code units.
+ * The default bound on a summary cache's total weight, in UTF-16 code units.
+ * A real entry weighs under about a thousand (the per-entry overhead plus a
+ * few hundred code units of labels), so this holds several thousand of
+ * them, where the largest real folder has about five hundred transcripts.
+ * A crafted entry can weigh about 200 thousand (128 spawns of four strings
+ * and 128 stops of two, each up to 256 code units), so the bound holds
+ * about twenty of those. The strings it accounts for take at most 8 MB, at
+ * two bytes per code unit.
+ */
+export const SUMMARY_CACHE_MAX_WEIGHT = 4_000_000
+
+/**
+ * Creates a summary cache keyed by transcript path. Entries are evicted
+ * least recently used first once their total {@link summaryWeight} passes
+ * the bound, so a deleted or rotated transcript's entry ages out and a
+ * crafted transcript can't grow the cache past it. An entry heavier than
+ * the whole bound is served but not kept. An evicted transcript is scanned
+ * again on its next read.
  *
  * An entry is reused only while the file's `mtimeMs` and `size` both match
  * the scan, which covers how transcripts change in practice: they're only
@@ -45,10 +69,16 @@ export interface SessionSummaryCache {
  * and the modification time untouched would be served from the stale
  * entry. A failed scan is not cached.
  *
+ * @param options - The weight bound.
  * @returns A cache ready to read summaries through.
  */
-export function createSessionSummaryCache(): SessionSummaryCache {
-  const entries = new Map<string, CacheEntry>()
+export function createSessionSummaryCache(
+  options: SessionSummaryCacheOptions = {}
+): SessionSummaryCache {
+  const entries = createLruMap<string, CacheEntry>({
+    maxWeight: options.maxWeight ?? SUMMARY_CACHE_MAX_WEIGHT,
+    weigh: (entry) => summaryWeight(entry.summary)
+  })
 
   return {
     async read(file: TranscriptFileInfo): Promise<Result<SessionSummary, UnreadableError>> {

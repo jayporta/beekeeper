@@ -1,4 +1,4 @@
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { Result } from '../../../shared/result'
 import type { TranscriptFileInfo } from '../../statTranscriptFile'
@@ -6,6 +6,7 @@ import { buildAiTitleRecord, buildJsonlText } from '../../testFixtures'
 import type { UnreadableError } from '../../unreadableError'
 import { createSessionSummaryCache } from '../sessionSummaryCache'
 import type { SessionSummary } from '../sessionSummary'
+import { SUMMARY_ENTRY_OVERHEAD } from '../summaryWeight'
 import { createTranscriptDir, type TranscriptDir } from '../testTranscriptDir'
 
 let dir: TranscriptDir
@@ -96,6 +97,83 @@ describe('createSessionSummaryCache', () => {
     const result = await cache.read(missing)
 
     expect(result).toEqual({ ok: false, error: { reason: 'unreadable', code: 'ENOENT' } })
+  })
+
+  describe('eviction', () => {
+    // A title-only summary weighs the entry overhead plus the title, so this
+    // bound holds two eight-character titles and not three.
+    const TWO_ENTRIES = 2 * (SUMMARY_ENTRY_OVERHEAD + 8) + 10
+
+    /**
+     * Rewrites a transcript with a same-length title and returns the file
+     * as it was before, so a read through it tells a cached summary (the old
+     * title) from a rescan (the new one).
+     */
+    function rewriteKeepingSize(file: TranscriptFileInfo, title: string): TranscriptFileInfo {
+      dir.write(basename(file.path), buildJsonlText([buildAiTitleRecord(title)]))
+      return file
+    }
+
+    it('serves the cached summary before eviction and rescans after it', async () => {
+      const cache = createSessionSummaryCache({ maxWeight: TWO_ENTRIES })
+      const a = writeTranscript('a.jsonl', 'title-aa')
+      const b = writeTranscript('b.jsonl', 'title-bb')
+      const c = writeTranscript('c.jsonl', 'title-cc')
+      await cache.read(a)
+
+      const beforeEviction = expectTitle(await cache.read(rewriteKeepingSize(a, 'newer-aa')))
+      await cache.read(b)
+      await cache.read(c)
+      const afterEviction = expectTitle(await cache.read(a))
+
+      expect([beforeEviction, afterEviction]).toEqual(['title-aa', 'newer-aa'])
+    })
+
+    it('keeps the total weight within the bound, dropping the least recently read', async () => {
+      const cache = createSessionSummaryCache({ maxWeight: TWO_ENTRIES })
+      const files = ['1', '2', '3', '4', '5'].map((n) =>
+        writeTranscript(`${n}.jsonl`, `title-0${n}`)
+      )
+      for (const file of files) await cache.read(file)
+      for (const [index, file] of files.entries()) {
+        rewriteKeepingSize(file, `newer-0${index + 1}`)
+      }
+
+      const titles: (string | null)[] = []
+      for (const file of [...files].reverse()) titles.push(expectTitle(await cache.read(file)))
+
+      expect(titles).toEqual(['title-05', 'title-04', 'newer-03', 'newer-02', 'newer-01'])
+    })
+
+    it('does not keep a summary heavier than the whole bound, but still returns it', async () => {
+      const cache = createSessionSummaryCache({ maxWeight: SUMMARY_ENTRY_OVERHEAD })
+      const file = writeTranscript('big.jsonl', 'title-aa')
+
+      const first = expectTitle(await cache.read(file))
+      const second = expectTitle(await cache.read(rewriteKeepingSize(file, 'newer-aa')))
+
+      expect([first, second]).toEqual(['title-aa', 'newer-aa'])
+    })
+
+    it('serves a second pass over a 600-transcript folder from cache at the default bound', async () => {
+      const cache = createSessionSummaryCache()
+      const files = Array.from({ length: 600 }, (_, n) =>
+        writeTranscript(`s${n}.jsonl`, `sess-${String(n).padStart(4, '0')}`)
+      )
+      for (const file of files) await cache.read(file)
+      const sampled = files.filter((_, n) => n % 50 === 0)
+      for (const [index, file] of sampled.entries()) {
+        rewriteKeepingSize(file, `redo-${String(index * 50).padStart(4, '0')}`)
+      }
+
+      const titles: (string | null)[] = []
+      for (const file of files) titles.push(expectTitle(await cache.read(file)))
+
+      const sampledIndexes = sampled.map((_, index) => index * 50)
+      expect(sampledIndexes.map((n) => titles[n])).toEqual(
+        sampledIndexes.map((n) => `sess-${String(n).padStart(4, '0')}`)
+      )
+    })
   })
 
   it('does not cache a failed scan', async () => {
