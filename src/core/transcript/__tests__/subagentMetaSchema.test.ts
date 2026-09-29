@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { MAX_BRANCH_CODE_UNITS } from '../../shared/boundedBranch'
 import { MAX_PATH_CODE_UNITS } from '../../shared/boundedPath'
+import { MAX_LABEL_CODE_UNITS } from '../boundedLabel'
 import { subagentMetaSchema } from '../schemas/subagentMeta'
 import { buildMinimalSubagentMeta } from '../testFixtures'
 
@@ -66,6 +67,74 @@ describe('subagentMetaSchema', () => {
     for (const key of Object.keys(bad)) {
       expect(parsed.data[key as keyof typeof parsed.data]).toBeUndefined()
     }
+  })
+
+  describe.each(['teamName', 'name'] as const)('%s label', (field) => {
+    it.each([
+      ['an oversized value', 'x'.repeat(MAX_LABEL_CODE_UNITS + 1)],
+      // Each U+0344 is one code unit that NFC expands to two: 200 fit the cap, 400 do not.
+      ['a value NFC expands past the cap', '̈́'.repeat(200)],
+      ['a value with a newline', 'sc\nout'],
+      ['a value with a bidi override', 'sc‮out'],
+      ['a blank value', '   ']
+    ])('keeps the meta and reads %s as absent', (_label, bad) => {
+      const parsed = subagentMetaSchema.safeParse({
+        ...buildMinimalSubagentMeta('reviewer'),
+        [field]: bad
+      })
+
+      expect(parsed.success).toBe(true)
+      if (!parsed.success) return
+      expect(parsed.data.agentType).toBe('reviewer')
+      expect(parsed.data[field]).toBeUndefined()
+    })
+
+    it('keeps the meta and reads a non-string value as absent', () => {
+      const parsed = subagentMetaSchema.safeParse({
+        ...buildMinimalSubagentMeta('reviewer'),
+        [field]: 7
+      })
+
+      expect(parsed.success).toBe(true)
+      if (!parsed.success) return
+      expect(parsed.data.agentType).toBe('reviewer')
+      expect(parsed.data[field]).toBeUndefined()
+    })
+
+    it('trims the value and normalizes it to NFC', () => {
+      const parsed = subagentMetaSchema.parse({
+        ...buildMinimalSubagentMeta('reviewer'),
+        [field]: '  café '
+      })
+
+      expect(parsed[field]).toBe('café')
+    })
+
+    it('keeps a real-looking value unchanged', () => {
+      const parsed = subagentMetaSchema.parse({
+        ...buildMinimalSubagentMeta('reviewer'),
+        [field]: 'core-team_2'
+      })
+
+      expect(parsed[field]).toBe('core-team_2')
+    })
+  })
+
+  it.each([
+    ['an oversized agentType', 'x'.repeat(MAX_LABEL_CODE_UNITS + 1)],
+    ['an agentType NFC expands past the cap', '̈́'.repeat(200)],
+    ['an agentType with a newline', 'code\nreviewer'],
+    ['a blank agentType', '  ']
+  ])('rejects the whole meta for %s', (_label, agentType) => {
+    expect(subagentMetaSchema.safeParse({ agentType }).success).toBe(false)
+  })
+
+  it('trims an agentType and normalizes it to NFC', () => {
+    expect(subagentMetaSchema.parse({ agentType: ' café ' }).agentType).toBe('café')
+  })
+
+  it('keeps a real-looking agentType unchanged', () => {
+    expect(subagentMetaSchema.parse({ agentType: 'code-reviewer' }).agentType).toBe('code-reviewer')
   })
 
   it('reads valid worktree fields', () => {
