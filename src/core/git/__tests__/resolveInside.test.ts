@@ -226,6 +226,27 @@ describe('resolveInside', () => {
       })
     })
 
+    it('starts no further call once the budget ran out between two calls', async () => {
+      vi.useFakeTimers()
+      let started = 0
+      const spendBudgetAfterFirst: FsRunner = async (call) => {
+        started += 1
+        const value = await call()
+        // Moves the clock without firing any timer, so only the budget check can notice.
+        vi.setSystemTime(Date.now() + MAX_WALK_MS)
+        return value
+      }
+
+      const result = await resolveInside({
+        root,
+        path: join(root, 'dir', 'sub'),
+        fsRunner: spendBudgetAfterFirst
+      })
+
+      expect(result).toEqual({ ok: false, error: 'timeout' })
+      expect(started).toBe(1)
+    })
+
     it('reports timeout when a call outlasts the walk budget, with no per-call deadline to end it', async () => {
       vi.useFakeTimers()
       const hung: FsRunner = () => neverSettles()

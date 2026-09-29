@@ -9,7 +9,10 @@ import { FsTimeoutError, type FsRunner } from './fsDeadline'
  * A call submitted once the deadline has passed rejects without starting.
  * The wrapper's timer is cleared when the call settles and never keeps the
  * process alive. A call it gave up on is still tracked by `run`, which keeps
- * its slot until the call settles.
+ * its slot until the call settles. When the budget ends while a call is still
+ * queued in `run`, the walk stops at once, but that queued call is not
+ * withdrawn and may still start if a slot frees before `run`'s own deadline,
+ * so at most one call per abandoned walk can run after the walk has ended.
  *
  * @param run - The runner that starts each call.
  * @param deadlineAt - When the budget ends, in `Date.now()` milliseconds.

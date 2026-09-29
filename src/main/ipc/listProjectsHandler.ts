@@ -15,7 +15,7 @@ export async function listProjectsHandler(
   deps: Pick<IpcDeps, 'projectsRoot'>
 ): Promise<IpcResult<readonly ProjectDto[]>> {
   const projects = await discoverProjects(deps.projectsRoot)
-  const listed = projects.map((project) => project.dirName)
+  const listed = new Set(projects.map((project) => project.dirName))
   return okResult(
     projects.map((project) => ({
       dirName: project.dirName,

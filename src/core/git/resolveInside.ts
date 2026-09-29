@@ -25,11 +25,13 @@ export const MAX_LINK_HOPS = 32
 export const MAX_WALK_STEPS = 1024
 
 /**
- * The most milliseconds one {@link resolveInside} walk may take. It is checked
- * before each component, and each `lstat` and `readlink` is also cut off when
- * it runs out, so a call in flight ends with the walk. Each filesystem call has
- * its own deadline, but a mount that answers just inside it could otherwise
- * keep a walk of many steps going for as long as it likes.
+ * The most milliseconds one {@link resolveInside} walk may take, counted from
+ * its start. It is a budget shared by every `lstat` and `readlink` of the walk:
+ * a call still pending when it runs out is cut off, and a call submitted after
+ * it ran out never starts. Steps that make no filesystem call are bounded by
+ * {@link MAX_WALK_STEPS} instead. Each filesystem call has its own deadline,
+ * but a mount that answers just inside it could otherwise keep a walk of many
+ * steps going for as long as it likes.
  */
 export const MAX_WALK_MS = 10_000
 
@@ -42,9 +44,9 @@ export const MAX_WALK_MS = 10_000
  * is missing; `not-a-directory` when a component that is neither a directory
  * nor a link has more components after it, as the kernel's `ENOTDIR`;
  * `unreadable` for any other failure reading a component; and `timeout` when
- * reading a component hangs past its deadline, or the whole walk, a call in
- * flight included, runs past {@link MAX_WALK_MS}. A file as the last component
- * is not refused.
+ * reading a component hangs past its deadline, or the walk's filesystem calls
+ * run past the {@link MAX_WALK_MS} budget, a call in flight included. A file as
+ * the last component is not refused.
  */
 export type ResolveInsideError =
   | 'too-long'
@@ -98,8 +100,7 @@ export async function resolveInside(
   options: ResolveInsideOptions
 ): Promise<Result<string, ResolveInsideError>> {
   const { root, path } = options
-  const startedAt = Date.now()
-  const run = withWalkBudget(options.fsRunner ?? defaultFsRunner, startedAt + MAX_WALK_MS)
+  const run = withWalkBudget(options.fsRunner ?? defaultFsRunner, Date.now() + MAX_WALK_MS)
   if (!isAbsolutePathWithinCap(path)) return err('too-long')
   if (path === root) return ok(root)
   const prefix = root.endsWith(sep) ? root : root + sep
@@ -112,7 +113,6 @@ export async function resolveInside(
   let hops = 0
   let steps = 0
   for (let next = pending.shift(); next !== undefined; next = pending.shift()) {
-    if (Date.now() - startedAt > MAX_WALK_MS) return err('timeout')
     steps += 1
     if (steps > MAX_WALK_STEPS) return err('too-many-steps')
     if (next === '.') continue
