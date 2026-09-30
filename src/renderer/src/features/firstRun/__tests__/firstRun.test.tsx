@@ -1,14 +1,18 @@
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import App from '@renderer/App'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { idbStorage } from '@renderer/storage/idbStorage'
+import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
+import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
 import { useFirstRunStore } from '../state/useFirstRunStore'
-import { resetFirstRun } from '../testFirstRunReset'
+
+beforeEach(() => {
+  installBeekeeperApi()
+})
 
 afterEach(async () => {
   vi.restoreAllMocks()
-  await resetFirstRun()
+  await resetPersistedState()
 })
 
 const welcome = (): Promise<HTMLElement> =>
@@ -20,7 +24,7 @@ async function dismiss(): Promise<void> {
 
 describe('first-run screen', () => {
   it('shows on first launch', async () => {
-    render(<App />)
+    renderApp()
 
     expect(await welcome()).toBeTruthy()
     expect(
@@ -29,29 +33,29 @@ describe('first-run screen', () => {
   })
 
   it('renders neither the screen nor the main view before the stored state is read', () => {
-    render(<App />)
+    renderApp()
 
     expect(screen.queryByRole('heading', { level: 1 })).toBeNull()
     expect(screen.queryByRole('button', { name: 'About Beekeeper' })).toBeNull()
   })
 
   it('hides after Got it and shows the sessions view', async () => {
-    render(<App />)
+    renderApp()
     await dismiss()
 
     expect(screen.queryByRole('heading', { name: 'Welcome to Beekeeper' })).toBeNull()
-    expect(screen.getByRole('heading', { level: 1, name: 'Sessions' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Sessions' })).toBeTruthy()
   })
 
   it('moves focus to the main landmark after the first-launch Got it', async () => {
-    render(<App />)
+    renderApp()
     await dismiss()
 
     expect(document.activeElement).toBe(screen.getByRole('main'))
   })
 
   it('returns focus to About Beekeeper when Got it closes a reopened screen', async () => {
-    render(<App />)
+    renderApp()
     await dismiss()
     await userEvent.click(screen.getByRole('button', { name: 'About Beekeeper' }))
     await welcome()
@@ -62,7 +66,7 @@ describe('first-run screen', () => {
   })
 
   it('takes focus on its heading when it appears', async () => {
-    render(<App />)
+    renderApp()
 
     const heading = await welcome()
 
@@ -77,7 +81,7 @@ describe('first-run screen', () => {
       // The store singleton starts each test not dismissed, as on a fresh launch.
       await seedDismissal()
 
-      render(<App />)
+      renderApp()
 
       expect(await screen.findByRole('heading', { level: 1, name: 'Sessions' })).toBeTruthy()
       expect(screen.queryByRole('heading', { name: 'Welcome to Beekeeper' })).toBeNull()
@@ -86,7 +90,7 @@ describe('first-run screen', () => {
     it('does not move focus to the main landmark on launch', async () => {
       await seedDismissal()
 
-      render(<App />)
+      renderApp()
       await screen.findByRole('heading', { level: 1, name: 'Sessions' })
 
       expect(document.activeElement).not.toBe(screen.getByRole('main'))
@@ -100,7 +104,7 @@ describe('first-run screen', () => {
       const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)
       await seed('not json {secret transcript text')
 
-      render(<App />)
+      renderApp()
 
       expect(await welcome()).toBeTruthy()
       expect(log).toHaveBeenCalledExactlyOnceWith(
@@ -111,7 +115,7 @@ describe('first-run screen', () => {
     it('shows the screen when the stored dismissed is not a boolean', async () => {
       await seed(JSON.stringify({ state: { dismissed: 'false' }, version: 0 }))
 
-      render(<App />)
+      renderApp()
 
       expect(await welcome()).toBeTruthy()
     })
@@ -121,7 +125,7 @@ describe('first-run screen', () => {
         JSON.stringify({ state: { dismissed: true, dismiss: 'x', open: 'y' }, version: 0 })
       )
 
-      render(<App />)
+      renderApp()
       await userEvent.click(await screen.findByRole('button', { name: 'About Beekeeper' }))
 
       expect(await welcome()).toBeTruthy()
@@ -129,21 +133,21 @@ describe('first-run screen', () => {
   })
 
   it('has no About Beekeeper button while the screen shows, since it would do nothing', async () => {
-    render(<App />)
+    renderApp()
     await welcome()
 
     expect(screen.queryByRole('button', { name: 'About Beekeeper' })).toBeNull()
   })
 
   it('shows the About Beekeeper button once the screen is dismissed', async () => {
-    render(<App />)
+    renderApp()
     await dismiss()
 
     expect(screen.getByRole('button', { name: 'About Beekeeper' })).toBeTruthy()
   })
 
   it('puts focus on the heading when About Beekeeper reopens the screen', async () => {
-    render(<App />)
+    renderApp()
     await dismiss()
 
     await userEvent.click(screen.getByRole('button', { name: 'About Beekeeper' }))
@@ -152,18 +156,18 @@ describe('first-run screen', () => {
   })
 
   it('reopens from About Beekeeper and closes again with Got it', async () => {
-    render(<App />)
+    renderApp()
     await dismiss()
 
     await userEvent.click(screen.getByRole('button', { name: 'About Beekeeper' }))
     expect(await welcome()).toBeTruthy()
 
     await dismiss()
-    expect(screen.getByRole('heading', { level: 1, name: 'Sessions' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Sessions' })).toBeTruthy()
   })
 
   it('does not persist the reopened state', async () => {
-    render(<App />)
+    renderApp()
     await dismiss()
     await userEvent.click(screen.getByRole('button', { name: 'About Beekeeper' }))
 
@@ -185,11 +189,11 @@ describe('first-run screen', () => {
     }
     vi.spyOn(idbStorage, 'setItem').mockReturnValue(failingWrite as unknown as Promise<void>)
     const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    render(<App />)
+    renderApp()
 
     await dismiss()
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Sessions' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Sessions' })).toBeTruthy()
     await vi.waitFor(() => {
       expect(log).toHaveBeenCalledWith('Beekeeper could not save "first-run" to IndexedDB.')
     })
@@ -200,7 +204,7 @@ describe('first-run screen', () => {
     vi.spyOn(idbStorage, 'getItem').mockRejectedValue(new Error('storage unavailable'))
     const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)
 
-    render(<App />)
+    renderApp()
 
     expect(await welcome()).toBeTruthy()
     expect(log).toHaveBeenCalledExactlyOnceWith(

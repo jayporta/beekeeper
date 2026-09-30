@@ -1,0 +1,25 @@
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.label {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.select {
+  width: 100%;
+  padding: var(--space-1) var(--space-2);
+  color: var(--color-text);
+  font: inherit;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+}
+
+.note {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
