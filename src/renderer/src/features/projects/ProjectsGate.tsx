@@ -41,7 +41,11 @@ export function ProjectsGate({ children }: ProjectsGateProps): React.JSX.Element
   }
 
   return (
-    <StatusMessage heading="Something went wrong" body="Beekeeper couldn't load your projects.">
+    <StatusMessage
+      heading="Something went wrong"
+      role="alert"
+      body="Beekeeper couldn't load your projects."
+    >
       <button
         type="button"
         onClick={() => {

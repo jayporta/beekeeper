@@ -11,6 +11,8 @@ interface SessionNameCellProps {
   readonly row: SessionRow
   /** Whether the row is a teammate nested under a lead. */
   readonly nested: boolean
+  /** The lead's name, read out before a nested row's name. `null` for a top-level row. */
+  readonly leadLabel: string | null
   /** Whether the row shows a disclosure button for its teammates. */
   readonly canExpand: boolean
   /** The folder the list is for, to mark sessions from another folder. */
@@ -39,11 +41,12 @@ function notesFor(
  * button that shows or hides them.
  *
  * @example
- * <SessionNameCell row={row} nested={false} canExpand selectedDirName="-Users-me-repo" />
+ * <SessionNameCell row={row} nested={false} leadLabel={null} canExpand selectedDirName="-Users-me-repo" />
  */
 export function SessionNameCell({
   row,
   nested,
+  leadLabel,
   canExpand,
   selectedDirName
 }: SessionNameCellProps): React.JSX.Element {
@@ -70,6 +73,7 @@ export function SessionNameCell({
           </button>
         )}
         <span className={styles.text}>{text}</span>
+        {leadLabel !== null && <span className="visuallyHidden">teammate of {leadLabel}</span>}
         {idHint !== null && <span className={styles.note}>{idHint}</span>}
         {notesFor(row.item, row.leadFolder, selectedDirName).map((note) => (
           <span key={note} className={styles.note}>

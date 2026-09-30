@@ -84,7 +84,7 @@ describe('SessionsView table', () => {
     showSessions()
 
     await screen.findByRole('table')
-    expect(screen.getByRole('rowheader', { name: /Refactor parser/ })).toBeTruthy()
+    expect(screen.getByRole('rowheader', { name: /^Refactor parser/ })).toBeTruthy()
     expect(screen.getByRole('rowheader', { name: /Untitled session/ })).toBeTruthy()
     expect(screen.queryByRole('rowheader', { name: /reviewer/ })).toBeNull()
   })
@@ -92,7 +92,7 @@ describe('SessionsView table', () => {
   it('shows the lead cells: duration, model, teammate count, costs and partial marker', async () => {
     showSessions()
 
-    const row = (await screen.findByRole('rowheader', { name: /Refactor parser/ })).closest('tr')
+    const row = (await screen.findByRole('rowheader', { name: /^Refactor parser/ })).closest('tr')
     const cells = within(row as HTMLElement).getAllByRole('cell')
     expect(cells.map((c) => c.textContent)).toEqual([
       expect.stringMatching(/2026/),
@@ -163,11 +163,25 @@ describe('SessionsView search', () => {
 
     await userEvent.type(screen.getByRole('searchbox', { name: 'Search sessions' }), 'review')
 
-    expect(screen.getByRole('rowheader', { name: /Refactor parser/ })).toBeTruthy()
+    expect(screen.getByRole('rowheader', { name: /^Refactor parser/ })).toBeTruthy()
     expect(screen.getByRole('rowheader', { name: /reviewer \(code\)/ })).toBeTruthy()
     expect(screen.queryByRole('rowheader', { name: /Untitled session/ })).toBeNull()
     expect(screen.queryByRole('rowheader', { name: /writer/ })).toBeNull()
     expect(screen.queryByRole('button', { name: /teammates of/ })).toBeNull()
+  })
+
+  it('tells a screen reader that a nested row is a teammate of its lead', async () => {
+    showSessions()
+    await userEvent.click(
+      await screen.findByRole('button', { name: '2 teammates of Refactor parser' })
+    )
+
+    expect(screen.getByRole('rowheader', { name: /reviewer \(code\)/ }).textContent).toContain(
+      'teammate of Refactor parser'
+    )
+    expect(screen.getByRole('rowheader', { name: /^Refactor parser/ }).textContent).not.toContain(
+      'teammate of'
+    )
   })
 
   it('says so when nothing matches', async () => {
@@ -178,6 +192,38 @@ describe('SessionsView search', () => {
 
     expect(screen.getByRole('heading', { name: 'No matching sessions' })).toBeTruthy()
     expect(screen.queryByRole('table')).toBeNull()
+  })
+})
+
+describe('SessionsView search announcements', () => {
+  it('has an empty polite status region before anything is typed', async () => {
+    showSessions()
+    await screen.findByRole('table')
+
+    expect(screen.getByRole('status').textContent).toBe('')
+  })
+
+  it('announces how many sessions match, and when none do', async () => {
+    showSessions()
+    await screen.findByRole('table')
+    const search = screen.getByRole('searchbox', { name: 'Search sessions' })
+
+    await userEvent.type(search, 'code')
+    await waitFor(() => {
+      expect(screen.getByRole('status').textContent).toBe('2 sessions match')
+    })
+
+    await userEvent.clear(search)
+    await userEvent.type(search, 'parser')
+    await waitFor(() => {
+      expect(screen.getByRole('status').textContent).toBe('1 session matches')
+    })
+
+    await userEvent.clear(search)
+    await userEvent.type(search, 'zzz')
+    await waitFor(() => {
+      expect(screen.getByRole('status').textContent).toBe('No matching sessions')
+    })
   })
 })
 
@@ -211,7 +257,8 @@ describe('SessionsView states', () => {
     })
     renderApp()
 
-    await screen.findByRole('heading', { name: 'Something went wrong' })
+    const alert = await screen.findByRole('alert')
+    expect(within(alert).getByRole('heading', { name: 'Something went wrong' })).toBeTruthy()
     await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
 
     expect(await screen.findByRole('table')).toBeTruthy()

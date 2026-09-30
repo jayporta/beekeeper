@@ -55,6 +55,19 @@ describe('filterRows', () => {
     expect(filterRows(rows, 'writer (code)')[0]?.teammates.map((t) => t.key)).toEqual([keyOf(3)])
   })
 
+  it('returns the original row object when all of its teammates match', () => {
+    const [kept] = filterRows(rows, 'code')
+
+    expect(kept).toBe(rows[0])
+  })
+
+  it('returns a new row object when some of its teammates are filtered out', () => {
+    const [kept] = filterRows(rows, 'review')
+
+    expect(kept).not.toBe(rows[0])
+    expect(rows[0]?.teammates).toHaveLength(2)
+  })
+
   it('returns nothing when no row matches', () => {
     expect(filterRows(rows, 'zzz')).toEqual([])
   })

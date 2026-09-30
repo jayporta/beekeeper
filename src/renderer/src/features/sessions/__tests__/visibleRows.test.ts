@@ -18,6 +18,12 @@ describe('visibleRows', () => {
     expect(visible.map((r) => r.nested)).toEqual([false, true])
   })
 
+  it('names the lead on each nested row and on no top-level row', () => {
+    const visible = visibleRows(rows, new Set([rows[0]?.key ?? '']), false)
+
+    expect(visible.map((r) => r.leadLabel)).toEqual([null, 'Untitled session'])
+  })
+
   it('shows teammates under every lead while searching, expanded or not', () => {
     expect(visibleRows(rows, new Set(), true).map((r) => r.nested)).toEqual([false, true])
   })

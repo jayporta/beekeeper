@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { IpcErrorCode, IpcResult } from '../../../../../shared/ipc/ipcResult'
@@ -54,8 +54,9 @@ describe('ProjectsGate states', () => {
     })
     renderApp()
 
+    const alert = await screen.findByRole('alert')
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Something went wrong' })
+      within(alert).getByRole('heading', { level: 1, name: 'Something went wrong' })
     ).toBeTruthy()
     await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
 

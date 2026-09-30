@@ -1,7 +1,9 @@
-import { useEffect, useMemo } from 'react'
+import { useDeferredValue, useEffect, useMemo } from 'react'
 import { StatusMessage } from '@renderer/components/StatusMessage'
+import { countMatches } from './countMatches'
 import { filterRows } from './filterRows'
 import { groupSessionRows } from './groupSessionRows'
+import { SearchResultsStatus } from './SearchResultsStatus'
 import { SessionSearch } from './SessionSearch'
 import { SessionsTable } from './SessionsTable'
 import { useSessionsViewStore } from './state/useSessionsViewStore'
@@ -25,10 +27,13 @@ interface SessionsContentProps {
  */
 export function SessionsContent({ dirName, headingId }: SessionsContentProps): React.JSX.Element {
   const { data, isError, refetch } = useSessions(dirName)
-  const query = useSessionsViewStore((state) => state.query)
+  const typed = useSessionsViewStore((state) => state.query)
+  // Filtering waits on the deferred text, so typing in the box stays responsive.
+  const query = useDeferredValue(typed)
   const collapseAll = useSessionsViewStore((state) => state.collapseAll)
   const rows = useMemo(() => (data === undefined ? [] : groupSessionRows(data)), [data])
   const matching = useMemo(() => filterRows(rows, query), [rows, query])
+  const matchCount = useMemo(() => countMatches(rows, query), [rows, query])
 
   // Expansion is keyed by session, so another folder's sessions are never expanded.
   useEffect(() => {
@@ -41,6 +46,7 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
       <StatusMessage
         heading="Something went wrong"
         headingLevel={2}
+        role="alert"
         body="Beekeeper couldn't load this project's sessions."
       >
         <button
@@ -68,6 +74,7 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
   return (
     <>
       <SessionSearch />
+      <SearchResultsStatus count={matchCount} searching={query.trim() !== ''} />
       {matching.length === 0 ? (
         <StatusMessage
           heading="No matching sessions"

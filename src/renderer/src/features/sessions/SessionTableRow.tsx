@@ -49,6 +49,7 @@ export function SessionTableRow({
       <SessionNameCell
         row={row}
         nested={nested}
+        leadLabel={visible.leadLabel}
         canExpand={!nested && !searching && row.teammates.length > 0}
         selectedDirName={selectedDirName}
       />

@@ -1,3 +1,4 @@
+import { sessionLabel } from './sessionLabel'
 import type { SessionRow } from './sessionRow'
 
 /** A row to render, and whether it is nested under a lead. */
@@ -6,6 +7,8 @@ export interface VisibleRow {
   readonly row: SessionRow
   /** Whether it renders as a teammate under a lead. */
   readonly nested: boolean
+  /** The lead's name for a nested row, for assistive technology. `null` for a top-level row. */
+  readonly leadLabel: string | null
 }
 
 /**
@@ -23,10 +26,14 @@ export function visibleRows(
   expanded: ReadonlySet<string>,
   searching: boolean
 ): readonly VisibleRow[] {
-  return rows.flatMap((row) => [
-    { row, nested: false },
-    ...(searching || expanded.has(row.key)
-      ? row.teammates.map((teammate) => ({ row: teammate, nested: true }))
-      : [])
-  ])
+  return rows.flatMap((row) => {
+    const shown = searching || expanded.has(row.key)
+    const leadLabel = shown ? sessionLabel(row.item).text : null
+    return [
+      { row, nested: false, leadLabel: null },
+      ...(shown
+        ? row.teammates.map((teammate) => ({ row: teammate, nested: true, leadLabel }))
+        : [])
+    ]
+  })
 }
