@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
+import { logRehydrateError } from '@renderer/storage/logRehydrateError'
 import { zustandIdbStorage } from '@renderer/storage/zustandIdbStorage'
+import { mergeFirstRunState } from './mergeFirstRunState'
 
 /** The IndexedDB key the first-run state is stored under. */
 export const FIRST_RUN_STORAGE_KEY = 'first-run'
@@ -32,11 +34,12 @@ export function selectIsFirstRunShowing(
 
 /**
  * The first-run screen's state. Only `dismissed` is persisted, to IndexedDB
- * through `zustandIdbStorage`. Hydration is started by `useFirstRunHydrated`, so the
- * UI can hold back until the stored value is known.
+ * through `zustandIdbStorage`. The stored value is validated on load (see
+ * `mergeFirstRunState`), and a load that fails is logged. Hydration is started
+ * by `useFirstRunHydrated`, so the UI can hold back until the stored value is known.
  */
 export const useFirstRunStore = create<FirstRunState>()(
-  persist(
+  persist<FirstRunState, [], [], { dismissed: boolean }>(
     (set) => ({
       dismissed: false,
       isOpen: false,
@@ -51,6 +54,8 @@ export const useFirstRunStore = create<FirstRunState>()(
       name: FIRST_RUN_STORAGE_KEY,
       storage: createJSONStorage(() => zustandIdbStorage),
       partialize: (state) => ({ dismissed: state.dismissed }),
+      merge: (persisted, current) => mergeFirstRunState(persisted, current),
+      onRehydrateStorage: logRehydrateError(FIRST_RUN_STORAGE_KEY),
       skipHydration: true
     }
   )

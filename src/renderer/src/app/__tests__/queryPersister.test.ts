@@ -44,6 +44,34 @@ describe('createQueryPersister', () => {
   })
 })
 
+describe('createQueryPersister restore', () => {
+  const storageHolding = (value: string): Parameters<typeof createQueryPersister>[0] => ({
+    getItem: () => Promise.resolve(value),
+    setItem: () => Promise.resolve(),
+    removeItem: () => Promise.resolve()
+  })
+
+  it('rejects with a fixed error that holds nothing of the stored text, and no cause', async () => {
+    const persister = createQueryPersister(storageHolding('{"projects": secret transcript text'))
+
+    const failure: unknown = await Promise.resolve(persister.restoreClient()).catch(
+      (error: unknown) => error
+    )
+
+    expect(failure).toBeInstanceOf(Error)
+    const error = failure as Error
+    expect(error.message).toBe('Beekeeper could not read its saved query cache.')
+    expect(error.cause).toBeUndefined()
+    expect(`${error.message}${error.stack ?? ''}`).not.toContain('secret')
+  })
+
+  it('restores a well-formed saved cache', async () => {
+    const persister = createQueryPersister(storageHolding(JSON.stringify(CLIENT)))
+
+    expect(await persister.restoreClient()).toEqual(CLIENT)
+  })
+})
+
 describe('logPersistError', () => {
   it('logs one fixed message', () => {
     const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)

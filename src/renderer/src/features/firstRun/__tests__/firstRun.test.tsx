@@ -93,6 +93,41 @@ describe('first-run screen', () => {
     })
   })
 
+  describe('with a stored value that cannot be trusted', () => {
+    const seed = (value: string): Promise<void> => idbStorage.setItem('first-run', value)
+
+    it('shows the screen, and logs one fixed message, for a stored value that is not JSON', async () => {
+      const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      await seed('not json {secret transcript text')
+
+      render(<App />)
+
+      expect(await welcome()).toBeTruthy()
+      expect(log).toHaveBeenCalledExactlyOnceWith(
+        'Beekeeper could not restore "first-run" from IndexedDB.'
+      )
+    })
+
+    it('shows the screen when the stored dismissed is not a boolean', async () => {
+      await seed(JSON.stringify({ state: { dismissed: 'false' }, version: 0 }))
+
+      render(<App />)
+
+      expect(await welcome()).toBeTruthy()
+    })
+
+    it('keeps the store actions when the stored value has keys of the same name', async () => {
+      await seed(
+        JSON.stringify({ state: { dismissed: true, dismiss: 'x', open: 'y' }, version: 0 })
+      )
+
+      render(<App />)
+      await userEvent.click(await screen.findByRole('button', { name: 'About Beekeeper' }))
+
+      expect(await welcome()).toBeTruthy()
+    })
+  })
+
   it('has no About Beekeeper button while the screen shows, since it would do nothing', async () => {
     render(<App />)
     await welcome()
@@ -161,12 +196,15 @@ describe('first-run screen', () => {
     expect(subscribed).toHaveBeenCalled()
   })
 
-  it('still shows the screen when the stored state cannot be read', async () => {
+  it('still shows the screen when the stored state cannot be read, logging one fixed message', async () => {
     vi.spyOn(idbStorage, 'getItem').mockRejectedValue(new Error('storage unavailable'))
-    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)
 
     render(<App />)
 
     expect(await welcome()).toBeTruthy()
+    expect(log).toHaveBeenCalledExactlyOnceWith(
+      'Beekeeper could not restore "first-run" from IndexedDB.'
+    )
   })
 })

@@ -1,5 +1,5 @@
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister'
-import type { Persister } from '@tanstack/react-query-persist-client'
+import type { PersistedClient, Persister } from '@tanstack/react-query-persist-client'
 import { idbStorage } from '@renderer/storage/idbStorage'
 
 /** The storage the persister saves to: anything with async string `getItem`, `setItem` and `removeItem`. */
@@ -19,6 +19,19 @@ function giveUpOnSave(): Promise<undefined> {
 }
 
 /**
+ * Parses the saved cache. A `JSON.parse` error quotes part of its input, which
+ * here is transcript-derived, and the persister logs a restore error in
+ * development, so a failure throws a fixed error with no cause instead.
+ */
+function parseSavedCache(saved: string): PersistedClient {
+  try {
+    return JSON.parse(saved)
+  } catch {
+    throw new Error('Beekeeper could not read its saved query cache.')
+  }
+}
+
+/**
  * Logs that the saved cache could not be restored. The message is fixed, for
  * the same reason as a failed save.
  */
@@ -34,5 +47,10 @@ export function logPersistError(): void {
  * @returns The persister.
  */
 export function createQueryPersister(storage: PersisterStorage = idbStorage): Persister {
-  return createAsyncStoragePersister({ storage, key: QUERY_CACHE_KEY, retry: giveUpOnSave })
+  return createAsyncStoragePersister({
+    storage,
+    key: QUERY_CACHE_KEY,
+    retry: giveUpOnSave,
+    deserialize: parseSavedCache
+  })
 }

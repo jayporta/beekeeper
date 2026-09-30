@@ -12,7 +12,7 @@
     "url": "https://github.com/jayporta/beekeeper"
   },
   "engines": {
-    "node": ">=22"
+    "node": "^22.13.0 || >=24"
   },
   "scripts": {
     "format": "prettier --write .",

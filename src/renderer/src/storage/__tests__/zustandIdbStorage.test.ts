@@ -36,14 +36,12 @@ describe('zustandIdbStorage', () => {
     )
   })
 
-  it('logs a failed read and rethrows it, for Zustand to handle', async () => {
+  it('rethrows a failed read unchanged, for Zustand to handle and the store to report', async () => {
     vi.spyOn(idbStorage, 'getItem').mockRejectedValue(new Error('unavailable'))
     const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)
 
     await expect(zustandIdbStorage.getItem('some-key')).rejects.toThrow('unavailable')
 
-    expect(log).toHaveBeenCalledExactlyOnceWith(
-      'Beekeeper could not read "some-key" from IndexedDB.'
-    )
+    expect(log).not.toHaveBeenCalled()
   })
 })

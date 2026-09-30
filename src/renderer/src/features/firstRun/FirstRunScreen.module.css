@@ -3,7 +3,7 @@
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-6);
-  max-width: 44rem;
+  max-width: var(--size-readable);
 }
 
 .title {
