@@ -69,7 +69,12 @@ export function buildAgentSettingRecord(
   return { type: 'agent-setting', agentSetting }
 }
 
-/** Builds a `text` content block. */
+/**
+ * Builds a `text` content block.
+ *
+ * @param text - The block's text.
+ * @returns A block of the form `{ type: 'text', text }`.
+ */
 export function buildTextBlock(text: string): Record<string, unknown> {
   return { type: 'text', text }
 }

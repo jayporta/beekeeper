@@ -24,8 +24,9 @@ export interface LatestModelObserver {
  *
  * A record qualifies when it is an `assistant` record outside a sidechain,
  * since a subagent's record is not the lead's, with a timestamp and a
- * `message.model` that is a printable string, not blank, within the
- * identifier cap, and not `<synthetic>`. A record without a timestamp never
+ * `message.model` that is a printable string, not blank, with no leading or
+ * trailing space (an identifier is kept as written, never trimmed), within
+ * the identifier cap, and not `<synthetic>`. A record without a timestamp never
  * qualifies, since it can't be placed in time. On a tie the first record seen
  * wins. Only the current best model and its timestamp are held.
  *
@@ -43,7 +44,8 @@ export function createLatestModelObserver(): LatestModelObserver {
 
       const candidate = record.message.model
       if (!isWithinCodeUnits(candidate, MAX_IDENTIFIER_CODE_UNITS)) return
-      if (candidate.trim() === '' || candidate === SYNTHETIC_MODEL_ID) return
+      if (candidate === '' || candidate.trim() !== candidate) return
+      if (candidate === SYNTHETIC_MODEL_ID) return
       if (hasUnprintable(candidate)) return
 
       latestMs = timestampMs

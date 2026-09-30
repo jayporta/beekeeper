@@ -105,6 +105,19 @@ describe('createLatestModelObserver', () => {
   })
 
   it.each([
+    ['a leading space', ' claude-x'],
+    ['a trailing space', 'claude-x '],
+    ['spaces on both sides', ' claude-x ']
+  ])('ignores a model with %s, since it is an identifier and is not rewritten', (_label, model) => {
+    expect(
+      modelAfter([
+        at('2026-01-01T00:00:00.000Z', 'model-real'),
+        at('2026-01-02T00:00:00.000Z', model)
+      ])
+    ).toBe('model-real')
+  })
+
+  it.each([
     ['only spaces', '   '],
     ['spaces around a no-break space', ' \u00A0 ']
   ])('ignores a model of %s', (_label, model) => {
