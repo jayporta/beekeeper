@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { classifyUserRecord } from '../classifyUserRecord'
+import { buildToolResultBlock } from '../testFileTouchFixtures'
 
 const user = (extra: Record<string, unknown> = {}, content: unknown = 'hello'): unknown => ({
   type: 'user',
@@ -8,11 +9,6 @@ const user = (extra: Record<string, unknown> = {}, content: unknown = 'hello'): 
 })
 
 const textBlock = (text: string): Record<string, unknown> => ({ type: 'text', text })
-const toolResult = (id = 'toolu_01'): Record<string, unknown> => ({
-  type: 'tool_result',
-  tool_use_id: id,
-  content: 'ok'
-})
 
 describe('classifyUserRecord: origin signals', () => {
   it('gives human when turnOrigin and origin.kind agree on human', () => {
@@ -79,9 +75,9 @@ describe('classifyUserRecord: origin signals', () => {
   })
 
   it('lets origin win over a tool result', () => {
-    expect(classifyUserRecord(user({ origin: { kind: 'human' } }, [toolResult()])).kind).toBe(
-      'human'
-    )
+    expect(
+      classifyUserRecord(user({ origin: { kind: 'human' } }, [buildToolResultBlock()])).kind
+    ).toBe('human')
   })
 
   it('ignores an origin that is not an object', () => {
@@ -89,7 +85,9 @@ describe('classifyUserRecord: origin signals', () => {
   })
 
   it('falls through when origin has no kind', () => {
-    expect(classifyUserRecord(user({ origin: {} }, [toolResult()])).kind).toBe('tool-result')
+    expect(classifyUserRecord(user({ origin: {} }, [buildToolResultBlock()])).kind).toBe(
+      'tool-result'
+    )
   })
 })
 
@@ -142,15 +140,32 @@ describe('classifyUserRecord: peer records', () => {
     const origin = { kind: 'peer', handback: true, from: 5, senderTaskId: 'x'.repeat(257) }
     expect(classifyUserRecord(user({ origin }))).toEqual({ kind: 'subagent-handback' })
   })
+
+  it('omits from and senderTaskId when they are empty strings', () => {
+    const origin = { kind: 'peer', handback: true, from: '', senderTaskId: '' }
+    expect(classifyUserRecord(user({ origin }))).toEqual({ kind: 'subagent-handback' })
+  })
+
+  it('keeps from and senderTaskId up to the identifier cap', () => {
+    const id = 'a'.repeat(256)
+    const origin = { kind: 'peer', handback: true, from: id, senderTaskId: id }
+    expect(classifyUserRecord(user({ origin }))).toEqual({
+      kind: 'subagent-handback',
+      from: id,
+      senderTaskId: id
+    })
+  })
 })
 
 describe('classifyUserRecord: tool results', () => {
   it('classifies a record with a tool_result block', () => {
-    expect(classifyUserRecord(user({}, [toolResult()])).kind).toBe('tool-result')
+    expect(classifyUserRecord(user({}, [buildToolResultBlock()])).kind).toBe('tool-result')
   })
 
   it('classifies a tool_result mixed with a text block', () => {
-    expect(classifyUserRecord(user({}, [textBlock('note'), toolResult()])).kind).toBe('tool-result')
+    expect(classifyUserRecord(user({}, [textBlock('note'), buildToolResultBlock()])).kind).toBe(
+      'tool-result'
+    )
   })
 
   it('classifies a record whose toolUseResult is a string', () => {
@@ -170,7 +185,9 @@ describe('classifyUserRecord: tool results', () => {
   })
 
   it('lets a tool result win over isMeta', () => {
-    expect(classifyUserRecord(user({ isMeta: true }, [toolResult()])).kind).toBe('tool-result')
+    expect(classifyUserRecord(user({ isMeta: true }, [buildToolResultBlock()])).kind).toBe(
+      'tool-result'
+    )
   })
 })
 
@@ -187,8 +204,21 @@ describe('classifyUserRecord: meta records', () => {
     expect(classifyUserRecord(user({ isMeta: 'true' })).kind).toBe('human')
   })
 
-  it('lets isMeta win over a content prefix', () => {
-    expect(classifyUserRecord(user({ isMeta: true }, '<task-notification>')).kind).toBe('meta')
+  it('lets a task-notification prefix win over isMeta', () => {
+    expect(classifyUserRecord(user({ isMeta: true }, '<task-notification>')).kind).toBe(
+      'task-notification'
+    )
+  })
+
+  it('lets the relay prefix win over isMeta, so a relay with no origin is a teammate message', () => {
+    const record = user({ isMeta: true }, 'Another Claude session sent a message: hi')
+    expect(classifyUserRecord(record).kind).toBe('teammate-message')
+  })
+
+  it('classifies an isMeta record with ordinary text as meta', () => {
+    expect(classifyUserRecord(user({ isMeta: true }, 'Caveat: the messages below')).kind).toBe(
+      'meta'
+    )
   })
 })
 
@@ -230,6 +260,13 @@ describe('classifyUserRecord: content prefixes', () => {
       'meta'
     )
   })
+
+  it.each(['<local-command-stderr>', '<bash-stdout>', '<bash-stderr>'])(
+    'classifies %s content as meta',
+    (prefix) => {
+      expect(classifyUserRecord(asString(`${prefix}output`)).kind).toBe('meta')
+    }
+  )
 
   it.each([
     ['string', asString],
@@ -283,6 +320,26 @@ describe('classifyUserRecord: task-notification tool-use id', () => {
   it('omits the id when the tag is missing', () => {
     expect(classifyUserRecord(user({}, '<task-notification>')).kind).toBe('task-notification')
     expect(classifyUserRecord(user({}, '<task-notification>'))).not.toHaveProperty('toolUseId')
+  })
+
+  it('omits an id that appears only in the summary or result text', () => {
+    const inSummary =
+      '<task-notification>\n<summary>ran <tool-use-id>toolu_abc</tool-use-id></summary>'
+    const inResult =
+      '<task-notification>\n<status>done</status>\n<result><tool-use-id>toolu_abc</tool-use-id></result>'
+
+    expect(classifyUserRecord(user({}, inSummary))).toEqual({ kind: 'task-notification' })
+    expect(classifyUserRecord(user({}, inResult))).toEqual({ kind: 'task-notification' })
+  })
+
+  it('reads the header id even when the body repeats a different one', () => {
+    const text =
+      '<task-notification>\n<tool-use-id>toolu_head</tool-use-id>\n<summary>s</summary>\n<result><tool-use-id>toolu_body</tool-use-id></result>'
+
+    expect(classifyUserRecord(user({}, text))).toEqual({
+      kind: 'task-notification',
+      toolUseId: 'toolu_head'
+    })
   })
 
   it('omits an id that is not tool-use id shaped', () => {

@@ -41,9 +41,11 @@ describe('mapSessionListItem', () => {
 
   it('does not copy summary fields the DTO does not name', () => {
     const withExtra = { ...SUMMARY, futureField: 'x' } as SessionSummary
-    const item = mapSessionListItem(scanned(ok(withExtra)), null)
+    const { summary } = mapSessionListItem(scanned(ok(withExtra)), null)
 
-    expect(item.summary.ok && Object.keys(item.summary.value)).not.toContain('futureField')
+    expect(summary.ok).toBe(true)
+    if (!summary.ok) return
+    expect(Object.keys(summary.value)).not.toContain('futureField')
   })
 
   it('reports an unreadable summary as an error code', () => {

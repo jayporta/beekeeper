@@ -1,14 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_LABEL_CODE_UNITS } from '../../boundedLabel'
+import { MAX_IDENTIFIER_CODE_UNITS } from '../../schemas/boundedIdentifier'
 import { buildAssistantRecord, buildUserRecord } from '../../testFixtures'
 import { createLatestModelObserver } from '../latestModelObserver'
+import { recordTimestampMs } from '../recordTimestampMs'
 
 const at = (timestamp: string, model: string): Record<string, unknown> =>
   buildAssistantRecord({ timestamp, model })
 
 function modelAfter(records: readonly Record<string, unknown>[]): string | null {
   const observer = createLatestModelObserver()
-  for (const record of records) observer.observe(record)
+  for (const record of records) observer.observe(record, recordTimestampMs(record))
   return observer.model()
 }
 
@@ -77,8 +78,8 @@ describe('createLatestModelObserver', () => {
     expect(modelAfter([at('2026-01-01T00:00:00.000Z', 'model-real'), record])).toBe('model-real')
   })
 
-  it('ignores a model over the label cap and treats it as absent', () => {
-    const tooLong = 'm'.repeat(MAX_LABEL_CODE_UNITS + 1)
+  it('ignores a model over the identifier cap and treats it as absent', () => {
+    const tooLong = 'm'.repeat(MAX_IDENTIFIER_CODE_UNITS + 1)
 
     expect(
       modelAfter([
@@ -90,7 +91,7 @@ describe('createLatestModelObserver', () => {
   })
 
   it('accepts a model exactly at the cap', () => {
-    const atCap = 'm'.repeat(MAX_LABEL_CODE_UNITS)
+    const atCap = 'm'.repeat(MAX_IDENTIFIER_CODE_UNITS)
 
     expect(modelAfter([at('2026-01-01T00:00:00.000Z', atCap)])).toBe(atCap)
   })
@@ -101,6 +102,41 @@ describe('createLatestModelObserver', () => {
 
     expect(modelAfter([record])).toBeNull()
     expect(modelAfter([at('2026-01-01T00:00:00.000Z', 'model-real'), record])).toBe('model-real')
+  })
+
+  it('ignores a sidechain record, which belongs to a subagent, not the lead', () => {
+    const sidechain = buildAssistantRecord({
+      timestamp: '2026-01-02T00:00:00.000Z',
+      model: 'model-subagent',
+      extra: { isSidechain: true }
+    })
+
+    expect(modelAfter([at('2026-01-01T00:00:00.000Z', 'model-real'), sidechain])).toBe('model-real')
+  })
+
+  it('keeps a record whose isSidechain is false', () => {
+    const record = buildAssistantRecord({
+      timestamp: '2026-01-01T00:00:00.000Z',
+      model: 'model-real',
+      extra: { isSidechain: false }
+    })
+
+    expect(modelAfter([record])).toBe('model-real')
+  })
+
+  it('uses the timestamp it is given, not one parsed from the record', () => {
+    const observer = createLatestModelObserver()
+    observer.observe(at('2026-01-09T00:00:00.000Z', 'model-a'), 1)
+    observer.observe(at('2026-01-01T00:00:00.000Z', 'model-b'), 2)
+
+    expect(observer.model()).toBe('model-b')
+  })
+
+  it('ignores a record given no timestamp', () => {
+    const observer = createLatestModelObserver()
+    observer.observe(at('2026-01-01T00:00:00.000Z', 'model-a'), null)
+
+    expect(observer.model()).toBeNull()
   })
 
   it('ignores a non-assistant record that carries a model', () => {

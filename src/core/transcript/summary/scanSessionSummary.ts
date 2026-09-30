@@ -70,7 +70,7 @@ export async function scanSessionSummary(
     lastCostState.observe(record)
     roleObserver.observe(record)
     teammateObserver.observe(record)
-    modelObserver.observe(record)
+    modelObserver.observe(record, timestampMs)
     if (record.type === 'ai-title') {
       const aiTitle = aiTitleRecordSchema.safeParse(record)
       if (aiTitle.success) title = truncateTitle(aiTitle.data.aiTitle)
