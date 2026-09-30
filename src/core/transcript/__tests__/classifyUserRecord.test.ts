@@ -1,12 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { classifyUserRecord } from '../classifyUserRecord'
+import { buildUserRecord } from '../testFixtures'
 import { buildToolResultBlock } from '../testFileTouchFixtures'
 
-const user = (extra: Record<string, unknown> = {}, content: unknown = 'hello'): unknown => ({
-  type: 'user',
-  message: { role: 'user', content },
-  ...extra
-})
+const user = (extra: Record<string, unknown> = {}, content?: unknown): unknown =>
+  buildUserRecord({ extra, content })
 
 const textBlock = (text: string): Record<string, unknown> => ({ type: 'text', text })
 
@@ -84,6 +82,18 @@ describe('classifyUserRecord: origin signals', () => {
     expect(classifyUserRecord(user({ origin: 'peer' })).kind).toBe('human')
   })
 
+  it('treats a null turnOrigin as absent and falls through', () => {
+    expect(classifyUserRecord(user({ turnOrigin: null }, [buildToolResultBlock()])).kind).toBe(
+      'tool-result'
+    )
+  })
+
+  it('treats a null origin.kind as absent and falls through', () => {
+    expect(
+      classifyUserRecord(user({ origin: { kind: null } }, [buildToolResultBlock()])).kind
+    ).toBe('tool-result')
+  })
+
   it('falls through when origin has no kind', () => {
     expect(classifyUserRecord(user({ origin: {} }, [buildToolResultBlock()])).kind).toBe(
       'tool-result'
@@ -146,6 +156,14 @@ describe('classifyUserRecord: peer records', () => {
     expect(classifyUserRecord(user({ origin }))).toEqual({ kind: 'subagent-handback' })
   })
 
+  it('keeps from when it is a spawn name rather than an agent id', () => {
+    const origin = { kind: 'peer', handback: true, from: 'researcher' }
+    expect(classifyUserRecord(user({ origin }))).toEqual({
+      kind: 'subagent-handback',
+      from: 'researcher'
+    })
+  })
+
   it('keeps from and senderTaskId up to the identifier cap', () => {
     const id = 'a'.repeat(256)
     const origin = { kind: 'peer', handback: true, from: id, senderTaskId: id }
@@ -178,6 +196,10 @@ describe('classifyUserRecord: tool results', () => {
 
   it('classifies a record whose toolUseResult is an object', () => {
     expect(classifyUserRecord(user({ toolUseResult: { stdout: '' } })).kind).toBe('tool-result')
+  })
+
+  it('does not treat a null toolUseResult as a tool result', () => {
+    expect(classifyUserRecord(user({ toolUseResult: null })).kind).toBe('human')
   })
 
   it('treats a tool_result block without an id as a tool result', () => {
@@ -322,6 +344,15 @@ describe('classifyUserRecord: task-notification tool-use id', () => {
     expect(classifyUserRecord(user({}, '<task-notification>'))).not.toHaveProperty('toolUseId')
   })
 
+  it('reads no id when origin says task-notification but the text does not start with the prefix', () => {
+    const record = user(
+      { origin: { kind: 'task-notification' } },
+      'unrelated text <tool-use-id>toolu_abc</tool-use-id>'
+    )
+
+    expect(classifyUserRecord(record)).toEqual({ kind: 'task-notification' })
+  })
+
   it('omits an id that appears only in the summary or result text', () => {
     const inSummary =
       '<task-notification>\n<summary>ran <tool-use-id>toolu_abc</tool-use-id></summary>'
@@ -380,10 +411,15 @@ describe('classifyUserRecord: humans and malformed input', () => {
     expect(classifyUserRecord(value)).toEqual({ kind: 'unknown' })
   })
 
-  it('does not throw on odd content shapes', () => {
-    expect(classifyUserRecord(user({}, null)).kind).toBe('human')
-    expect(classifyUserRecord(user({}, [null, 3, 'x', { type: 'text' }])).kind).toBe('human')
-    expect(classifyUserRecord({ type: 'user', message: 'x' }).kind).toBe('human')
+  it.each([
+    ['null content', user({}, null)],
+    [
+      'a block list of non-blocks and a text block with no text',
+      user({}, [null, 3, 'x', { type: 'text' }])
+    ],
+    ['a message that is a string', { type: 'user', message: 'x' }]
+  ])('gives human, without throwing, for %s', (_label, record) => {
+    expect(classifyUserRecord(record)).toEqual({ kind: 'human' })
   })
 
   it('tolerates unknown extra fields', () => {

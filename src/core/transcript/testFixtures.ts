@@ -70,18 +70,20 @@ export function buildAgentSettingRecord(
 }
 
 interface UserRecordOverrides {
+  /** The message's `content`; defaults to a short prompt string. */
+  readonly content?: unknown
   /** Merged onto the built record as top-level fields, e.g. to set `agentName` or `teamName`. */
   readonly extra?: Record<string, unknown>
 }
 
 /** Builds a minimal synthetic `user` record. */
 export function buildUserRecord(overrides: UserRecordOverrides = {}): Record<string, unknown> {
-  const { extra = {} } = overrides
+  const { content = 'hello', extra = {} } = overrides
 
   return {
     type: 'user',
     timestamp: '2026-01-01T00:00:00.000Z',
-    message: { role: 'user', content: 'hello' },
+    message: { role: 'user', content },
     ...extra
   }
 }

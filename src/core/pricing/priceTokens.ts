@@ -1,11 +1,10 @@
+import { SYNTHETIC_MODEL_ID } from '../shared/syntheticModelId'
 import { normalizeModelId } from './normalizeModelId'
 import { DEFAULT_SPEED, pricedSpeeds, priceTableModels, type PricedSpeed } from './priceTable'
 import { tokenClasses } from './tokenClasses'
 import type { TokenCounts } from './tokenCounts'
 
 const pricedSpeedSet: ReadonlySet<string> = new Set(pricedSpeeds)
-
-const SYNTHETIC_MODEL_ID = '<synthetic>'
 
 /** Options for {@link priceTokens}. */
 export interface PriceTokensOptions {

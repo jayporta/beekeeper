@@ -104,6 +104,20 @@ describe('createLatestModelObserver', () => {
     expect(modelAfter([at('2026-01-01T00:00:00.000Z', 'model-real'), record])).toBe('model-real')
   })
 
+  it.each([
+    ['a bidi override', 'claude\u202Eopus'],
+    ['a line separator', 'claude\u2028opus'],
+    ['a newline', 'claude\nopus'],
+    ['a control character', 'claude\u0007opus']
+  ])('ignores a model containing %s, so an earlier clean one wins', (_label, model) => {
+    expect(
+      modelAfter([
+        at('2026-01-01T00:00:00.000Z', 'model-real'),
+        at('2026-01-02T00:00:00.000Z', model)
+      ])
+    ).toBe('model-real')
+  })
+
   it('ignores a sidechain record, which belongs to a subagent, not the lead', () => {
     const sidechain = buildAssistantRecord({
       timestamp: '2026-01-02T00:00:00.000Z',

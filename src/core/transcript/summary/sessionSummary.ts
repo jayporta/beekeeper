@@ -65,9 +65,9 @@ export interface SessionSummary {
    */
   readonly teamSpawns: TranscriptTeamSpawns
   /**
-   * The model of the assistant record with the largest timestamp, capped as
-   * a label, or `null` when no timestamped assistant record names one.
-   * `<synthetic>` and empty models don't count.
+   * The model of the latest-timestamped qualifying assistant record: one
+   * outside a sidechain whose model is not `<synthetic>`, is non-empty and
+   * printable, and is within the identifier cap. `null` when none qualifies.
    */
   readonly model: string | null
 }

@@ -24,7 +24,7 @@ import { truncateTitle } from './truncateTitle'
  * same reason.
  *
  * Only what the summary displays is kept: the title is capped at a
- * displayable length, the model is capped as a label, the cost state is
+ * displayable length, the model is the latest qualifying assistant record's, bounded as an identifier, the cost state is
  * reduced to its total, the role's agent type, name and team are capped
  * and dropped unless printable, and the spawn and stop lists hold only
  * those labels, deduplicated and capped, so an oversized or padded record

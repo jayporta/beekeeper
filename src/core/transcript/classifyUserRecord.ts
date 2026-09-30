@@ -19,10 +19,10 @@ export type UserRecordClass =
   /** A subagent's final report handed back to the session that delegated to it. */
   | {
       kind: 'subagent-handback'
-      /** The subagent's id, when the record names one. */
-      from?: AgentId
-      /** The subagent's task id, when the record names one. */
-      senderTaskId?: string
+      /** The sender's agent id or spawn name, when the record names one. */
+      from?: string
+      /** The subagent's agent id, when the record names one. */
+      senderTaskId?: AgentId
     }
   /** A notice that a background task finished. */
   | {
@@ -38,8 +38,6 @@ export type UserRecordClass =
   | { kind: 'meta' }
   /** Not a `user` record, malformed, or carrying an origin value this reader doesn't know. */
   | { kind: 'unknown' }
-
-const UNKNOWN: UserRecordClass = Object.freeze({ kind: 'unknown' })
 
 /** The origin signals both `turnOrigin` and `origin.kind` resolve to. */
 type OriginSignal = 'human' | 'peer' | 'task-notification' | 'auto-continuation'
@@ -77,14 +75,14 @@ const TOOL_USE_ID_SHAPE = /^toolu_[A-Za-z0-9_-]+$/
 const TOOL_USE_ID_TAG = /<tool-use-id>([^<]*)<\/tool-use-id>/
 
 /**
- * Resolves one of the origin fields to a signal. An absent field is `null`
- * (no signal) and a present value outside `signals` is `'unknown'`.
+ * Resolves one of the origin fields to a signal. An absent field, `undefined` or
+ * `null`, gives `null` (no signal) and a present value outside `signals` is `'unknown'`.
  */
 function readSignal(
   value: unknown,
   signals: ReadonlyMap<string, OriginSignal>
 ): OriginSignal | 'unknown' | null {
-  if (value === undefined) return null
+  if (value === undefined || value === null) return null
   if (typeof value !== 'string') return 'unknown'
   return signals.get(value) ?? 'unknown'
 }
@@ -106,19 +104,22 @@ function classifyPeer(origin: Record<string, unknown> | null): UserRecordClass {
   const senderTaskId = readIdentifier(origin.senderTaskId)
   return {
     kind: 'subagent-handback',
-    ...(from !== undefined && { from: toAgentId(from) }),
-    ...(senderTaskId !== undefined && { senderTaskId })
+    ...(from !== undefined && { from }),
+    ...(senderTaskId !== undefined && { senderTaskId: toAgentId(senderTaskId) })
   }
 }
 
 /**
- * Reads the `<tool-use-id>` a task notification names, from its header only:
+ * Reads the `<tool-use-id>` a task notification names, from its header only,
+ * and only when the text starts with the notification prefix:
  * the text after `<summary>` or `<result>` is untrusted free text. Only a
  * value shaped like a tool-use id and within the identifier cap is returned,
  * copied so it doesn't keep the notification alive.
  */
 function classifyTaskNotification(text: string | null): UserRecordClass {
-  if (text === null) return { kind: 'task-notification' }
+  if (text === null || !text.startsWith(TASK_NOTIFICATION_PREFIX)) {
+    return { kind: 'task-notification' }
+  }
 
   const bodyStarts = BODY_TAGS.map((tag) => text.indexOf(tag)).filter((index) => index >= 0)
   const header = bodyStarts.length === 0 ? text : text.slice(0, Math.min(...bodyStarts))
@@ -147,12 +148,12 @@ function fromSignal(
     case 'auto-continuation':
       return { kind: 'auto-continuation' }
     case 'unknown':
-      return UNKNOWN
+      return { kind: 'unknown' }
   }
 }
 
 function hasToolResult(record: Record<string, unknown>): boolean {
-  if (record.toolUseResult !== undefined) return true
+  if (record.toolUseResult !== undefined && record.toolUseResult !== null) return true
   return messageContentBlocks(record).some(
     (block) => isRecordObject(block) && block.type === 'tool_result'
   )
@@ -182,7 +183,7 @@ function classifyByContent(record: Record<string, unknown>): UserRecordClass {
  * Signals are read in order, and the first that applies wins: `turnOrigin`,
  * then `origin.kind` (a value either field holds that is not a known one
  * gives `unknown` and never falls through), then a tool result (any
- * `tool_result` block or a `toolUseResult` of any type), then the
+ * `tool_result` block or a non-null `toolUseResult` of any type), then the
  * `<task-notification>` prefix, then the relay prefix, then `isMeta` or
  * `isCompactSummary`, then the meta prefixes (command output and interrupt
  * markers). Prefixes are anchored at the start of the content. A `peer` from
@@ -198,7 +199,7 @@ function classifyByContent(record: Record<string, unknown>): UserRecordClass {
  * // => { kind: 'subagent-handback' }
  */
 export function classifyUserRecord(record: unknown): UserRecordClass {
-  if (!isRecordObject(record) || record.type !== 'user') return UNKNOWN
+  if (!isRecordObject(record) || record.type !== 'user') return { kind: 'unknown' }
 
   const turnOrigin = readSignal(record.turnOrigin, TURN_ORIGIN_SIGNALS)
   if (turnOrigin !== null) return fromSignal(turnOrigin, record)

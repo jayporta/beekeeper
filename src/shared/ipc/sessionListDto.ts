@@ -14,7 +14,10 @@ export interface SessionSummaryDto {
   readonly skippedLines: number
   /** Whether the session is a lead or a teammate agent; `lead` means no agent marker was seen. */
   readonly role: SessionRoleDto
-  /** The model of the session's latest assistant record, capped in length, or `null`. */
+  /**
+   * The model of the session's latest-timestamped qualifying assistant record
+   * (outside a sidechain, not `<synthetic>`, printable, within the identifier cap), or `null`.
+   */
   readonly model: string | null
 }
 

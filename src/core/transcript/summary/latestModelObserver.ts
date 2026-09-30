@@ -1,9 +1,8 @@
+import { hasUnprintable } from '../hasUnprintable'
 import { isRecordObject } from '../isRecordObject'
 import { MAX_IDENTIFIER_CODE_UNITS } from '../schemas/boundedIdentifier'
 import { isWithinCodeUnits } from '../../shared/isWithinCodeUnits'
-
-/** The model Claude Code records on a response it generated itself, not the API. */
-const SYNTHETIC_MODEL = '<synthetic>'
+import { SYNTHETIC_MODEL_ID } from '../../shared/syntheticModelId'
 
 /** Tracks the model of the latest assistant record among the records it observes. */
 export interface LatestModelObserver {
@@ -24,8 +23,8 @@ export interface LatestModelObserver {
  *
  * A record qualifies when it is an `assistant` record outside a sidechain,
  * since a subagent's record is not the lead's, with a timestamp and a
- * non-empty string `message.model` within the identifier cap that isn't
- * `<synthetic>`. A record without a timestamp never qualifies, since it can't
+ * non-empty, printable string `message.model` within the identifier cap that
+ * isn't `<synthetic>`. A record without a timestamp never qualifies, since it can't
  * be placed in time. On a tie the first record seen wins. Only the
  * current best model and its timestamp are held.
  *
@@ -42,7 +41,7 @@ export function createLatestModelObserver(): LatestModelObserver {
 
       const candidate = record.message.model
       if (!isWithinCodeUnits(candidate, MAX_IDENTIFIER_CODE_UNITS)) return
-      if (candidate === '' || candidate === SYNTHETIC_MODEL) return
+      if (candidate === '' || candidate === SYNTHETIC_MODEL_ID || hasUnprintable(candidate)) return
       if (latestMs === null || timestampMs > latestMs) {
         latestMs = timestampMs
         model = candidate
