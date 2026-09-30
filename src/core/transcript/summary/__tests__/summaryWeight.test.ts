@@ -8,7 +8,8 @@ const EMPTY_SUMMARY: SessionSummary = {
   activity: null,
   skippedLines: 0,
   role: { kind: 'lead' },
-  teamSpawns: { spawns: [], stops: [], truncated: false }
+  teamSpawns: { spawns: [], stops: [], truncated: false },
+  model: null
 }
 
 describe('summaryWeight', () => {
@@ -18,6 +19,10 @@ describe('summaryWeight', () => {
 
   it('adds the length of the title', () => {
     expect(summaryWeight({ ...EMPTY_SUMMARY, title: 'abcd' })).toBe(SUMMARY_ENTRY_OVERHEAD + 4)
+  })
+
+  it('adds the length of the model', () => {
+    expect(summaryWeight({ ...EMPTY_SUMMARY, model: 'abcde' })).toBe(SUMMARY_ENTRY_OVERHEAD + 5)
   })
 
   it('counts UTF-16 code units, so a character outside the BMP weighs two', () => {

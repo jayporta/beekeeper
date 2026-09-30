@@ -64,4 +64,10 @@ export interface SessionSummary {
    * are empty for a transcript that spawned none.
    */
   readonly teamSpawns: TranscriptTeamSpawns
+  /**
+   * The model of the assistant record with the largest timestamp, capped as
+   * a label, or `null` when no timestamped assistant record names one.
+   * `<synthetic>` and empty models don't count.
+   */
+  readonly model: string | null
 }

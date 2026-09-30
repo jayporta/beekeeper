@@ -4,28 +4,31 @@ import { readRecords } from '../readRecords'
 import { aiTitleRecordSchema } from '../schemas'
 import { createSessionRoleObserver } from '../sessionRoleObserver'
 import { createTeammateSpawnObserver } from '../teammateSpawnObserver'
+import { createLatestModelObserver } from './latestModelObserver'
 import { recordTimestampMs } from './recordTimestampMs'
 import type { ActivitySpan, RecordedCost, SessionSummary } from './sessionSummary'
 import { truncateTitle } from './truncateTitle'
 
 /**
  * Reads a transcript once and reports what a sessions list needs to show:
- * its title, its recorded cost, the span its records cover, and whether it
- * is a lead or a teammate agent session, and which teammates it spawned
- * and stopped.
+ * its title, its recorded cost, the span its records cover, its model,
+ * and whether it is a lead or a teammate agent session, and which teammates
+ * it spawned and stopped.
  *
  * Every line is parsed. The title and the cost state are the last valid
  * record of their type by line order, since neither carries a timestamp
  * and a session rewrites both as it runs. The activity span is the
  * smallest and largest timestamp found, not the first and last lines,
- * because timestamps within a transcript run backwards.
+ * because timestamps within a transcript run backwards. The model is that
+ * of the timestamped assistant record with the largest timestamp, for the
+ * same reason.
  *
  * Only what the summary displays is kept: the title is capped at a
- * displayable length, the cost state is reduced to its total, the role's
- * agent type, name and team are capped and dropped unless printable, and
- * the spawn and stop lists hold only those labels, deduplicated and capped,
- * so an oversized or padded record can't sit in the summary cache for as
- * long as the app runs.
+ * displayable length, the model is capped as a label, the cost state is
+ * reduced to its total, the role's agent type, name and team are capped
+ * and dropped unless printable, and the spawn and stop lists hold only
+ * those labels, deduplicated and capped, so an oversized or padded record
+ * can't sit in the summary cache for as long as the app runs.
  *
  * A line the scan can't read as a record, whether it was too long to
  * buffer, wasn't valid JSON, or was valid JSON that isn't an object, is
@@ -46,6 +49,7 @@ export async function scanSessionSummary(
   const lastCostState = createLastCostState()
   const roleObserver = createSessionRoleObserver()
   const teammateObserver = createTeammateSpawnObserver()
+  const modelObserver = createLatestModelObserver()
   let earliestMs: number | null = null
   let latestMs: number | null = null
   let skippedLines = 0
@@ -66,6 +70,7 @@ export async function scanSessionSummary(
     lastCostState.observe(record)
     roleObserver.observe(record)
     teammateObserver.observe(record)
+    modelObserver.observe(record)
     if (record.type === 'ai-title') {
       const aiTitle = aiTitleRecordSchema.safeParse(record)
       if (aiTitle.success) title = truncateTitle(aiTitle.data.aiTitle)
@@ -84,6 +89,7 @@ export async function scanSessionSummary(
     activity,
     skippedLines,
     role: roleObserver.role(),
-    teamSpawns: teammateObserver.result()
+    teamSpawns: teammateObserver.result(),
+    model: modelObserver.model()
   }
 }

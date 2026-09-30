@@ -61,7 +61,8 @@ function testSession(
     activity: options.activity ?? null,
     skippedLines: 0,
     role: identity.role,
-    teamSpawns: options.teamSpawns ?? testTeamSpawns()
+    teamSpawns: options.teamSpawns ?? testTeamSpawns(),
+    model: null
   }
   return { ref: identity.ref, summary }
 }

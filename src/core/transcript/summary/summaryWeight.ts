@@ -16,14 +16,15 @@ function lengthOf(value: string | null): number {
 /**
  * Weighs a summary for the cache's memory bound: {@link SUMMARY_ENTRY_OVERHEAD}
  * plus the UTF-16 code units of every string it holds, meaning its title, its
- * role's labels, and each label and tool call id in its spawn and stop lists.
+ * model, its role's labels, and each label and tool call id in its spawn and
+ * stop lists.
  *
  * @param summary - A session summary.
  * @returns The weight in code units.
  */
 export function summaryWeight(summary: SessionSummary): number {
   const { role, teamSpawns } = summary
-  let weight = SUMMARY_ENTRY_OVERHEAD + lengthOf(summary.title)
+  let weight = SUMMARY_ENTRY_OVERHEAD + lengthOf(summary.title) + lengthOf(summary.model)
 
   if (role.kind === 'agent') {
     weight += lengthOf(role.agentType) + lengthOf(role.agentName) + lengthOf(role.teamName)

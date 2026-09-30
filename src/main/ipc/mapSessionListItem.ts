@@ -65,7 +65,8 @@ export function mapSessionListItem(
                   latestMs: summary.value.activity.latestMs
                 },
           skippedLines: summary.value.skippedLines,
-          role: mapSessionRole(summary.value.role)
+          role: mapSessionRole(summary.value.role),
+          model: summary.value.model
         })
       : errResult(toIpcErrorCode(summary.error)),
     team: summary.ok ? team : null
