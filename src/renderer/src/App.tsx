@@ -1,13 +1,18 @@
 import styles from './App.module.css'
 
+/**
+ * The app shell: a sidebar landmark beside the main content landmark.
+ * Features fill both.
+ *
+ * @example
+ * <App />
+ */
 function App(): React.JSX.Element {
   return (
-    <main className={styles.page}>
-      <h1>Beekeeper</h1>
-      <p className={styles.intro}>
-        We&apos;re just getting started. Come back soon to see what your agents have been up to.
-      </p>
-    </main>
+    <div className={styles.shell}>
+      <aside className={styles.sidebar} aria-label="Sidebar" />
+      <main className={styles.main} />
+    </div>
   )
 }
 

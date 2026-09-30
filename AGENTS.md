@@ -95,6 +95,7 @@ src/renderer/src/features/<feature>/   UI, co-located by feature
 - Function components only. The one allowed class is an Error Boundary, and the app must have one.
 - **No prop drilling past one level.** First try composition (pass JSX as `children`), then extract components. Reach for Context only when distant parts of the tree need the same data. A Context comes with a consumer hook (`useThing`) that throws when used outside its Provider, and its state is initialized once, inside the Provider.
 - Feature state lives in `features/<feature>/state/`, and Contexts live in `state/context/`.
+- **State split.** Data from the main process lives in TanStack Query. Client UI state that several components share lives in a Zustand store in `features/<feature>/state/`, and Context is only for one subtree that needs it. State one component owns stays in `useState`. Persisted app data and caches live in IndexedDB through `src/renderer/src/storage/`, and components never read it directly.
 - Use `useState` for local state. Switch to `useReducer` once a component has more than two `useState` calls. Update state immutably.
 - `useEffect` is only for syncing with something outside React. Compute anything derivable during render instead of mirroring it into state. Every effect that starts something must clean it up.
 - Load data from the main process with TanStack Query (`useQuery` with the preload API as the `queryFn`). Turn off refetch-on-focus and refetch-on-reconnect unless there's a reason for them.

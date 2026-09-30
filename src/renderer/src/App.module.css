@@ -1,8 +1,16 @@
-.page {
-  padding: 0 var(--space-6);
+.shell {
+  display: grid;
+  grid-template-columns: 16rem 1fr;
+  min-height: 100vh;
 }
 
-.intro {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-body);
+.sidebar {
+  padding: var(--space-4);
+  background: var(--color-surface-header);
+  border-right: 1px solid var(--color-border);
+}
+
+.main {
+  min-width: 0;
+  padding: var(--space-6);
 }
