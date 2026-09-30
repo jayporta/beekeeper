@@ -1,11 +1,11 @@
-import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { useState } from 'react'
-import { idbStorage } from '@renderer/storage/idbStorage'
-import { createQueryClient, PERSIST_MAX_AGE_MS } from './queryClient'
+import { PERSIST_MAX_AGE_MS } from './persistMaxAge'
+import { createQueryClient } from './queryClient'
+import { createQueryPersister, logPersistError } from './queryPersister'
 import { shouldPersistQuery } from './shouldPersistQuery'
 
-const persister = createAsyncStoragePersister({ storage: idbStorage, key: 'beekeeper-query-cache' })
+const persister = createQueryPersister()
 
 const persistOptions = {
   persister,
@@ -32,7 +32,11 @@ export function QueryProvider({ children }: QueryProviderProps): React.JSX.Eleme
   const [client] = useState(createQueryClient)
 
   return (
-    <PersistQueryClientProvider client={client} persistOptions={persistOptions}>
+    <PersistQueryClientProvider
+      client={client}
+      persistOptions={persistOptions}
+      onError={logPersistError}
+    >
       {children}
     </PersistQueryClientProvider>
   )

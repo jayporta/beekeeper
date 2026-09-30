@@ -18,6 +18,19 @@ interface FirstRunState {
 }
 
 /**
+ * Whether the first-run screen is on show: until it is dismissed, and again
+ * while it is reopened from About. The one definition of that, for every reader.
+ *
+ * @param state - The store's state.
+ * @returns `true` while the screen shows.
+ */
+export function selectIsFirstRunShowing(
+  state: Pick<FirstRunState, 'dismissed' | 'isOpen'>
+): boolean {
+  return !state.dismissed || state.isOpen
+}
+
+/**
  * The first-run screen's state. Only `dismissed` is persisted, to IndexedDB
  * through `zustandIdbStorage`. Hydration is started by `useFirstRunHydrated`, so the
  * UI can hold back until the stored value is known.

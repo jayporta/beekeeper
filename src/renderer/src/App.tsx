@@ -1,9 +1,9 @@
 import { useRef } from 'react'
 import styles from './App.module.css'
-import { MainView } from './app/MainView'
-import { AboutButton } from './features/firstRun/AboutButton'
-import { useFocusOnFirstRunClose } from './features/firstRun/state/useFocusOnFirstRunClose'
-import { useFirstRunHydrated } from './features/firstRun/state/useFirstRunHydrated'
+import { MainView } from '@renderer/app/MainView'
+import { AboutButton } from '@renderer/features/firstRun/AboutButton'
+import { useFocusOnFirstRunClose } from '@renderer/features/firstRun/state/useFocusOnFirstRunClose'
+import { useFirstRunHydrated } from '@renderer/features/firstRun/state/useFirstRunHydrated'
 
 /**
  * The app shell: a sidebar landmark beside the main content landmark. Until
@@ -17,7 +17,7 @@ function App(): React.JSX.Element {
   const hydrated = useFirstRunHydrated()
   const mainRef = useRef<HTMLElement>(null)
   const aboutRef = useRef<HTMLButtonElement>(null)
-  useFocusOnFirstRunClose({ main: mainRef, about: aboutRef })
+  useFocusOnFirstRunClose({ main: mainRef, about: aboutRef, hydrated })
 
   return (
     <div className={styles.shell}>

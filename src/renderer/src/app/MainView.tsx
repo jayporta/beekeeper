@@ -1,5 +1,8 @@
 import { FirstRunScreen } from '@renderer/features/firstRun/FirstRunScreen'
-import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
+import {
+  selectIsFirstRunShowing,
+  useFirstRunStore
+} from '@renderer/features/firstRun/state/useFirstRunStore'
 
 /**
  * The main area's current view: the first-run screen until it is dismissed
@@ -9,7 +12,7 @@ import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunS
  * <main><MainView /></main>
  */
 export function MainView(): React.JSX.Element {
-  const showFirstRun = useFirstRunStore((state) => !state.dismissed || state.isOpen)
+  const showFirstRun = useFirstRunStore(selectIsFirstRunShowing)
   if (showFirstRun) return <FirstRunScreen />
   return <h1>Sessions</h1>
 }

@@ -1,5 +1,5 @@
 import styles from './AboutButton.module.css'
-import { useFirstRunStore } from './state/useFirstRunStore'
+import { selectIsFirstRunShowing, useFirstRunStore } from './state/useFirstRunStore'
 
 /** Props for {@link AboutButton}. */
 interface AboutButtonProps {
@@ -8,13 +8,18 @@ interface AboutButtonProps {
 }
 
 /**
- * A sidebar control that reopens the first-run screen.
+ * A sidebar control that reopens the first-run screen. It is hidden while that
+ * screen shows.
  *
  * @example
  * <AboutButton />
  */
-export function AboutButton({ buttonRef }: AboutButtonProps): React.JSX.Element {
+export function AboutButton({ buttonRef }: AboutButtonProps): React.JSX.Element | null {
   const open = useFirstRunStore((state) => state.open)
+  const isFirstRunShowing = useFirstRunStore(selectIsFirstRunShowing)
+
+  // While the screen shows, the button would only reopen what is already open.
+  if (isFirstRunShowing) return null
 
   return (
     <button ref={buttonRef} type="button" className={styles.button} onClick={open}>

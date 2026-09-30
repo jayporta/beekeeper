@@ -69,19 +69,51 @@ describe('first-run screen', () => {
     expect(document.activeElement).toBe(heading)
   })
 
-  it('stays hidden on the next launch, once the store rehydrates from IndexedDB', async () => {
-    const first = render(<App />)
-    await dismiss()
-    // Persisting is asynchronous: wait for the write to land before "relaunching".
-    await vi.waitFor(async () => {
-      expect(await idbStorage.getItem('first-run')).toContain('"dismissed":true')
+  describe('with a stored dismissal', () => {
+    const seedDismissal = (): Promise<void> =>
+      idbStorage.setItem('first-run', JSON.stringify({ state: { dismissed: true }, version: 0 }))
+
+    it('stays hidden on the next launch, once the store rehydrates from IndexedDB', async () => {
+      // The store singleton starts each test not dismissed, as on a fresh launch.
+      await seedDismissal()
+
+      render(<App />)
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Sessions' })).toBeTruthy()
+      expect(screen.queryByRole('heading', { name: 'Welcome to Beekeeper' })).toBeNull()
     })
-    first.unmount()
 
+    it('does not move focus to the main landmark on launch', async () => {
+      await seedDismissal()
+
+      render(<App />)
+      await screen.findByRole('heading', { level: 1, name: 'Sessions' })
+
+      expect(document.activeElement).not.toBe(screen.getByRole('main'))
+    })
+  })
+
+  it('has no About Beekeeper button while the screen shows, since it would do nothing', async () => {
     render(<App />)
+    await welcome()
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Sessions' })).toBeTruthy()
-    expect(screen.queryByRole('heading', { name: 'Welcome to Beekeeper' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'About Beekeeper' })).toBeNull()
+  })
+
+  it('shows the About Beekeeper button once the screen is dismissed', async () => {
+    render(<App />)
+    await dismiss()
+
+    expect(screen.getByRole('button', { name: 'About Beekeeper' })).toBeTruthy()
+  })
+
+  it('puts focus on the heading when About Beekeeper reopens the screen', async () => {
+    render(<App />)
+    await dismiss()
+
+    await userEvent.click(screen.getByRole('button', { name: 'About Beekeeper' }))
+
+    expect(document.activeElement).toBe(await welcome())
   })
 
   it('reopens from About Beekeeper and closes again with Got it', async () => {

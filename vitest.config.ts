@@ -5,6 +5,9 @@ export default defineConfig({
   test: {
     projects: [
       {
+        resolve: {
+          alias: { '@renderer': resolve('src/renderer/src') }
+        },
         test: {
           name: 'node',
           environment: 'node',

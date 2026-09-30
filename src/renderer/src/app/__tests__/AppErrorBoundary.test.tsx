@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppErrorBoundary } from '../AppErrorBoundary'
@@ -46,6 +46,26 @@ describe('AppErrorBoundary', () => {
     )
 
     expect(screen.queryByText(/secret transcript text/)).toBeNull()
+  })
+
+  it('renders the fallback inside the main landmark, as an alert', () => {
+    render(
+      <AppErrorBoundary>
+        <Thrower />
+      </AppErrorBoundary>
+    )
+
+    expect(within(screen.getByRole('main')).getByRole('alert')).toBeTruthy()
+  })
+
+  it('focuses the Reload button when the error is caught', () => {
+    render(
+      <AppErrorBoundary>
+        <Thrower />
+      </AppErrorBoundary>
+    )
+
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Reload' }))
   })
 
   it('calls onReload when Reload is pressed', async () => {
