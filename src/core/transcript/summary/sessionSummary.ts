@@ -64,6 +64,6 @@ export interface SessionSummary {
    * are empty for a transcript that spawned none.
    */
   readonly teamSpawns: TranscriptTeamSpawns
-  /** The lead's latest model, as `createLatestModelObserver` picks it, or `null`. */
+  /** The transcript's latest model, as `createLatestModelObserver` picks it, or `null`. */
   readonly model: string | null
 }
