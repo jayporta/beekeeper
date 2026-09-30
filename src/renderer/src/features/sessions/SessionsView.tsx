@@ -1,0 +1,24 @@
+import { useId } from 'react'
+import { SelectedProjectHeading } from '@renderer/features/projects/SelectedProjectHeading'
+import { useSelectedProjectDirName } from '@renderer/features/projects/state/useSelectedProjectDirName'
+import { SessionsContent } from './SessionsContent'
+import styles from './SessionsView.module.css'
+
+/**
+ * The sessions view for the selected project: a heading naming the folder, a
+ * search box, and the sessions table.
+ *
+ * @example
+ * <SessionsView />
+ */
+export function SessionsView(): React.JSX.Element {
+  const dirName = useSelectedProjectDirName()
+  const headingId = useId()
+
+  return (
+    <div className={styles.view}>
+      <SelectedProjectHeading headingId={headingId} />
+      {dirName !== null && <SessionsContent dirName={dirName} headingId={headingId} />}
+    </div>
+  )
+}

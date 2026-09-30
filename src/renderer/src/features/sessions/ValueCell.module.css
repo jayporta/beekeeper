@@ -1,0 +1,15 @@
+.cell {
+  padding: var(--space-2) var(--space-3);
+  white-space: nowrap;
+}
+
+.numeric {
+  composes: cell;
+  text-align: right;
+}
+
+.note {
+  margin-left: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}

@@ -1,0 +1,8 @@
+.nested {
+  background: var(--color-surface-nested);
+}
+
+.empty {
+  padding: var(--space-2) var(--space-3);
+  text-align: right;
+}

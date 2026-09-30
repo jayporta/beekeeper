@@ -1,0 +1,19 @@
+.scroller {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+
+  & tr {
+    border-bottom: 1px solid var(--color-border);
+  }
+}
+
+.heading {
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  white-space: nowrap;
+  background: var(--color-surface-header);
+}

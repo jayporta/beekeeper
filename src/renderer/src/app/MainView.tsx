@@ -4,7 +4,7 @@ import {
   useFirstRunStore
 } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { ProjectsGate } from '@renderer/features/projects/ProjectsGate'
-import { SelectedProjectHeading } from '@renderer/features/projects/SelectedProjectHeading'
+import { SessionsView } from '@renderer/features/sessions/SessionsView'
 
 /**
  * The main area's current view: the first-run screen until it is dismissed
@@ -20,7 +20,7 @@ export function MainView(): React.JSX.Element {
 
   return (
     <ProjectsGate>
-      <SelectedProjectHeading />
+      <SessionsView />
     </ProjectsGate>
   )
 }

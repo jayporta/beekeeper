@@ -1,0 +1,234 @@
+import { screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import type { IpcResult } from '../../../../../shared/ipc/ipcResult'
+import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
+import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
+import { useSelectedProjectStore } from '@renderer/features/projects/state/useSelectedProjectStore'
+import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
+import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
+import { useSessionsViewStore } from '../state/useSessionsViewStore'
+import {
+  testAgentRole,
+  testCost,
+  testLeadTeam,
+  testRef,
+  testSession,
+  testTeammateTeam
+} from '../testSessionFixtures'
+
+const DIR = '-Users-a-repo'
+const ok = (
+  value: readonly SessionListItemDto[]
+): Promise<IpcResult<readonly SessionListItemDto[]>> => Promise.resolve({ ok: true, value })
+
+const lead = testSession(1, {
+  projectDirName: DIR,
+  title: 'Refactor parser',
+  latestMs: Date.parse('2026-01-15T12:00:00Z'),
+  earliestMs: Date.parse('2026-01-15T11:00:00Z'),
+  model: 'claude-opus-5',
+  team: testLeadTeam(
+    [testRef(2, DIR), testRef(3, '-Users-a-other')],
+    testCost({ missingTeammates: 1 })
+  )
+})
+const mateA = testSession(2, {
+  projectDirName: DIR,
+  role: testAgentRole('reviewer', 'code'),
+  team: testTeammateTeam(testRef(1, DIR), true)
+})
+const mateB = testSession(3, {
+  projectDirName: '-Users-a-other',
+  role: testAgentRole('writer', 'code'),
+  team: testTeammateTeam(testRef(1, DIR))
+})
+const solo = testSession(4, { projectDirName: DIR, latestMs: 1, costUSD: 0.004 })
+const SESSIONS = [lead, mateA, mateB, solo]
+
+beforeEach(() => {
+  useFirstRunStore.setState({ dismissed: true })
+  useSessionsViewStore.setState({ query: '', expanded: new Set() })
+})
+
+afterEach(resetPersistedState)
+
+function showSessions(sessions: readonly SessionListItemDto[] = SESSIONS): void {
+  installBeekeeperApi({
+    listProjects: () => Promise.resolve({ ok: true, value: [testProject(DIR)] }),
+    listSessions: () => ok(sessions)
+  })
+  renderApp()
+}
+
+describe('SessionsView table', () => {
+  it('renders a table named by the heading with the seven columns', async () => {
+    showSessions()
+
+    const table = await screen.findByRole('table', { name: 'Sessions' })
+    const headers = within(table)
+      .getAllByRole('columnheader')
+      .map((h) => h.textContent)
+    expect(headers).toEqual([
+      'Session',
+      'Last active',
+      'Duration',
+      'Model',
+      'Teammates',
+      'Lead cost',
+      'Team cost'
+    ])
+  })
+
+  it('shows only top-level rows at first: leads and sessions with no lead', async () => {
+    showSessions()
+
+    await screen.findByRole('table')
+    expect(screen.getByRole('rowheader', { name: /Refactor parser/ })).toBeTruthy()
+    expect(screen.getByRole('rowheader', { name: /Untitled session/ })).toBeTruthy()
+    expect(screen.queryByRole('rowheader', { name: /reviewer/ })).toBeNull()
+  })
+
+  it('shows the lead cells: duration, model, teammate count, costs and partial marker', async () => {
+    showSessions()
+
+    const row = (await screen.findByRole('rowheader', { name: /Refactor parser/ })).closest('tr')
+    const cells = within(row as HTMLElement).getAllByRole('cell')
+    expect(cells.map((c) => c.textContent)).toEqual([
+      expect.stringMatching(/2026/),
+      '1h',
+      'claude-opus-5',
+      '2',
+      '$1.00',
+      '$3.00partial'
+    ])
+  })
+
+  it('marks a missing value as not recorded and a tiny cost as under a cent', async () => {
+    showSessions()
+
+    const row = (await screen.findByRole('rowheader', { name: /Untitled session/ })).closest('tr')
+    const text = within(row as HTMLElement)
+      .getAllByRole('cell')
+      .map((c) => c.textContent)
+    expect(text).toContain('<$0.01')
+    expect(text).toContain('-not recorded')
+  })
+
+  it('expands a lead teammates with a disclosure button and collapses them again', async () => {
+    showSessions()
+    const button = await screen.findByRole('button', { name: '2 teammates of Refactor parser' })
+    expect(button.getAttribute('aria-expanded')).toBe('false')
+
+    await userEvent.click(button)
+
+    expect(button.getAttribute('aria-expanded')).toBe('true')
+    const nested = screen.getByRole('rowheader', { name: /reviewer \(code\)/ })
+    expect(nested.textContent).toContain('stopped')
+    expect(screen.getByRole('rowheader', { name: /writer \(code\)/ }).textContent).toContain(
+      'in -Users-a-other'
+    )
+
+    await userEvent.click(button)
+
+    expect(button.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByRole('rowheader', { name: /reviewer/ })).toBeNull()
+  })
+
+  it('can be operated from the keyboard', async () => {
+    showSessions()
+    const button = await screen.findByRole('button', { name: '2 teammates of Refactor parser' })
+
+    button.focus()
+    await userEvent.keyboard('{Enter}')
+
+    expect(button.getAttribute('aria-expanded')).toBe('true')
+  })
+
+  it('points the disclosure button at the teammate rows it shows', async () => {
+    showSessions()
+    const button = await screen.findByRole('button', { name: '2 teammates of Refactor parser' })
+    await userEvent.click(button)
+
+    const ids = (button.getAttribute('aria-controls') ?? '').split(' ')
+    expect(ids).toHaveLength(2)
+    for (const id of ids) expect(document.getElementById(id)).toBeTruthy()
+  })
+})
+
+describe('SessionsView search', () => {
+  it('filters rows by name and shows a matching teammate under its lead without expanding', async () => {
+    showSessions()
+    await screen.findByRole('table')
+
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Search sessions' }), 'review')
+
+    expect(screen.getByRole('rowheader', { name: /Refactor parser/ })).toBeTruthy()
+    expect(screen.getByRole('rowheader', { name: /reviewer \(code\)/ })).toBeTruthy()
+    expect(screen.queryByRole('rowheader', { name: /Untitled session/ })).toBeNull()
+    expect(screen.queryByRole('rowheader', { name: /writer/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /teammates of/ })).toBeNull()
+  })
+
+  it('says so when nothing matches', async () => {
+    showSessions()
+    await screen.findByRole('table')
+
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Search sessions' }), 'zzz')
+
+    expect(screen.getByRole('heading', { name: 'No matching sessions' })).toBeTruthy()
+    expect(screen.queryByRole('table')).toBeNull()
+  })
+})
+
+describe('SessionsView states', () => {
+  it('announces loading', async () => {
+    installBeekeeperApi({
+      listProjects: () => Promise.resolve({ ok: true, value: [testProject(DIR)] }),
+      listSessions: () => new Promise(() => undefined)
+    })
+    renderApp()
+
+    const heading = await screen.findByRole('heading', { name: 'Loading sessions' })
+    expect(heading.closest('[role="status"]')).toBeTruthy()
+  })
+
+  it('explains a folder with no sessions', async () => {
+    showSessions([])
+
+    expect(await screen.findByRole('heading', { name: 'No sessions in this project' })).toBeTruthy()
+  })
+
+  it('shows an error with Retry, and Retry loads the sessions', async () => {
+    let calls = 0
+    installBeekeeperApi({
+      listSessions: () => {
+        calls += 1
+        return calls === 1
+          ? Promise.resolve({ ok: false, error: { code: 'internal' } })
+          : ok(SESSIONS)
+      }
+    })
+    renderApp()
+
+    await screen.findByRole('heading', { name: 'Something went wrong' })
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
+
+    expect(await screen.findByRole('table')).toBeTruthy()
+  })
+
+  it('forgets the selection and refreshes the project list when the folder is gone', async () => {
+    useSelectedProjectStore.setState({ selectedDirName: DIR })
+    const api = installBeekeeperApi({
+      listSessions: () => Promise.resolve({ ok: false, error: { code: 'not-found' } })
+    })
+    renderApp()
+
+    await waitFor(() => {
+      expect(useSelectedProjectStore.getState().selectedDirName).toBeNull()
+    })
+    await waitFor(() => {
+      expect(api.listProjects.mock.calls.length).toBeGreaterThan(1)
+    })
+  })
+})

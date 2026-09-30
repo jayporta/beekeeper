@@ -2,8 +2,13 @@ import styles from './StatusMessage.module.css'
 
 /** Props for {@link StatusMessage}. */
 interface StatusMessageProps {
-  /** The message's heading, rendered as the view's `h1`. */
+  /** The message's heading. */
   readonly heading: string
+  /**
+   * The heading level: 1 when the message is the whole view, 2 when it sits under the view's own `h1`.
+   * @defaultValue 1
+   */
+  readonly headingLevel?: 1 | 2
   /** One or two sentences of explanation. */
   readonly body?: string
   /**
@@ -24,13 +29,15 @@ interface StatusMessageProps {
  */
 export function StatusMessage({
   heading,
+  headingLevel = 1,
   body,
   role,
   children
 }: StatusMessageProps): React.JSX.Element {
+  const Heading = headingLevel === 1 ? 'h1' : 'h2'
   return (
     <div className={styles.message} role={role}>
-      <h1 className={styles.heading}>{heading}</h1>
+      <Heading className={styles.heading}>{heading}</Heading>
       {body !== undefined && <p className={styles.body}>{body}</p>}
       {children}
     </div>
