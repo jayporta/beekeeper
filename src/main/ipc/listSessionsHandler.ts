@@ -1,48 +1,44 @@
-import { groupTeams } from '../../core/teams/groupTeams'
-import type { SummarizedSession } from '../../core/teams/teamGrouping'
-import { err } from '../../core/shared/result'
-import { discoverSessions, type SessionEntry } from '../../core/transcript/discoverSessions'
-import type { ProjectDirName } from '../../core/transcript/ids'
+import { discoverProjects } from '../../core/transcript/discoverProjects'
 import type { IpcResult } from '../../shared/ipc/ipcResult'
 import { listSessionsRequestSchema } from '../../shared/ipc/requestSchemas'
 import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
-import { findProject } from './findProject'
+import type { SessionTeamDto } from '../../shared/ipc/sessionTeamDto'
+import { groupProjectFamily } from './groupProjectFamily'
 import type { IpcDeps } from './ipcDeps'
 import { errResult, okResult } from './ipcResults'
 import { mapSessionListItem, type ScannedSession } from './mapSessionListItem'
-import { mapSessionTeams } from './mapSessionTeams'
+import { sessionRefKey } from './sessionRefKey'
 
-async function scanSession(
-  entry: SessionEntry,
-  deps: Pick<IpcDeps, 'summaryCache' | 'summaries'>
-): Promise<ScannedSession> {
-  if (!entry.transcript.ok) return { entry, summary: err(entry.transcript.error) }
-
-  const file = entry.transcript.value
-  const summary = await deps.summaries.run(`${file.path}\0${file.mtimeMs}\0${file.size}`, () =>
-    deps.summaryCache.read(file)
-  )
-  return { entry, summary }
+function teamKeyOf(session: ScannedSession): string {
+  return sessionRefKey({
+    projectDirName: session.projectDirName,
+    sessionId: session.entry.sessionId
+  })
 }
 
-/** The sessions whose summaries were read, as the team grouping takes them. */
-function summarizedSessions(
-  scanned: readonly ScannedSession[],
-  projectDirName: ProjectDirName
-): SummarizedSession[] {
-  return scanned.flatMap(({ entry, summary }) =>
-    summary.ok
-      ? [{ ref: { projectDirName, sessionId: entry.sessionId }, summary: summary.value }]
-      : []
-  )
+/** A scanned session with its team entry. */
+interface ListedSession {
+  readonly session: ScannedSession
+  readonly team: SessionTeamDto | null
+}
+
+/** Whether a family session belongs in the list of `projectDirName`. */
+function isListedFor(projectDirName: string, { session, team }: ListedSession): boolean {
+  if (session.projectDirName === projectDirName) return true
+  return team?.kind === 'teammate' && team.lead.projectDirName === projectDirName
 }
 
 /**
  * Lists a project's sessions with their summaries, read through the
- * app-lifetime cache, and how each relates to a team. Summary reads are
- * shared per transcript state (path, mtime, size) and capped by the
- * summaries scheduler. Only sessions whose summaries were read take part in
- * team grouping.
+ * app-lifetime cache, and how each relates to a team. Teams are grouped over
+ * the project's whole family (its base folder and every listed worktree
+ * folder of it), so grouping never depends on which folder was asked for. The
+ * list holds the project's own sessions plus any family session from another
+ * folder grouped as a teammate under one of the project's leads; that
+ * teammate is also listed in its own folder, under the same lead. Summary
+ * reads are shared per transcript state (path, mtime, size) and capped by the
+ * summaries scheduler. See {@link groupProjectFamily} for how an unreadable
+ * sibling folder is treated.
  *
  * @param deps - The projects root, the summary cache, and the summaries
  * scheduler.
@@ -57,15 +53,19 @@ export async function listSessionsHandler(
   const request = listSessionsRequestSchema.safeParse(payload)
   if (!request.success) return errResult('invalid-request')
 
-  const project = await findProject(deps.projectsRoot, request.data.projectDirName)
+  const projects = await discoverProjects(deps.projectsRoot)
+  const project = projects.find((entry) => entry.dirName === request.data.projectDirName)
   if (project === undefined) return errResult('not-found')
 
-  const sessions = await discoverSessions(project.path)
-  const scanned = await Promise.all(sessions.map((entry) => scanSession(entry, deps)))
-  const teams = mapSessionTeams(groupTeams(summarizedSessions(scanned, project.dirName)))
+  const { scanned, teams } = await groupProjectFamily({ deps, project, projects })
+
+  const items = scanned.map((session): ListedSession => ({
+    session,
+    team: teams.get(teamKeyOf(session)) ?? null
+  }))
   return okResult(
-    scanned.map((session) =>
-      mapSessionListItem(session, teams.get(session.entry.sessionId) ?? null)
-    )
+    items
+      .filter((item) => isListedFor(project.dirName, item))
+      .map(({ session, team }) => mapSessionListItem(session, team))
   )
 }

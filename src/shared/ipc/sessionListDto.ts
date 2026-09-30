@@ -16,8 +16,14 @@ export interface SessionSummaryDto {
   readonly role: SessionRoleDto
 }
 
-/** One session in a project's session list. */
+/**
+ * One session in a project's session list. The list holds the project's own
+ * sessions plus any session from another folder of the same project family
+ * that is grouped as a teammate under one of the project's leads.
+ */
 export interface SessionListItemDto {
+  /** The project folder the session's transcript lives under, exactly as on disk. */
+  readonly projectDirName: string
   /** The session's id, a lowercase UUID. */
   readonly sessionId: string
   /** The transcript's last-modified time in epoch milliseconds, or `null` when it couldn't be read. */

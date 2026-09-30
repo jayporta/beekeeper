@@ -1,9 +1,11 @@
 import { mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MAX_PATH_CODE_UNITS } from '../../shared/boundedPath'
-import { resolveInside } from '../resolveInside'
+import { hangingFsRunner, neverSettles } from '../testFsRunner'
+import type { FsRunner } from '../fsDeadline'
+import { MAX_WALK_MS, resolveInside } from '../resolveInside'
 
 let parent: string
 let root: string
@@ -175,5 +177,105 @@ describe('resolveInside', () => {
     const path = join(root, 'file.txt')
 
     expect(await resolveInside({ root, path })).toEqual({ ok: true, value: path })
+  })
+
+  describe('when a filesystem call hangs', () => {
+    it('reports timeout when reading a component hangs', async () => {
+      const path = join(root, 'dir', 'sub')
+
+      expect(
+        await resolveInside({ root, path, fsRunner: hangingFsRunner({ passes: 0, hangs: 1 }) })
+      ).toEqual({
+        ok: false,
+        error: 'timeout'
+      })
+    })
+
+    it('reports timeout when reading a link target hangs', async () => {
+      // A link to the root leaves no component to walk, so no later call can hang in its place.
+      await symlink(root, join(root, 'loop'))
+      const path = join(root, 'loop')
+
+      expect(
+        await resolveInside({ root, path, fsRunner: hangingFsRunner({ passes: 1, hangs: 1 }) })
+      ).toEqual({
+        ok: false,
+        error: 'timeout'
+      })
+    })
+  })
+
+  describe('when every call answers slowly', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('reports timeout once the whole walk passes its deadline', async () => {
+      const path = join(root, 'a', 'b', 'c', 'd', 'e')
+      await mkdir(path, { recursive: true })
+      vi.useFakeTimers()
+      // Each call takes 4.9 s, just inside a 5 s per-call deadline.
+      const slow: FsRunner = async (call) => {
+        await vi.advanceTimersByTimeAsync(4900)
+        return call()
+      }
+
+      expect(await resolveInside({ root, path, fsRunner: slow })).toEqual({
+        ok: false,
+        error: 'timeout'
+      })
+    })
+
+    it('starts no further call once the budget ran out between two calls', async () => {
+      vi.useFakeTimers()
+      let started = 0
+      const spendBudgetAfterFirst: FsRunner = async (call) => {
+        started += 1
+        const value = await call()
+        // Moves the clock without firing any timer, so only the budget check can notice.
+        vi.setSystemTime(Date.now() + MAX_WALK_MS)
+        return value
+      }
+
+      const result = await resolveInside({
+        root,
+        path: join(root, 'dir', 'sub'),
+        fsRunner: spendBudgetAfterFirst
+      })
+
+      expect(result).toEqual({ ok: false, error: 'timeout' })
+      expect(started).toBe(1)
+    })
+
+    it('reports timeout when a call outlasts the walk budget, with no per-call deadline to end it', async () => {
+      vi.useFakeTimers()
+      const hung: FsRunner = () => neverSettles()
+      const walk = resolveInside({ root, path: join(root, 'dir'), fsRunner: hung })
+
+      await vi.advanceTimersByTimeAsync(MAX_WALK_MS)
+
+      expect(await walk).toEqual({ ok: false, error: 'timeout' })
+    })
+
+    it('does not cut a call short before the walk budget is spent', async () => {
+      vi.useFakeTimers()
+      const hung: FsRunner = () => neverSettles()
+      const watched = { done: false }
+      void resolveInside({ root, path: join(root, 'dir'), fsRunner: hung }).then(() => {
+        watched.done = true
+      })
+
+      await vi.advanceTimersByTimeAsync(MAX_WALK_MS - 1)
+
+      expect(watched.done).toBe(false)
+    })
+
+    it('leaves no timer running once the walk finishes', async () => {
+      vi.useFakeTimers()
+
+      await resolveInside({ root, path: join(root, 'dir', 'sub') })
+
+      expect(vi.getTimerCount()).toBe(0)
+    })
   })
 })

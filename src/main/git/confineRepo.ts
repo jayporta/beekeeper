@@ -1,5 +1,6 @@
 import type { GitBinary } from '../../core/git/gitBinary'
 import { realpath } from 'node:fs/promises'
+import { defaultFsRunner, type FsRunner } from '../../core/git/fsDeadline'
 import { sep } from 'node:path'
 import { resolveInside, type ResolveInsideError } from '../../core/git/resolveInside'
 import { err, ok, type Result } from '../../core/shared/result'
@@ -18,6 +19,8 @@ export interface RepoConfinerOptions {
   readonly projectDirName: string
   /** The session's first lead `cwd`, or `undefined` when it had none. */
   readonly firstCwd: string | undefined
+  /** Runs the filesystem calls under a deadline. Defaults to the app-wide runner. */
+  readonly fsRunner?: FsRunner
 }
 
 /**
@@ -60,19 +63,22 @@ interface FirstCwdResolution {
  * Resolves the first `cwd` once, and recovers the top-level's spelling from
  * it, but only when that spelling resolves to the top-level itself (such as
  * `/var/x` for `/private/var/x`). A symlink below the top-level would make it
- * name somewhere else, so the real top-level is used instead.
+ * name somewhere else, so the real top-level is used instead. It fails
+ * closed: a `cwd` that can't be resolved, including one that hangs past its
+ * deadline, adds no spelling.
  */
 async function resolveFirstCwd(options: {
   readonly cwd: string
   readonly top: string
+  readonly run: FsRunner
 }): Promise<FirstCwdResolution> {
-  const { cwd, top } = options
+  const { cwd, top, run } = options
   try {
-    const real = await realpath(cwd)
+    const real = await run(() => realpath(cwd))
     if (!isInside(top, real)) return { real: undefined, lexicalTop: top }
     const suffix = real.slice(top.length)
     const lexical = suffix === '' ? cwd : cwd.endsWith(suffix) ? cwd.slice(0, -suffix.length) : top
-    return { real, lexicalTop: (await realpath(lexical)) === top ? lexical : top }
+    return { real, lexicalTop: (await run(() => realpath(lexical))) === top ? lexical : top }
   } catch {
     return { real: undefined, lexicalTop: top }
   }
@@ -111,9 +117,11 @@ function rebase(project: Project, path: string): { root: string; path: string } 
  * component, or takes too many links or too many steps to resolve
  * (`too-many-links`, `too-many-steps`), is `outside-project`; one that does
  * not resolve (missing, or a file with more path after it: `not-found`,
- * `not-a-directory`) or is unreadable is `repo-missing`.
+ * `not-a-directory`) or is unreadable is `repo-missing`; one that hangs past
+ * its deadline is `timeout`.
  */
 function refusalOf(reason: ResolveInsideError | 'outside-spelling'): ConfineRepoError {
+  if (reason === 'timeout') return 'timeout'
   return reason === 'not-found' || reason === 'not-a-directory' || reason === 'unreadable'
     ? 'repo-missing'
     : 'outside-project'
@@ -126,10 +134,12 @@ function refusalOf(reason: ResolveInsideError | 'outside-spelling'): ConfineRepo
  */
 async function resolveInProject(
   project: Project,
-  path: string
+  options: { readonly path: string; readonly fsRunner: FsRunner }
 ): Promise<Result<string, ResolveInsideError | 'outside-spelling'>> {
-  const rebased = rebase(project, path)
-  return rebased === undefined ? err('outside-spelling') : resolveInside(rebased)
+  const rebased = rebase(project, options.path)
+  return rebased === undefined
+    ? err('outside-spelling')
+    : resolveInside({ ...rebased, fsRunner: options.fsRunner })
 }
 
 /** Vets the directories a transcript names against one session's project. */
@@ -143,9 +153,10 @@ export interface RepoConfiner {
    * Resolves a worktree path that lies inside the project's top-level.
    * @param path - The worktree path a subagent's meta names.
    * @returns The real path, or `undefined` when it is missing, lies outside,
-   * or belongs to a different repository. A failure to ask git, or to
-   * establish the project, comes back as an error, since it says nothing
-   * about whether the worktree exists.
+   * or belongs to a different repository. A failure to ask git, a filesystem
+   * call that hangs past its deadline (`timeout`), or a failure to establish
+   * the project comes back as an error, since it says nothing about whether
+   * the worktree exists.
    */
   readonly worktree: (path: string) => Promise<Result<string | undefined, ConfineRepoError>>
 }
@@ -171,17 +182,18 @@ export interface RepoConfiner {
  */
 export function createRepoConfiner(options: RepoConfinerOptions): RepoConfiner {
   const { git, projectDirName, firstCwd } = options
+  const fsRunner = options.fsRunner ?? defaultFsRunner
   const repos = new Map<string, Promise<Result<string, ConfineRepoError>>>()
 
   async function establishProject(): Promise<Result<Project, ConfineRepoError>> {
     if (firstCwd === undefined || encodeProjectDir(firstCwd) !== projectDirName) {
       return err('outside-project')
     }
-    const top = await verifyRepo({ git, dir: firstCwd })
+    const top = await verifyRepo({ git, dir: firstCwd, fsRunner })
     if (!top.ok) return top
-    const common = await realCommonDir({ git, dir: top.value })
+    const common = await realCommonDir({ git, dir: top.value, fsRunner })
     if (!common.ok) return common
-    const resolved = await resolveFirstCwd({ cwd: firstCwd, top: top.value })
+    const resolved = await resolveFirstCwd({ cwd: firstCwd, top: top.value, run: fsRunner })
     const bases: ProjectBase[] = [
       { spelled: top.value, real: top.value },
       { spelled: resolved.lexicalTop, real: top.value },
@@ -196,13 +208,13 @@ export function createRepoConfiner(options: RepoConfinerOptions): RepoConfiner {
   async function confine(spawnCwd: string): Promise<Result<string, ConfineRepoError>> {
     const first = await getProject()
     if (!first.ok) return first
-    const resolved = await resolveInProject(first.value, spawnCwd)
+    const resolved = await resolveInProject(first.value, { path: spawnCwd, fsRunner })
     if (!resolved.ok) return err(refusalOf(resolved.error))
     const real = resolved.value
     if (!isInside(first.value.top, real)) return err('outside-project')
-    const spawn = await verifyRepo({ git, dir: real })
+    const spawn = await verifyRepo({ git, dir: real, fsRunner })
     if (!spawn.ok) return spawn
-    const common = await realCommonDir({ git, dir: spawn.value })
+    const common = await realCommonDir({ git, dir: spawn.value, fsRunner })
     if (!common.ok) return common
     return common.value === first.value.common ? ok(spawn.value) : err('outside-project')
   }
@@ -219,10 +231,11 @@ export function createRepoConfiner(options: RepoConfinerOptions): RepoConfiner {
     async worktree(path) {
       const first = await getProject()
       if (!first.ok) return first
-      const resolved = await resolveInProject(first.value, path)
-      if (!resolved.ok || !isInside(first.value.top, resolved.value)) return ok(undefined)
+      const resolved = await resolveInProject(first.value, { path, fsRunner })
+      if (!resolved.ok) return resolved.error === 'timeout' ? err('timeout') : ok(undefined)
+      if (!isInside(first.value.top, resolved.value)) return ok(undefined)
       const real = resolved.value
-      const common = await realCommonDir({ git, dir: real })
+      const common = await realCommonDir({ git, dir: real, fsRunner })
       if (!common.ok) return common.error === 'not-a-repo' ? ok(undefined) : common
       return ok(common.value === first.value.common ? real : undefined)
     }

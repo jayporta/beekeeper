@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { registerTestGit } from '../../../core/git/testGitRepo'
+import { hangingFsRunner } from '../../../core/git/testFsRunner'
 import { verifyRepo } from '../verifyRepo'
 
 const gitContext = registerTestGit()
@@ -73,6 +74,36 @@ describe('verifyRepo', () => {
     expect(await verifyRepo({ git, dir: sub })).toEqual({
       ok: true,
       value: await realpath(repo.dir)
+    })
+  })
+
+  describe('when a filesystem call hangs', () => {
+    it('reports timeout, not repo-missing, when resolving the directory hangs', async (context) => {
+      const git = gitContext.requireGit(context)
+      const dir = join(await scratchDir(), 'nope')
+
+      expect(
+        await verifyRepo({ git, dir, fsRunner: hangingFsRunner({ passes: 0, hangs: 1 }) })
+      ).toEqual({ ok: false, error: 'timeout' })
+    })
+
+    it('reports timeout, not not-a-repo, when checking that the path is a directory hangs', async (context) => {
+      const git = gitContext.requireGit(context)
+      const file = join(await scratchDir(), 'file.txt')
+      await writeFile(file, 'x')
+
+      expect(
+        await verifyRepo({ git, dir: file, fsRunner: hangingFsRunner({ passes: 1, hangs: 1 }) })
+      ).toEqual({ ok: false, error: 'timeout' })
+    })
+
+    it('reports timeout when resolving the top-level hangs', async (context) => {
+      const git = gitContext.requireGit(context)
+      const repo = await gitContext.baseRepo(git)
+
+      expect(
+        await verifyRepo({ git, dir: repo.dir, fsRunner: hangingFsRunner({ passes: 2, hangs: 1 }) })
+      ).toEqual({ ok: false, error: 'timeout' })
     })
   })
 })

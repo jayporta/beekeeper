@@ -1,3 +1,5 @@
+import type { SessionRefDto } from './sessionRefDto'
+
 /**
  * A lead's cost, rolled up from the totals each session recorded for
  * itself. Only recorded values are summed: a session with no recorded total
@@ -44,11 +46,12 @@ export interface LeadSessionTeamDto {
   /** Discriminates the entry. */
   readonly kind: 'lead'
   /**
-   * The ids of the sessions grouped under this lead, spawn-joined ones first
-   * in the lead's spawn order, then team-joined ones by start time. Its
-   * length is the teammate count.
+   * The sessions grouped under this lead, spawn-joined ones first in the
+   * lead's spawn order, then team-joined ones by start time. Its length is
+   * the teammate count. A teammate may live in another folder of the
+   * lead's project family, so each is a ref, not a bare id.
    */
-  readonly teammateSessionIds: readonly string[]
+  readonly teammates: readonly SessionRefDto[]
   /** The team's cost, rolled up over the lead and its teammates. */
   readonly cost: TeamCostRollupDto
 }
@@ -57,8 +60,13 @@ export interface LeadSessionTeamDto {
 export interface TeammateSessionTeamDto {
   /** Discriminates the entry. */
   readonly kind: 'teammate'
-  /** The id of the lead session this teammate is grouped under. */
-  readonly leadSessionId: string
+  /**
+   * The lead session this teammate is grouped under, which may live in
+   * another folder of the same project family. A cross-folder teammate is
+   * listed under its lead's folder and under its own, with this same lead
+   * both times.
+   */
+  readonly lead: SessionRefDto
   /**
    * `spawn` when one of the lead's spawns matched this session's (team,
    * name) pair, `team` when only the team matched. A match is a grouping
@@ -73,7 +81,7 @@ export interface TeammateSessionTeamDto {
   readonly stopped: boolean
 }
 
-/** A teammate agent session that no lead in the project claimed. */
+/** A teammate agent session that no lead in the project family claimed. */
 export interface UngroupedSessionTeamDto {
   /** Discriminates the entry. */
   readonly kind: 'ungrouped'

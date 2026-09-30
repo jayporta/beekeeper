@@ -1,4 +1,5 @@
 import type { SessionEntry } from '../../core/transcript/discoverSessions'
+import type { ProjectDirName } from '../../core/transcript/ids'
 import type { Result } from '../../core/shared/result'
 import type { SessionSummary } from '../../core/transcript/summary/sessionSummary'
 import type { UnreadableError } from '../../core/transcript/unreadableError'
@@ -10,6 +11,8 @@ import { toIpcErrorCode } from './toIpcErrorCode'
 
 /** One discovered session with the outcome of reading its summary. */
 export interface ScannedSession {
+  /** The project folder the session was discovered in. */
+  readonly projectDirName: ProjectDirName
   /** The session as discovery found it. */
   readonly entry: SessionEntry
   /** The summary read, or why there is none. A failed transcript stat carries its own error. */
@@ -33,6 +36,7 @@ export function mapSessionListItem(
   const subagentCount = entry.subagents.ok ? entry.subagents.value.length : null
   if (!entry.transcript.ok) {
     return {
+      projectDirName: scanned.projectDirName,
       sessionId: entry.sessionId,
       modifiedMs: null,
       sizeBytes: null,
@@ -44,6 +48,7 @@ export function mapSessionListItem(
 
   const file = entry.transcript.value
   return {
+    projectDirName: scanned.projectDirName,
     sessionId: entry.sessionId,
     modifiedMs: file.mtimeMs,
     sizeBytes: file.size,
