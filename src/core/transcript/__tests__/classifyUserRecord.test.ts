@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { classifyUserRecord } from '../classifyUserRecord'
-import { buildUserRecord } from '../testFixtures'
+import { MAX_LABEL_CODE_UNITS } from '../boundedLabel'
+import { MAX_IDENTIFIER_CODE_UNITS } from '../schemas/boundedIdentifier'
+import { buildTextBlock, buildUserRecord } from '../testFixtures'
 import { buildToolResultBlock } from '../testFileTouchFixtures'
 
 const user = (extra: Record<string, unknown> = {}, content?: unknown): unknown =>
   buildUserRecord({ extra, content })
-
-const textBlock = (text: string): Record<string, unknown> => ({ type: 'text', text })
 
 describe('classifyUserRecord: origin signals', () => {
   it('gives human when turnOrigin and origin.kind agree on human', () => {
@@ -147,7 +147,12 @@ describe('classifyUserRecord: peer records', () => {
   })
 
   it('omits from and senderTaskId when absent, mistyped, or over the cap', () => {
-    const origin = { kind: 'peer', handback: true, from: 5, senderTaskId: 'x'.repeat(257) }
+    const origin = {
+      kind: 'peer',
+      handback: true,
+      from: 5,
+      senderTaskId: 'x'.repeat(MAX_IDENTIFIER_CODE_UNITS + 1)
+    }
     expect(classifyUserRecord(user({ origin }))).toEqual({ kind: 'subagent-handback' })
   })
 
@@ -195,13 +200,19 @@ describe('classifyUserRecord: peer records', () => {
   })
 
   it('keeps from and senderTaskId up to the identifier cap', () => {
-    const id = 'a'.repeat(256)
-    const origin = { kind: 'peer', handback: true, from: id, senderTaskId: id }
+    const from = 'a'.repeat(MAX_LABEL_CODE_UNITS)
+    const senderTaskId = 'a'.repeat(MAX_IDENTIFIER_CODE_UNITS)
+    const origin = { kind: 'peer', handback: true, from, senderTaskId }
     expect(classifyUserRecord(user({ origin }))).toEqual({
       kind: 'subagent-handback',
-      from: id,
-      senderTaskId: id
+      from,
+      senderTaskId
     })
+  })
+
+  it('omits from over the label cap', () => {
+    const origin = { kind: 'peer', handback: true, from: 'a'.repeat(MAX_LABEL_CODE_UNITS + 1) }
+    expect(classifyUserRecord(user({ origin }))).toEqual({ kind: 'subagent-handback' })
   })
 })
 
@@ -211,9 +222,9 @@ describe('classifyUserRecord: tool results', () => {
   })
 
   it('classifies a tool_result mixed with a text block', () => {
-    expect(classifyUserRecord(user({}, [textBlock('note'), buildToolResultBlock()])).kind).toBe(
-      'tool-result'
-    )
+    expect(
+      classifyUserRecord(user({}, [buildTextBlock('note'), buildToolResultBlock()])).kind
+    ).toBe('tool-result')
   })
 
   it('classifies a record whose toolUseResult is a string', () => {
@@ -276,7 +287,7 @@ describe('classifyUserRecord: meta records', () => {
 
 describe('classifyUserRecord: content prefixes', () => {
   const asString = (text: string): unknown => user({}, text)
-  const asBlocks = (text: string): unknown => user({}, [textBlock(text)])
+  const asBlocks = (text: string): unknown => user({}, [buildTextBlock(text)])
 
   it.each([
     ['string', asString],
@@ -334,12 +345,12 @@ describe('classifyUserRecord: content prefixes', () => {
   })
 
   it('reads the first text block, skipping non-text blocks before it', () => {
-    const record = user({}, [{ type: 'image' }, textBlock('<task-notification>')])
+    const record = user({}, [{ type: 'image' }, buildTextBlock('<task-notification>')])
     expect(classifyUserRecord(record).kind).toBe('task-notification')
   })
 
   it('ignores prefixes in text blocks after the first', () => {
-    const record = user({}, [textBlock('hi'), textBlock('<task-notification>')])
+    const record = user({}, [buildTextBlock('hi'), buildTextBlock('<task-notification>')])
     expect(classifyUserRecord(record).kind).toBe('human')
   })
 
@@ -361,7 +372,7 @@ describe('classifyUserRecord: task-notification tool-use id', () => {
 
   it('carries the id when the classification comes from origin', () => {
     const record = user({ origin: { kind: 'task-notification' } }, [
-      textBlock('<task-notification><tool-use-id>toolu_x1</tool-use-id>')
+      buildTextBlock('<task-notification><tool-use-id>toolu_x1</tool-use-id><summary>s</summary>')
     ])
     expect(classifyUserRecord(record)).toEqual({
       kind: 'task-notification',
@@ -393,6 +404,12 @@ describe('classifyUserRecord: task-notification tool-use id', () => {
     expect(classifyUserRecord(user({}, inResult))).toEqual({ kind: 'task-notification' })
   })
 
+  it('reads no id when the notification has neither a summary nor a result tag', () => {
+    const text = '<task-notification>\n<tool-use-id>toolu_abc</tool-use-id>'
+
+    expect(classifyUserRecord(user({}, text))).toEqual({ kind: 'task-notification' })
+  })
+
   it('reads the header id even when the body repeats a different one', () => {
     const text =
       '<task-notification>\n<tool-use-id>toolu_head</tool-use-id>\n<summary>s</summary>\n<result><tool-use-id>toolu_body</tool-use-id></result>'
@@ -422,7 +439,7 @@ describe('classifyUserRecord: humans and malformed input', () => {
   })
 
   it('gives human for block content with only text', () => {
-    expect(classifyUserRecord(user({}, [textBlock('fix the bug')])).kind).toBe('human')
+    expect(classifyUserRecord(user({}, [buildTextBlock('fix the bug')])).kind).toBe('human')
   })
 
   it("gives unknown for a sidechain record, which is a subagent prompt, not the lead's", () => {

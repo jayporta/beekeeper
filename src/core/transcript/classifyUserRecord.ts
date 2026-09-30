@@ -20,7 +20,7 @@ export type UserRecordClass =
   /** A subagent's final report handed back to the session that delegated to it. */
   | {
       kind: 'subagent-handback'
-      /** The sender's agent id or spawn name, cleaned as an agent label, when the record names one. */
+      /** The sender's agent id or spawn name, cleaned as an agent label, when named. */
       from?: string
       /** The subagent's agent id, when the record names a well-formed one. */
       senderTaskId?: AgentId
@@ -37,7 +37,10 @@ export type UserRecordClass =
   | { kind: 'tool-result' }
   /** Harness bookkeeping: a caveat, a reminder, command output, or an interrupt marker. */
   | { kind: 'meta' }
-  /** Not a `user` record, malformed, or carrying an origin value this reader doesn't know. */
+  /**
+   * Not a `user` record, a sidechain `user` record, or one carrying an origin value this
+   * reader doesn't know. A `user` record with no usable signal is `human`.
+   */
   | { kind: 'unknown' }
 
 /** The origin signals both `turnOrigin` and `origin.kind` resolve to. */
@@ -117,11 +120,13 @@ function classifyPeer(origin: Record<string, unknown> | null): UserRecordClass {
 }
 
 /**
- * Reads the `<tool-use-id>` a task notification names, from its header only,
- * and only when the text starts with the notification prefix:
- * the text after `<summary>` or `<result>` is untrusted free text. Only a
- * value shaped like a tool-use id and within the identifier cap is returned,
- * copied so it doesn't keep the notification alive.
+ * Reads the `<tool-use-id>` a task notification names. It reads the header
+ * only: the text must start with the notification prefix and hold a `<summary>`
+ * or `<result>` tag, and the id must come before the first of them, since the
+ * text after is untrusted free text. A notification with neither tag has no
+ * known header end, so it yields no id. Only a value shaped like a tool-use id
+ * and within the identifier cap is returned, copied so it doesn't keep the
+ * notification alive.
  */
 function classifyTaskNotification(text: string | null): UserRecordClass {
   if (text === null || !text.startsWith(TASK_NOTIFICATION_PREFIX)) {
@@ -129,7 +134,9 @@ function classifyTaskNotification(text: string | null): UserRecordClass {
   }
 
   const bodyStarts = BODY_TAGS.map((tag) => text.indexOf(tag)).filter((index) => index >= 0)
-  const header = bodyStarts.length === 0 ? text : text.slice(0, Math.min(...bodyStarts))
+  if (bodyStarts.length === 0) return { kind: 'task-notification' }
+
+  const header = text.slice(0, Math.min(...bodyStarts))
   const candidate = TOOL_USE_ID_TAG.exec(header)?.[1]
   if (
     candidate === undefined ||
@@ -190,8 +197,8 @@ function classifyByContent(record: Record<string, unknown>): UserRecordClass {
  * A record inside a sidechain, such as an inline subagent prompt in an older
  * lead file, gives `unknown`. Otherwise signals are read in order, and the
  * first that applies wins: `turnOrigin`, then `origin.kind` (a value either
- * field holds that is not a known one
- * gives `unknown` and never falls through), then a tool result (any
+ * field holds that is not a known one gives `unknown` and never falls
+ * through), then a tool result (any
  * `tool_result` block or a non-null `toolUseResult` of any type), then the
  * `<task-notification>` prefix, then the relay prefix, then `isMeta` or
  * `isCompactSummary`, then the meta prefixes (command output and interrupt
@@ -201,8 +208,10 @@ function classifyByContent(record: Record<string, unknown>): UserRecordClass {
  * on `subagent-handback` and `task-notification`.
  *
  * @param record - One parsed line of a lead transcript, unvalidated.
- * @returns The record's class. A value that is not a `user` record, or is
- * malformed, gives `unknown`. It never throws.
+ * @returns The record's class. `unknown` is for a value that is not a `user`
+ * record, a sidechain `user` record, or an origin value this reader doesn't
+ * know. A `user` record with no usable signal, even a malformed one, is
+ * `human`. It never throws.
  * @example
  * classifyUserRecord({ type: 'user', origin: { kind: 'peer', handback: true } })
  * // => { kind: 'subagent-handback' }

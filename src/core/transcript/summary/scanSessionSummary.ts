@@ -19,14 +19,12 @@ import { truncateTitle } from './truncateTitle'
  * record of their type by line order, since neither carries a timestamp
  * and a session rewrites both as it runs. The activity span is the
  * smallest and largest timestamp found, not the first and last lines,
- * because timestamps within a transcript run backwards. The model is that
- * of the timestamped assistant record with the largest timestamp, for the
- * same reason.
+ * because timestamps within a transcript run backwards. The model is the
+ * latest one by timestamp, picked by `createLatestModelObserver`.
  *
  * Only what the summary displays is kept: the title is capped at a
- * displayable length, the model is the latest qualifying assistant
- * record's, bounded as an identifier, the cost state is reduced to its
- * total, the role's agent type, name and team are capped
+ * displayable length, the model is bounded as an identifier, the cost
+ * state is reduced to its total, the role's agent type, name and team are capped
  * and dropped unless printable, and the spawn and stop lists hold only
  * those labels, deduplicated and capped, so an oversized or padded record
  * can't sit in the summary cache for as long as the app runs.

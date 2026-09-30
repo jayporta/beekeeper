@@ -64,10 +64,6 @@ export interface SessionSummary {
    * are empty for a transcript that spawned none.
    */
   readonly teamSpawns: TranscriptTeamSpawns
-  /**
-   * The model of the latest-timestamped qualifying assistant record: one
-   * outside a sidechain whose model is not `<synthetic>`, is non-empty and
-   * printable, and is within the identifier cap. `null` when none qualifies.
-   */
+  /** The lead's latest model, as `createLatestModelObserver` picks it, or `null`. */
   readonly model: string | null
 }

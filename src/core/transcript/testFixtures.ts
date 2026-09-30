@@ -69,6 +69,11 @@ export function buildAgentSettingRecord(
   return { type: 'agent-setting', agentSetting }
 }
 
+/** Builds a `text` content block. */
+export function buildTextBlock(text: string): Record<string, unknown> {
+  return { type: 'text', text }
+}
+
 interface UserRecordOverrides {
   /** The message's `content`; defaults to a short prompt string. */
   readonly content?: unknown

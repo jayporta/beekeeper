@@ -105,6 +105,18 @@ describe('createLatestModelObserver', () => {
   })
 
   it.each([
+    ['only spaces', '   '],
+    ['spaces around a no-break space', ' \u00A0 ']
+  ])('ignores a model of %s', (_label, model) => {
+    expect(
+      modelAfter([
+        at('2026-01-01T00:00:00.000Z', 'model-real'),
+        at('2026-01-02T00:00:00.000Z', model)
+      ])
+    ).toBe('model-real')
+  })
+
+  it.each([
     ['a bidi override', 'claude\u202Eopus'],
     ['a line separator', 'claude\u2028opus'],
     ['a newline', 'claude\nopus'],
