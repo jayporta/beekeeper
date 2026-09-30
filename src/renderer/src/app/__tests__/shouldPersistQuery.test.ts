@@ -78,6 +78,13 @@ describe('shouldPersistQuery freshness', () => {
     ).toBe(false)
   })
 
+  it('does not persist data stamped in the future, as when the clock moved backward', () => {
+    expect(shouldPersistQuery(query(['projects'], { dataUpdatedAt: NOW + 1 }))).toBe(false)
+    expect(
+      shouldPersistQuery(query(['projects'], { dataUpdatedAt: NOW + PERSIST_MAX_AGE_MS }))
+    ).toBe(false)
+  })
+
   it('does not persist data that was never fetched', () => {
     expect(shouldPersistQuery(query(['projects'], { dataUpdatedAt: 0 }))).toBe(false)
   })

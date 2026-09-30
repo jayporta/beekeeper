@@ -1,10 +1,14 @@
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister'
 import type { PersistedClient, Persister } from '@tanstack/react-query-persist-client'
 import { idbStorage } from '@renderer/storage/idbStorage'
+import { keepFreshSavedQueries } from './keepFreshSavedQueries'
 import { toCachedQueryState } from './toCachedQueryState'
 
 /** The storage the persister saves to: anything with async string `getItem`, `setItem` and `removeItem`. */
 type PersisterStorage = NonNullable<Parameters<typeof createAsyncStoragePersister>[0]['storage']>
+
+/** The message of the error a saved cache that can't be read throws: fixed, since the cache is untrusted. */
+const UNREADABLE_CACHE_MESSAGE = 'Beekeeper could not read its saved query cache.'
 
 /** The IndexedDB key the query cache is stored under. */
 const QUERY_CACHE_KEY = 'beekeeper-query-cache'
@@ -38,16 +42,23 @@ function serializeClient(client: PersistedClient): string {
 }
 
 /**
- * Parses the saved cache. A `JSON.parse` error quotes part of its input, which
- * here is transcript-derived, and the persister logs a restore error in
- * development, so a failure throws a fixed error with no cause instead.
+ * Parses the saved cache and drops the queries that are now too old. A
+ * `JSON.parse` error quotes part of its input, which here is
+ * transcript-derived, and the persister logs a restore error in development,
+ * so a failure, including a saved value of the wrong shape, throws a fixed
+ * error with no cause instead.
  */
 function parseSavedCache(saved: string): PersistedClient {
+  let parsed: unknown
   try {
-    return JSON.parse(saved)
+    parsed = JSON.parse(saved)
   } catch {
-    throw new Error('Beekeeper could not read its saved query cache.')
+    throw new Error(UNREADABLE_CACHE_MESSAGE)
   }
+
+  const fresh = keepFreshSavedQueries(parsed)
+  if (fresh === undefined) throw new Error(UNREADABLE_CACHE_MESSAGE)
+  return fresh
 }
 
 /**
