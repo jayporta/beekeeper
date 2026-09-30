@@ -2,17 +2,16 @@ import { describe, expect, it } from 'vitest'
 import { err, ok } from '../../../core/shared/result'
 import { toProjectDirName, toSessionId } from '../../../core/transcript/ids'
 import type { SessionSummary } from '../../../core/transcript/summary/sessionSummary'
+import { buildSessionSummary } from '../../../core/transcript/summary/testSessionSummary'
 import { mapSessionListItem, type ScannedSession } from '../mapSessionListItem'
 
-const SUMMARY: SessionSummary = {
+const SUMMARY: SessionSummary = buildSessionSummary({
   title: 'A title',
   cost: { totalUSD: 1.5 },
   activity: { earliestMs: 1, latestMs: 2 },
   skippedLines: 3,
-  role: { kind: 'lead' },
-  teamSpawns: { spawns: [], stops: [], truncated: false },
   model: 'claude-opus-5'
-}
+})
 
 function scanned(summary: ScannedSession['summary']): ScannedSession {
   return {

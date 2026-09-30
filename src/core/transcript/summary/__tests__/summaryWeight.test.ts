@@ -1,16 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { SessionSummary } from '../sessionSummary'
 import { SUMMARY_ENTRY_OVERHEAD, summaryWeight } from '../summaryWeight'
+import { buildSessionSummary } from '../testSessionSummary'
 
-const EMPTY_SUMMARY: SessionSummary = {
-  title: null,
-  cost: null,
-  activity: null,
-  skippedLines: 0,
-  role: { kind: 'lead' },
-  teamSpawns: { spawns: [], stops: [], truncated: false },
-  model: null
-}
+const EMPTY_SUMMARY: SessionSummary = buildSessionSummary()
 
 describe('summaryWeight', () => {
   it('charges only the overhead for a summary holding no strings', () => {

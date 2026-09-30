@@ -156,6 +156,36 @@ describe('classifyUserRecord: peer records', () => {
     expect(classifyUserRecord(user({ origin }))).toEqual({ kind: 'subagent-handback' })
   })
 
+  it('trims whitespace from from', () => {
+    const origin = { kind: 'peer', handback: true, from: 'researcher ' }
+    expect(classifyUserRecord(user({ origin }))).toEqual({
+      kind: 'subagent-handback',
+      from: 'researcher'
+    })
+  })
+
+  it('omits from when it holds a bidi override', () => {
+    const origin = { kind: 'peer', handback: true, from: 'rese\u202Earcher' }
+    expect(classifyUserRecord(user({ origin }))).toEqual({ kind: 'subagent-handback' })
+  })
+
+  it.each([
+    ['a path', '../../x'],
+    ['a value with a space', 'a b'],
+    ['a newline', 'a\nb']
+  ])('omits senderTaskId that is %s', (_label, senderTaskId) => {
+    const origin = { kind: 'peer', handback: true, senderTaskId }
+    expect(classifyUserRecord(user({ origin }))).toEqual({ kind: 'subagent-handback' })
+  })
+
+  it('keeps a real-shaped senderTaskId', () => {
+    const origin = { kind: 'peer', handback: true, senderTaskId: 'a1b2c3d4e5f6a7b8c' }
+    expect(classifyUserRecord(user({ origin }))).toEqual({
+      kind: 'subagent-handback',
+      senderTaskId: 'a1b2c3d4e5f6a7b8c'
+    })
+  })
+
   it('keeps from when it is a spawn name rather than an agent id', () => {
     const origin = { kind: 'peer', handback: true, from: 'researcher' }
     expect(classifyUserRecord(user({ origin }))).toEqual({
@@ -393,6 +423,14 @@ describe('classifyUserRecord: humans and malformed input', () => {
 
   it('gives human for block content with only text', () => {
     expect(classifyUserRecord(user({}, [textBlock('fix the bug')])).kind).toBe('human')
+  })
+
+  it("gives unknown for a sidechain record, which is a subagent prompt, not the lead's", () => {
+    expect(classifyUserRecord(user({ isSidechain: true }))).toEqual({ kind: 'unknown' })
+  })
+
+  it('classifies a record whose isSidechain is false as usual', () => {
+    expect(classifyUserRecord(user({ isSidechain: false }))).toEqual({ kind: 'human' })
   })
 
   it('gives human when the message is missing', () => {

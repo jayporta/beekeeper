@@ -1,3 +1,4 @@
+import { toAgentLabel } from './agentLabel'
 import { detachFromParent } from './detachFromParent'
 import { firstUserText } from './firstUserText'
 import { toAgentId, type AgentId } from './ids'
@@ -19,9 +20,9 @@ export type UserRecordClass =
   /** A subagent's final report handed back to the session that delegated to it. */
   | {
       kind: 'subagent-handback'
-      /** The sender's agent id or spawn name, when the record names one. */
+      /** The sender's agent id or spawn name, cleaned as an agent label, when the record names one. */
       from?: string
-      /** The subagent's agent id, when the record names one. */
+      /** The subagent's agent id, when the record names a well-formed one. */
       senderTaskId?: AgentId
     }
   /** A notice that a background task finished. */
@@ -91,21 +92,27 @@ function originOf(record: Record<string, unknown>): Record<string, unknown> | nu
   return isRecordObject(record.origin) ? record.origin : null
 }
 
-/** A non-empty string within the identifier cap, else `undefined`. */
-function readIdentifier(value: unknown): string | undefined {
-  return isWithinCodeUnits(value, MAX_IDENTIFIER_CODE_UNITS) && value !== '' ? value : undefined
+/** The characters of an agent id, as in the `agent-<id>.jsonl` file names. */
+const AGENT_ID_SHAPE = /^[A-Za-z0-9_-]+$/
+
+/** A non-empty agent id within the identifier cap, else `undefined`. */
+function readAgentId(value: unknown): AgentId | undefined {
+  if (!isWithinCodeUnits(value, MAX_IDENTIFIER_CODE_UNITS) || !AGENT_ID_SHAPE.test(value)) {
+    return undefined
+  }
+  return toAgentId(value)
 }
 
 /** Builds the hand-back or teammate-message class from the record's `origin`. */
 function classifyPeer(origin: Record<string, unknown> | null): UserRecordClass {
   if (origin?.handback !== true) return { kind: 'teammate-message' }
 
-  const from = readIdentifier(origin.from)
-  const senderTaskId = readIdentifier(origin.senderTaskId)
+  const from = toAgentLabel(origin.from)
+  const senderTaskId = readAgentId(origin.senderTaskId)
   return {
     kind: 'subagent-handback',
-    ...(from !== undefined && { from }),
-    ...(senderTaskId !== undefined && { senderTaskId: toAgentId(senderTaskId) })
+    ...(from !== null && { from }),
+    ...(senderTaskId !== undefined && { senderTaskId })
   }
 }
 
@@ -180,8 +187,10 @@ function classifyByContent(record: Record<string, unknown>): UserRecordClass {
  * running it there would mislabel them.
  *
  * @remarks
- * Signals are read in order, and the first that applies wins: `turnOrigin`,
- * then `origin.kind` (a value either field holds that is not a known one
+ * A record inside a sidechain, such as an inline subagent prompt in an older
+ * lead file, gives `unknown`. Otherwise signals are read in order, and the
+ * first that applies wins: `turnOrigin`, then `origin.kind` (a value either
+ * field holds that is not a known one
  * gives `unknown` and never falls through), then a tool result (any
  * `tool_result` block or a non-null `toolUseResult` of any type), then the
  * `<task-notification>` prefix, then the relay prefix, then `isMeta` or
@@ -200,6 +209,7 @@ function classifyByContent(record: Record<string, unknown>): UserRecordClass {
  */
 export function classifyUserRecord(record: unknown): UserRecordClass {
   if (!isRecordObject(record) || record.type !== 'user') return { kind: 'unknown' }
+  if (record.isSidechain === true) return { kind: 'unknown' }
 
   const turnOrigin = readSignal(record.turnOrigin, TURN_ORIGIN_SIGNALS)
   if (turnOrigin !== null) return fromSignal(turnOrigin, record)

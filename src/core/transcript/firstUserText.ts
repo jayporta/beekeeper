@@ -7,16 +7,15 @@ import { messageContentBlocks } from './messageContentBlocks'
  * are ignored, since a prefix check only means something at the start.
  *
  * @param record - A parsed user record.
- * @returns The leading text, or `null` when the record has none.
+ * @returns The leading text, or `null` when the record has none or the first
+ * `text` block carries no string `text`.
  */
 export function firstUserText(record: Record<string, unknown>): string | null {
   const { message } = record
   if (isRecordObject(message) && typeof message.content === 'string') return message.content
 
-  for (const block of messageContentBlocks(record)) {
-    if (isRecordObject(block) && block.type === 'text' && typeof block.text === 'string') {
-      return block.text
-    }
-  }
-  return null
+  const first = messageContentBlocks(record).find(
+    (block) => isRecordObject(block) && block.type === 'text'
+  )
+  return isRecordObject(first) && typeof first.text === 'string' ? first.text : null
 }
