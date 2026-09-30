@@ -1,6 +1,8 @@
 import 'fake-indexeddb/auto'
+import { dehydrate, hydrate, QueryClient } from '@tanstack/react-query'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createQueryPersister, logPersistError } from '../queryPersister'
+import { shouldPersistQuery } from '../shouldPersistQuery'
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -69,6 +71,67 @@ describe('createQueryPersister restore', () => {
     const persister = createQueryPersister(storageHolding(JSON.stringify(CLIENT)))
 
     expect(await persister.restoreClient()).toEqual(CLIENT)
+  })
+})
+
+describe('createQueryPersister round trip', () => {
+  const memoryStorage = (): Parameters<typeof createQueryPersister>[0] => {
+    const stored = new Map<string, string>()
+    return {
+      getItem: (key) => Promise.resolve(stored.get(key) ?? null),
+      setItem: (key, value) => Promise.resolve(void stored.set(key, value)),
+      removeItem: (key) => Promise.resolve(void stored.delete(key))
+    }
+  }
+
+  it('restores a list whose background refetch failed as a success, with the old data', async () => {
+    const client = new QueryClient()
+    client.setQueryData(['projects'], [{ dirName: '-p' }])
+    await client
+      .fetchQuery({
+        queryKey: ['projects'],
+        queryFn: () => Promise.reject(new Error('refetch failed')),
+        retry: false,
+        staleTime: 0
+      })
+      .catch(() => undefined)
+    expect(client.getQueryState(['projects'])?.status).toBe('error')
+    const persister = createQueryPersister(memoryStorage())
+
+    await persister.persistClient({
+      timestamp: Date.now(),
+      buster: 'b',
+      clientState: dehydrate(client, { shouldDehydrateQuery: shouldPersistQuery })
+    })
+    const restored = await persister.restoreClient()
+    const next = new QueryClient()
+    if (restored === undefined) throw new Error('nothing was restored')
+    hydrate(next, restored.clientState)
+
+    const restoredState = next.getQueryState(['projects'])
+    expect(restoredState?.status).toBe('success')
+    expect(restoredState?.error).toBeNull()
+    expect(restoredState?.fetchFailureCount).toBe(0)
+    expect(next.getQueryData(['projects'])).toEqual([{ dirName: '-p' }])
+  })
+
+  it('leaves a successful list as it is', async () => {
+    const client = new QueryClient()
+    client.setQueryData(['sessions', '-p'], ['a'])
+    const persister = createQueryPersister(memoryStorage())
+
+    await persister.persistClient({
+      timestamp: Date.now(),
+      buster: 'b',
+      clientState: dehydrate(client, { shouldDehydrateQuery: shouldPersistQuery })
+    })
+    const restored = await persister.restoreClient()
+    const next = new QueryClient()
+    if (restored === undefined) throw new Error('nothing was restored')
+    hydrate(next, restored.clientState)
+
+    expect(next.getQueryState(['sessions', '-p'])?.status).toBe('success')
+    expect(next.getQueryData(['sessions', '-p'])).toEqual(['a'])
   })
 })
 

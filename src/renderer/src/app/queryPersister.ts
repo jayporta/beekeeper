@@ -1,6 +1,7 @@
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister'
 import type { PersistedClient, Persister } from '@tanstack/react-query-persist-client'
 import { idbStorage } from '@renderer/storage/idbStorage'
+import { toCachedQueryState } from './toCachedQueryState'
 
 /** The storage the persister saves to: anything with async string `getItem`, `setItem` and `removeItem`. */
 type PersisterStorage = NonNullable<Parameters<typeof createAsyncStoragePersister>[0]['storage']>
@@ -16,6 +17,24 @@ const QUERY_CACHE_KEY = 'beekeeper-query-cache'
 function giveUpOnSave(): Promise<undefined> {
   console.error('Beekeeper could not save its query cache to IndexedDB.')
   return Promise.resolve(undefined)
+}
+
+/**
+ * Serializes the cache for saving, with each query's state rewritten by
+ * {@link toCachedQueryState} so an errored list that holds data is saved as a
+ * success.
+ */
+function serializeClient(client: PersistedClient): string {
+  return JSON.stringify({
+    ...client,
+    clientState: {
+      ...client.clientState,
+      queries: client.clientState.queries.map((query) => ({
+        ...query,
+        state: toCachedQueryState(query.state)
+      }))
+    }
+  })
 }
 
 /**
@@ -51,6 +70,7 @@ export function createQueryPersister(storage: PersisterStorage = idbStorage): Pe
     storage,
     key: QUERY_CACHE_KEY,
     retry: giveUpOnSave,
+    serialize: serializeClient,
     deserialize: parseSavedCache
   })
 }
