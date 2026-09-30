@@ -10,7 +10,6 @@ Closes # (or say why there's no issue: typo fix)
 - [ ] Security review has no findings left unfixed or unanswered (if it applies)
 - [ ] Performance review has no findings left unfixed or unanswered (if it applies)
 - [ ] Accessibility review has no findings left unfixed or unanswered (if it applies)
-- [ ] Whole-branch code review has no findings left unfixed or unanswered (branches with several commits; skip for docs-only)
 
 ## Declined findings
 
