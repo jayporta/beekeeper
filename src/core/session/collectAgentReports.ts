@@ -10,8 +10,12 @@ import type { MessageReport } from './usageLedger'
 export interface AgentReports {
   /** Every valid assistant message this agent reported, in file order. */
   readonly reports: readonly MessageReport[]
-  /** Every file this agent's `Edit`/`Write` tool calls touched, in file order. */
+  /** Every file this agent's `Edit`/`Write` calls and Bash results touched, in file order. */
   readonly fileTouches: readonly FileTouch[]
+  /** The `tool_use_id` of each Bash result whose changed-file list may be missing files, in file order. */
+  readonly incompleteToolUseIds: readonly string[]
+  /** Whether an incomplete Bash result arrived after the id list was full, so the agent's list is incomplete outright. */
+  readonly incompleteOverflowed: boolean
   /**
    * The number of lines that couldn't contribute a valid assistant
    * record: too long to buffer, not valid JSON, not an object, or an
@@ -73,5 +77,11 @@ export async function collectAgentReports(
     })
   }
 
-  return { reports, fileTouches: fileTouchCollector.touches(), skippedLines }
+  return {
+    reports,
+    fileTouches: fileTouchCollector.touches(),
+    incompleteToolUseIds: fileTouchCollector.incompleteToolUseIds(),
+    incompleteOverflowed: fileTouchCollector.incompleteOverflowed(),
+    skippedLines
+  }
 }

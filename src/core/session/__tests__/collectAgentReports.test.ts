@@ -3,12 +3,14 @@ import { err, ok, type Result } from '../../shared/result'
 import type { SkippedLineError } from '../../transcript/readRecords'
 import {
   buildAssistantToolUseRecord,
+  buildBashToolUseResult,
   buildEditToolUseResult,
   buildUserToolResultRecord
 } from '../../transcript/testFileTouchFixtures'
 import { buildAssistantRecord } from '../../transcript/testFixtures'
 import { leadIdentity } from '../agentIdentity'
 import { collectAgentReports } from '../collectAgentReports'
+import { MAX_BASH_TOUCHES_PER_TRANSCRIPT } from '../fileTouchCollector'
 
 type RecordResult = Result<Record<string, unknown>, SkippedLineError>
 
@@ -97,7 +99,44 @@ describe('collectAgentReports', () => {
       leadIdentity
     )
 
-    expect(fileTouches).toEqual([{ filePath: '/a.ts', operation: 'edit', toolUseId: 'toolu_1' }])
+    expect(fileTouches).toEqual([
+      { filePath: '/a.ts', operation: 'edit', source: 'edit-write', toolUseId: 'toolu_1' }
+    ])
+  })
+
+  describe('incomplete Bash results', () => {
+    /** Bash calls and results that each report they could not tell what changed. */
+    async function* unavailableResults(count: number): AsyncGenerator<RecordResult> {
+      for (let index = 0; index < count; index += 1) {
+        const toolUseId = `toolu_${index}`
+        yield ok(buildAssistantToolUseRecord({ toolUseId, toolName: 'Bash' }))
+        yield ok(
+          buildUserToolResultRecord({
+            toolUseId,
+            toolUseResult: buildBashToolUseResult({ unavailable: true })
+          })
+        )
+      }
+    }
+
+    it('reports the ids of the incomplete results, without overflow, up to the cap', async () => {
+      const reports = await collectAgentReports(
+        unavailableResults(MAX_BASH_TOUCHES_PER_TRANSCRIPT),
+        leadIdentity
+      )
+
+      expect(reports.incompleteToolUseIds).toHaveLength(MAX_BASH_TOUCHES_PER_TRANSCRIPT)
+      expect(reports.incompleteOverflowed).toBe(false)
+    })
+
+    it('reports the overflow once more incomplete results arrive than the cap keeps', async () => {
+      const reports = await collectAgentReports(
+        unavailableResults(MAX_BASH_TOUCHES_PER_TRANSCRIPT + 1),
+        leadIdentity
+      )
+
+      expect(reports.incompleteOverflowed).toBe(true)
+    })
   })
 
   it('reports no file touches when the transcript has none', async () => {

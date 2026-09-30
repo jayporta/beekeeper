@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildAssistantToolUseRecord,
+  buildBashToolUseResult,
   buildEditToolUseResult,
   buildToolResultBlock,
   buildUserToolResultRecord,
@@ -25,7 +26,7 @@ describe('createFileTouchCollector', () => {
     )
 
     expect(collector.touches()).toEqual([
-      { filePath: '/a.ts', operation: 'edit', toolUseId: 'toolu_1' }
+      { filePath: '/a.ts', operation: 'edit', source: 'edit-write', toolUseId: 'toolu_1' }
     ])
   })
 
@@ -41,7 +42,7 @@ describe('createFileTouchCollector', () => {
     )
 
     expect(collector.touches()).toEqual([
-      { filePath: '/new.ts', operation: 'create', toolUseId: 'toolu_2' }
+      { filePath: '/new.ts', operation: 'create', source: 'edit-write', toolUseId: 'toolu_2' }
     ])
   })
 
@@ -57,20 +58,39 @@ describe('createFileTouchCollector', () => {
     )
 
     expect(collector.touches()).toEqual([
-      { filePath: '/existing.ts', operation: 'update', toolUseId: 'toolu_3' }
+      { filePath: '/existing.ts', operation: 'update', source: 'edit-write', toolUseId: 'toolu_3' }
     ])
   })
 
-  it('ignores a tool not tracked for file touches, such as Bash', () => {
+  it.each([
+    ['Edit', buildEditToolUseResult('/a.ts')],
+    ['Bash', buildBashToolUseResult({ changedFiles: ['/a.ts'] })]
+  ])('counts a second %s result carrying the same tool_use_id only once', (toolName, result) => {
     const collector = createFileTouchCollector()
 
-    collector.observe(buildAssistantToolUseRecord({ toolUseId: 'toolu_4', toolName: 'Bash' }))
-    collector.observe(
-      buildUserToolResultRecord({ toolUseId: 'toolu_4', toolUseResult: { filePath: '/a.ts' } })
-    )
+    collector.observe(buildAssistantToolUseRecord({ toolUseId: 'toolu_4', toolName }))
+    collector.observe(buildUserToolResultRecord({ toolUseId: 'toolu_4', toolUseResult: result }))
+    collector.observe(buildUserToolResultRecord({ toolUseId: 'toolu_4', toolUseResult: result }))
 
-    expect(collector.touches()).toEqual([])
+    expect(collector.touches()).toHaveLength(1)
   })
+
+  it.each(['Read', 'Grep'])(
+    'ignores a %s result even when its toolUseResult has the shape of a Write',
+    (toolName) => {
+      const collector = createFileTouchCollector()
+
+      collector.observe(buildAssistantToolUseRecord({ toolUseId: 'toolu_untracked', toolName }))
+      collector.observe(
+        buildUserToolResultRecord({
+          toolUseId: 'toolu_untracked',
+          toolUseResult: buildWriteToolUseResult('/a.ts', 'create')
+        })
+      )
+
+      expect(collector.touches()).toEqual([])
+    }
+  )
 
   it('ignores a tool_result with no earlier tool_use', () => {
     const collector = createFileTouchCollector()

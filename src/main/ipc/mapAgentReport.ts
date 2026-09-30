@@ -1,4 +1,4 @@
-import type { AgentReport } from '../../core/session/scanSession'
+import type { AgentReport } from '../../core/session/agentReports'
 import type { TokenGroup } from '../../core/session/tokenGroup'
 import type { AgentReportDto, PriceDto, TokenGroupDto } from '../../shared/ipc/agentDto'
 
@@ -41,7 +41,9 @@ export function mapAgentReport(report: AgentReport): AgentReportDto {
     skippedLines: report.usage.skippedLines,
     fileTouches: report.fileTouches.map((touch) => ({
       filePath: touch.filePath,
-      operation: touch.operation
-    }))
+      operation: touch.operation,
+      source: touch.source
+    })),
+    fileListIncomplete: report.fileListIncomplete
   }
 }

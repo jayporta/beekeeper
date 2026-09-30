@@ -190,7 +190,7 @@ describe('scanSession file touches', () => {
     const scan = await scanSession({ leadPath, subagents: [] })
 
     expect(scan.lead.fileTouches).toEqual([
-      { filePath: '/repo/lead.ts', operation: 'edit', toolUseId: 'toolu_1' }
+      { filePath: '/repo/lead.ts', operation: 'edit', source: 'edit-write', toolUseId: 'toolu_1' }
     ])
   })
 
@@ -203,7 +203,12 @@ describe('scanSession file touches', () => {
     const scan = await scanSession({ leadPath, subagents: [subagent] })
 
     expect(scan.lead.fileTouches).toEqual([
-      { filePath: '/repo/lead-edit.ts', operation: 'edit', toolUseId: 'toolu_shared' }
+      {
+        filePath: '/repo/lead-edit.ts',
+        operation: 'edit',
+        source: 'edit-write',
+        toolUseId: 'toolu_shared'
+      }
     ])
     const subagentResult = scan.subagents.get(subagent.agentId)
     expect(subagentResult?.ok).toBe(true)
@@ -227,7 +232,12 @@ describe('scanSession file touches', () => {
     expect(laterResult?.ok).toBe(true)
     if (laterResult?.ok) {
       expect(laterResult.value.fileTouches).toEqual([
-        { filePath: '/repo/later-edit.ts', operation: 'edit', toolUseId: FLAKY_EDIT_TOOL_USE_ID }
+        {
+          filePath: '/repo/later-edit.ts',
+          operation: 'edit',
+          source: 'edit-write',
+          toolUseId: FLAKY_EDIT_TOOL_USE_ID
+        }
       ])
     }
   })
