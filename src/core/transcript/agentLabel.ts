@@ -1,14 +1,5 @@
 import { isLabelWithinCap } from './boundedLabel'
-
-/**
- * Characters no real label carries and one can't safely show: control,
- * format, surrogate and private-use code points, and any whitespace other
- * than a plain space, which covers the line and paragraph separators too.
- * A label is shown, and a name also joins a session to its team, so a value
- * carrying a newline, a bidi override, U+2028, or a non-breaking space could
- * misrepresent either.
- */
-const UNPRINTABLE_PATTERN = /[\p{Cc}\p{Cf}\p{Cs}\p{Co}]|[^\S ]/u
+import { hasUnprintable } from './hasUnprintable'
 
 /**
  * Cleans an untrusted agent type, agent name, team name, or task description
@@ -31,7 +22,7 @@ const UNPRINTABLE_PATTERN = /[\p{Cc}\p{Cf}\p{Cs}\p{Co}]|[^\S ]/u
  */
 export function toAgentLabel(value: unknown): string | null {
   if (!isLabelWithinCap(value)) return null
-  if (UNPRINTABLE_PATTERN.test(value)) return null
+  if (hasUnprintable(value)) return null
 
   const trimmed = value.trim().normalize('NFC')
   if (trimmed === '' || !isLabelWithinCap(trimmed)) return null

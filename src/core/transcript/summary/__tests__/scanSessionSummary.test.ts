@@ -162,6 +162,19 @@ describe('scanSessionSummary', () => {
     expect(summary.activity).toBeNull()
   })
 
+  it('takes the model of the latest timestamped assistant record, whatever the line order', async () => {
+    const filePath = writeTranscript(
+      buildJsonlText([
+        buildAssistantRecord({ timestamp: '2026-01-02T00:00:00.000Z', model: 'model-new' }),
+        buildAssistantRecord({ timestamp: '2026-01-01T00:00:00.000Z', model: 'model-old' })
+      ])
+    )
+
+    const summary = await scanSessionSummary(filePath)
+
+    expect(summary.model).toBe('model-new')
+  })
+
   it('summarizes an empty file as an empty session', async () => {
     const filePath = writeTranscript('')
 
@@ -173,7 +186,8 @@ describe('scanSessionSummary', () => {
       activity: null,
       skippedLines: 0,
       role: { kind: 'lead' },
-      teamSpawns: { spawns: [], stops: [], truncated: false }
+      teamSpawns: { spawns: [], stops: [], truncated: false },
+      model: null
     })
   })
 
@@ -196,7 +210,8 @@ describe('scanSessionSummary', () => {
       },
       skippedLines: 0,
       role: { kind: 'lead' },
-      teamSpawns: { spawns: [], stops: [], truncated: false }
+      teamSpawns: { spawns: [], stops: [], truncated: false },
+      model: 'claude-opus-5'
     })
   })
 

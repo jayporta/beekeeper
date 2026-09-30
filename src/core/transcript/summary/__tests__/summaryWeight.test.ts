@@ -1,15 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { SessionSummary } from '../sessionSummary'
 import { SUMMARY_ENTRY_OVERHEAD, summaryWeight } from '../summaryWeight'
+import { buildSessionSummary } from '../testSessionSummary'
 
-const EMPTY_SUMMARY: SessionSummary = {
-  title: null,
-  cost: null,
-  activity: null,
-  skippedLines: 0,
-  role: { kind: 'lead' },
-  teamSpawns: { spawns: [], stops: [], truncated: false }
-}
+const EMPTY_SUMMARY: SessionSummary = buildSessionSummary()
 
 describe('summaryWeight', () => {
   it('charges only the overhead for a summary holding no strings', () => {
@@ -18,6 +12,10 @@ describe('summaryWeight', () => {
 
   it('adds the length of the title', () => {
     expect(summaryWeight({ ...EMPTY_SUMMARY, title: 'abcd' })).toBe(SUMMARY_ENTRY_OVERHEAD + 4)
+  })
+
+  it('adds the length of the model', () => {
+    expect(summaryWeight({ ...EMPTY_SUMMARY, model: 'abcde' })).toBe(SUMMARY_ENTRY_OVERHEAD + 5)
   })
 
   it('counts UTF-16 code units, so a character outside the BMP weighs two', () => {

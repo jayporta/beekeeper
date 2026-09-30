@@ -5,6 +5,7 @@ import type {
   RecordedCost,
   SessionSummary
 } from '../transcript/summary/sessionSummary'
+import { buildSessionSummary } from '../transcript/summary/testSessionSummary'
 import type { TeammateSpawn, TeammateStop, TranscriptTeamSpawns } from '../transcript/teammateSpawn'
 import type { SessionRef, SummarizedSession } from './teamGrouping'
 
@@ -55,14 +56,12 @@ function testSession(
   identity: { readonly ref: SessionRef; readonly role: SessionRole },
   options: TestSessionOptions
 ): SummarizedSession {
-  const summary: SessionSummary = {
-    title: null,
+  const summary: SessionSummary = buildSessionSummary({
     cost: options.cost ?? null,
     activity: options.activity ?? null,
-    skippedLines: 0,
     role: identity.role,
     teamSpawns: options.teamSpawns ?? testTeamSpawns()
-  }
+  })
   return { ref: identity.ref, summary }
 }
 

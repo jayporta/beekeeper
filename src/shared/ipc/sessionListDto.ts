@@ -14,6 +14,8 @@ export interface SessionSummaryDto {
   readonly skippedLines: number
   /** Whether the session is a lead or a teammate agent; `lead` means no agent marker was seen. */
   readonly role: SessionRoleDto
+  /** The lead's latest model as the summary scan picks it, or `null`. */
+  readonly model: string | null
 }
 
 /**
