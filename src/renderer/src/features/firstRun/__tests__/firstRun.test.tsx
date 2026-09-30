@@ -43,11 +43,22 @@ describe('first-run screen', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Sessions' })).toBeTruthy()
   })
 
-  it('moves focus to the main heading after Got it', async () => {
+  it('moves focus to the main landmark after the first-launch Got it', async () => {
     render(<App />)
     await dismiss()
 
-    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: 'Sessions' }))
+    expect(document.activeElement).toBe(screen.getByRole('main'))
+  })
+
+  it('returns focus to About Beekeeper when Got it closes a reopened screen', async () => {
+    render(<App />)
+    await dismiss()
+    await userEvent.click(screen.getByRole('button', { name: 'About Beekeeper' }))
+    await welcome()
+
+    await dismiss()
+
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'About Beekeeper' }))
   })
 
   it('takes focus on its heading when it appears', async () => {
@@ -95,8 +106,32 @@ describe('first-run screen', () => {
     })
   })
 
+  it('still closes when the write fails, handling the rejection and logging a fixed message', async () => {
+    // A thenable records whether anything subscribed to the rejection, which an
+    // ignored promise would not have.
+    const subscribed = vi.fn()
+    const failingWrite = {
+      then(_resolve: unknown, reject: (reason: Error) => void) {
+        subscribed()
+        reject(new Error('quota exceeded'))
+      }
+    }
+    vi.spyOn(idbStorage, 'setItem').mockReturnValue(failingWrite as unknown as Promise<void>)
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    render(<App />)
+
+    await dismiss()
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Sessions' })).toBeTruthy()
+    await vi.waitFor(() => {
+      expect(log).toHaveBeenCalledWith('Beekeeper could not save "first-run" to IndexedDB.')
+    })
+    expect(subscribed).toHaveBeenCalled()
+  })
+
   it('still shows the screen when the stored state cannot be read', async () => {
     vi.spyOn(idbStorage, 'getItem').mockRejectedValue(new Error('storage unavailable'))
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
 
     render(<App />)
 

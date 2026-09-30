@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
-import { idbStorage } from '@renderer/storage/idbStorage'
+import { zustandIdbStorage } from '@renderer/storage/zustandIdbStorage'
 
 /** The IndexedDB key the first-run state is stored under. */
 export const FIRST_RUN_STORAGE_KEY = 'first-run'
@@ -19,7 +19,7 @@ interface FirstRunState {
 
 /**
  * The first-run screen's state. Only `dismissed` is persisted, to IndexedDB
- * through `idbStorage`. Hydration is started by `useFirstRunHydrated`, so the
+ * through `zustandIdbStorage`. Hydration is started by `useFirstRunHydrated`, so the
  * UI can hold back until the stored value is known.
  */
 export const useFirstRunStore = create<FirstRunState>()(
@@ -36,7 +36,7 @@ export const useFirstRunStore = create<FirstRunState>()(
     }),
     {
       name: FIRST_RUN_STORAGE_KEY,
-      storage: createJSONStorage(() => idbStorage),
+      storage: createJSONStorage(() => zustandIdbStorage),
       partialize: (state) => ({ dismissed: state.dismissed }),
       skipHydration: true
     }

@@ -14,15 +14,16 @@ function getStore(): UseStore {
 /**
  * The one IndexedDB adapter for persisted renderer data, kept in its own
  * database and store rather than `idb-keyval`'s default. Values are strings,
- * so it satisfies both TanStack Query's async persister storage and Zustand's
+ * so it satisfies TanStack Query's async persister storage and Zustand's
  * `createJSONStorage` without conversion.
  *
- * Failures reject and are never caught here: the persister and Zustand handle
- * a rejected read or write themselves, and nothing is logged, since stored
- * values are derived from transcripts.
+ * Failures reject and are never caught here. TanStack's persister handles a
+ * rejected read or write itself. Zustand does not wait on a write, so stores
+ * use `zustandIdbStorage`, which handles the rejection. Nothing is logged
+ * here, since stored values are derived from transcripts.
  *
  * @example
- * const storage = createJSONStorage(() => idbStorage)
+ * const persister = createAsyncStoragePersister({ storage: idbStorage })
  */
 export const idbStorage = {
   /**

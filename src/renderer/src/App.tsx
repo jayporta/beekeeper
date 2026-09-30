@@ -1,6 +1,8 @@
+import { useRef } from 'react'
 import styles from './App.module.css'
 import { MainView } from './app/MainView'
 import { AboutButton } from './features/firstRun/AboutButton'
+import { useFocusOnFirstRunClose } from './features/firstRun/state/useFocusOnFirstRunClose'
 import { useFirstRunHydrated } from './features/firstRun/state/useFirstRunHydrated'
 
 /**
@@ -13,13 +15,18 @@ import { useFirstRunHydrated } from './features/firstRun/state/useFirstRunHydrat
  */
 function App(): React.JSX.Element {
   const hydrated = useFirstRunHydrated()
+  const mainRef = useRef<HTMLElement>(null)
+  const aboutRef = useRef<HTMLButtonElement>(null)
+  useFocusOnFirstRunClose({ main: mainRef, about: aboutRef })
 
   return (
     <div className={styles.shell}>
       <aside className={styles.sidebar} aria-label="Sidebar">
-        {hydrated && <AboutButton />}
+        {hydrated && <AboutButton buttonRef={aboutRef} />}
       </aside>
-      <main className={styles.main}>{hydrated && <MainView />}</main>
+      <main ref={mainRef} tabIndex={-1} className={styles.main}>
+        {hydrated && <MainView />}
+      </main>
     </div>
   )
 }

@@ -2,12 +2,26 @@
   display: grid;
   grid-template-columns: 16rem 1fr;
   min-height: 100vh;
+
+  /*
+   * Below this width the sidebar stacks above the main area, so content reflows
+   * instead of being squeezed beside it at high zoom (WCAG 1.4.10). A literal:
+   * custom properties can't be used in a media query.
+   */
+  @media (max-width: 40rem) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .sidebar {
   padding: var(--space-4);
   background: var(--color-surface-header);
   border-right: 1px solid var(--color-border);
+
+  @media (max-width: 40rem) {
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+  }
 }
 
 .main {
