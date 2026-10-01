@@ -8,6 +8,7 @@ import {
   testSession,
   testTeammateTeam
 } from '../testSessionFixtures'
+import { testSessionsT } from '../testSessionsT'
 
 const lead = testSession(1, {
   title: 'Refactor parser',
@@ -23,7 +24,7 @@ const mateB = testSession(3, {
   team: testTeammateTeam(testRef(1))
 })
 const other = testSession(4, { title: 'Fix the login bug', latestMs: 1 })
-const rows = groupSessionRows([lead, mateA, mateB, other])
+const rows = groupSessionRows([lead, mateA, mateB, other], testSessionsT)
 
 describe('countMatches', () => {
   it('counts every session whose label matches, leads and teammates alike', () => {

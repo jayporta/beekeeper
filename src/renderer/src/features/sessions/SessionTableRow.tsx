@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { agentCountLabel } from './agentCountLabel'
 import { formatDuration } from './formatDuration'
 import { formatLastActive } from './formatLastActive'
@@ -34,6 +35,7 @@ export function SessionTableRow({
   selectedDirName,
   searching
 }: SessionTableRowProps): React.JSX.Element {
+  const { t } = useTranslation('sessions')
   const { row, nested } = visible
   const { item } = row
   const summary = item.summary.ok ? item.summary.value : null
@@ -47,16 +49,16 @@ export function SessionTableRow({
         canExpand={!nested && !searching && row.teammates.length > 0}
         selectedDirName={selectedDirName}
       />
-      <ValueCell value={formatLastActive(lastActiveMs(item))} />
-      <ValueCell value={formatDuration(summary?.activity ?? null)} numeric />
+      <ValueCell value={formatLastActive(lastActiveMs(item), t)} />
+      <ValueCell value={formatDuration(summary?.activity ?? null, t)} numeric />
       <ValueCell value={summary?.model ?? null} />
-      <ValueCell value={agentCountLabel(item)} />
-      <ValueCell value={formatUsd(costs.sessionUSD)} numeric />
+      <ValueCell value={agentCountLabel(item, t)} />
+      <ValueCell value={formatUsd(costs.sessionUSD, t)} numeric />
       {item.team?.kind === 'lead' ? (
         <ValueCell
-          value={formatUsd(costs.teamUSD)}
+          value={formatUsd(costs.teamUSD, t)}
           numeric
-          {...(costs.partial && { note: 'partial' })}
+          {...(costs.partial && { note: t('teamCostPartial') })}
         />
       ) : (
         <ValueCell

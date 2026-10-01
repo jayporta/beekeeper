@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { RetryButton } from '@renderer/components/RetryButton'
 import { StatusMessage } from '@renderer/components/StatusMessage'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
@@ -37,21 +38,21 @@ export function SessionsBody({
   hasMatches,
   children
 }: SessionsBodyProps): React.JSX.Element {
+  const { t } = useTranslation(['sessions', 'common'])
+
   if (data === undefined) {
     const code = IpcCallError.codeOf(error)
     if (error === null) {
-      return (
-        <StatusMessage key="loading" heading="Loading sessions" headingLevel={2} role="status" />
-      )
+      return <StatusMessage key="loading" heading={t('loading')} headingLevel={2} role="status" />
     }
     if (code === 'unreadable') {
       return (
         <StatusMessage
           key="unreadable"
-          heading="Can't read this project's sessions"
+          heading={t('unreadable.heading')}
           headingLevel={2}
           role="alert"
-          body="Beekeeper can't read this project's folder. Check its permissions, then retry."
+          body={t('unreadable.body')}
         >
           <RetryButton onRetry={onRetry} />
         </StatusMessage>
@@ -60,10 +61,10 @@ export function SessionsBody({
     return (
       <StatusMessage
         key="error"
-        heading="Something went wrong"
+        heading={t('common:error.heading')}
         headingLevel={2}
         role="alert"
-        body="Beekeeper couldn't load this project's sessions."
+        body={t('error')}
       >
         <RetryButton onRetry={onRetry} />
       </StatusMessage>
@@ -74,9 +75,9 @@ export function SessionsBody({
     return (
       <StatusMessage
         key="empty"
-        heading="No sessions in this project"
+        heading={t('emptyProject.heading')}
         headingLevel={2}
-        body="Sessions appear here after you run Claude Code in this folder."
+        body={t('emptyProject.body')}
       />
     )
   }
@@ -88,9 +89,9 @@ export function SessionsBody({
         children
       ) : (
         <StatusMessage
-          heading="No matching sessions"
+          heading={t('search.noMatches')}
           headingLevel={2}
-          body="Try a different search."
+          body={t('search.noMatchesBody')}
         />
       )}
     </>

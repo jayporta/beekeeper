@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 /** Props for {@link SearchResultsStatus}. */
 interface SearchResultsStatusProps {
   /** How many sessions match the search. */
@@ -19,11 +21,12 @@ export function SearchResultsStatus({
   count,
   searching
 }: SearchResultsStatusProps): React.JSX.Element {
+  const { t } = useTranslation('sessions')
   const message = !searching
     ? ''
     : count === 0
-      ? 'No matching sessions'
-      : `${count} ${count === 1 ? 'session matches' : 'sessions match'}`
+      ? t('search.noMatches')
+      : t('search.matches', { count })
 
   return (
     <p role="status" className="visuallyHidden">

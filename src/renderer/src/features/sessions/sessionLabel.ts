@@ -1,4 +1,5 @@
 import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
+import type { SessionsT } from './sessionsT'
 
 /** How a session is named in the table. */
 export interface SessionLabel {
@@ -19,21 +20,22 @@ function shortId(item: SessionListItemDto): string {
  * title, with a placeholder and a short id when it has none or can't be read.
  *
  * @param item - A session list item.
+ * @param t - The sessions translate function, for the placeholders and the agent name.
  * @returns The label.
  */
-export function sessionLabel(item: SessionListItemDto): SessionLabel {
-  if (!item.summary.ok) return { text: 'Unreadable session', idHint: shortId(item) }
+export function sessionLabel(item: SessionListItemDto, t: SessionsT): SessionLabel {
+  if (!item.summary.ok) return { text: t('label.unreadable'), idHint: shortId(item) }
 
   const { role, title } = item.summary.value
   if (role.kind === 'agent') {
     const { agentName, agentType } = role
     if (agentName !== null && agentType !== null) {
-      return { text: `${agentName} (${agentType})`, idHint: null }
+      return { text: t('agentName', { name: agentName, type: agentType }), idHint: null }
     }
     return { text: agentName ?? agentType ?? shortId(item), idHint: null }
   }
 
   return title === null
-    ? { text: 'Untitled session', idHint: shortId(item) }
+    ? { text: t('label.untitled'), idHint: shortId(item) }
     : { text: title, idHint: null }
 }

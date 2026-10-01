@@ -1,4 +1,3 @@
-import { sessionLabel } from './sessionLabel'
 import type { SessionRow } from './sessionRow'
 
 /** A row to render, and whether it is nested under a lead. */
@@ -36,7 +35,7 @@ export function visibleRows({
 }: VisibleRowsOptions): readonly VisibleRow[] {
   return rows.flatMap((row) => {
     const shown = searching || expanded.has(row.key)
-    const leadLabel = shown ? sessionLabel(row.item).text : null
+    const leadLabel = shown ? row.label.text : null
     return [
       { row, nested: false, leadLabel: null },
       ...(shown
