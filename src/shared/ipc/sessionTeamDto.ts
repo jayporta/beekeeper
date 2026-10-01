@@ -1,11 +1,11 @@
 import type { SessionRefDto } from './sessionRefDto'
 
 /**
- * A lead's cost, rolled up from the totals each session recorded for
+ * A lead's usage, rolled up from the totals each session recorded for
  * itself. Only recorded values are summed: a session with no recorded total
  * is counted, never estimated or treated as zero.
  */
-export interface TeamCostRollupDto {
+export interface TeamUsageRollupDto {
   /**
    * The lead's own recorded total in US dollars, or `null` when it recorded
    * none. It already covers the lead's plain subagents.
@@ -20,6 +20,18 @@ export interface TeamCostRollupDto {
   /** How many sessions, the lead and its teammates, recorded no cost or no total. */
   readonly sessionsWithoutCost: number
   /**
+   * The lead's own recorded total across every token class, or `null` when
+   * it recorded none. It already covers the lead's plain subagents.
+   */
+  readonly leadTokens: number | null
+  /**
+   * The lead's token total plus each grouped teammate's, summing only known
+   * values, or `null` when no total is known or the sum is not finite.
+   */
+  readonly teamTokens: number | null
+  /** How many sessions, the lead and its teammates, recorded no usage or no token total. */
+  readonly sessionsWithoutTokens: number
+  /**
    * How many distinct (team, name) pairs the lead spawned that no teammate
    * grouped under it matches. A pair another lead also spawned and that
    * joined under that lead counts as missing here.
@@ -30,9 +42,10 @@ export interface TeamCostRollupDto {
    * one was dropped. It can over-report, since a dropped call may have been
    * a repeat or a stop that would have been excluded. When set,
    * `missingTeammates` may undercount, since a dropped spawn's pair is never
-   * counted; `teamUSD` may too, when that teammate joined another lead or
-   * stayed ungrouped; and a teammate grouped under this lead may read as
-   * joined by team rather than by spawn, or as not stopped when it was.
+   * counted; `teamUSD` and `teamTokens` may too, when that teammate joined
+   * another lead or stayed ungrouped; and a teammate grouped under this lead
+   * may read as joined by team rather than by spawn, or as not stopped when
+   * it was.
    */
   readonly teamListsTruncated: boolean
 }
@@ -40,7 +53,7 @@ export interface TeamCostRollupDto {
 /**
  * A lead session that has teammates grouped under it, spawned ones that
  * never appeared, or capped spawns or stops (see
- * {@link TeamCostRollupDto.teamListsTruncated}).
+ * {@link TeamUsageRollupDto.teamListsTruncated}).
  */
 export interface LeadSessionTeamDto {
   /** Discriminates the entry. */
@@ -52,8 +65,8 @@ export interface LeadSessionTeamDto {
    * lead's project family, so each is a ref, not a bare id.
    */
   readonly teammates: readonly SessionRefDto[]
-  /** The team's cost, rolled up over the lead and its teammates. */
-  readonly cost: TeamCostRollupDto
+  /** The team's usage, rolled up over the lead and its teammates. */
+  readonly usage: TeamUsageRollupDto
 }
 
 /** A teammate agent session grouped under the lead that spawned it. */

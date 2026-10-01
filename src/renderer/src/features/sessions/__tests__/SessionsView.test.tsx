@@ -16,7 +16,7 @@ import { SessionsContent } from '../SessionsContent'
 import { useSessionsViewStore } from '../state/useSessionsViewStore'
 import {
   testAgentRole,
-  testCost,
+  testUsage,
   testLeadTeam,
   testRef,
   testSession,
@@ -36,7 +36,7 @@ const lead = testSession(1, {
   model: 'claude-opus-5',
   team: testLeadTeam(
     [testRef(2, DIR), testRef(3, '-Users-a-other')],
-    testCost({ missingTeammates: 1 })
+    testUsage({ missingTeammates: 1 })
   )
 })
 const mateA = testSession(2, {
@@ -81,8 +81,8 @@ describe('SessionsView table', () => {
       'Duration',
       'Model',
       'Agents',
-      'Session cost',
-      'Team cost'
+      'Session usage',
+      'Team usage'
     ])
   })
 
@@ -95,7 +95,7 @@ describe('SessionsView table', () => {
     expect(screen.queryByRole('rowheader', { name: /reviewer/ })).toBeNull()
   })
 
-  it('shows the lead cells: duration, model, agents, costs and partial marker', async () => {
+  it('shows the lead cells: duration, model, agents, usage and partial markers', async () => {
     showSessions()
 
     const row = (await screen.findByRole('rowheader', { name: /^Refactor parser/ })).closest('tr')
@@ -105,8 +105,8 @@ describe('SessionsView table', () => {
       '1h',
       'claude-opus-5',
       '2 teammates',
-      '$1.00',
-      '$3.00 partial'
+      '100 tokens $1.00 at API prices',
+      '300 tokens partial $3.00 at API prices partial'
     ])
   })
 
@@ -117,11 +117,11 @@ describe('SessionsView table', () => {
     const text = within(row as HTMLElement)
       .getAllByRole('cell')
       .map((c) => c.textContent)
-    expect(text).toContain('<$0.01')
+    expect(text).toContain('-tokens not recorded <$0.01 at API prices')
     expect(text).toContain('-not recorded')
   })
 
-  it('marks a team cost that does not apply to a teammate as not applicable, not as not recorded', async () => {
+  it('marks team usage that does not apply to a teammate as not applicable, not as not recorded', async () => {
     showSessions()
     await userEvent.click(
       await screen.findByRole('button', { name: '2 teammates of Refactor parser' })
@@ -132,9 +132,28 @@ describe('SessionsView table', () => {
       .getAllByRole('cell')
       .map((c) => c.textContent)
 
-    // Cells: last active, duration, model, agents, session cost, team cost.
+    // Cells: last active, duration, model, agents, session usage, team usage.
     expect(cells[5]).toBe('-not applicable')
     expect(cells[4]).toBe('-not recorded')
+  })
+
+  it('marks the team usage of a solo session as not applicable', async () => {
+    showSessions()
+
+    const row = (await screen.findByRole('rowheader', { name: /Untitled session/ })).closest('tr')
+    const cells = within(row as HTMLElement).getAllByRole('cell')
+
+    expect(cells[5]?.textContent).toBe('-not applicable')
+  })
+
+  it('marks the usage of an unreadable session as not recorded in both columns', async () => {
+    showSessions([testSession(5, { projectDirName: DIR, unreadable: true })])
+
+    const row = (await screen.findByRole('rowheader', { name: /Unreadable session/ })).closest('tr')
+    const cells = within(row as HTMLElement).getAllByRole('cell')
+
+    expect(cells[4]?.textContent).toBe('-not recorded')
+    expect(cells[5]?.textContent).toBe('-not recorded')
   })
 
   it('expands a lead teammates with a disclosure button and collapses them again', async () => {

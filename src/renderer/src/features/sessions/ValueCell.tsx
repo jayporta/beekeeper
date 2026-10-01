@@ -1,4 +1,4 @@
-import { EmptyCell, type EmptyReason } from './EmptyCell'
+import { EmptyCell } from './EmptyCell'
 import styles from './ValueCell.module.css'
 
 /** Props for {@link ValueCell}. */
@@ -10,41 +10,14 @@ interface ValueCellProps {
    * @defaultValue false
    */
   readonly numeric?: boolean
-  /** A muted note after the value, such as "partial". */
-  readonly note?: string
-  /**
-   * Why the cell is empty, when `value` is `null`.
-   * @defaultValue 'not-recorded'
-   */
-  readonly emptyReason?: EmptyReason
 }
 
 /**
- * A table data cell holding one value, an empty marker when there is none,
- * and an optional muted note.
+ * A table data cell holding one value, or an empty marker when there is none.
  *
  * @example
- * <ValueCell value="$1.20" numeric note="partial" />
+ * <ValueCell value="1h 5m" numeric />
  */
-export function ValueCell({
-  value,
-  numeric = false,
-  note,
-  emptyReason
-}: ValueCellProps): React.JSX.Element {
-  return (
-    <td className={numeric ? styles.numeric : styles.cell}>
-      {value === null ? (
-        <EmptyCell {...(emptyReason !== undefined && { reason: emptyReason })} />
-      ) : (
-        value
-      )}
-      {note !== undefined && (
-        <>
-          {' '}
-          <span className={styles.note}>{note}</span>
-        </>
-      )}
-    </td>
-  )
+export function ValueCell({ value, numeric = false }: ValueCellProps): React.JSX.Element {
+  return <td className={numeric ? styles.numeric : styles.cell}>{value ?? <EmptyCell />}</td>
 }

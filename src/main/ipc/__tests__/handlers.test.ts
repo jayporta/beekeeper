@@ -44,7 +44,7 @@ describe('listSessionsHandler', () => {
         {
           sessionId: TEST_SESSION_ID,
           subagentCount: 1,
-          summary: { ok: true, value: { title: 'My title', cost: null } }
+          summary: { ok: true, value: { title: 'My title', usage: null } }
         }
       ]
     })

@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { groupTeams } from '../../../core/teams/groupTeams'
 import {
   testAgent,
-  testCost,
   testLead,
   testRef,
   testSpawn,
   testStop,
-  testTeamSpawns
+  testTeamSpawns,
+  testUsage
 } from '../../../core/teams/testTeamFixtures'
 import type { SessionRefDto } from '../../../shared/ipc/sessionRefDto'
 import { mapSessionTeams } from '../mapSessionTeams'
@@ -24,25 +24,32 @@ const ref = (sessionId: string, projectDirName = 'p'): SessionRefDto => ({
 
 describe('mapSessionTeams', () => {
   const lead = testLead(testRef('p', 'lead'), {
-    cost: testCost(1),
+    usage: testUsage(1, 10),
     teamSpawns: testTeamSpawns(
       [testSpawn('a', 'team'), testSpawn('b', 'team'), testSpawn('ghost', 'team')],
       [testStop('a', 'team')]
     )
   })
-  const a = testAgent(testRef('p', 'a'), { agentName: 'a', teamName: 'team', cost: testCost(2) })
+  const a = testAgent(testRef('p', 'a'), {
+    agentName: 'a',
+    teamName: 'team',
+    usage: testUsage(2, 5)
+  })
   const b = testAgent(testRef('p', 'b'), { agentName: 'b', teamName: 'team' })
 
-  it('maps a lead to its teammate refs in grouping order and a field-exact cost rollup', () => {
+  it('maps a lead to its teammate refs in grouping order and a field-exact usage rollup', () => {
     const teams = mapSessionTeams(groupTeams([lead, b, a]))
 
     expect(teams.get(key('lead'))).toEqual({
       kind: 'lead',
       teammates: [ref('a'), ref('b')],
-      cost: {
+      usage: {
         leadUSD: 1,
         teamUSD: 3,
         sessionsWithoutCost: 1,
+        leadTokens: 10,
+        teamTokens: 15,
+        sessionsWithoutTokens: 1,
         missingTeammates: 1,
         teamListsTruncated: false
       }
@@ -101,24 +108,27 @@ describe('mapSessionTeams', () => {
   })
 
   it('gives a solo lead no entry', () => {
-    const solo = testLead(testRef('p', 'solo'), { cost: testCost(5) })
+    const solo = testLead(testRef('p', 'solo'), { usage: testUsage(5, 50) })
 
     expect(mapSessionTeams(groupTeams([solo])).has(key('solo'))).toBe(false)
   })
 
   it('gives a lead with no teammates an entry when a spawned teammate never appeared', () => {
     const waiting = testLead(testRef('p', 'waiting'), {
-      cost: testCost(5),
+      usage: testUsage(5, 50),
       teamSpawns: testTeamSpawns([testSpawn('ghost', 'team')])
     })
 
     expect(mapSessionTeams(groupTeams([waiting])).get(key('waiting'))).toEqual({
       kind: 'lead',
       teammates: [],
-      cost: {
+      usage: {
         leadUSD: 5,
         teamUSD: 5,
         sessionsWithoutCost: 0,
+        leadTokens: 50,
+        teamTokens: 50,
+        sessionsWithoutTokens: 0,
         missingTeammates: 1,
         teamListsTruncated: false
       }
@@ -127,17 +137,20 @@ describe('mapSessionTeams', () => {
 
   it('gives a lead with no teammates an entry when its spawns or stops hit their cap', () => {
     const capped = testLead(testRef('p', 'capped'), {
-      cost: testCost(5),
+      usage: testUsage(5, 50),
       teamSpawns: { ...testTeamSpawns(), truncated: true }
     })
 
     expect(mapSessionTeams(groupTeams([capped])).get(key('capped'))).toEqual({
       kind: 'lead',
       teammates: [],
-      cost: {
+      usage: {
         leadUSD: 5,
         teamUSD: 5,
         sessionsWithoutCost: 0,
+        leadTokens: 50,
+        teamTokens: 50,
+        sessionsWithoutTokens: 0,
         missingTeammates: 0,
         teamListsTruncated: true
       }

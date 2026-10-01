@@ -53,7 +53,33 @@ describe('scanSessionSummary', () => {
 
     const summary = await scanSessionSummary(filePath)
 
-    expect(summary.cost).toEqual({ totalUSD: 1.5 })
+    expect(summary.usage).toEqual({ totalUSD: 1.5, totalTokens: 295 })
+  })
+
+  it('totals the tokens of the last valid cost-state beside its cost', async () => {
+    const filePath = writeTranscript(
+      buildJsonlText([
+        buildCostStateRecord({
+          totalCostUSD: 1.5,
+          modelUsage: { m: { inputTokens: 2, outputTokens: 3 } }
+        }),
+        buildCostStateRecord({ modelUsage: { m: { inputTokens: -1 } } })
+      ])
+    )
+
+    const summary = await scanSessionSummary(filePath)
+
+    expect(summary.usage).toEqual({ totalUSD: 1.5, totalTokens: 5 })
+  })
+
+  it('records a cost-state with no model usage as a cost with no token total', async () => {
+    const filePath = writeTranscript(
+      buildJsonlText([buildCostStateRecord({ modelUsage: undefined })])
+    )
+
+    const summary = await scanSessionSummary(filePath)
+
+    expect(summary.usage).toEqual({ totalUSD: 1.23, totalTokens: null })
   })
 
   it('keeps the last valid title when a later ai-title record is malformed', async () => {
@@ -84,7 +110,7 @@ describe('scanSessionSummary', () => {
 
     const summary = await scanSessionSummary(filePath)
 
-    expect(summary.cost?.totalUSD).toBe(2.75)
+    expect(summary.usage?.totalUSD).toBe(2.75)
   })
 
   it('reports no cost-state, rather than a zero cost, for a session that never wrote one', async () => {
@@ -92,7 +118,7 @@ describe('scanSessionSummary', () => {
 
     const summary = await scanSessionSummary(filePath)
 
-    expect(summary.cost).toBeNull()
+    expect(summary.usage).toBeNull()
   })
 
   it('records a cost-state that carries no total as a recorded cost with no total', async () => {
@@ -102,7 +128,7 @@ describe('scanSessionSummary', () => {
 
     const summary = await scanSessionSummary(filePath)
 
-    expect(summary.cost).toEqual({ totalUSD: null })
+    expect(summary.usage).toEqual({ totalUSD: null, totalTokens: 295 })
   })
 
   it('caps a title far longer than one worth displaying', async () => {
@@ -182,7 +208,7 @@ describe('scanSessionSummary', () => {
 
     expect(summary).toEqual({
       title: null,
-      cost: null,
+      usage: null,
       activity: null,
       skippedLines: 0,
       role: { kind: 'lead' },
@@ -203,7 +229,7 @@ describe('scanSessionSummary', () => {
 
     expect(summary).toEqual({
       title: null,
-      cost: null,
+      usage: null,
       activity: {
         earliestMs: Date.parse('2026-01-01T00:02:00.000Z'),
         latestMs: Date.parse('2026-01-01T00:02:00.000Z')

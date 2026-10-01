@@ -2,7 +2,7 @@ import { toProjectDirName, toSessionId } from '../transcript/ids'
 import type { SessionRole } from '../transcript/sessionRole'
 import type {
   ActivitySpan,
-  RecordedCost,
+  RecordedUsage,
   SessionSummary
 } from '../transcript/summary/sessionSummary'
 import { buildSessionSummary } from '../transcript/summary/testSessionSummary'
@@ -19,9 +19,12 @@ export function testActivity(earliestMs: number, latestMs: number): ActivitySpan
   return { earliestMs, latestMs }
 }
 
-/** Builds a {@link RecordedCost} with the given total, for test fixtures. */
-export function testCost(totalUSD: number | null): RecordedCost {
-  return { totalUSD }
+/** Builds a {@link RecordedUsage} with the given totals, for test fixtures. */
+export function testUsage(
+  totalUSD: number | null,
+  totalTokens: number | null = null
+): RecordedUsage {
+  return { totalUSD, totalTokens }
 }
 
 /** Builds a {@link TeammateSpawn}, for test fixtures. */
@@ -48,8 +51,8 @@ interface TestSessionOptions {
   readonly activity?: ActivitySpan | null
   /** The teammates this session's own transcript spawned and stopped. Defaults to none. */
   readonly teamSpawns?: TranscriptTeamSpawns
-  /** What the session recorded about its own cost. Defaults to `null`, no record. */
-  readonly cost?: RecordedCost | null
+  /** What the session recorded about its own usage. Defaults to `null`, no record. */
+  readonly usage?: RecordedUsage | null
 }
 
 function testSession(
@@ -57,7 +60,7 @@ function testSession(
   options: TestSessionOptions
 ): SummarizedSession {
   const summary: SessionSummary = buildSessionSummary({
-    cost: options.cost ?? null,
+    usage: options.usage ?? null,
     activity: options.activity ?? null,
     role: identity.role,
     teamSpawns: options.teamSpawns ?? testTeamSpawns()

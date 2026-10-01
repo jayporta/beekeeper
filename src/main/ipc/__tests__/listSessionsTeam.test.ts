@@ -42,10 +42,13 @@ describe('listSessionsHandler team', () => {
     expect(teams.get(TEST_SESSION_ID)).toEqual({
       kind: 'lead',
       teammates: [{ projectDirName: TEST_PROJECT, sessionId: AGENT_SESSION_ID }],
-      cost: {
+      usage: {
         leadUSD: null,
         teamUSD: null,
         sessionsWithoutCost: 2,
+        leadTokens: null,
+        teamTokens: null,
+        sessionsWithoutTokens: 2,
         missingTeammates: 0,
         teamListsTruncated: false
       }
@@ -76,7 +79,7 @@ describe('listSessionsHandler team', () => {
     expect(teams.get(BROKEN_SESSION_ID)).toBeNull()
     expect(teams.get(TEST_SESSION_ID)).toMatchObject({
       teammates: [],
-      cost: { missingTeammates: 1 }
+      usage: { missingTeammates: 1 }
     })
   })
 })

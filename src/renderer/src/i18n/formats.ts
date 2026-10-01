@@ -33,6 +33,9 @@ const FORMATS = {
   integer: cachedByLanguage(
     (language) => new Intl.NumberFormat(language, { maximumFractionDigits: 0 })
   ),
+  compactInteger: cachedByLanguage(
+    (language) => new Intl.NumberFormat(language, { notation: 'compact', maximumFractionDigits: 1 })
+  ),
   usd: cachedByLanguage(
     (language) => new Intl.NumberFormat(language, { style: 'currency', currency: 'USD' })
   ),
@@ -49,7 +52,8 @@ export const FORMAT_NAMES: readonly string[] = Object.keys(FORMATS)
 
 /**
  * Registers Beekeeper's formats on an initialized i18next instance: `integer`
- * (a whole number with the language's grouping), `usd` (a US dollar amount),
+ * (a whole number with the language's grouping), `compactInteger` (a whole
+ * number in short compact notation, such as 12.4M), `usd` (a US dollar amount),
  * and `shortDateTime` (a medium date and a short time). Each builds one `Intl`
  * object per language.
  *

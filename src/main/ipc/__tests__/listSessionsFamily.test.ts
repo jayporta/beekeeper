@@ -105,7 +105,7 @@ describe('listSessionsHandler project family', () => {
         const items = await listFolder(TEST_PROJECT)
 
         expect(items.map((item) => item.sessionId)).toEqual([TEST_SESSION_ID])
-        expect(items[0]?.team).toMatchObject({ kind: 'lead', cost: { missingTeammates: 1 } })
+        expect(items[0]?.team).toMatchObject({ kind: 'lead', usage: { missingTeammates: 1 } })
       } finally {
         await chmod(unreadable, 0o755)
       }

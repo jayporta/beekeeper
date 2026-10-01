@@ -6,8 +6,11 @@ import type { SessionTeamDto } from './sessionTeamDto'
 export interface SessionSummaryDto {
   /** The session's latest generated title, capped in length, or `null`. */
   readonly title: string | null
-  /** What the session recorded about its own cost, or `null` when it recorded none. */
-  readonly cost: { readonly totalUSD: number | null } | null
+  /** What the session recorded about its own usage, or `null` when it recorded none. */
+  readonly usage: {
+    readonly totalUSD: number | null
+    readonly totalTokens: number | null
+  } | null
   /** The span of the file's timestamps, or `null` when no record has one. */
   readonly activity: { readonly earliestMs: number; readonly latestMs: number } | null
   /** How many lines could not be read as records. */
@@ -40,8 +43,8 @@ export interface SessionListItemDto {
    * How the session relates to a team, or `null` when its transcript or
    * summary couldn't be read, or when it is a lead with no teammates, no
    * spawned teammate missing, and no capped spawns or stops (see
-   * `TeamCostRollupDto.teamListsTruncated`), since a solo lead's team total
-   * would only repeat its own cost.
+   * `TeamUsageRollupDto.teamListsTruncated`), since a solo lead's team total
+   * would only repeat its own usage.
    */
   readonly team: SessionTeamDto | null
 }

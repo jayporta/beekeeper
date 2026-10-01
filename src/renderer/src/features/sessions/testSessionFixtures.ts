@@ -1,7 +1,7 @@
 import type { SessionListItemDto, SessionSummaryDto } from '../../../../shared/ipc/sessionListDto'
 import type { SessionRefDto } from '../../../../shared/ipc/sessionRefDto'
 import type { SessionRoleDto } from '../../../../shared/ipc/sessionRoleDto'
-import type { SessionTeamDto, TeamCostRollupDto } from '../../../../shared/ipc/sessionTeamDto'
+import type { SessionTeamDto, TeamUsageRollupDto } from '../../../../shared/ipc/sessionTeamDto'
 
 /** Options for {@link testSession}. */
 interface TestSessionOptions {
@@ -23,6 +23,8 @@ interface TestSessionOptions {
   readonly model?: string | null
   /** The recorded cost. Defaults to none. */
   readonly costUSD?: number | null
+  /** The recorded token total. Defaults to none. */
+  readonly totalTokens?: number | null
   /** Whether the summary could not be read. Defaults to `false`. */
   readonly unreadable?: boolean
 }
@@ -44,12 +46,16 @@ export function testSession(n: number, options: TestSessionOptions = {}): Sessio
     modifiedMs = null,
     model = null,
     costUSD,
+    totalTokens,
     unreadable = false
   } = options
 
   const summary: SessionSummaryDto = {
     title,
-    cost: costUSD === undefined ? null : { totalUSD: costUSD },
+    usage:
+      costUSD === undefined && totalTokens === undefined
+        ? null
+        : { totalUSD: costUSD ?? null, totalTokens: totalTokens ?? null },
     activity: latestMs === undefined || earliestMs === undefined ? null : { earliestMs, latestMs },
     skippedLines: 0,
     role,
@@ -68,12 +74,15 @@ export function testSession(n: number, options: TestSessionOptions = {}): Sessio
   }
 }
 
-/** A team cost roll-up with nothing missing, for a lead. */
-export function testCost(overrides: Partial<TeamCostRollupDto> = {}): TeamCostRollupDto {
+/** A team usage roll-up with nothing missing, for a lead. */
+export function testUsage(overrides: Partial<TeamUsageRollupDto> = {}): TeamUsageRollupDto {
   return {
     leadUSD: 1,
     teamUSD: 3,
+    leadTokens: 100,
+    teamTokens: 300,
     sessionsWithoutCost: 0,
+    sessionsWithoutTokens: 0,
     missingTeammates: 0,
     teamListsTruncated: false,
     ...overrides
@@ -88,9 +97,9 @@ export function testRef(n: number, projectDirName = '-p'): SessionRefDto {
 /** A lead team entry whose teammates are the given sessions. */
 export function testLeadTeam(
   teammates: readonly SessionRefDto[],
-  cost: TeamCostRollupDto = testCost()
+  usage: TeamUsageRollupDto = testUsage()
 ): SessionTeamDto {
-  return { kind: 'lead', teammates, cost }
+  return { kind: 'lead', teammates, usage }
 }
 
 /** A teammate team entry pointing at the given lead. */

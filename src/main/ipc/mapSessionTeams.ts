@@ -1,11 +1,11 @@
-import { rollupTeamCost } from '../../core/teams/teamCost'
 import type { LeadGroup, TeamGrouping } from '../../core/teams/teamGrouping'
+import { rollupTeamUsage } from '../../core/teams/teamUsage'
 import type { SessionTeamDto } from '../../shared/ipc/sessionTeamDto'
 import { mapSessionRef } from './mapSessionRef'
 import { sessionRefKey } from './sessionRefKey'
 
 function mapLeadGroup(group: LeadGroup, into: Map<string, SessionTeamDto>): void {
-  const cost = rollupTeamCost(group)
+  const usage = rollupTeamUsage(group)
   const lead = mapSessionRef(group.lead.ref)
 
   for (const teammate of group.teammates) {
@@ -18,17 +18,20 @@ function mapLeadGroup(group: LeadGroup, into: Map<string, SessionTeamDto>): void
   }
 
   const isSolo =
-    group.teammates.length === 0 && cost.missingTeammates === 0 && !cost.teamListsTruncated
+    group.teammates.length === 0 && usage.missingTeammates === 0 && !usage.teamListsTruncated
   if (isSolo) return
   into.set(sessionRefKey(lead), {
     kind: 'lead',
     teammates: group.teammates.map((teammate) => mapSessionRef(teammate.session.ref)),
-    cost: {
-      leadUSD: cost.leadUSD,
-      teamUSD: cost.teamUSD,
-      sessionsWithoutCost: cost.sessionsWithoutCost,
-      missingTeammates: cost.missingTeammates,
-      teamListsTruncated: cost.teamListsTruncated
+    usage: {
+      leadUSD: usage.leadUSD,
+      teamUSD: usage.teamUSD,
+      sessionsWithoutCost: usage.sessionsWithoutCost,
+      leadTokens: usage.leadTokens,
+      teamTokens: usage.teamTokens,
+      sessionsWithoutTokens: usage.sessionsWithoutTokens,
+      missingTeammates: usage.missingTeammates,
+      teamListsTruncated: usage.teamListsTruncated
     }
   })
 }
@@ -38,7 +41,7 @@ function mapLeadGroup(group: LeadGroup, into: Map<string, SessionTeamDto>): void
  * field, so no summary field (its spawn and stop labels among them) crosses
  * the bridge. A lead with no teammates, no missing spawned teammate, and no
  * capped spawns or stops (see `teamListsTruncated`) gets no entry, since
- * its team total would only repeat its own cost.
+ * its team total would only repeat its own usage.
  *
  * @param grouping - The grouping of one project family's sessions.
  * @returns Each grouped or ungrouped session's team entry, keyed by
