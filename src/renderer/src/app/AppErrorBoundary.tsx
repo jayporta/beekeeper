@@ -1,4 +1,5 @@
 import { Component, createRef } from 'react'
+import { Translation } from 'react-i18next'
 import styles from './AppErrorBoundary.module.css'
 
 /** Props for {@link AppErrorBoundary}. */
@@ -63,18 +64,22 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
     const { onReload = reloadWindow } = this.props
     return (
       <main className={styles.main}>
-        <div className={styles.fallback} role="alert">
-          <h1 className={styles.heading}>Something went wrong</h1>
-          <p>Beekeeper hit an unexpected error. Reload to try again.</p>
-          <button
-            ref={this.reloadButton}
-            type="button"
-            className={styles.button}
-            onClick={onReload}
-          >
-            Reload
-          </button>
-        </div>
+        <Translation ns="common">
+          {(t) => (
+            <div className={styles.fallback} role="alert">
+              <h1 className={styles.heading}>{t('error.heading')}</h1>
+              <p>{t('error.unexpected')}</p>
+              <button
+                ref={this.reloadButton}
+                type="button"
+                className={styles.button}
+                onClick={onReload}
+              >
+                {t('error.reload')}
+              </button>
+            </div>
+          )}
+        </Translation>
       </main>
     )
   }

@@ -1,7 +1,9 @@
 import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
 import { lastActiveMs } from './lastActiveMs'
 import { sessionKey } from './sessionKey'
+import { sessionLabel } from './sessionLabel'
 import type { SessionRow } from './sessionRow'
+import type { SessionsT } from './sessionsT'
 
 function byLastActiveDescending(a: SessionRow, b: SessionRow): number {
   const aMs = lastActiveMs(a.item)
@@ -14,10 +16,6 @@ function byLastActiveDescending(a: SessionRow, b: SessionRow): number {
   return a.key < b.key ? -1 : a.key > b.key ? 1 : 0
 }
 
-function leafRow(key: string, item: SessionListItemDto): SessionRow {
-  return { key, item, teammates: [], leadFolder: null }
-}
-
 /**
  * Arranges a project's session list into table rows. Leads, teammates whose
  * lead isn't in the list, and ungrouped teammates are top-level rows. The
@@ -26,9 +24,13 @@ function leafRow(key: string, item: SessionListItemDto): SessionRow {
  * last active time, newest first, with unknown times last.
  *
  * @param items - The sessions from `listSessions`, each keyed by folder and id.
+ * @param t - The sessions translate function, to label each row once.
  * @returns The top-level rows.
  */
-export function groupSessionRows(items: readonly SessionListItemDto[]): readonly SessionRow[] {
+export function groupSessionRows(
+  items: readonly SessionListItemDto[],
+  t: SessionsT
+): readonly SessionRow[] {
   const byKey = new Map<string, SessionListItemDto>()
   for (const item of items) {
     const key = sessionKey(item)
@@ -46,7 +48,13 @@ export function groupSessionRows(items: readonly SessionListItemDto[]): readonly
       const child = byKey.get(childKey)
       if (child === undefined || child.team?.kind === 'lead' || nestedKeys.has(childKey)) continue
       nestedKeys.add(childKey)
-      nested.push(leafRow(childKey, child))
+      nested.push({
+        key: childKey,
+        item: child,
+        label: sessionLabel(child, t),
+        teammates: [],
+        leadFolder: null
+      })
     }
     teammatesOf.set(key, nested)
   }
@@ -57,6 +65,7 @@ export function groupSessionRows(items: readonly SessionListItemDto[]): readonly
     rows.push({
       key,
       item,
+      label: sessionLabel(item, t),
       teammates: teammatesOf.get(key) ?? [],
       leadFolder: item.team?.kind === 'teammate' ? item.team.lead.projectDirName : null
     })

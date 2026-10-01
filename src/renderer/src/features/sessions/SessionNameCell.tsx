@@ -1,7 +1,8 @@
+import { useTranslation } from 'react-i18next'
 import styles from './SessionNameCell.module.css'
 import { rowId } from './rowId'
-import { sessionLabel } from './sessionLabel'
 import type { SessionRow } from './sessionRow'
+import type { SessionsT } from './sessionsT'
 import { useSessionsViewStore } from './state/useSessionsViewStore'
 
 /** Props for {@link SessionNameCell}. */
@@ -18,16 +19,26 @@ interface SessionNameCellProps {
   readonly selectedDirName: string
 }
 
+/** What {@link notesFor} needs besides the row. */
+interface NotesOptions {
+  /** The folder the list is for, to mark sessions from another folder. */
+  readonly selectedDirName: string
+  /** The sessions translate function. */
+  readonly t: SessionsT
+}
+
 /** The muted notes after a session's name: its team, stopped state, and folders. */
-function notesFor(row: SessionRow, selectedDirName: string): string[] {
+function notesFor(row: SessionRow, { selectedDirName, t }: NotesOptions): string[] {
   const { item, leadFolder } = row
   const notes: string[] = []
   if (item.team?.kind === 'ungrouped' && item.team.teamName !== null) {
-    notes.push(`team ${item.team.teamName}`)
+    notes.push(t('notes.team', { name: item.team.teamName }))
   }
-  if (item.team?.kind === 'teammate' && item.team.stopped) notes.push('stopped')
-  if (leadFolder !== null) notes.push(`lead in ${leadFolder}`)
-  if (item.projectDirName !== selectedDirName) notes.push(`in ${item.projectDirName}`)
+  if (item.team?.kind === 'teammate' && item.team.stopped) notes.push(t('notes.stopped'))
+  if (leadFolder !== null) notes.push(t('notes.leadIn', { folder: leadFolder }))
+  if (item.projectDirName !== selectedDirName) {
+    notes.push(t('notes.in', { folder: item.projectDirName }))
+  }
   return notes
 }
 
@@ -48,7 +59,8 @@ export function SessionNameCell({
 }: SessionNameCellProps): React.JSX.Element {
   const expanded = useSessionsViewStore((state) => state.expanded.has(row.key))
   const toggle = useSessionsViewStore((state) => state.toggle)
-  const { text, idHint } = sessionLabel(row.item)
+  const { t } = useTranslation('sessions')
+  const { text, idHint } = row.label
   const count = row.teammates.length
 
   return (
@@ -60,7 +72,7 @@ export function SessionNameCell({
             className={styles.disclosure}
             aria-expanded={expanded}
             aria-controls={row.teammates.map((teammate) => rowId(teammate.key)).join(' ')}
-            aria-label={`${count} ${count === 1 ? 'teammate' : 'teammates'} of ${text}`}
+            aria-label={t('disclosure', { count, name: text })}
             onClick={() => {
               toggle(row.key)
             }}
@@ -69,9 +81,11 @@ export function SessionNameCell({
           </button>
         )}
         <span className={styles.text}>{text}</span>
-        {leadLabel !== null && <span className="visuallyHidden">teammate of {leadLabel}</span>}
+        {leadLabel !== null && (
+          <span className="visuallyHidden">{t('teammateOf', { lead: leadLabel })}</span>
+        )}
         {idHint !== null && <span className={styles.note}>{idHint}</span>}
-        {notesFor(row, selectedDirName).map((note) => (
+        {notesFor(row, { selectedDirName, t }).map((note) => (
           <span key={note} className={styles.note}>
             {note}
           </span>

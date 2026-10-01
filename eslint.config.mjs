@@ -6,6 +6,7 @@ import eslintPluginReactHooks from 'eslint-plugin-react-hooks'
 import eslintPluginReactRefresh from 'eslint-plugin-react-refresh'
 import eslintPluginJsxA11y from 'eslint-plugin-jsx-a11y'
 import eslintPluginUnicorn from 'eslint-plugin-unicorn'
+import eslintPluginI18next from 'eslint-plugin-i18next'
 
 const NETWORK_MODULE_MESSAGE =
   'Beekeeper makes no network calls. See the no-network promise in the README.'
@@ -92,6 +93,49 @@ export default defineConfig(
       'unicorn/filename-case': [
         'error',
         { cases: { camelCase: true, pascalCase: true }, checkDirectories: false }
+      ]
+    }
+  },
+  {
+    files: ['src/renderer/src/**/*.tsx'],
+    ignores: ['src/renderer/src/**/__tests__/**', 'src/renderer/src/**/test*.tsx'],
+    plugins: { i18next: eslintPluginI18next },
+    rules: {
+      'i18next/no-literal-string': [
+        'error',
+        {
+          // Checks string literals anywhere in JSX, attributes and component props included.
+          // It does not see strings built in code (constants, helpers, `.ts` files), template
+          // literals in props or children, or a `label` prop on any element, so reviewers check those.
+          mode: 'jsx-only',
+          // Setting an option replaces the plugin's default for it, so the defaults are restated
+          // here, except the HTML entity names, which would need a deep import and match no text we use.
+          'jsx-attributes': {
+            exclude: [
+              'className',
+              'styleName',
+              'style',
+              'type',
+              'key',
+              'id',
+              'width',
+              'height',
+              // Props whose values are identifiers or roles, not text.
+              'role',
+              'ns',
+              'emptyReason'
+            ]
+          },
+          words: {
+            exclude: [
+              '[0-9!-/:-@[-`{-~]+',
+              '[A-Z_-]+',
+              /^\p{Emoji}+$/u,
+              // The decorative, aria-hidden disclosure glyphs.
+              '^[▾▸]$'
+            ]
+          }
+        }
       ]
     }
   },

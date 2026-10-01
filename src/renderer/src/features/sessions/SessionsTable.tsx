@@ -1,4 +1,5 @@
 import { memo, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import styles from './SessionsTable.module.css'
 import { SessionTableRow } from './SessionTableRow'
 import type { SessionRow } from './sessionRow'
@@ -6,13 +7,13 @@ import { useSessionsViewStore } from './state/useSessionsViewStore'
 import { visibleRows } from './visibleRows'
 
 const COLUMNS = [
-  'Session',
-  'Last active',
-  'Duration',
-  'Model',
-  'Agents',
-  'Session cost',
-  'Team cost'
+  'session',
+  'lastActive',
+  'duration',
+  'model',
+  'agents',
+  'sessionCost',
+  'teamCost'
 ] as const
 
 /** Props for {@link SessionsTable}. */
@@ -43,6 +44,7 @@ export const SessionsTable = memo(function SessionsTable({
   selectedDirName,
   searching
 }: SessionsTableProps): React.JSX.Element {
+  const { t } = useTranslation('sessions')
   const expanded = useSessionsViewStore((state) => state.expanded)
   const shown = useMemo(
     () => visibleRows({ rows, expanded, searching }),
@@ -50,13 +52,13 @@ export const SessionsTable = memo(function SessionsTable({
   )
 
   return (
-    <div className={styles.scroller} role="region" aria-label="Sessions table">
+    <div className={styles.scroller} role="region" aria-label={t('table')}>
       <table className={styles.table} aria-labelledby={labelledBy}>
         <thead>
           <tr>
             {COLUMNS.map((column) => (
               <th key={column} scope="col" className={styles.heading}>
-                {column}
+                {t(`columns.${column}`)}
               </th>
             ))}
           </tr>

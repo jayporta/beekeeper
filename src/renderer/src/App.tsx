@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import styles from './App.module.css'
 import { MainView } from '@renderer/app/MainView'
 import { SidebarContent } from '@renderer/app/SidebarContent'
@@ -16,6 +17,7 @@ import { usePersistHydrated } from '@renderer/storage/usePersistHydrated'
  * <App />
  */
 function App(): React.JSX.Element {
+  const { t } = useTranslation()
   const firstRunHydrated = usePersistHydrated(useFirstRunStore.persist)
   const selectionHydrated = usePersistHydrated(useSelectedProjectStore.persist)
   const hydrated = firstRunHydrated && selectionHydrated
@@ -25,7 +27,7 @@ function App(): React.JSX.Element {
 
   return (
     <div className={styles.shell}>
-      <aside className={styles.sidebar} aria-label="Sidebar">
+      <aside className={styles.sidebar} aria-label={t('sidebar')}>
         {hydrated && <SidebarContent aboutRef={aboutRef} />}
       </aside>
       <main ref={mainRef} tabIndex={-1} className={styles.main}>

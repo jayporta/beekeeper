@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 /** Props for {@link RetryButton}. */
 interface RetryButtonProps {
   /** Runs the retry. */
@@ -13,6 +15,8 @@ interface RetryButtonProps {
  * <RetryButton onRetry={() => void refetch()} />
  */
 export function RetryButton({ onRetry }: RetryButtonProps): React.JSX.Element {
+  const { t } = useTranslation()
+
   return (
     <button
       type="button"
@@ -21,7 +25,7 @@ export function RetryButton({ onRetry }: RetryButtonProps): React.JSX.Element {
         onRetry()
       }}
     >
-      Retry
+      {t('retry')}
     </button>
   )
 }

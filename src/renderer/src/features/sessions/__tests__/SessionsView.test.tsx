@@ -178,6 +178,29 @@ describe('SessionsView table', () => {
   })
 })
 
+describe('SessionsView transcript text', () => {
+  const HOSTILE = '<b>x</b> &amp; {{name}} $t(common:retry)'
+
+  it('shows a title that looks like markup or a translation placeholder literally, in text and in accessible names', async () => {
+    const hostileLead = testSession(1, {
+      projectDirName: DIR,
+      title: HOSTILE,
+      team: testLeadTeam([testRef(2, DIR)])
+    })
+    const mate = testSession(2, {
+      projectDirName: DIR,
+      role: testAgentRole('reviewer', 'code'),
+      team: testTeammateTeam(testRef(1, DIR))
+    })
+    showSessions([hostileLead, mate])
+
+    expect(await screen.findByText(HOSTILE)).toBeTruthy()
+    await userEvent.click(screen.getByRole('button', { name: `1 teammate of ${HOSTILE}` }))
+
+    expect(screen.getByText(`teammate of ${HOSTILE}`)).toBeTruthy()
+  })
+})
+
 describe('SessionsView search', () => {
   it('filters rows by name and shows a matching teammate under its lead without expanding', async () => {
     showSessions()

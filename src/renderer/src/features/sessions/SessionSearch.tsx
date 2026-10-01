@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { useTranslation } from 'react-i18next'
 import styles from './SessionSearch.module.css'
 import { useSessionsViewStore } from './state/useSessionsViewStore'
 
@@ -9,6 +10,7 @@ import { useSessionsViewStore } from './state/useSessionsViewStore'
  * <SessionSearch />
  */
 export function SessionSearch(): React.JSX.Element {
+  const { t } = useTranslation('sessions')
   const query = useSessionsViewStore((state) => state.query)
   const setQuery = useSessionsViewStore((state) => state.setQuery)
   const inputId = useId()
@@ -16,7 +18,7 @@ export function SessionSearch(): React.JSX.Element {
   return (
     <div className={styles.search}>
       <label htmlFor={inputId} className={styles.label}>
-        Search sessions
+        {t('search.label')}
       </label>
       <input
         id={inputId}

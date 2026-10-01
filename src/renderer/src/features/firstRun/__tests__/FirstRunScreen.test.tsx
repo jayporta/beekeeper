@@ -7,6 +7,14 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+describe('FirstRunScreen', () => {
+  it('renders the Claude Code projects path as code', () => {
+    render(<FirstRunScreen />)
+
+    expect(screen.getByText('~/.claude/projects').tagName).toBe('CODE')
+  })
+})
+
 describe('FirstRunScreen macOS section', () => {
   it('explains the folder access prompt on macOS', () => {
     stubUserAgent(MAC_USER_AGENT)

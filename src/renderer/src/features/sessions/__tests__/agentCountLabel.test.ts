@@ -2,11 +2,14 @@ import { describe, expect, it } from 'vitest'
 import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
 import { agentCountLabel } from '../agentCountLabel'
 import { testLeadTeam, testRef, testSession, testTeammateTeam } from '../testSessionFixtures'
+import { testSessionsT } from '../testSessionsT'
 
 const withSubagents = (item: SessionListItemDto, count: number | null): SessionListItemDto => ({
   ...item,
   subagentCount: count
 })
+
+const labelOf = (item: SessionListItemDto): string | null => agentCountLabel(item, testSessionsT)
 
 const leadOf = (teammates: number): SessionListItemDto =>
   testSession(1, {
@@ -18,44 +21,44 @@ describe('agentCountLabel', () => {
     [1, '1 teammate'],
     [3, '3 teammates']
   ])('counts %i teammates of a lead', (count, label) => {
-    expect(agentCountLabel(leadOf(count))).toBe(label)
+    expect(labelOf(leadOf(count))).toBe(label)
   })
 
   it.each([
     [1, '1 subagent'],
     [2, '2 subagents']
   ])('counts %i subagents of a session with no team', (count, label) => {
-    expect(agentCountLabel(withSubagents(testSession(1), count))).toBe(label)
+    expect(labelOf(withSubagents(testSession(1), count))).toBe(label)
   })
 
   it('joins teammates and subagents', () => {
-    expect(agentCountLabel(withSubagents(leadOf(3), 2))).toBe('3 teammates, 2 subagents')
+    expect(labelOf(withSubagents(leadOf(3), 2))).toBe('3 teammates, 2 subagents')
   })
 
   it('joins the singular forms', () => {
-    expect(agentCountLabel(withSubagents(leadOf(1), 1))).toBe('1 teammate, 1 subagent')
+    expect(labelOf(withSubagents(leadOf(1), 1))).toBe('1 teammate, 1 subagent')
   })
 
   it('says None for a readable lead with neither', () => {
-    expect(agentCountLabel(testSession(1))).toBe('None')
+    expect(labelOf(testSession(1))).toBe('None')
   })
 
   it('shows a teammate its own subagents', () => {
     const teammate = testSession(2, { team: testTeammateTeam(testRef(1)) })
 
-    expect(agentCountLabel(withSubagents(teammate, 2))).toBe('2 subagents')
-    expect(agentCountLabel(teammate)).toBe('None')
+    expect(labelOf(withSubagents(teammate, 2))).toBe('2 subagents')
+    expect(labelOf(teammate)).toBe('None')
   })
 
   it('shows the teammates alone when the subagent count is unknown', () => {
-    expect(agentCountLabel(withSubagents(leadOf(2), null))).toBe('2 teammates')
+    expect(labelOf(withSubagents(leadOf(2), null))).toBe('2 teammates')
   })
 
   it('is null when the subagent count is unknown and there are no teammates', () => {
-    expect(agentCountLabel(withSubagents(testSession(1), null))).toBeNull()
+    expect(labelOf(withSubagents(testSession(1), null))).toBeNull()
   })
 
   it('is null for a session whose summary could not be read', () => {
-    expect(agentCountLabel(withSubagents(testSession(1, { unreadable: true }), 2))).toBeNull()
+    expect(labelOf(withSubagents(testSession(1, { unreadable: true }), 2))).toBeNull()
   })
 })

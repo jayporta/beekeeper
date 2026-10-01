@@ -1,4 +1,3 @@
-import { sessionLabel } from './sessionLabel'
 import type { SessionRow } from './sessionRow'
 
 /**
@@ -19,5 +18,5 @@ export function normalizeQuery(query: string): string {
  * @returns `true` when the row's own label matches. Its teammates are not considered.
  */
 export function rowMatches(row: SessionRow, needle: string): boolean {
-  return sessionLabel(row.item).text.toLowerCase().includes(needle)
+  return row.label.text.toLowerCase().includes(needle)
 }

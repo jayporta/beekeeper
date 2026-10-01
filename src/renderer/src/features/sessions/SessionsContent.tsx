@@ -1,4 +1,5 @@
 import { useDeferredValue, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { countMatches } from './countMatches'
 import { filterRows } from './filterRows'
 import { groupSessionRows } from './groupSessionRows'
@@ -26,11 +27,12 @@ interface SessionsContentProps {
  * <SessionsContent dirName="-Users-me-repo" headingId={headingId} />
  */
 export function SessionsContent({ dirName, headingId }: SessionsContentProps): React.JSX.Element {
+  const { t } = useTranslation('sessions')
   const { data, error, refetch } = useSessions(dirName)
   const typed = useSessionsViewStore((state) => state.query)
   // Filtering waits on the deferred text, and the table is memoized, so typing stays responsive.
   const query = useDeferredValue(typed)
-  const rows = useMemo(() => (data === undefined ? [] : groupSessionRows(data)), [data])
+  const rows = useMemo(() => (data === undefined ? [] : groupSessionRows(data, t)), [data, t])
   const matching = useMemo(() => filterRows(rows, query), [rows, query])
   const matchCount = useMemo(() => countMatches(rows, query), [rows, query])
   // An empty folder shows no search box, so a leftover query isn't a search.

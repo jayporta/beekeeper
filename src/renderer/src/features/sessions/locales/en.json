@@ -1,0 +1,65 @@
+{
+  "columns": {
+    "session": "Session",
+    "lastActive": "Last active",
+    "duration": "Duration",
+    "model": "Model",
+    "agents": "Agents",
+    "sessionCost": "Session cost",
+    "teamCost": "Team cost"
+  },
+  "table": "Sessions table",
+  "label": {
+    "untitled": "Untitled session",
+    "unreadable": "Unreadable session"
+  },
+  "agentName": "{{name}} ({{type}})",
+  "agents": {
+    "teammates_one": "{{count, integer}} teammate",
+    "teammates_other": "{{count, integer}} teammates",
+    "subagents_one": "{{count, integer}} subagent",
+    "subagents_other": "{{count, integer}} subagents",
+    "both": "{{teammates}}, {{subagents}}",
+    "none": "None"
+  },
+  "duration": {
+    "underMinute": "<{{minutes, integer}}m",
+    "minutes": "{{minutes, integer}}m",
+    "hours": "{{hours, integer}}h",
+    "hoursMinutes": "{{hours, integer}}h {{minutes, integer}}m"
+  },
+  "lastActive": "{{value, shortDateTime}}",
+  "usd": "{{value, usd}}",
+  "usdUnderCent": "<{{value, usd}}",
+  "teamCostPartial": "partial",
+  "emptyCell": {
+    "notRecorded": "not recorded",
+    "notApplicable": "not applicable"
+  },
+  "notes": {
+    "team": "team {{name}}",
+    "stopped": "stopped",
+    "leadIn": "lead in {{folder}}",
+    "in": "in {{folder}}"
+  },
+  "teammateOf": "teammate of {{lead}}",
+  "disclosure_one": "{{count, integer}} teammate of {{name}}",
+  "disclosure_other": "{{count, integer}} teammates of {{name}}",
+  "search": {
+    "label": "Search sessions",
+    "noMatches": "No matching sessions",
+    "noMatchesBody": "Try a different search.",
+    "matches_one": "{{count, integer}} session matches",
+    "matches_other": "{{count, integer}} sessions match"
+  },
+  "loading": "Loading sessions",
+  "unreadable": {
+    "heading": "Can't read this project's sessions",
+    "body": "Beekeeper can't read this project's folder. Check its permissions, then retry."
+  },
+  "error": "Beekeeper couldn't load this project's sessions.",
+  "emptyProject": {
+    "heading": "No sessions in this project",
+    "body": "Sessions appear here after you run Claude Code in this folder."
+  }
+}

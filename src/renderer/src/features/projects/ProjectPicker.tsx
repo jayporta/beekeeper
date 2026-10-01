@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { useTranslation } from 'react-i18next'
 import { groupProjects } from './groupProjects'
 import styles from './ProjectPicker.module.css'
 import { useSelectedProjectDirName } from './state/useSelectedProjectDirName'
@@ -14,6 +15,7 @@ import { useProjects } from './useProjects'
  * <ProjectPicker />
  */
 export function ProjectPicker(): React.JSX.Element | null {
+  const { t } = useTranslation('projects')
   const { data } = useProjects()
   const selected = useSelectedProjectDirName()
   const select = useSelectedProjectStore((state) => state.select)
@@ -24,7 +26,7 @@ export function ProjectPicker(): React.JSX.Element | null {
   return (
     <div className={styles.picker}>
       <label htmlFor={selectId} className={styles.label}>
-        Project
+        {t('picker.label')}
       </label>
       <select
         id={selectId}
@@ -43,7 +45,7 @@ export function ProjectPicker(): React.JSX.Element | null {
             : [
                 <optgroup
                   key={`${project.dirName}/worktrees`}
-                  label={`${project.dirName} worktrees`}
+                  label={t('picker.worktreeGroup', { project: project.dirName })}
                 >
                   {worktrees.map((worktree) => (
                     <option key={worktree.dirName} value={worktree.dirName}>
@@ -54,7 +56,7 @@ export function ProjectPicker(): React.JSX.Element | null {
               ])
         ])}
       </select>
-      <p className={styles.note}>Worktree folders are grouped under their project.</p>
+      <p className={styles.note}>{t('picker.note')}</p>
     </div>
   )
 }
