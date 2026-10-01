@@ -2,12 +2,12 @@ import { useTranslation } from 'react-i18next'
 import { agentCountLabel } from './agentCountLabel'
 import { formatDuration } from './formatDuration'
 import { formatLastActive } from './formatLastActive'
-import { formatUsd } from './formatUsd'
 import { lastActiveMs } from './lastActiveMs'
 import { rowId } from './rowId'
 import { SessionNameCell } from './SessionNameCell'
 import styles from './SessionTableRow.module.css'
-import { sessionCosts } from './sessionCosts'
+import { sessionUsage } from './sessionUsage'
+import { UsageCell } from './UsageCell'
 import { ValueCell } from './ValueCell'
 import type { VisibleRow } from './visibleRows'
 
@@ -23,7 +23,7 @@ interface SessionTableRowProps {
 
 /**
  * One row of the sessions table: name, last active, duration, model, agents,
- * session cost, and team cost. A session whose summary couldn't be read shows a
+ * session usage, and team usage. A session whose summary couldn't be read shows a
  * placeholder name, its file's last-modified time, and empty value cells for
  * everything that comes from the summary.
  *
@@ -39,7 +39,7 @@ export function SessionTableRow({
   const { row, nested } = visible
   const { item } = row
   const summary = item.summary.ok ? item.summary.value : null
-  const costs = sessionCosts(item)
+  const usage = sessionUsage(item)
   return (
     <tr id={nested ? rowId(row.key) : undefined} className={nested ? styles.nested : undefined}>
       <SessionNameCell
@@ -53,20 +53,13 @@ export function SessionTableRow({
       <ValueCell value={formatDuration(summary?.activity ?? null, t)} numeric />
       <ValueCell value={summary?.model ?? null} />
       <ValueCell value={agentCountLabel(item, t)} />
-      <ValueCell value={formatUsd(costs.sessionUSD, t)} numeric />
-      {item.team?.kind === 'lead' ? (
-        <ValueCell
-          value={formatUsd(costs.teamUSD, t)}
-          numeric
-          {...(costs.partial && { note: t('teamCostPartial') })}
-        />
-      ) : (
-        <ValueCell
-          value={null}
-          numeric
-          emptyReason={summary === null ? 'not-recorded' : 'not-applicable'}
-        />
-      )}
+      <UsageCell figures={usage.session} />
+      <UsageCell
+        figures={usage.team}
+        emptyReason={
+          item.team?.kind !== 'lead' && summary !== null ? 'not-applicable' : 'not-recorded'
+        }
+      />
     </tr>
   )
 }

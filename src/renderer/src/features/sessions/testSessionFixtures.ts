@@ -23,6 +23,8 @@ interface TestSessionOptions {
   readonly model?: string | null
   /** The recorded cost. Defaults to none. */
   readonly costUSD?: number | null
+  /** The recorded token total. Defaults to none. */
+  readonly totalTokens?: number | null
   /** Whether the summary could not be read. Defaults to `false`. */
   readonly unreadable?: boolean
 }
@@ -44,12 +46,16 @@ export function testSession(n: number, options: TestSessionOptions = {}): Sessio
     modifiedMs = null,
     model = null,
     costUSD,
+    totalTokens,
     unreadable = false
   } = options
 
   const summary: SessionSummaryDto = {
     title,
-    usage: costUSD === undefined ? null : { totalUSD: costUSD, totalTokens: null },
+    usage:
+      costUSD === undefined && totalTokens === undefined
+        ? null
+        : { totalUSD: costUSD ?? null, totalTokens: totalTokens ?? null },
     activity: latestMs === undefined || earliestMs === undefined ? null : { earliestMs, latestMs },
     skippedLines: 0,
     role,

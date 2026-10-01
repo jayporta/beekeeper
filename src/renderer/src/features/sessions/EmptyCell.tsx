@@ -16,6 +16,8 @@ interface EmptyCellProps {
    * @defaultValue 'not-recorded'
    */
   readonly reason?: EmptyReason
+  /** Replaces the spoken reason, to name what is missing when the cell shows more than one value. */
+  readonly spokenText?: string
 }
 
 /**
@@ -25,13 +27,16 @@ interface EmptyCellProps {
  * @example
  * <td><EmptyCell reason="not-applicable" /></td>
  */
-export function EmptyCell({ reason = 'not-recorded' }: EmptyCellProps): React.JSX.Element {
+export function EmptyCell({
+  reason = 'not-recorded',
+  spokenText
+}: EmptyCellProps): React.JSX.Element {
   const { t } = useTranslation('sessions')
 
   return (
     <>
       <span aria-hidden="true">-</span>
-      <span className="visuallyHidden">{t(SPOKEN_KEY[reason])}</span>
+      <span className="visuallyHidden">{spokenText ?? t(SPOKEN_KEY[reason])}</span>
     </>
   )
 }

@@ -5,8 +5,8 @@
     "duration": "Duration",
     "model": "Model",
     "agents": "Agents",
-    "sessionCost": "Session cost",
-    "teamCost": "Team cost"
+    "sessionUsage": "Session usage",
+    "teamUsage": "Team usage"
   },
   "table": "Sessions table",
   "label": {
@@ -31,10 +31,14 @@
   "lastActive": "{{value, shortDateTime}}",
   "usd": "{{value, usd}}",
   "usdUnderCent": "<{{value, usd}}",
-  "teamCostPartial": "partial",
+  "tokens": "{{value, compactInteger}} tokens",
+  "apiCost": "{{value}} at API prices",
+  "partial": "partial",
   "emptyCell": {
     "notRecorded": "not recorded",
-    "notApplicable": "not applicable"
+    "notApplicable": "not applicable",
+    "tokensNotRecorded": "tokens not recorded",
+    "costNotRecorded": "cost not recorded"
   },
   "notes": {
     "team": "team {{name}}",

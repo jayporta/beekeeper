@@ -12,8 +12,8 @@ const COLUMNS = [
   'duration',
   'model',
   'agents',
-  'sessionCost',
-  'teamCost'
+  'sessionUsage',
+  'teamUsage'
 ] as const
 
 /** Props for {@link SessionsTable}. */

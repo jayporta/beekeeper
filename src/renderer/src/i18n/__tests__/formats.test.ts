@@ -33,6 +33,16 @@ describe('registered formats', () => {
 
     expect(t('search.matches', { count: 1234 })).toBe('1,234 sessions match')
   })
+
+  it.each([
+    [12_400_000, '12.4M tokens'],
+    [950, '950 tokens'],
+    [0, '0 tokens']
+  ])('format %d tokens in short compact notation', (value, expected) => {
+    const t = i18n.getFixedT('en-US', 'sessions')
+
+    expect(t('tokens', { value })).toBe(expected)
+  })
 })
 
 describe('format caching', () => {
@@ -61,6 +71,15 @@ describe('format caching', () => {
     const spy = vi.spyOn(Intl, 'NumberFormat')
 
     for (const n of distinct) t('duration.minutes', { minutes: n })
+
+    expect(spy).toHaveBeenCalledTimes(1)
+  })
+
+  it('builds one compact formatter per language, however many token counts it formats', () => {
+    const t = i18n.getFixedT('en-IE', 'sessions')
+    const spy = vi.spyOn(Intl, 'NumberFormat')
+
+    for (const n of distinct) t('tokens', { value: n * 1000 })
 
     expect(spy).toHaveBeenCalledTimes(1)
   })

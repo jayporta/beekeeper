@@ -7,8 +7,3 @@
   composes: cell;
   text-align: right;
 }
-
-.note {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-}
