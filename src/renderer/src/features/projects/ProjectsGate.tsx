@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { RetryButton } from '@renderer/components/RetryButton'
 import { StatusMessage } from '@renderer/components/StatusMessage'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
@@ -18,6 +19,7 @@ interface ProjectsGateProps {
  * <ProjectsGate><SessionsView /></ProjectsGate>
  */
 export function ProjectsGate({ children }: ProjectsGateProps): React.JSX.Element {
+  const { t } = useTranslation(['projects', 'common'])
   const { data, error, isError, refetch } = useProjects()
   const retry = (): void => {
     void refetch()
@@ -25,26 +27,20 @@ export function ProjectsGate({ children }: ProjectsGateProps): React.JSX.Element
 
   if (data !== undefined) {
     if (data.length > 0) return <>{children}</>
-    return (
-      <StatusMessage
-        key="empty"
-        heading="No sessions found"
-        body="Beekeeper found no Claude Code sessions under ~/.claude/projects. Sessions appear here after you run Claude Code in a project."
-      />
-    )
+    return <StatusMessage key="empty" heading={t('empty.heading')} body={t('empty.body')} />
   }
 
   // Each state has its own key, so an alert mounts fresh instead of reusing the
   // loading element, and screen readers announce it.
-  if (!isError) return <StatusMessage key="loading" heading="Loading projects" role="status" />
+  if (!isError) return <StatusMessage key="loading" heading={t('loading')} role="status" />
 
   if (IpcCallError.codeOf(error) === 'unreadable') {
     return (
       <StatusMessage
         key="unreadable"
-        heading="Can't read your sessions"
+        heading={t('unreadable.heading')}
         role="alert"
-        body="Beekeeper can't read ~/.claude/projects. Check that folder's permissions. On macOS, also check whether Beekeeper was denied access to it. Then retry."
+        body={t('unreadable.body')}
       >
         <RetryButton onRetry={retry} />
       </StatusMessage>
@@ -52,12 +48,7 @@ export function ProjectsGate({ children }: ProjectsGateProps): React.JSX.Element
   }
 
   return (
-    <StatusMessage
-      key="error"
-      heading="Something went wrong"
-      role="alert"
-      body="Beekeeper couldn't load your projects."
-    >
+    <StatusMessage key="error" heading={t('common:error.heading')} role="alert" body={t('error')}>
       <RetryButton onRetry={retry} />
     </StatusMessage>
   )

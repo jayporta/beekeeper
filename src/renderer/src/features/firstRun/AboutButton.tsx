@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import styles from './AboutButton.module.css'
 import { selectIsFirstRunShowing, useFirstRunStore } from './state/useFirstRunStore'
 
@@ -15,6 +16,7 @@ interface AboutButtonProps {
  * <AboutButton />
  */
 export function AboutButton({ buttonRef }: AboutButtonProps): React.JSX.Element | null {
+  const { t } = useTranslation('firstRun')
   const open = useFirstRunStore((state) => state.open)
   const isFirstRunShowing = useFirstRunStore(selectIsFirstRunShowing)
 
@@ -23,7 +25,7 @@ export function AboutButton({ buttonRef }: AboutButtonProps): React.JSX.Element 
 
   return (
     <button ref={buttonRef} type="button" className={styles.button} onClick={open}>
-      About Beekeeper
+      {t('about')}
     </button>
   )
 }

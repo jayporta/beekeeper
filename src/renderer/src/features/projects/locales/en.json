@@ -1,0 +1,18 @@
+{
+  "picker": {
+    "label": "Project",
+    "worktreeGroup": "{{project}} worktrees",
+    "note": "Worktree folders are grouped under their project."
+  },
+  "heading": "Sessions",
+  "empty": {
+    "heading": "No sessions found",
+    "body": "Beekeeper found no Claude Code sessions under ~/.claude/projects. Sessions appear here after you run Claude Code in a project."
+  },
+  "loading": "Loading projects",
+  "unreadable": {
+    "heading": "Can't read your sessions",
+    "body": "Beekeeper can't read ~/.claude/projects. Check that folder's permissions. On macOS, also check whether Beekeeper was denied access to it. Then retry."
+  },
+  "error": "Beekeeper couldn't load your projects."
+}

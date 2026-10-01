@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import styles from './FirstRunScreen.module.css'
 import { isMacOS } from './isMacOs'
 import { useFirstRunStore } from './state/useFirstRunStore'
@@ -13,6 +14,7 @@ import { useFirstRunStore } from './state/useFirstRunStore'
  * <FirstRunScreen />
  */
 export function FirstRunScreen(): React.JSX.Element {
+  const { t } = useTranslation('firstRun')
   const dismiss = useFirstRunStore((state) => state.dismiss)
   const headingRef = useRef<HTMLHeadingElement>(null)
 
@@ -23,47 +25,36 @@ export function FirstRunScreen(): React.JSX.Element {
   return (
     <div className={styles.screen}>
       <h1 ref={headingRef} tabIndex={-1} className={styles.title}>
-        Welcome to Beekeeper
+        {t('title')}
       </h1>
 
       <section className={styles.section} aria-labelledby="first-run-reads">
         <h2 id="first-run-reads" className={styles.heading}>
-          What Beekeeper reads
+          {t('reads.heading')}
         </h2>
         <p>
-          Beekeeper reads the session files Claude Code writes under <code>~/.claude/projects</code>{' '}
-          and shows what each agent did, changed, and cost. It only reads. It never writes to{' '}
-          <code>~/.claude</code> or to your repositories.
+          <Trans t={t} i18nKey="reads.body" components={{ code: <code /> }} />
         </p>
       </section>
 
       <section className={styles.section} aria-labelledby="first-run-local">
         <h2 id="first-run-local" className={styles.heading}>
-          Nothing leaves your computer
+          {t('local.heading')}
         </h2>
-        <p>
-          Beekeeper makes no network requests and sends no telemetry. Everything you see is worked
-          out locally from those files.
-        </p>
+        <p>{t('local.body')}</p>
       </section>
 
       {isMacOS() && (
         <section className={styles.section} aria-labelledby="first-run-macos">
           <h2 id="first-run-macos" className={styles.heading}>
-            Why macOS may ask for folder access
+            {t('macos.heading')}
           </h2>
-          <p>
-            To show what an agent changed, Beekeeper runs read-only git commands in the repository a
-            session worked in. When that is a worktree under a protected folder such as Documents,
-            Desktop, or Downloads, macOS asks whether Beekeeper may access it. Allow it to see that
-            worktree&apos;s changes. If you decline, Beekeeper hides those changes and everything
-            else keeps working.
-          </p>
+          <p>{t('macos.body')}</p>
         </section>
       )}
 
       <button type="button" className={styles.button} onClick={dismiss}>
-        Got it
+        {t('dismiss')}
       </button>
     </div>
   )

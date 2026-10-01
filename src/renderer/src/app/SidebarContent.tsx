@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { AboutButton } from '@renderer/features/firstRun/AboutButton'
 import { ProjectPicker } from '@renderer/features/projects/ProjectPicker'
 import styles from './SidebarContent.module.css'
@@ -16,9 +17,11 @@ interface SidebarContentProps {
  * <aside aria-label="Sidebar"><SidebarContent aboutRef={aboutRef} /></aside>
  */
 export function SidebarContent({ aboutRef }: SidebarContentProps): React.JSX.Element {
+  const { t } = useTranslation()
+
   return (
     <div className={styles.content}>
-      <p className={styles.name}>Beekeeper</p>
+      <p className={styles.name}>{t('appName')}</p>
       <ProjectPicker />
       <div className={styles.footer}>
         <AboutButton buttonRef={aboutRef} />
