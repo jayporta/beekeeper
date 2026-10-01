@@ -3,7 +3,13 @@ import type { BeekeeperApi } from '../../shared/ipc/beekeeperApi'
 import type { IpcResult } from '../../shared/ipc/ipcResult'
 import type { ProjectDto } from '../../shared/ipc/projectDto'
 
-/** A parent project folder, for stubbing `listProjects`. */
+/**
+ * A project folder, for stubbing `listProjects`.
+ *
+ * @param dirName - The folder's name under `~/.claude/projects`.
+ * @param worktreeOf - The name of the folder this one is a worktree of, or `null` when it is not a worktree.
+ * @returns The project.
+ */
 export function testProject(dirName: string, worktreeOf: string | null = null): ProjectDto {
   return { dirName, worktreeOf }
 }

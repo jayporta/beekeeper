@@ -81,7 +81,7 @@ describe('SessionsView table', () => {
       'Duration',
       'Model',
       'Agents',
-      'Lead cost',
+      'Session cost',
       'Team cost'
     ])
   })
@@ -132,7 +132,7 @@ describe('SessionsView table', () => {
       .getAllByRole('cell')
       .map((c) => c.textContent)
 
-    // Cells: last active, duration, model, agents, lead cost, team cost.
+    // Cells: last active, duration, model, agents, session cost, team cost.
     expect(cells[5]).toBe('-not applicable')
     expect(cells[4]).toBe('-not recorded')
   })

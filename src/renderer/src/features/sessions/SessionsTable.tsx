@@ -11,7 +11,7 @@ const COLUMNS = [
   'Duration',
   'Model',
   'Agents',
-  'Lead cost',
+  'Session cost',
   'Team cost'
 ] as const
 
