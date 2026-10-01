@@ -39,7 +39,12 @@ export function ValueCell({
       ) : (
         value
       )}
-      {note !== undefined && <span className={styles.note}>{note}</span>}
+      {note !== undefined && (
+        <>
+          {' '}
+          <span className={styles.note}>{note}</span>
+        </>
+      )}
     </td>
   )
 }

@@ -106,7 +106,7 @@ describe('SessionsView table', () => {
       'claude-opus-5',
       '2 teammates',
       '$1.00',
-      '$3.00partial'
+      '$3.00 partial'
     ])
   })
 
