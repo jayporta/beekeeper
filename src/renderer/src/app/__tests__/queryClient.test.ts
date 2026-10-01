@@ -1,4 +1,10 @@
-import { onlineManager, QueryClient, QueryObserver } from '@tanstack/react-query'
+import {
+  dehydrate,
+  hydrate,
+  onlineManager,
+  QueryClient,
+  QueryObserver
+} from '@tanstack/react-query'
 import { afterEach, describe, expect, it } from 'vitest'
 import { SESSIONS_GC_TIME_MS } from '@renderer/features/sessions/sessionsGcTime'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
@@ -36,6 +42,18 @@ describe('createQueryClient', () => {
 
   it('keeps a sessions query only briefly after nothing shows it', () => {
     expect(gcTimeOf(createQueryClient(), ['sessions', 'x'])).toBe(SESSIONS_GC_TIME_MS)
+  })
+
+  it('keeps a sessions query restored from the persisted cache only briefly too', () => {
+    const saved = new QueryClient()
+    saved.setQueryData(['sessions', 'x'], [])
+    const client = createQueryClient()
+
+    hydrate(client, dehydrate(saved))
+
+    expect(client.getQueryCache().find({ queryKey: ['sessions', 'x'] })?.gcTime).toBe(
+      SESSIONS_GC_TIME_MS
+    )
   })
 
   describe('while the OS reports offline', () => {

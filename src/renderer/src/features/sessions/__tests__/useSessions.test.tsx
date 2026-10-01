@@ -1,4 +1,4 @@
-import { dehydrate, hydrate, QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { PERSIST_MAX_AGE_MS } from '@renderer/app/persistMaxAge'
@@ -28,17 +28,5 @@ describe('useSessions cache lifetime', () => {
 
     expect(query?.gcTime).toBe(SESSIONS_GC_TIME_MS)
     expect(SESSIONS_GC_TIME_MS).toBeLessThan(PERSIST_MAX_AGE_MS)
-  })
-
-  it('keeps a session list restored from the persisted cache only briefly too', () => {
-    const saved = new QueryClient()
-    saved.setQueryData(['sessions', '-p'], [])
-    const client = createQueryClient()
-
-    hydrate(client, dehydrate(saved))
-
-    expect(client.getQueryCache().find({ queryKey: ['sessions', '-p'] })?.gcTime).toBe(
-      SESSIONS_GC_TIME_MS
-    )
   })
 })
