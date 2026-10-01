@@ -27,7 +27,7 @@ export interface RecordedUsage {
   readonly totalUSD: number | null
   /**
    * The session's recorded total across every token class, or `null` when
-   * the record held no model usage.
+   * the record held no model usage or the sum is not finite.
    */
   readonly totalTokens: number | null
 }
