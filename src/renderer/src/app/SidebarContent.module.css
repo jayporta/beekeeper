@@ -1,0 +1,15 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-height: 100%;
+}
+
+.name {
+  font-size: var(--font-size-lg);
+  font-weight: bold;
+}
+
+.footer {
+  margin-top: auto;
+}

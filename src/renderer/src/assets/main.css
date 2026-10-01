@@ -22,3 +22,13 @@ body {
   outline: var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
+
+/* Text for assistive technology only. */
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
