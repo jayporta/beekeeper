@@ -15,22 +15,22 @@
   },
   "agentName": "{{name}} ({{type}})",
   "agents": {
-    "teammates_one": "{{count}} teammate",
-    "teammates_other": "{{count}} teammates",
-    "subagents_one": "{{count}} subagent",
-    "subagents_other": "{{count}} subagents",
+    "teammates_one": "{{count, integer}} teammate",
+    "teammates_other": "{{count, integer}} teammates",
+    "subagents_one": "{{count, integer}} subagent",
+    "subagents_other": "{{count, integer}} subagents",
     "both": "{{teammates}}, {{subagents}}",
     "none": "None"
   },
   "duration": {
-    "underMinute": "<{{minutes, number}}m",
-    "minutes": "{{minutes, number}}m",
-    "hours": "{{hours, number}}h",
-    "hoursMinutes": "{{hours, number}}h {{minutes, number}}m"
+    "underMinute": "<{{minutes, integer}}m",
+    "minutes": "{{minutes, integer}}m",
+    "hours": "{{hours, integer}}h",
+    "hoursMinutes": "{{hours, integer}}h {{minutes, integer}}m"
   },
-  "lastActive": "{{value, datetime(dateStyle: medium; timeStyle: short)}}",
-  "usd": "{{value, currency(USD)}}",
-  "usdUnderCent": "<{{value, currency(USD)}}",
+  "lastActive": "{{value, shortDateTime}}",
+  "usd": "{{value, usd}}",
+  "usdUnderCent": "<{{value, usd}}",
   "teamCostPartial": "partial",
   "emptyCell": {
     "notRecorded": "not recorded",
@@ -43,14 +43,14 @@
     "in": "in {{folder}}"
   },
   "teammateOf": "teammate of {{lead}}",
-  "disclosure_one": "{{count}} teammate of {{name}}",
-  "disclosure_other": "{{count}} teammates of {{name}}",
+  "disclosure_one": "{{count, integer}} teammate of {{name}}",
+  "disclosure_other": "{{count, integer}} teammates of {{name}}",
   "search": {
     "label": "Search sessions",
     "noMatches": "No matching sessions",
     "noMatchesBody": "Try a different search.",
-    "matches_one": "{{count}} session matches",
-    "matches_other": "{{count}} sessions match"
+    "matches_one": "{{count, integer}} session matches",
+    "matches_other": "{{count, integer}} sessions match"
   },
   "loading": "Loading sessions",
   "unreadable": {

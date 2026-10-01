@@ -105,8 +105,11 @@ export default defineConfig(
         'error',
         {
           // Checks string literals anywhere in JSX, attributes and component props included.
+          // It does not see strings built in code (constants, helpers, `.ts` files), template
+          // literals in props or children, or a `label` prop on any element, so reviewers check those.
           mode: 'jsx-only',
-          // Setting an option replaces the plugin's default for it, so the defaults are restated.
+          // Setting an option replaces the plugin's default for it, so the defaults are restated
+          // here, except the HTML entity names, which would need a deep import and match no text we use.
           'jsx-attributes': {
             exclude: [
               'className',
