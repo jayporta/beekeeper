@@ -1,4 +1,3 @@
-import { useId } from 'react'
 import styles from './SessionNameCell.module.css'
 import { rowId } from './rowId'
 import { sessionLabel } from './sessionLabel'
@@ -51,23 +50,9 @@ export function SessionNameCell({
   const toggle = useSessionsViewStore((state) => state.toggle)
   const { text, idHint } = sessionLabel(row.item)
   const count = row.teammates.length
-  const textId = useId()
-  const leadId = useId()
-  const idHintId = useId()
-  // Names the row by its session, who it belongs to and its id hint only, so the
-  // button and notes are not repeated in the name of every cell that reads this header.
-  const nameIds = [
-    textId,
-    ...(leadLabel === null ? [] : [leadId]),
-    ...(idHint === null ? [] : [idHintId])
-  ]
 
   return (
-    <th
-      scope="row"
-      aria-labelledby={nameIds.join(' ')}
-      className={nested ? styles.nested : styles.name}
-    >
+    <th scope="row" className={nested ? styles.nested : styles.name}>
       <div className={styles.content}>
         {canExpand && (
           <button
@@ -83,19 +68,9 @@ export function SessionNameCell({
             <span aria-hidden="true">{expanded ? '▾' : '▸'}</span>
           </button>
         )}
-        <span id={textId} className={styles.text}>
-          {text}
-        </span>
-        {leadLabel !== null && (
-          <span id={leadId} className="visuallyHidden">
-            teammate of {leadLabel}
-          </span>
-        )}
-        {idHint !== null && (
-          <span id={idHintId} className={styles.note}>
-            {idHint}
-          </span>
-        )}
+        <span className={styles.text}>{text}</span>
+        {leadLabel !== null && <span className="visuallyHidden">teammate of {leadLabel}</span>}
+        {idHint !== null && <span className={styles.note}>{idHint}</span>}
         {notesFor(row, selectedDirName).map((note) => (
           <span key={note} className={styles.note}>
             {note}

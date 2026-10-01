@@ -2,8 +2,6 @@ import { RetryButton } from '@renderer/components/RetryButton'
 import { StatusMessage } from '@renderer/components/StatusMessage'
 import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
 import { SessionSearch } from './SessionSearch'
-import type { SessionRow } from './sessionRow'
-import { SessionsTable } from './SessionsTable'
 
 /** Props for {@link SessionsBody}. */
 interface SessionsBodyProps {
@@ -13,14 +11,10 @@ interface SessionsBodyProps {
   readonly isError: boolean
   /** Loads the list again. */
   readonly onRetry: () => void
-  /** The rows that match the search. */
-  readonly matching: readonly SessionRow[]
-  /** Whether a search is active. */
-  readonly searching: boolean
-  /** The folder whose sessions are shown. */
-  readonly dirName: string
-  /** The id of the heading that names the table. */
-  readonly headingId: string
+  /** Whether any session matches the search. */
+  readonly hasMatches: boolean
+  /** The table of matching sessions, shown when there are matches. */
+  readonly children: React.ReactNode
 }
 
 /**
@@ -29,16 +23,16 @@ interface SessionsBodyProps {
  * wins over a failed background refresh, so a cached list stays on screen.
  *
  * @example
- * <SessionsBody data={data} isError={false} onRetry={retry} matching={rows} searching={false} dirName="-Users-me-repo" headingId={headingId} />
+ * <SessionsBody data={data} isError={false} onRetry={retry} hasMatches>
+ *   <SessionsTable rows={rows} labelledBy={headingId} selectedDirName="-Users-me-repo" searching={false} />
+ * </SessionsBody>
  */
 export function SessionsBody({
   data,
   isError,
   onRetry,
-  matching,
-  searching,
-  dirName,
-  headingId
+  hasMatches,
+  children
 }: SessionsBodyProps): React.JSX.Element {
   if (data === undefined) {
     if (!isError) return <StatusMessage heading="Loading sessions" headingLevel={2} role="status" />
@@ -67,18 +61,13 @@ export function SessionsBody({
   return (
     <>
       <SessionSearch />
-      {matching.length === 0 ? (
+      {hasMatches ? (
+        children
+      ) : (
         <StatusMessage
           heading="No matching sessions"
           headingLevel={2}
           body="Try a different search."
-        />
-      ) : (
-        <SessionsTable
-          rows={matching}
-          labelledBy={headingId}
-          selectedDirName={dirName}
-          searching={searching}
         />
       )}
     </>

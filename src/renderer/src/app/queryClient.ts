@@ -7,18 +7,17 @@ import { PERSISTED_QUERY_ROOTS } from './shouldPersistQuery'
 const DEFAULT_RETRY_COUNT = 3
 
 /**
- * Whether a failed query is tried again. A folder that is unreadable or gone
- * stays that way, so those fail at once. Anything else keeps TanStack's default
- * count.
+ * Whether a failed query is tried again. Only an internal failure might pass
+ * on a second try: an unreadable or missing folder, a rejected request, or an
+ * untrusted sender fails the same way every time, so those fail at once.
+ * Internal failures keep TanStack's default count.
  *
  * @param failureCount - How many times the query has failed so far.
  * @param error - What the last attempt threw.
  * @returns `true` to retry.
  */
 function shouldRetry(failureCount: number, error: unknown): boolean {
-  const code = IpcCallError.codeOf(error)
-  if (code === 'unreadable' || code === 'not-found') return false
-  return failureCount < DEFAULT_RETRY_COUNT
+  return IpcCallError.codeOf(error) === 'internal' && failureCount < DEFAULT_RETRY_COUNT
 }
 
 /**

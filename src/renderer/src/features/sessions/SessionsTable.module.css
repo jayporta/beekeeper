@@ -1,4 +1,6 @@
 .scroller {
+  /* Contains the cells' visually hidden text, so it can't widen the page. */
+  position: relative;
   overflow-x: auto;
 }
 

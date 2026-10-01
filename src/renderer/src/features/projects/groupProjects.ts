@@ -23,10 +23,15 @@ export function groupProjects(projects: readonly ProjectDto[]): readonly Project
   const isNested = (project: ProjectDto): boolean =>
     project.worktreeOf !== null && parentNames.has(project.worktreeOf)
 
+  const worktreesByParent = new Map<string, ProjectDto[]>()
+  for (const project of projects) {
+    if (project.worktreeOf === null || !isNested(project)) continue
+    const siblings = worktreesByParent.get(project.worktreeOf)
+    if (siblings === undefined) worktreesByParent.set(project.worktreeOf, [project])
+    else siblings.push(project)
+  }
+
   return projects
     .filter((project) => !isNested(project))
-    .map((project) => ({
-      project,
-      worktrees: projects.filter((other) => isNested(other) && other.worktreeOf === project.dirName)
-    }))
+    .map((project) => ({ project, worktrees: worktreesByParent.get(project.dirName) ?? [] }))
 }

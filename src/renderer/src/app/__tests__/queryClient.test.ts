@@ -63,9 +63,12 @@ describe('createQueryClient', () => {
       return rule(failureCount, error)
     }
 
-    it.each(['unreadable', 'not-found'] as const)('does not retry a %s error', (code) => {
-      expect(retry(0, new IpcCallError(code))).toBe(false)
-    })
+    it.each(['unreadable', 'not-found', 'invalid-request', 'untrusted-sender'] as const)(
+      'does not retry a %s error',
+      (code) => {
+        expect(retry(0, new IpcCallError(code))).toBe(false)
+      }
+    )
 
     it('retries another IPC error three times, as TanStack does by default', () => {
       const error = new IpcCallError('internal')

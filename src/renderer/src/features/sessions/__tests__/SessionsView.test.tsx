@@ -121,26 +121,6 @@ describe('SessionsView table', () => {
     expect(text).toContain('-not recorded')
   })
 
-  it('names a row header by the session, and the lead for a nested row, not its button or notes', async () => {
-    showSessions()
-    await userEvent.click(
-      await screen.findByRole('button', { name: '2 teammates of Refactor parser' })
-    )
-
-    expect(screen.getByRole('rowheader', { name: 'Refactor parser' })).toBeTruthy()
-    expect(
-      screen.getByRole('rowheader', { name: 'reviewer (code) teammate of Refactor parser' })
-    ).toBeTruthy()
-  })
-
-  it('includes the short id in the name of a row that has no title', async () => {
-    showSessions()
-
-    const header = await screen.findByRole('rowheader', { name: /^Untitled session / })
-
-    expect(header.textContent).toContain('Untitled session')
-  })
-
   it('marks a team cost that does not apply to a teammate as not applicable, not as not recorded', async () => {
     showSessions()
     await userEvent.click(
@@ -269,7 +249,7 @@ describe('SessionsView search announcements', () => {
   })
 })
 
-describe('SessionsView search announcements across a project switch', () => {
+describe('SessionsView search announcements while a list loads', () => {
   it('keeps one live region mounted while loading, so a match count is announced when it loads', async () => {
     useSessionsViewStore.setState({ query: 'code' })
     let resolve: (value: IpcResult<readonly SessionListItemDto[]>) => void = () => undefined
@@ -291,6 +271,16 @@ describe('SessionsView search announcements across a project switch', () => {
       expect(region?.textContent).toBe('2 sessions match')
     })
     expect(document.querySelector('p[role="status"]')).toBe(region)
+  })
+
+  it('announces nothing for a leftover search in a folder with no sessions', async () => {
+    useSessionsViewStore.setState({ query: 'code' })
+    installBeekeeperApi({ listSessions: () => ok([]) })
+    render(<SessionsContent dirName={DIR} headingId="h" />, { wrapper: createQueryWrapper() })
+
+    await screen.findByRole('heading', { name: 'No sessions in this project' })
+
+    expect(document.querySelector('p[role="status"]')?.textContent).toBe('')
   })
 })
 

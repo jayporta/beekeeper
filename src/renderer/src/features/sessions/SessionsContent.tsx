@@ -5,6 +5,7 @@ import { groupSessionRows } from './groupSessionRows'
 import { SearchResultsStatus } from './SearchResultsStatus'
 import { normalizeQuery } from './sessionMatches'
 import { SessionsBody } from './SessionsBody'
+import { SessionsTable } from './SessionsTable'
 import { useSessionsViewStore } from './state/useSessionsViewStore'
 import { useSessions } from './useSessions'
 
@@ -32,7 +33,8 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
   const rows = useMemo(() => (data === undefined ? [] : groupSessionRows(data)), [data])
   const matching = useMemo(() => filterRows(rows, query), [rows, query])
   const matchCount = useMemo(() => countMatches(rows, query), [rows, query])
-  const searching = data !== undefined && normalizeQuery(query) !== ''
+  // An empty folder shows no search box, so a leftover query isn't a search.
+  const searching = data !== undefined && data.length > 0 && normalizeQuery(query) !== ''
 
   return (
     <>
@@ -43,11 +45,15 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
         onRetry={() => {
           void refetch()
         }}
-        matching={matching}
-        searching={searching}
-        dirName={dirName}
-        headingId={headingId}
-      />
+        hasMatches={matching.length > 0}
+      >
+        <SessionsTable
+          rows={matching}
+          labelledBy={headingId}
+          selectedDirName={dirName}
+          searching={searching}
+        />
+      </SessionsBody>
     </>
   )
 }
