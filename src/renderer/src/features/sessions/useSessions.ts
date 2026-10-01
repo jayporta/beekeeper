@@ -7,9 +7,9 @@ import { useSelectedProjectStore } from '@renderer/features/projects/state/useSe
 
 /**
  * How long a session list stays cached after the last view of it closes: 5
- * minutes. The default for a query is the 7-day persisted maximum age, which
- * would keep every folder's list in the persisted cache, so only lists in use
- * stay there. The project list keeps the default.
+ * minutes. `createQueryClient` gives queries under a persisted root, which
+ * includes `sessions`, the 7-day persisted maximum age. This overrides it, so
+ * only lists in use stay in the persisted cache, not every folder's.
  */
 export const SESSIONS_GC_TIME_MS = 5 * 60 * 1000
 

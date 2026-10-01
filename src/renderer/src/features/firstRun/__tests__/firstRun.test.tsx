@@ -207,8 +207,11 @@ describe('first-run screen', () => {
     renderApp()
 
     expect(await welcome()).toBeTruthy()
-    expect(log).toHaveBeenCalledExactlyOnceWith(
-      'Beekeeper could not restore "first-run" from IndexedDB.'
-    )
+    // Every store reads through the same failing storage, so each logs its own message.
+    expect(
+      log.mock.calls.filter(
+        ([message]) => message === 'Beekeeper could not restore "first-run" from IndexedDB.'
+      )
+    ).toHaveLength(1)
   })
 })

@@ -1,8 +1,8 @@
 import { render, type RenderResult } from '@testing-library/react'
-import { resetFirstRun } from './features/firstRun/testFirstRunReset'
-import { resetProjects } from './features/projects/testProjectsReset'
-import App from './App'
-import { createQueryWrapper } from './testQueryWrapper'
+import App from '@renderer/App'
+import { resetFirstRun } from '@renderer/features/firstRun/testFirstRunReset'
+import { resetProjects } from '@renderer/features/projects/testProjectsReset'
+import { createQueryWrapper } from '@renderer/testQueryWrapper'
 
 /** Returns every persisted store to a fresh install, between tests. */
 export async function resetPersistedState(): Promise<void> {

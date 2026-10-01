@@ -35,6 +35,7 @@ export function ProjectsGate({ children }: ProjectsGateProps): React.JSX.Element
     return (
       <StatusMessage
         heading="Can't read your sessions"
+        role="alert"
         body="Beekeeper can't read ~/.claude/projects. Check that folder's permissions. On macOS, also check whether Beekeeper was denied access to it."
       />
     )

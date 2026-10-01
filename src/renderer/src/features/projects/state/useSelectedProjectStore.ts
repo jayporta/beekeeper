@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
+import { logRehydrateError } from '@renderer/storage/logRehydrateError'
 import { zustandIdbStorage } from '@renderer/storage/zustandIdbStorage'
+import { mergeSelectedProjectState } from './mergeSelectedProjectState'
 
 /** The IndexedDB key the project selection is stored under. */
 export const SELECTED_PROJECT_STORAGE_KEY = 'selected-project'
@@ -18,10 +20,12 @@ interface SelectedProjectState {
 /**
  * The project selection, persisted to IndexedDB through `zustandIdbStorage`. This is
  * only the stored choice: whether it is still listed is decided by
- * `pickProject`. Hydration is started by `usePersistHydrated`.
+ * `pickProject`. The stored value is validated on load (see
+ * `mergeSelectedProjectState`), and a load that fails is logged. Hydration is
+ * started by `usePersistHydrated`.
  */
 export const useSelectedProjectStore = create<SelectedProjectState>()(
-  persist(
+  persist<SelectedProjectState, [], [], { selectedDirName: string | null }>(
     (set) => ({
       selectedDirName: null,
       select: (dirName) => {
@@ -35,6 +39,8 @@ export const useSelectedProjectStore = create<SelectedProjectState>()(
       name: SELECTED_PROJECT_STORAGE_KEY,
       storage: createJSONStorage(() => zustandIdbStorage),
       partialize: (state) => ({ selectedDirName: state.selectedDirName }),
+      merge: (persisted, current) => mergeSelectedProjectState(persisted, current),
+      onRehydrateStorage: logRehydrateError(SELECTED_PROJECT_STORAGE_KEY),
       skipHydration: true
     }
   )

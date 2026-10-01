@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { createQueryClient, PERSIST_MAX_AGE_MS } from '@renderer/app/queryClient'
+import { PERSIST_MAX_AGE_MS } from '@renderer/app/persistMaxAge'
+import { createQueryClient } from '@renderer/app/queryClient'
 import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { SESSIONS_GC_TIME_MS, useSessions } from '../useSessions'
 

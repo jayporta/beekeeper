@@ -1,13 +1,16 @@
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { idbStorage } from '@renderer/storage/idbStorage'
 import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
 import { useFirstRunStore } from '../../firstRun/state/useFirstRunStore'
 import { useSelectedProjectStore } from '../state/useSelectedProjectStore'
 
-afterEach(resetPersistedState)
+afterEach(async () => {
+  vi.restoreAllMocks()
+  await resetPersistedState()
+})
 
 const PROJECTS = [
   testProject('-Users-a-alpha'),
@@ -85,6 +88,48 @@ describe('ProjectPicker', () => {
 
     expect(select.value).toBe('-Users-a-alpha')
     expect(screen.getByText('-Users-a-alpha', { selector: 'p' })).toBeTruthy()
+  })
+
+  describe('with a stored value that cannot be trusted', () => {
+    const seed = (value: string): Promise<void> => idbStorage.setItem('selected-project', value)
+
+    it('still renders, and logs one fixed message, for a stored value that is not JSON', async () => {
+      const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      await seed('not json {secret transcript text')
+
+      const select = await renderLoaded()
+
+      expect(select.value).toBe('-Users-a-alpha')
+      expect(log).toHaveBeenCalledExactlyOnceWith(
+        'Beekeeper could not restore "selected-project" from IndexedDB.'
+      )
+    })
+
+    it.each([
+      ['a number', 42],
+      ['an object', { name: '-Users-a-beta' }]
+    ])('ignores a stored selectedDirName that is %s', async (_label, selectedDirName) => {
+      await seed(JSON.stringify({ state: { selectedDirName }, version: 0 }))
+
+      await renderLoaded()
+
+      expect(useSelectedProjectStore.getState().selectedDirName).toBeNull()
+    })
+
+    it('keeps the store actions when the stored value has keys of the same name', async () => {
+      await seed(
+        JSON.stringify({
+          state: { selectedDirName: '-Users-a-alpha', select: 'x', resetSelection: 'y' },
+          version: 0
+        })
+      )
+      const select = await renderLoaded()
+
+      await userEvent.selectOptions(select, '-Users-a-beta')
+
+      expect(useSelectedProjectStore.getState().selectedDirName).toBe('-Users-a-beta')
+      expect(typeof useSelectedProjectStore.getState().resetSelection).toBe('function')
+    })
   })
 
   it('is not shown when there are no projects', async () => {

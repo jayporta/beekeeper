@@ -36,7 +36,7 @@ export function selectIsFirstRunShowing(
  * The first-run screen's state. Only `dismissed` is persisted, to IndexedDB
  * through `zustandIdbStorage`. The stored value is validated on load (see
  * `mergeFirstRunState`), and a load that fails is logged. Hydration is started
- * by `useFirstRunHydrated`, so the UI can hold back until the stored value is known.
+ * by `usePersistHydrated`, so the UI can hold back until the stored value is known.
  */
 export const useFirstRunStore = create<FirstRunState>()(
   persist<FirstRunState, [], [], { dismissed: boolean }>(
