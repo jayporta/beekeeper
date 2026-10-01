@@ -23,8 +23,7 @@ interface SessionsBodyProps {
  * state, or the search box with the table or a no-match message. Loaded data
  * wins over a failed background refresh, so a cached list stays on screen.
  * Each state has its own key, so an alert mounts fresh instead of reusing the
- * loading element, and screen readers announce it. A folder that is gone
- * shows the loading state while `useSessions` resets the selection.
+ * loading element, and screen readers announce it.
  *
  * @example
  * <SessionsBody data={data} error={null} onRetry={retry} hasMatches>
@@ -40,7 +39,7 @@ export function SessionsBody({
 }: SessionsBodyProps): React.JSX.Element {
   if (data === undefined) {
     const code = IpcCallError.codeOf(error)
-    if (error === null || code === 'not-found') {
+    if (error === null) {
       return (
         <StatusMessage key="loading" heading="Loading sessions" headingLevel={2} role="status" />
       )

@@ -309,21 +309,15 @@ describe('SessionsContent with an unreadable folder', () => {
     expect(within(alert).getByRole('button', { name: 'Retry' })).toBeTruthy()
   })
 
-  it('shows loading, not an error, while a gone folder resets the selection', async () => {
+  it('shows the error with Retry while a gone folder resets the selection', async () => {
     installBeekeeperApi({
       listSessions: () => Promise.resolve({ ok: false, error: { code: 'not-found' } })
     })
-    const client = createTestQueryClient()
-    render(<SessionsContent dirName={DIR} headingId="h" />, {
-      wrapper: createQueryWrapper(client)
-    })
+    render(<SessionsContent dirName={DIR} headingId="h" />, { wrapper: createQueryWrapper() })
 
-    await waitFor(() => {
-      expect(client.getQueryState(['sessions', DIR])?.status).toBe('error')
-    })
+    const alert = await screen.findByRole('alert')
 
-    expect(screen.queryByRole('alert')).toBeNull()
-    expect(screen.getByRole('heading', { name: 'Loading sessions' })).toBeTruthy()
+    expect(within(alert).getByRole('button', { name: 'Retry' })).toBeTruthy()
   })
 
   it('mounts the alert fresh rather than turning the loading message into it', async () => {

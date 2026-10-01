@@ -19,6 +19,9 @@ interface ProjectsGateProps {
  */
 export function ProjectsGate({ children }: ProjectsGateProps): React.JSX.Element {
   const { data, error, isError, refetch } = useProjects()
+  const retry = (): void => {
+    void refetch()
+  }
 
   if (data !== undefined) {
     if (data.length > 0) return <>{children}</>
@@ -43,11 +46,7 @@ export function ProjectsGate({ children }: ProjectsGateProps): React.JSX.Element
         role="alert"
         body="Beekeeper can't read ~/.claude/projects. Check that folder's permissions. On macOS, also check whether Beekeeper was denied access to it. Then retry."
       >
-        <RetryButton
-          onRetry={() => {
-            void refetch()
-          }}
-        />
+        <RetryButton onRetry={retry} />
       </StatusMessage>
     )
   }
@@ -59,11 +58,7 @@ export function ProjectsGate({ children }: ProjectsGateProps): React.JSX.Element
       role="alert"
       body="Beekeeper couldn't load your projects."
     >
-      <RetryButton
-        onRetry={() => {
-          void refetch()
-        }}
-      />
+      <RetryButton onRetry={retry} />
     </StatusMessage>
   )
 }
