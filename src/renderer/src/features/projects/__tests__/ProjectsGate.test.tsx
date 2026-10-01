@@ -38,7 +38,7 @@ describe('ProjectsGate states', () => {
     expect(screen.getByText(/after you run Claude Code/)).toBeTruthy()
   })
 
-  it('announces denied access for an unreadable result, without a retry button', async () => {
+  it('announces denied access for an unreadable result, with Retry and no automatic retries', async () => {
     const api = installBeekeeperApi({ listProjects: () => failed('unreadable') })
     renderApp()
 
@@ -46,7 +46,7 @@ describe('ProjectsGate states', () => {
     expect(
       within(alert).getByRole('heading', { level: 1, name: "Can't read your sessions" })
     ).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull()
+    expect(within(alert).getByRole('button', { name: 'Retry' })).toBeTruthy()
     expect(api.listProjects).toHaveBeenCalledTimes(1)
   })
 

@@ -8,9 +8,7 @@ import { SessionSearch } from './SessionSearch'
 interface SessionsBodyProps {
   /** The folder's session list, or `undefined` until it has loaded. */
   readonly data: readonly SessionListItemDto[] | undefined
-  /** Whether the last load failed. Ignored once there is data. */
-  readonly isError: boolean
-  /** What the last failed load threw, which picks the error message. */
+  /** What the last load threw, or `null` when it didn't fail. Ignored once there is data. */
   readonly error: unknown
   /** Loads the list again. */
   readonly onRetry: () => void
@@ -25,36 +23,39 @@ interface SessionsBodyProps {
  * state, or the search box with the table or a no-match message. Loaded data
  * wins over a failed background refresh, so a cached list stays on screen.
  * Each state has its own key, so an alert mounts fresh instead of reusing the
- * loading element, and screen readers announce it.
+ * loading element, and screen readers announce it. A folder that is gone
+ * shows the loading state while `useSessions` resets the selection.
  *
  * @example
- * <SessionsBody data={data} isError={false} error={null} onRetry={retry} hasMatches>
+ * <SessionsBody data={data} error={null} onRetry={retry} hasMatches>
  *   <SessionsTable rows={rows} labelledBy={headingId} selectedDirName="-Users-me-repo" searching={false} />
  * </SessionsBody>
  */
 export function SessionsBody({
   data,
-  isError,
   error,
   onRetry,
   hasMatches,
   children
 }: SessionsBodyProps): React.JSX.Element {
   if (data === undefined) {
-    if (!isError) {
+    const code = IpcCallError.codeOf(error)
+    if (error === null || code === 'not-found') {
       return (
         <StatusMessage key="loading" heading="Loading sessions" headingLevel={2} role="status" />
       )
     }
-    if (IpcCallError.codeOf(error) === 'unreadable') {
+    if (code === 'unreadable') {
       return (
         <StatusMessage
           key="unreadable"
           heading="Can't read this project's sessions"
           headingLevel={2}
           role="alert"
-          body="Beekeeper can't read this project's folder. Check its permissions."
-        />
+          body="Beekeeper can't read this project's folder. Check its permissions, then retry."
+        >
+          <RetryButton onRetry={onRetry} />
+        </StatusMessage>
       )
     }
     return (

@@ -41,8 +41,14 @@ export function ProjectsGate({ children }: ProjectsGateProps): React.JSX.Element
         key="unreadable"
         heading="Can't read your sessions"
         role="alert"
-        body="Beekeeper can't read ~/.claude/projects. Check that folder's permissions. On macOS, also check whether Beekeeper was denied access to it."
-      />
+        body="Beekeeper can't read ~/.claude/projects. Check that folder's permissions. On macOS, also check whether Beekeeper was denied access to it. Then retry."
+      >
+        <RetryButton
+          onRetry={() => {
+            void refetch()
+          }}
+        />
+      </StatusMessage>
     )
   }
 
