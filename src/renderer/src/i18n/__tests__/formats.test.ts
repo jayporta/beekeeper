@@ -41,7 +41,7 @@ describe('registered formats', () => {
   ])('format %d tokens in short compact notation', (value, expected) => {
     const t = i18n.getFixedT('en-US', 'sessions')
 
-    expect(t('tokens', { value })).toBe(expected)
+    expect(t('tokens', { count: value })).toBe(expected)
   })
 })
 
@@ -79,7 +79,7 @@ describe('format caching', () => {
     const t = i18n.getFixedT('en-IE', 'sessions')
     const spy = vi.spyOn(Intl, 'NumberFormat')
 
-    for (const n of distinct) t('tokens', { value: n * 1000 })
+    for (const n of distinct) t('tokens', { count: n * 1000 })
 
     expect(spy).toHaveBeenCalledTimes(1)
   })

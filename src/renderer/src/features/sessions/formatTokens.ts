@@ -8,5 +8,5 @@ import type { SessionsT } from './sessionsT'
  * @returns For example `12.4M tokens`, or `null` when `tokens` is `null`.
  */
 export function formatTokens(tokens: number | null, t: SessionsT): string | null {
-  return tokens === null ? null : t('tokens', { value: tokens })
+  return tokens === null ? null : t('tokens', { count: tokens })
 }

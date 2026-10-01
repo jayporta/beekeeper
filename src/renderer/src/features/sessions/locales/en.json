@@ -31,7 +31,8 @@
   "lastActive": "{{value, shortDateTime}}",
   "usd": "{{value, usd}}",
   "usdUnderCent": "<{{value, usd}}",
-  "tokens": "{{value, compactInteger}} tokens",
+  "tokens_one": "{{count, compactInteger}} token",
+  "tokens_other": "{{count, compactInteger}} tokens",
   "apiCost": "{{value}} at API prices",
   "partial": "partial",
   "emptyCell": {
