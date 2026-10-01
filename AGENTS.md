@@ -69,7 +69,8 @@ src/core/              pure TypeScript, no Electron imports; reusable outside th
 src/main/              Electron main process: windows, IPC handlers, security
 src/preload/           the single typed bridge exposed to the renderer
 src/shared/            the IPC contract, shared by main and renderer
-src/renderer/src/features/<feature>/   UI, co-located by feature
+src/renderer/src/features/<feature>/   UI, co-located by feature; its strings live in locales/
+src/renderer/src/i18n/                 i18next setup and the strings shared across features
 ```
 
 - **Vertical slices.** Code is organized by feature, and everything a feature needs lives in its folder. Feature-specific helpers stay in the feature, not in a global `utils` or `lib` folder. Truly shared, feature-agnostic pieces (design-system components, pure functions) live in shared locations.
@@ -147,3 +148,6 @@ This covers app UI text, the README, and the macOS permission strings in `electr
 - Never use em dashes.
 - American English, written for engineers: clear and direct.
 - Keep terminology consistent. An agent is always an "agent", a session is always a "session", and a subagent spawned into a team is a "teammate".
+- Every renderer UI string, including `aria-label`s and visually hidden text, goes through i18next. Add it to the feature's `locales/en.json` (strings shared across features go in `src/renderer/src/i18n/locales/en.json`) and render it with `t`. Format numbers, dates, durations, and costs through the resource strings' `Intl` formatters, not by hand.
+- Transcript-derived values (titles, agent and team names, folder names) go through `t()` interpolation only. Never use one as a key, and never pass one through `<Trans values>`, which parses the result as markup.
+- `npm run typecheck` rejects an unknown key. `npm run lint` catches literal strings in renderer JSX: text and literal props. It does not see strings built in code (constants, helpers, `.ts` files) or `<optgroup label>`, so reviewers check those.
