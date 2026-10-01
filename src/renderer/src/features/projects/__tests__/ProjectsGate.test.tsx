@@ -1,11 +1,17 @@
-import { screen, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { IpcErrorCode, IpcResult } from '../../../../../shared/ipc/ipcResult'
 import type { ProjectDto } from '../../../../../shared/ipc/projectDto'
 import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
+import {
+  createQueryWrapper,
+  createTestQueryClient,
+  refetchAndSettle
+} from '@renderer/testQueryWrapper'
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
 import { useFirstRunStore } from '../../firstRun/state/useFirstRunStore'
+import { ProjectsGate } from '../ProjectsGate'
 
 beforeEach(() => {
   useFirstRunStore.setState({ dismissed: true })
@@ -33,7 +39,7 @@ describe('ProjectsGate states', () => {
   })
 
   it('announces denied access for an unreadable result, without a retry button', async () => {
-    installBeekeeperApi({ listProjects: () => failed('unreadable') })
+    const api = installBeekeeperApi({ listProjects: () => failed('unreadable') })
     renderApp()
 
     const alert = await screen.findByRole('alert')
@@ -41,6 +47,7 @@ describe('ProjectsGate states', () => {
       within(alert).getByRole('heading', { level: 1, name: "Can't read your sessions" })
     ).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull()
+    expect(api.listProjects).toHaveBeenCalledTimes(1)
   })
 
   it('shows a generic error with Retry for any other code, and Retry loads again', async () => {
@@ -48,7 +55,8 @@ describe('ProjectsGate states', () => {
     installBeekeeperApi({
       listProjects: () => {
         calls += 1
-        return calls === 1
+        // The first call and its three retries fail, so the error state shows.
+        return calls <= 4
           ? failed('internal')
           : Promise.resolve({ ok: true, value: [testProject('-Users-a-repo')] })
       }
@@ -62,6 +70,38 @@ describe('ProjectsGate states', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Sessions' })).toBeTruthy()
+  })
+
+  it('moves focus to the main landmark when Retry replaces the error with loading', async () => {
+    installBeekeeperApi({ listProjects: () => failed('internal') })
+    renderApp()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Retry' }))
+
+    expect(document.activeElement).toBe(screen.getByRole('main'))
+  })
+
+  it('keeps the loaded list on screen when a background refresh fails', async () => {
+    let failing = false
+    installBeekeeperApi({
+      listProjects: () =>
+        failing ? failed('internal') : Promise.resolve({ ok: true, value: [testProject('-a')] })
+    })
+    const client = createTestQueryClient()
+    render(
+      <ProjectsGate>
+        <p>the list</p>
+      </ProjectsGate>,
+      { wrapper: createQueryWrapper(client) }
+    )
+    await screen.findByText('the list')
+
+    failing = true
+    await refetchAndSettle(client, ['projects'])
+
+    expect(client.getQueryState(['projects'])?.status).toBe('error')
+    expect(screen.getByText('the list')).toBeTruthy()
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 
   it('shows the sessions heading with the selected folder name when a project loads', async () => {

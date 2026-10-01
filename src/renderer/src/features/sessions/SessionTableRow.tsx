@@ -1,4 +1,4 @@
-import { EmptyCell } from './EmptyCell'
+import { agentCountLabel } from './agentCountLabel'
 import { formatDuration } from './formatDuration'
 import { formatLastActive } from './formatLastActive'
 import { formatUsd } from './formatUsd'
@@ -21,9 +21,9 @@ interface SessionTableRowProps {
 }
 
 /**
- * One row of the sessions table: name, last active, duration, model, teammate
- * count, lead cost, and team cost. A session whose summary couldn't be read
- * shows empty cells.
+ * One row of the sessions table: name, last active, duration, model, agents,
+ * lead cost, and team cost. A session whose summary couldn't be read shows
+ * empty cells.
  *
  * @example
  * <SessionTableRow visible={visible} selectedDirName="-Users-me-repo" searching={false} />
@@ -37,13 +37,6 @@ export function SessionTableRow({
   const { item } = row
   const summary = item.summary.ok ? item.summary.value : null
   const costs = sessionCosts(item)
-  const teammateCount =
-    item.team?.kind === 'lead'
-      ? item.team.teammates.length
-      : summary?.role.kind === 'lead' && item.team === null
-        ? 0
-        : null
-
   return (
     <tr id={nested ? rowId(row.key) : undefined} className={nested ? styles.nested : undefined}>
       <SessionNameCell
@@ -56,7 +49,7 @@ export function SessionTableRow({
       <ValueCell value={formatLastActive(lastActiveMs(item))} />
       <ValueCell value={formatDuration(summary?.activity ?? null)} numeric />
       <ValueCell value={summary?.model ?? null} />
-      <ValueCell value={teammateCount === null ? null : String(teammateCount)} numeric />
+      <ValueCell value={agentCountLabel(item)} />
       <ValueCell value={formatUsd(costs.leadUSD)} numeric />
       {item.team?.kind === 'lead' ? (
         <ValueCell
@@ -65,9 +58,11 @@ export function SessionTableRow({
           {...(costs.partial && { note: 'partial' })}
         />
       ) : (
-        <td className={styles.empty}>
-          <EmptyCell />
-        </td>
+        <ValueCell
+          value={null}
+          numeric
+          emptyReason={summary === null ? 'not-recorded' : 'not-applicable'}
+        />
       )}
     </tr>
   )

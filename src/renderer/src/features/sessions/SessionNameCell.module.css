@@ -26,8 +26,8 @@
 }
 
 .disclosure {
-  min-width: 44px;
-  min-height: 44px;
+  min-width: var(--size-target-min);
+  min-height: var(--size-target-min);
   color: var(--color-text);
   font: inherit;
   background: none;

@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { IpcResult } from '../../../../../shared/ipc/ipcResult'
@@ -6,7 +6,13 @@ import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDt
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useSelectedProjectStore } from '@renderer/features/projects/state/useSelectedProjectStore'
 import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
+import {
+  createQueryWrapper,
+  createTestQueryClient,
+  refetchAndSettle
+} from '@renderer/testQueryWrapper'
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
+import { SessionsContent } from '../SessionsContent'
 import { useSessionsViewStore } from '../state/useSessionsViewStore'
 import {
   testAgentRole,
@@ -74,7 +80,7 @@ describe('SessionsView table', () => {
       'Last active',
       'Duration',
       'Model',
-      'Teammates',
+      'Agents',
       'Lead cost',
       'Team cost'
     ])
@@ -89,7 +95,7 @@ describe('SessionsView table', () => {
     expect(screen.queryByRole('rowheader', { name: /reviewer/ })).toBeNull()
   })
 
-  it('shows the lead cells: duration, model, teammate count, costs and partial marker', async () => {
+  it('shows the lead cells: duration, model, agents, costs and partial marker', async () => {
     showSessions()
 
     const row = (await screen.findByRole('rowheader', { name: /^Refactor parser/ })).closest('tr')
@@ -98,7 +104,7 @@ describe('SessionsView table', () => {
       expect.stringMatching(/2026/),
       '1h',
       'claude-opus-5',
-      '2',
+      '2 teammates',
       '$1.00',
       '$3.00partial'
     ])
@@ -113,6 +119,42 @@ describe('SessionsView table', () => {
       .map((c) => c.textContent)
     expect(text).toContain('<$0.01')
     expect(text).toContain('-not recorded')
+  })
+
+  it('names a row header by the session, and the lead for a nested row, not its button or notes', async () => {
+    showSessions()
+    await userEvent.click(
+      await screen.findByRole('button', { name: '2 teammates of Refactor parser' })
+    )
+
+    expect(screen.getByRole('rowheader', { name: 'Refactor parser' })).toBeTruthy()
+    expect(
+      screen.getByRole('rowheader', { name: 'reviewer (code) teammate of Refactor parser' })
+    ).toBeTruthy()
+  })
+
+  it('includes the short id in the name of a row that has no title', async () => {
+    showSessions()
+
+    const header = await screen.findByRole('rowheader', { name: /^Untitled session / })
+
+    expect(header.textContent).toContain('Untitled session')
+  })
+
+  it('marks a team cost that does not apply to a teammate as not applicable, not as not recorded', async () => {
+    showSessions()
+    await userEvent.click(
+      await screen.findByRole('button', { name: '2 teammates of Refactor parser' })
+    )
+
+    const row = screen.getByRole('rowheader', { name: /^reviewer \(code\)/ }).closest('tr')
+    const cells = within(row as HTMLElement)
+      .getAllByRole('cell')
+      .map((c) => c.textContent)
+
+    // Cells: last active, duration, model, agents, lead cost, team cost.
+    expect(cells[5]).toBe('-not applicable')
+    expect(cells[4]).toBe('-not recorded')
   })
 
   it('expands a lead teammates with a disclosure button and collapses them again', async () => {
@@ -227,6 +269,53 @@ describe('SessionsView search announcements', () => {
   })
 })
 
+describe('SessionsView search announcements across a project switch', () => {
+  it('keeps one live region mounted while loading, so a match count is announced when it loads', async () => {
+    useSessionsViewStore.setState({ query: 'code' })
+    let resolve: (value: IpcResult<readonly SessionListItemDto[]>) => void = () => undefined
+    installBeekeeperApi({
+      listProjects: () => Promise.resolve({ ok: true, value: [testProject(DIR)] }),
+      listSessions: () => new Promise((r) => (resolve = r))
+    })
+    renderApp()
+    await screen.findByRole('heading', { name: 'Loading sessions' })
+    const region = document.querySelector('p[role="status"]')
+
+    expect(region?.textContent).toBe('')
+    await act(async () => {
+      resolve({ ok: true, value: SESSIONS })
+      await Promise.resolve()
+    })
+
+    await waitFor(() => {
+      expect(region?.textContent).toBe('2 sessions match')
+    })
+    expect(document.querySelector('p[role="status"]')).toBe(region)
+  })
+})
+
+describe('SessionsContent with a failed background refresh', () => {
+  it('keeps the loaded sessions on screen', async () => {
+    let failing = false
+    installBeekeeperApi({
+      listSessions: () =>
+        failing ? Promise.resolve({ ok: false, error: { code: 'internal' } }) : ok(SESSIONS)
+    })
+    const client = createTestQueryClient()
+    render(<SessionsContent dirName={DIR} headingId="h" />, {
+      wrapper: createQueryWrapper(client)
+    })
+    await screen.findByRole('table')
+
+    failing = true
+    await refetchAndSettle(client, ['sessions', DIR])
+
+    expect(client.getQueryState(['sessions', DIR])?.status).toBe('error')
+    expect(screen.getByRole('table')).toBeTruthy()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+})
+
 describe('SessionsView states', () => {
   it('announces loading', async () => {
     installBeekeeperApi({
@@ -250,7 +339,8 @@ describe('SessionsView states', () => {
     installBeekeeperApi({
       listSessions: () => {
         calls += 1
-        return calls === 1
+        // The first call and its three retries fail, so the error state shows.
+        return calls <= 4
           ? Promise.resolve({ ok: false, error: { code: 'internal' } })
           : ok(SESSIONS)
       }
@@ -262,6 +352,17 @@ describe('SessionsView states', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
 
     expect(await screen.findByRole('table')).toBeTruthy()
+  })
+
+  it('moves focus to the main landmark when Retry replaces the error with loading', async () => {
+    installBeekeeperApi({
+      listSessions: () => Promise.resolve({ ok: false, error: { code: 'internal' } })
+    })
+    renderApp()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Retry' }))
+
+    expect(document.activeElement).toBe(screen.getByRole('main'))
   })
 
   it('forgets the selection and refreshes the project list when the folder is gone', async () => {

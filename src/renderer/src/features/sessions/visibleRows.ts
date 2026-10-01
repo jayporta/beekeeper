@@ -11,21 +11,29 @@ export interface VisibleRow {
   readonly leadLabel: string | null
 }
 
+/** What {@link visibleRows} lays out. */
+export interface VisibleRowsOptions {
+  /** The top-level rows, already filtered. */
+  readonly rows: readonly SessionRow[]
+  /** The keys of expanded leads. */
+  readonly expanded: ReadonlySet<string>
+  /** Whether a search is active. */
+  readonly searching: boolean
+}
+
 /**
  * Flattens top-level rows into the rows on screen: each row, followed by its
  * teammates when it is expanded or when a search is active, since a search
  * shows matching teammates whether or not their lead is expanded.
  *
- * @param rows - The top-level rows, already filtered.
- * @param expanded - The keys of expanded leads.
- * @param searching - Whether a search is active.
+ * @param options - The rows, which leads are expanded, and whether a search is active.
  * @returns The rows in display order.
  */
-export function visibleRows(
-  rows: readonly SessionRow[],
-  expanded: ReadonlySet<string>,
-  searching: boolean
-): readonly VisibleRow[] {
+export function visibleRows({
+  rows,
+  expanded,
+  searching
+}: VisibleRowsOptions): readonly VisibleRow[] {
   return rows.flatMap((row) => {
     const shown = searching || expanded.has(row.key)
     const leadLabel = shown ? sessionLabel(row.item).text : null

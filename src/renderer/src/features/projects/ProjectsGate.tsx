@@ -1,3 +1,4 @@
+import { RetryButton } from '@renderer/components/RetryButton'
 import { StatusMessage } from '@renderer/components/StatusMessage'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import { useProjects } from './useProjects'
@@ -47,14 +48,11 @@ export function ProjectsGate({ children }: ProjectsGateProps): React.JSX.Element
       role="alert"
       body="Beekeeper couldn't load your projects."
     >
-      <button
-        type="button"
-        onClick={() => {
+      <RetryButton
+        onRetry={() => {
           void refetch()
         }}
-      >
-        Retry
-      </button>
+      />
     </StatusMessage>
   )
 }

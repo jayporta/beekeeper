@@ -10,8 +10,6 @@ interface SessionsViewState {
   setQuery: (query: string) => void
   /** Expands a collapsed lead, or collapses an expanded one. */
   toggle: (key: string) => void
-  /** Collapses every lead. Does nothing, and notifies no one, when none is expanded. */
-  collapseAll: () => void
 }
 
 /** The sessions view's search text and which leads are expanded. */
@@ -27,8 +25,5 @@ export const useSessionsViewStore = create<SessionsViewState>()((set) => ({
       if (!expanded.delete(key)) expanded.add(key)
       return { expanded }
     })
-  },
-  collapseAll: () => {
-    set((state) => (state.expanded.size === 0 ? state : { expanded: new Set<string>() }))
   }
 }))

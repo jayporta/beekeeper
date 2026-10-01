@@ -1,11 +1,10 @@
-import { useDeferredValue, useEffect, useMemo } from 'react'
-import { StatusMessage } from '@renderer/components/StatusMessage'
+import { useDeferredValue, useMemo } from 'react'
 import { countMatches } from './countMatches'
 import { filterRows } from './filterRows'
 import { groupSessionRows } from './groupSessionRows'
 import { SearchResultsStatus } from './SearchResultsStatus'
-import { SessionSearch } from './SessionSearch'
-import { SessionsTable } from './SessionsTable'
+import { normalizeQuery } from './sessionMatches'
+import { SessionsBody } from './SessionsBody'
 import { useSessionsViewStore } from './state/useSessionsViewStore'
 import { useSessions } from './useSessions'
 
@@ -18,9 +17,9 @@ interface SessionsContentProps {
 }
 
 /**
- * The body of the sessions view for one folder: its loading, error, empty and
- * no-match states, or the search box and table. Loaded data wins over a failed
- * background refresh, so a cached list stays on screen.
+ * The body of the sessions view for one folder, with the live region that
+ * announces search results. The region is mounted in every state, so its text
+ * changes while it is mounted and is announced.
  *
  * @example
  * <SessionsContent dirName="-Users-me-repo" headingId={headingId} />
@@ -28,67 +27,27 @@ interface SessionsContentProps {
 export function SessionsContent({ dirName, headingId }: SessionsContentProps): React.JSX.Element {
   const { data, isError, refetch } = useSessions(dirName)
   const typed = useSessionsViewStore((state) => state.query)
-  // Filtering waits on the deferred text, so typing in the box stays responsive.
+  // Filtering waits on the deferred text, and the table is memoized, so typing stays responsive.
   const query = useDeferredValue(typed)
-  const collapseAll = useSessionsViewStore((state) => state.collapseAll)
   const rows = useMemo(() => (data === undefined ? [] : groupSessionRows(data)), [data])
   const matching = useMemo(() => filterRows(rows, query), [rows, query])
   const matchCount = useMemo(() => countMatches(rows, query), [rows, query])
-
-  // Expansion is keyed by session, so another folder's sessions are never expanded.
-  useEffect(() => {
-    collapseAll()
-  }, [dirName, collapseAll])
-
-  if (data === undefined) {
-    if (!isError) return <StatusMessage heading="Loading sessions" headingLevel={2} role="status" />
-    return (
-      <StatusMessage
-        heading="Something went wrong"
-        headingLevel={2}
-        role="alert"
-        body="Beekeeper couldn't load this project's sessions."
-      >
-        <button
-          type="button"
-          onClick={() => {
-            void refetch()
-          }}
-        >
-          Retry
-        </button>
-      </StatusMessage>
-    )
-  }
-
-  if (data.length === 0) {
-    return (
-      <StatusMessage
-        heading="No sessions in this project"
-        headingLevel={2}
-        body="Sessions appear here after you run Claude Code in this folder."
-      />
-    )
-  }
+  const searching = data !== undefined && normalizeQuery(query) !== ''
 
   return (
     <>
-      <SessionSearch />
-      <SearchResultsStatus count={matchCount} searching={query.trim() !== ''} />
-      {matching.length === 0 ? (
-        <StatusMessage
-          heading="No matching sessions"
-          headingLevel={2}
-          body="Try a different search."
-        />
-      ) : (
-        <SessionsTable
-          rows={matching}
-          labelledBy={headingId}
-          selectedDirName={dirName}
-          searching={query.trim() !== ''}
-        />
-      )}
+      <SearchResultsStatus count={matchCount} searching={searching} />
+      <SessionsBody
+        data={data}
+        isError={isError}
+        onRetry={() => {
+          void refetch()
+        }}
+        matching={matching}
+        searching={searching}
+        dirName={dirName}
+        headingId={headingId}
+      />
     </>
   )
 }

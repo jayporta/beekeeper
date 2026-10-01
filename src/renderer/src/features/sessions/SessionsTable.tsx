@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import styles from './SessionsTable.module.css'
 import { SessionTableRow } from './SessionTableRow'
 import type { SessionRow } from './sessionRow'
@@ -10,7 +10,7 @@ const COLUMNS = [
   'Last active',
   'Duration',
   'Model',
-  'Teammates',
+  'Agents',
   'Lead cost',
   'Team cost'
 ] as const
@@ -30,19 +30,24 @@ interface SessionsTableProps {
 /**
  * The sessions table. A lead with teammates has a disclosure button that
  * shows them as nested rows, and a search shows matching teammates directly.
- * It scrolls sideways when the window is narrower than the table.
+ * It scrolls sideways when the window is narrower than the table. It is
+ * memoized so a keystroke in the search box skips it until the deferred
+ * filter catches up.
  *
  * @example
  * <SessionsTable rows={rows} labelledBy={headingId} selectedDirName="-Users-me-repo" searching={false} />
  */
-export function SessionsTable({
+export const SessionsTable = memo(function SessionsTable({
   rows,
   labelledBy,
   selectedDirName,
   searching
 }: SessionsTableProps): React.JSX.Element {
   const expanded = useSessionsViewStore((state) => state.expanded)
-  const shown = useMemo(() => visibleRows(rows, expanded, searching), [rows, expanded, searching])
+  const shown = useMemo(
+    () => visibleRows({ rows, expanded, searching }),
+    [rows, expanded, searching]
+  )
 
   return (
     <div className={styles.scroller} role="region" aria-label="Sessions table">
@@ -69,4 +74,4 @@ export function SessionsTable({
       </table>
     </div>
   )
-}
+})

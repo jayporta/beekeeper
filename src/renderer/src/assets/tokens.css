@@ -34,6 +34,8 @@
   /* Layout sizes. */
   --size-sidebar: 16rem;
   --size-readable: 44rem;
+  --size-search: 24rem;
+  --size-target-min: 44px;
 
   --radius-sm: 2px;
   --radius-md: 4px;

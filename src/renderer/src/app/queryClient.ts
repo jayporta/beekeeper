@@ -1,11 +1,32 @@
 import { QueryClient } from '@tanstack/react-query'
+import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import { PERSIST_MAX_AGE_MS } from './persistMaxAge'
 import { PERSISTED_QUERY_ROOTS } from './shouldPersistQuery'
 
+/** TanStack's own default: retry a failed query three times. */
+const DEFAULT_RETRY_COUNT = 3
+
 /**
- * Creates the app's query client. It does not refetch on window focus or
- * reconnect, since the data is local files that change only when an agent
- * writes them. Queries keep TanStack's default `gcTime`, except under a
+ * Whether a failed query is tried again. A folder that is unreadable or gone
+ * stays that way, so those fail at once. Anything else keeps TanStack's default
+ * count.
+ *
+ * @param failureCount - How many times the query has failed so far.
+ * @param error - What the last attempt threw.
+ * @returns `true` to retry.
+ */
+function shouldRetry(failureCount: number, error: unknown): boolean {
+  const code = IpcCallError.codeOf(error)
+  if (code === 'unreadable' || code === 'not-found') return false
+  return failureCount < DEFAULT_RETRY_COUNT
+}
+
+/**
+ * Creates the app's query client. Queries run whether or not the OS reports a
+ * network connection, since every one is a local IPC call, and they do not
+ * refetch on window focus or reconnect, since the data is local files that
+ * change only when an agent writes them. A failure that cannot change on
+ * retry (see {@link shouldRetry}) is not retried. Queries keep TanStack's default `gcTime`, except under a
  * persisted root (see `PERSISTED_QUERY_ROOTS`), which keep {@link PERSIST_MAX_AGE_MS}
  * to match the persister's `maxAge`: a query garbage-collected sooner would
  * never reach the persisted cache. A query can set a shorter `gcTime` itself,
@@ -17,6 +38,8 @@ export function createQueryClient(): QueryClient {
   const client = new QueryClient({
     defaultOptions: {
       queries: {
+        networkMode: 'always',
+        retry: shouldRetry,
         refetchOnWindowFocus: false,
         refetchOnReconnect: false
       }

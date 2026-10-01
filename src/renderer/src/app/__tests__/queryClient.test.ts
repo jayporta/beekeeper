@@ -1,5 +1,6 @@
-import { QueryClient } from '@tanstack/react-query'
-import { describe, expect, it } from 'vitest'
+import { onlineManager, QueryClient, QueryObserver } from '@tanstack/react-query'
+import { afterEach, describe, expect, it } from 'vitest'
+import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import { PERSIST_MAX_AGE_MS } from '../persistMaxAge'
 import { createQueryClient } from '../queryClient'
 import { PERSISTED_QUERY_ROOTS } from '../shouldPersistQuery'
@@ -27,5 +28,58 @@ describe('createQueryClient', () => {
 
   it.each(PERSISTED_QUERY_ROOTS)('keeps a %s query as long as the persister keeps it', (root) => {
     expect(gcTimeOf(createQueryClient(), [root, 'x'])).toBe(PERSIST_MAX_AGE_MS)
+  })
+
+  describe('while the OS reports offline', () => {
+    afterEach(() => {
+      onlineManager.setOnline(true)
+    })
+
+    it('still runs a query, since every query is a local IPC call', async () => {
+      onlineManager.setOnline(false)
+      const client = createQueryClient()
+
+      const data = await new Promise((resolve) => {
+        const observer = new QueryObserver(client, {
+          queryKey: ['projects'],
+          queryFn: () => Promise.resolve('loaded')
+        })
+        const unsubscribe = observer.subscribe((result) => {
+          if (result.isSuccess) {
+            unsubscribe()
+            resolve(result.data)
+          }
+        })
+      })
+
+      expect(data).toBe('loaded')
+    })
+  })
+
+  describe('retry', () => {
+    const retry = (failureCount: number, error: Error): boolean => {
+      const rule = createQueryClient().getDefaultOptions().queries?.retry
+      if (typeof rule !== 'function') throw new Error('retry is not a function')
+      return rule(failureCount, error)
+    }
+
+    it.each(['unreadable', 'not-found'] as const)('does not retry a %s error', (code) => {
+      expect(retry(0, new IpcCallError(code))).toBe(false)
+    })
+
+    it('retries another IPC error three times, as TanStack does by default', () => {
+      const error = new IpcCallError('internal')
+
+      expect([0, 1, 2, 3].map((failures) => retry(failures, error))).toEqual([
+        true,
+        true,
+        true,
+        false
+      ])
+    })
+
+    it('retries an error that is not an IpcCallError', () => {
+      expect(retry(0, new Error('boom'))).toBe(true)
+    })
   })
 })
