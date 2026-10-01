@@ -24,17 +24,21 @@ export function ProjectsGate({ children }: ProjectsGateProps): React.JSX.Element
     if (data.length > 0) return <>{children}</>
     return (
       <StatusMessage
+        key="empty"
         heading="No sessions found"
         body="Beekeeper found no Claude Code sessions under ~/.claude/projects. Sessions appear here after you run Claude Code in a project."
       />
     )
   }
 
-  if (!isError) return <StatusMessage heading="Loading projects" role="status" />
+  // Each state has its own key, so an alert mounts fresh instead of reusing the
+  // loading element, and screen readers announce it.
+  if (!isError) return <StatusMessage key="loading" heading="Loading projects" role="status" />
 
   if (IpcCallError.codeOf(error) === 'unreadable') {
     return (
       <StatusMessage
+        key="unreadable"
         heading="Can't read your sessions"
         role="alert"
         body="Beekeeper can't read ~/.claude/projects. Check that folder's permissions. On macOS, also check whether Beekeeper was denied access to it."
@@ -44,6 +48,7 @@ export function ProjectsGate({ children }: ProjectsGateProps): React.JSX.Element
 
   return (
     <StatusMessage
+      key="error"
       heading="Something went wrong"
       role="alert"
       body="Beekeeper couldn't load your projects."

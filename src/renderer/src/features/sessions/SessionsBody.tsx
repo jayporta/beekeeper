@@ -1,5 +1,6 @@
 import { RetryButton } from '@renderer/components/RetryButton'
 import { StatusMessage } from '@renderer/components/StatusMessage'
+import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
 import { SessionSearch } from './SessionSearch'
 
@@ -9,6 +10,8 @@ interface SessionsBodyProps {
   readonly data: readonly SessionListItemDto[] | undefined
   /** Whether the last load failed. Ignored once there is data. */
   readonly isError: boolean
+  /** What the last failed load threw, which picks the error message. */
+  readonly error: unknown
   /** Loads the list again. */
   readonly onRetry: () => void
   /** Whether any session matches the search. */
@@ -21,23 +24,42 @@ interface SessionsBodyProps {
  * What the sessions view shows for one folder: a loading, error or empty
  * state, or the search box with the table or a no-match message. Loaded data
  * wins over a failed background refresh, so a cached list stays on screen.
+ * Each state has its own key, so an alert mounts fresh instead of reusing the
+ * loading element, and screen readers announce it.
  *
  * @example
- * <SessionsBody data={data} isError={false} onRetry={retry} hasMatches>
+ * <SessionsBody data={data} isError={false} error={null} onRetry={retry} hasMatches>
  *   <SessionsTable rows={rows} labelledBy={headingId} selectedDirName="-Users-me-repo" searching={false} />
  * </SessionsBody>
  */
 export function SessionsBody({
   data,
   isError,
+  error,
   onRetry,
   hasMatches,
   children
 }: SessionsBodyProps): React.JSX.Element {
   if (data === undefined) {
-    if (!isError) return <StatusMessage heading="Loading sessions" headingLevel={2} role="status" />
+    if (!isError) {
+      return (
+        <StatusMessage key="loading" heading="Loading sessions" headingLevel={2} role="status" />
+      )
+    }
+    if (IpcCallError.codeOf(error) === 'unreadable') {
+      return (
+        <StatusMessage
+          key="unreadable"
+          heading="Can't read this project's sessions"
+          headingLevel={2}
+          role="alert"
+          body="Beekeeper can't read this project's folder. Check its permissions."
+        />
+      )
+    }
     return (
       <StatusMessage
+        key="error"
         heading="Something went wrong"
         headingLevel={2}
         role="alert"
@@ -51,6 +73,7 @@ export function SessionsBody({
   if (data.length === 0) {
     return (
       <StatusMessage
+        key="empty"
         heading="No sessions in this project"
         headingLevel={2}
         body="Sessions appear here after you run Claude Code in this folder."

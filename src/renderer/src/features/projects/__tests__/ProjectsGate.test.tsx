@@ -50,6 +50,19 @@ describe('ProjectsGate states', () => {
     expect(api.listProjects).toHaveBeenCalledTimes(1)
   })
 
+  it('mounts the denied alert fresh rather than turning the loading message into it', async () => {
+    let resolve: (value: IpcResult<readonly ProjectDto[]>) => void = () => undefined
+    installBeekeeperApi({ listProjects: () => new Promise((r) => (resolve = r)) })
+    renderApp()
+    const loading = await screen.findByRole('status')
+
+    resolve({ ok: false, error: { code: 'unreadable' } })
+    const alert = await screen.findByRole('alert')
+
+    expect(alert).not.toBe(loading)
+    expect(loading.isConnected).toBe(false)
+  })
+
   it('shows a generic error with Retry for any other code, and Retry loads again', async () => {
     let calls = 0
     installBeekeeperApi({

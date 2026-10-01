@@ -249,6 +249,16 @@ describe('SessionsView search announcements', () => {
   })
 })
 
+/** The search results live region: the status region with no heading of its own. */
+const searchStatus = (): HTMLElement | undefined =>
+  screen.getAllByRole('status').find((region) => within(region).queryByRole('heading') === null)
+
+/** The status message whose heading has this name. */
+const statusWithHeading = (name: string): HTMLElement | undefined =>
+  screen
+    .getAllByRole('status')
+    .find((region) => within(region).queryByRole('heading', { name }) !== null)
+
 describe('SessionsView search announcements while a list loads', () => {
   it('keeps one live region mounted while loading, so a match count is announced when it loads', async () => {
     useSessionsViewStore.setState({ query: 'code' })
@@ -259,7 +269,7 @@ describe('SessionsView search announcements while a list loads', () => {
     })
     renderApp()
     await screen.findByRole('heading', { name: 'Loading sessions' })
-    const region = document.querySelector('p[role="status"]')
+    const region = searchStatus()
 
     expect(region?.textContent).toBe('')
     await act(async () => {
@@ -270,7 +280,7 @@ describe('SessionsView search announcements while a list loads', () => {
     await waitFor(() => {
       expect(region?.textContent).toBe('2 sessions match')
     })
-    expect(document.querySelector('p[role="status"]')).toBe(region)
+    expect(searchStatus()).toBe(region)
   })
 
   it('announces nothing for a leftover search in a folder with no sessions', async () => {
@@ -280,7 +290,41 @@ describe('SessionsView search announcements while a list loads', () => {
 
     await screen.findByRole('heading', { name: 'No sessions in this project' })
 
-    expect(document.querySelector('p[role="status"]')?.textContent).toBe('')
+    expect(searchStatus()?.textContent).toBe('')
+  })
+})
+
+describe('SessionsContent with an unreadable folder', () => {
+  it('says the folder is unreadable, with no Retry', async () => {
+    installBeekeeperApi({
+      listSessions: () => Promise.resolve({ ok: false, error: { code: 'unreadable' } })
+    })
+    render(<SessionsContent dirName={DIR} headingId="h" />, { wrapper: createQueryWrapper() })
+
+    const alert = await screen.findByRole('alert')
+
+    expect(
+      within(alert).getByRole('heading', { name: "Can't read this project's sessions" })
+    ).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull()
+  })
+
+  it('mounts the alert fresh rather than turning the loading message into it', async () => {
+    let resolve: (value: IpcResult<readonly SessionListItemDto[]>) => void = () => undefined
+    installBeekeeperApi({ listSessions: () => new Promise((r) => (resolve = r)) })
+    render(<SessionsContent dirName={DIR} headingId="h" />, { wrapper: createQueryWrapper() })
+    await screen.findByRole('heading', { name: 'Loading sessions' })
+    const loading = statusWithHeading('Loading sessions')
+
+    await act(async () => {
+      resolve({ ok: false, error: { code: 'unreadable' } })
+      await Promise.resolve()
+    })
+    const alert = await screen.findByRole('alert')
+
+    expect(loading).toBeDefined()
+    expect(alert).not.toBe(loading)
+    expect(loading?.isConnected).toBe(false)
   })
 })
 

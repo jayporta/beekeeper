@@ -26,7 +26,7 @@ interface SessionsContentProps {
  * <SessionsContent dirName="-Users-me-repo" headingId={headingId} />
  */
 export function SessionsContent({ dirName, headingId }: SessionsContentProps): React.JSX.Element {
-  const { data, isError, refetch } = useSessions(dirName)
+  const { data, error, isError, refetch } = useSessions(dirName)
   const typed = useSessionsViewStore((state) => state.query)
   // Filtering waits on the deferred text, and the table is memoized, so typing stays responsive.
   const query = useDeferredValue(typed)
@@ -42,6 +42,7 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
       <SessionsBody
         data={data}
         isError={isError}
+        error={error}
         onRetry={() => {
           void refetch()
         }}
