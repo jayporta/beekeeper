@@ -22,8 +22,9 @@ interface SessionTableRowProps {
 
 /**
  * One row of the sessions table: name, last active, duration, model, agents,
- * lead cost, and team cost. A session whose summary couldn't be read shows
- * empty cells.
+ * lead cost, and team cost. A session whose summary couldn't be read shows a
+ * placeholder name, its file's last-modified time, and empty value cells for
+ * everything that comes from the summary.
  *
  * @example
  * <SessionTableRow visible={visible} selectedDirName="-Users-me-repo" searching={false} />

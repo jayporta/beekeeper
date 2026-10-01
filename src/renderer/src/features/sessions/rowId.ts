@@ -3,8 +3,9 @@
  * rows it controls.
  *
  * @param key - The session's key.
- * @returns The id.
+ * @returns The id, with the key percent-encoded so it holds no whitespace and
+ *   stays a single entry in a space-separated `aria-controls` list.
  */
 export function rowId(key: string): string {
-  return `session-row-${key}`
+  return `session-row-${encodeURIComponent(key)}`
 }
