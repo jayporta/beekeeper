@@ -56,7 +56,13 @@ export function mapSessionListItem(
     summary: summary.ok
       ? okResult({
           title: summary.value.title,
-          cost: summary.value.cost === null ? null : { totalUSD: summary.value.cost.totalUSD },
+          usage:
+            summary.value.usage === null
+              ? null
+              : {
+                  totalUSD: summary.value.usage.totalUSD,
+                  totalTokens: summary.value.usage.totalTokens
+                },
           activity:
             summary.value.activity === null
               ? null

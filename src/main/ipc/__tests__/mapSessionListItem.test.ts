@@ -7,7 +7,7 @@ import { mapSessionListItem, type ScannedSession } from '../mapSessionListItem'
 
 const SUMMARY: SessionSummary = buildSessionSummary({
   title: 'A title',
-  cost: { totalUSD: 1.5 },
+  usage: { totalUSD: 1.5, totalTokens: 295 },
   activity: { earliestMs: 1, latestMs: 2 },
   skippedLines: 3,
   model: 'claude-opus-5'
@@ -30,6 +30,15 @@ describe('mapSessionListItem', () => {
     const item = mapSessionListItem(scanned(ok(SUMMARY)), null)
 
     expect(item.summary.ok && item.summary.value.model).toBe('claude-opus-5')
+  })
+
+  it('copies the summary usage, tokens included, to the item', () => {
+    const item = mapSessionListItem(scanned(ok(SUMMARY)), null)
+
+    expect(item.summary.ok && item.summary.value.usage).toEqual({
+      totalUSD: 1.5,
+      totalTokens: 295
+    })
   })
 
   it('copies a null model', () => {

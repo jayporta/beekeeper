@@ -21,7 +21,7 @@ export interface SessionCosts {
 export function sessionCosts(item: SessionListItemDto): SessionCosts {
   if (item.team?.kind === 'lead') {
     const { leadUSD, teamUSD, sessionsWithoutCost, missingTeammates, teamListsTruncated } =
-      item.team.cost
+      item.team.usage
     return {
       sessionUSD: leadUSD,
       teamUSD,
@@ -29,7 +29,7 @@ export function sessionCosts(item: SessionListItemDto): SessionCosts {
     }
   }
   return {
-    sessionUSD: item.summary.ok ? (item.summary.value.cost?.totalUSD ?? null) : null,
+    sessionUSD: item.summary.ok ? (item.summary.value.usage?.totalUSD ?? null) : null,
     teamUSD: null,
     partial: false
   }

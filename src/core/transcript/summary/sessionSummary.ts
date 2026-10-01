@@ -14,17 +14,22 @@ export interface ActivitySpan {
 }
 
 /**
- * What a session recorded about its own cost. Holds only what a summary
+ * What a session recorded about its own usage. Holds only what a summary
  * displays, rather than the whole `cost-state` record, which carries
  * unknown fields that would otherwise sit in the summary cache for as long
  * as the app runs.
  */
-export interface RecordedCost {
+export interface RecordedUsage {
   /**
    * The session's total cost in US dollars, or `null` when the record
    * carried no total.
    */
   readonly totalUSD: number | null
+  /**
+   * The session's recorded total across every token class, or `null` when
+   * the record held no model usage.
+   */
+  readonly totalTokens: number | null
 }
 
 /**
@@ -38,12 +43,12 @@ export interface SessionSummary {
    */
   readonly title: string | null
   /**
-   * What the session recorded about its own cost, or `null` when it
+   * What the session recorded about its own usage, or `null` when it
    * recorded none. Claude Code writes that record at exit, so `null` marks
-   * a session that is still running or that crashed, and means "no cost
-   * recorded" rather than a cost of zero.
+   * a session that is still running or that crashed, and means "no usage
+   * recorded" rather than a usage of zero.
    */
-  readonly cost: RecordedCost | null
+  readonly usage: RecordedUsage | null
   /** The span the file's timestamps cover, or `null` when no record carries one. */
   readonly activity: ActivitySpan | null
   /**

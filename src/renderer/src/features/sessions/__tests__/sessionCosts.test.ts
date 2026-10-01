@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { sessionCosts } from '../sessionCosts'
-import { testCost, testLeadTeam, testSession } from '../testSessionFixtures'
+import { testUsage, testLeadTeam, testSession } from '../testSessionFixtures'
 
 describe('sessionCosts', () => {
   it('reports a lead with a team by the team roll-up', () => {
-    const item = testSession(1, { team: testLeadTeam([], testCost({ leadUSD: 2, teamUSD: 5 })) })
+    const item = testSession(1, { team: testLeadTeam([], testUsage({ leadUSD: 2, teamUSD: 5 })) })
 
     expect(sessionCosts(item)).toEqual({ sessionUSD: 2, teamUSD: 5, partial: false })
   })
@@ -14,7 +14,7 @@ describe('sessionCosts', () => {
     ['a missing teammate', { missingTeammates: 1 }],
     ['a truncated list', { teamListsTruncated: true }]
   ])('marks the team cost partial for %s', (_label, overrides) => {
-    const item = testSession(1, { team: testLeadTeam([], testCost(overrides)) })
+    const item = testSession(1, { team: testLeadTeam([], testUsage(overrides)) })
 
     expect(sessionCosts(item).partial).toBe(true)
   })

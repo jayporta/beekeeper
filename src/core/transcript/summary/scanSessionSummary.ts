@@ -5,13 +5,14 @@ import { aiTitleRecordSchema } from '../schemas'
 import { createSessionRoleObserver } from '../sessionRoleObserver'
 import { createTeammateSpawnObserver } from '../teammateSpawnObserver'
 import { createLatestModelObserver } from './latestModelObserver'
+import { recordedTokenTotal } from './recordedTokenTotal'
 import { recordTimestampMs } from './recordTimestampMs'
-import type { ActivitySpan, RecordedCost, SessionSummary } from './sessionSummary'
+import type { ActivitySpan, RecordedUsage, SessionSummary } from './sessionSummary'
 import { truncateTitle } from './truncateTitle'
 
 /**
  * Reads a transcript once and reports what a sessions list needs to show:
- * its title, its recorded cost, the span its records cover, its model,
+ * its title, its recorded usage, the span its records cover, its model,
  * and whether it is a lead or a teammate agent session, and which teammates
  * it spawned and stopped.
  *
@@ -24,7 +25,7 @@ import { truncateTitle } from './truncateTitle'
  *
  * Only what the summary displays is kept: the title is capped at a
  * displayable length, the model is bounded as an identifier, the cost
- * state is reduced to its total, the role's agent type, name and team are capped
+ * state is reduced to its USD and token totals, the role's agent type, name and team are capped
  * and dropped unless printable, and the spawn and stop lists hold only
  * those labels, deduplicated and capped, so an oversized or padded record
  * can't sit in the summary cache for as long as the app runs.
@@ -77,14 +78,16 @@ export async function scanSessionSummary(
   }
 
   const costState = lastCostState.latest()
-  const cost: RecordedCost | null = costState ? { totalUSD: costState.totalCostUSD ?? null } : null
+  const usage: RecordedUsage | null = costState
+    ? { totalUSD: costState.totalCostUSD ?? null, totalTokens: recordedTokenTotal(costState) }
+    : null
 
   const activity: ActivitySpan | null =
     earliestMs === null || latestMs === null ? null : { earliestMs, latestMs }
 
   return {
     title,
-    cost,
+    usage,
     activity,
     skippedLines,
     role: roleObserver.role(),

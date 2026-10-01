@@ -16,7 +16,7 @@ import { SessionsContent } from '../SessionsContent'
 import { useSessionsViewStore } from '../state/useSessionsViewStore'
 import {
   testAgentRole,
-  testCost,
+  testUsage,
   testLeadTeam,
   testRef,
   testSession,
@@ -36,7 +36,7 @@ const lead = testSession(1, {
   model: 'claude-opus-5',
   team: testLeadTeam(
     [testRef(2, DIR), testRef(3, '-Users-a-other')],
-    testCost({ missingTeammates: 1 })
+    testUsage({ missingTeammates: 1 })
   )
 })
 const mateA = testSession(2, {
