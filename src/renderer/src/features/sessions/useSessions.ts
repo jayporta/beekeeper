@@ -6,15 +6,8 @@ import { unwrapIpcResult } from '@renderer/ipc/unwrapIpcResult'
 import { useSelectedProjectStore } from '@renderer/features/projects/state/useSelectedProjectStore'
 
 /**
- * How long a session list stays cached after the last view of it closes: 5
- * minutes. `createQueryClient` gives queries under a persisted root, which
- * includes `sessions`, the 7-day persisted maximum age. This overrides it, so
- * only lists in use stay in the persisted cache, not every folder's.
- */
-export const SESSIONS_GC_TIME_MS = 5 * 60 * 1000
-
-/**
- * Loads a project's sessions. When the folder no longer exists (`not-found`),
+ * Loads a project's sessions. Its cache lifetime is the `sessions` query
+ * default, `SESSIONS_GC_TIME_MS`. When the folder no longer exists (`not-found`),
  * it forgets the stored selection and refreshes the project list, which may
  * be a persisted copy that still names the folder.
  *
@@ -26,7 +19,6 @@ export function useSessions(dirName: string): UseQueryResult<readonly SessionLis
   const resetSelection = useSelectedProjectStore((state) => state.resetSelection)
   const query = useQuery({
     queryKey: ['sessions', dirName],
-    gcTime: SESSIONS_GC_TIME_MS,
     queryFn: async () => unwrapIpcResult(await window.beekeeper.listSessions(dirName))
   })
   const folderGone = query.isError && IpcCallError.codeOf(query.error) === 'not-found'

@@ -1,5 +1,6 @@
 import { onlineManager, QueryClient, QueryObserver } from '@tanstack/react-query'
 import { afterEach, describe, expect, it } from 'vitest'
+import { SESSIONS_GC_TIME_MS } from '@renderer/features/sessions/sessionsGcTime'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import { PERSIST_MAX_AGE_MS } from '../persistMaxAge'
 import { createQueryClient } from '../queryClient'
@@ -26,8 +27,15 @@ describe('createQueryClient', () => {
     expect(gcTimeOf(client, ['something-else', 'x'])).not.toBe(PERSIST_MAX_AGE_MS)
   })
 
-  it.each(PERSISTED_QUERY_ROOTS)('keeps a %s query as long as the persister keeps it', (root) => {
-    expect(gcTimeOf(createQueryClient(), [root, 'x'])).toBe(PERSIST_MAX_AGE_MS)
+  it.each(PERSISTED_QUERY_ROOTS.filter((root) => root !== 'sessions'))(
+    'keeps a %s query as long as the persister keeps it',
+    (root) => {
+      expect(gcTimeOf(createQueryClient(), [root, 'x'])).toBe(PERSIST_MAX_AGE_MS)
+    }
+  )
+
+  it('keeps a sessions query only briefly after nothing shows it', () => {
+    expect(gcTimeOf(createQueryClient(), ['sessions', 'x'])).toBe(SESSIONS_GC_TIME_MS)
   })
 
   describe('while the OS reports offline', () => {

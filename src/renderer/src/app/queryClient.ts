@@ -1,4 +1,5 @@
 import { QueryClient } from '@tanstack/react-query'
+import { SESSIONS_GC_TIME_MS } from '@renderer/features/sessions/sessionsGcTime'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import { PERSIST_MAX_AGE_MS } from './persistMaxAge'
 import { PERSISTED_QUERY_ROOTS } from './shouldPersistQuery'
@@ -28,8 +29,11 @@ function shouldRetry(failureCount: number, error: unknown): boolean {
  * retry (see {@link shouldRetry}) is not retried. Queries keep TanStack's default `gcTime`, except under a
  * persisted root (see `PERSISTED_QUERY_ROOTS`), which keep {@link PERSIST_MAX_AGE_MS}
  * to match the persister's `maxAge`: a query garbage-collected sooner would
- * never reach the persisted cache. A query can set a shorter `gcTime` itself,
- * and then leaves the persisted cache sooner too.
+ * never reach the persisted cache. `sessions` queries instead keep
+ * `SESSIONS_GC_TIME_MS`, so a folder's list leaves the persisted cache soon
+ * after nothing shows it. Both are query defaults rather than per-query
+ * options because a query restored from the persisted cache gets only the
+ * defaults, and TanStack never lowers a query's `gcTime` after that.
  *
  * @returns A new query client.
  */
@@ -47,5 +51,6 @@ export function createQueryClient(): QueryClient {
   for (const root of PERSISTED_QUERY_ROOTS) {
     client.setQueryDefaults([root], { gcTime: PERSIST_MAX_AGE_MS })
   }
+  client.setQueryDefaults(['sessions'], { gcTime: SESSIONS_GC_TIME_MS })
   return client
 }
