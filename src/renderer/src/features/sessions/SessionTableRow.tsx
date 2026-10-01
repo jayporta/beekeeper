@@ -51,7 +51,7 @@ export function SessionTableRow({
       <ValueCell value={formatDuration(summary?.activity ?? null)} numeric />
       <ValueCell value={summary?.model ?? null} />
       <ValueCell value={agentCountLabel(item)} />
-      <ValueCell value={formatUsd(costs.leadUSD)} numeric />
+      <ValueCell value={formatUsd(costs.sessionUSD)} numeric />
       {item.team?.kind === 'lead' ? (
         <ValueCell
           value={formatUsd(costs.teamUSD)}

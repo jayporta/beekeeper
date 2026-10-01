@@ -6,7 +6,7 @@ describe('sessionCosts', () => {
   it('reports a lead with a team by the team roll-up', () => {
     const item = testSession(1, { team: testLeadTeam([], testCost({ leadUSD: 2, teamUSD: 5 })) })
 
-    expect(sessionCosts(item)).toEqual({ leadUSD: 2, teamUSD: 5, partial: false })
+    expect(sessionCosts(item)).toEqual({ sessionUSD: 2, teamUSD: 5, partial: false })
   })
 
   it.each([
@@ -21,17 +21,17 @@ describe('sessionCosts', () => {
 
   it('reports a session with no team by its own recorded total and no team cost', () => {
     expect(sessionCosts(testSession(1, { costUSD: 0.5 }))).toEqual({
-      leadUSD: 0.5,
+      sessionUSD: 0.5,
       teamUSD: null,
       partial: false
     })
   })
 
   it('reports no cost for a session that recorded none', () => {
-    expect(sessionCosts(testSession(1)).leadUSD).toBeNull()
+    expect(sessionCosts(testSession(1)).sessionUSD).toBeNull()
   })
 
   it('reports no cost for an unreadable session', () => {
-    expect(sessionCosts(testSession(1, { unreadable: true })).leadUSD).toBeNull()
+    expect(sessionCosts(testSession(1, { unreadable: true })).sessionUSD).toBeNull()
   })
 })
