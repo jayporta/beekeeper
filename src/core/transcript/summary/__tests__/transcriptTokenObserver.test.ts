@@ -10,12 +10,12 @@ describe('createTranscriptTokenObserver', () => {
     expect(observer.total()).toBeNull()
   })
 
-  it('counts records sharing a message id once, at the per-field maximum', () => {
+  it('counts records sharing a message id once, taking each token class at its maximum', () => {
     const observer = createTranscriptTokenObserver()
-    observer.observe(buildAssistantRecord({ messageId: 'msg_a', inputTokens: 0, outputTokens: 10 }))
-    observer.observe(buildAssistantRecord({ messageId: 'msg_a', inputTokens: 0, outputTokens: 25 }))
+    observer.observe(buildAssistantRecord({ messageId: 'msg_a', inputTokens: 10, outputTokens: 1 }))
+    observer.observe(buildAssistantRecord({ messageId: 'msg_a', inputTokens: 2, outputTokens: 25 }))
 
-    expect(observer.total()).toBe(25)
+    expect(observer.total()).toBe(35)
   })
 
   it('adds up messages with different ids', () => {
@@ -26,12 +26,12 @@ describe('createTranscriptTokenObserver', () => {
     expect(observer.total()).toBe(15)
   })
 
-  it('sums a record whose usage has more than one iteration', () => {
+  it('sums a record whose usage has more than one iteration, not its top-level counts', () => {
     const observer = createTranscriptTokenObserver()
     observer.observe(
       buildAssistantRecord({
-        inputTokens: 100,
-        outputTokens: 50,
+        inputTokens: 1,
+        outputTokens: 1,
         usageExtra: {
           iterations: [
             { input_tokens: 40, output_tokens: 20 },
