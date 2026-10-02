@@ -1,9 +1,9 @@
 import type { Result } from '../shared/result'
 import type { SkippedLineError } from '../transcript/readRecords'
+import { messageTokens } from '../transcript/messageTokens'
 import { assistantRecordSchema } from '../transcript/schemas'
 import type { AgentIdentity } from './agentIdentity'
 import { createFileTouchCollector, type FileTouch } from './fileTouchCollector'
-import { messageTokens } from './messageTokens'
 import type { MessageReport } from './usageLedger'
 
 /** One agent's transcript, read into its message reports, file touches, and a skipped-line count. */
