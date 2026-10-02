@@ -8,7 +8,7 @@ export interface GuardIpcOptions<E, T> {
   readonly isTrusted: (event: E) => boolean
   /** Runs the call for a trusted sender. It receives the payload unvalidated. */
   readonly handle: (payload: unknown) => Promise<IpcResult<T>>
-  /** Receives the one-line log of an internal failure. Defaults to `console.error`. */
+  /** Receives the one-line log of an internal failure thrown by the call. Defaults to `console.error`. */
   readonly log?: (line: string) => void
 }
 
