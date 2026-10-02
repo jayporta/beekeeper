@@ -4,6 +4,7 @@ import tseslint from '@electron-toolkit/eslint-config-ts'
 import { RuleTester } from 'eslint'
 import { describe, it } from 'vitest'
 import importDirection from '../importDirection.mjs'
+import { importDirectionPolicy } from '../importDirectionPolicy.mjs'
 
 RuleTester.describe = describe
 RuleTester.it = it
@@ -12,15 +13,7 @@ RuleTester.itOnly = it.only
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const at = (path: string): string => resolve(repoRoot, path)
 
-const options = [
-  {
-    core: { folders: ['main', 'preload', 'renderer', 'shared'], packages: ['electron'] },
-    renderer: { folders: ['core', 'main', 'preload'] },
-    main: { folders: ['renderer'] },
-    preload: { folders: ['renderer'] },
-    shared: { folders: ['core', 'main', 'preload', 'renderer'] }
-  }
-]
+const options = [importDirectionPolicy]
 
 const ruleTester = new RuleTester({
   languageOptions: { parser: tseslint.parser, sourceType: 'module' }
@@ -58,6 +51,12 @@ ruleTester.run('importDirection', importDirection, {
       name: 'renderer imports itself through the alias',
       filename: at('src/renderer/src/features/a/A.tsx'),
       code: "import { x } from '@renderer/i18n/formats'",
+      options
+    },
+    {
+      name: 'renderer imports the shared contract through a src-rooted path',
+      filename: at('src/renderer/src/features/a/useA.ts'),
+      code: "import type { T } from 'src/shared/ipc/contract'",
       options
     },
     {
@@ -163,6 +162,62 @@ ruleTester.run('importDirection', importDirection, {
       name: 'main imports renderer through a relative path',
       filename: at('src/main/index.ts'),
       code: "import { x } from '../renderer/src/main'",
+      options,
+      errors: forbidden
+    },
+    {
+      name: 'main imports renderer through the alias',
+      filename: at('src/main/index.ts'),
+      code: "import { x } from '@renderer/i18n/formats'",
+      options,
+      errors: forbidden
+    },
+    {
+      name: 'core imports renderer through the alias',
+      filename: at('src/core/transcript/parse.ts'),
+      code: "import { x } from '@renderer/i18n/formats'",
+      options,
+      errors: forbidden
+    },
+    {
+      name: 'preload imports renderer through the alias',
+      filename: at('src/preload/index.ts'),
+      code: "import { x } from '@renderer/i18n/formats'",
+      options,
+      errors: forbidden
+    },
+    {
+      name: 'renderer imports core through a src-rooted path',
+      filename: at('src/renderer/src/features/a/useA.ts'),
+      code: "import type { T } from 'src/core/transcript/parse'",
+      options,
+      errors: forbidden
+    },
+    {
+      name: 'main imports renderer through a src-rooted path',
+      filename: at('src/main/index.ts'),
+      code: "import { x } from 'src/renderer/src/main'",
+      options,
+      errors: forbidden
+    },
+    {
+      name: 'main imports preload',
+      filename: at('src/main/index.ts'),
+      code: "import { x } from '../preload/index'",
+      options,
+      errors: forbidden
+    },
+    {
+      name: 'preload imports main',
+      filename: at('src/preload/index.ts'),
+      code: "import { x } from '../main/index'",
+      options,
+      errors: forbidden
+    },
+    {
+      name: 'preload imports core',
+      filename: at('src/preload/index.ts'),
+      code: "import { x } from '../core/shared/errorCode'",
       options,
       errors: forbidden
     },

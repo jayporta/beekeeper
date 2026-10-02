@@ -1,7 +1,9 @@
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const SRC_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../src')
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const SRC_ROOT = resolve(REPO_ROOT, 'src')
+const SRC_PREFIX = 'src/'
 const RENDERER_ALIAS = '@renderer/'
 const RENDERER_ROOT = resolve(SRC_ROOT, 'renderer/src')
 
@@ -31,6 +33,8 @@ function targetFolder(source, importerPath) {
   if (source.startsWith(RENDERER_ALIAS)) {
     return topFolder(resolve(RENDERER_ROOT, source.slice(RENDERER_ALIAS.length)))
   }
+  // tsconfig.web.json sets `baseUrl` to the repo root, so `src/...` resolves too.
+  if (source.startsWith(SRC_PREFIX)) return topFolder(resolve(REPO_ROOT, source))
   return undefined
 }
 
@@ -51,7 +55,7 @@ function sourceText(node) {
  * `{ core: { folders: ['main'], packages: ['electron'] } }` bans `src/main`
  * and the `electron` package from `src/core`. It checks static imports
  * (including `import type`), re-exports, dynamic `import()`, and type-position
- * `import()`, and it resolves each relative path and the `@renderer/` alias, so
+ * `import()`, and it resolves each relative path, the `@renderer/` alias, and `src/`-rooted paths, so
  * the check follows the target file rather than the import string.
  *
  * @type {import('eslint').Rule.RuleModule}
