@@ -8,7 +8,8 @@ import { registerIpcHandlers } from './ipc/registerIpcHandlers'
 import { isTrustedSender } from './ipc/senderValidation'
 import { hardenDefaultSession } from './security/session'
 import { hardenWebContents } from './security/windowSecurity'
-import { describeError, isFatalLoadFailure } from './startupFailure'
+import { describeError } from './describeError'
+import { isFatalLoadFailure } from './startupFailure'
 
 const devServerUrl = is.dev ? process.env['ELECTRON_RENDERER_URL'] : undefined
 // Developer Tools only with a dev server, matching the request allowlist.
