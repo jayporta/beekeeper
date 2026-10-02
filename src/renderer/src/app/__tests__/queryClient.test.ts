@@ -105,10 +105,14 @@ describe('createQueryClient', () => {
       it('waits for an explicit retry when it failed and never loaded', async () => {
         expect(await refetchesOnFocus(queryKey, ['error'])).toBe(0)
       })
+    })
 
-      it('waits for an explicit retry when it failed and has no rows', async () => {
-        expect(await refetchesOnFocus(queryKey, [[], 'error'])).toBe(0)
-      })
+    it('waits for an explicit retry when a projects list failed and has no rows, since the gate shows an error', async () => {
+      expect(await refetchesOnFocus(['projects'], [[], 'error'])).toBe(0)
+    })
+
+    it('refetches when a sessions list failed and has no rows, since the page shows its empty state', async () => {
+      expect(await refetchesOnFocus(['sessions', 'x'], [[], 'error'])).toBe(1)
     })
   })
 

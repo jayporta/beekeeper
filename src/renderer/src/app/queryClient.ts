@@ -23,24 +23,43 @@ function shouldRetry(failureCount: number, error: unknown): boolean {
 }
 
 /**
- * Whether a list query refetches when the window regains focus. A query in
- * error status with no rows to show does not, so that failure waits for an
- * explicit Retry or Refresh instead of swapping its error state for loading
- * behind the user's focus. A failed list that still shows rows does refetch,
- * so a list recovers on its own once the files can be read again.
+ * Whether a list query refetches when the window regains focus: not while it
+ * is in error status and `showsErrorScreen` says the page shows that failure
+ * as an error screen. That failure waits for an explicit Retry or Refresh
+ * instead of swapping the screen, and a focused Retry button, for loading
+ * behind the user's focus. Any other list refetches, so it recovers on its
+ * own once the files can be read again, including a failed list whose rows
+ * or empty state still show.
  *
- * @param query - The list query the focus event reached.
- * @returns `true` to refetch once the query is stale.
+ * @param showsErrorScreen - Whether the page shows an error screen for a failed list holding this data.
+ * @returns A predicate for `refetchOnWindowFocus`.
  */
-function refetchListOnFocus(query: Query): boolean {
-  const { data, status } = query.state
-  return status !== 'error' || (Array.isArray(data) && data.length > 0)
+function refetchUnlessErrorScreen(
+  showsErrorScreen: (data: unknown) => boolean
+): (query: Query) => boolean {
+  return (query) => query.state.status !== 'error' || !showsErrorScreen(query.state.data)
 }
+
+/**
+ * The focus rule a list gets by default: a failed list with no data shows an
+ * error screen, and one with data shows it. `SessionsBody` follows this,
+ * showing its empty state for a loaded list with no sessions.
+ */
+const refetchListOnFocus = refetchUnlessErrorScreen((data) => data === undefined)
+
+/**
+ * The focus rule for the project list: `ProjectsGate` also shows an error
+ * screen for a failed list with no projects, since it has no children to show.
+ */
+const refetchProjectsOnFocus = refetchUnlessErrorScreen(
+  (data) => !Array.isArray(data) || data.length === 0
+)
 
 /**
  * What the project and session lists share: they refetch on window focus once
  * stale, since agents keep writing while the app is open, except a failed list
- * with no rows to show (see {@link refetchListOnFocus}).
+ * the page shows an error screen for (see {@link refetchListOnFocus}).
+ * `projects` replaces the rule with {@link refetchProjectsOnFocus}.
  */
 const LIST_DEFAULTS = {
   refetchOnWindowFocus: refetchListOnFocus,
@@ -53,9 +72,11 @@ const LIST_DEFAULTS = {
  * refetch on reconnect. They do not refetch on window focus either, except
  * the project and session lists: those are local files that agents keep
  * writing while the app is open, so they refetch on focus once older than
- * {@link LISTS_STALE_TIME_MS}, except a failed list with no rows to show, which
- * waits for an explicit Retry or Refresh. A failure that cannot change on retry
- * (see {@link shouldRetry}) is not retried. Queries keep TanStack's default `gcTime`, except under a
+ * {@link LISTS_STALE_TIME_MS}, except a failed list the page shows an error
+ * screen for, which waits for an explicit Retry or Refresh (see
+ * {@link refetchListOnFocus} and {@link refetchProjectsOnFocus}, which
+ * differ because the two pages show different screens). A failure that cannot
+ * change on retry (see {@link shouldRetry}) is not retried. Queries keep TanStack's default `gcTime`, except under a
  * persisted root (see `PERSISTED_QUERY_ROOTS`), which keep {@link PERSIST_MAX_AGE_MS}
  * to match the persister's `maxAge`: a query garbage-collected sooner would
  * never reach the persisted cache. `sessions` queries instead keep
@@ -78,7 +99,11 @@ export function createQueryClient(): QueryClient {
     }
   })
   for (const root of PERSISTED_QUERY_ROOTS) {
-    client.setQueryDefaults([root], { gcTime: PERSIST_MAX_AGE_MS, ...LIST_DEFAULTS })
+    client.setQueryDefaults([root], {
+      gcTime: PERSIST_MAX_AGE_MS,
+      ...LIST_DEFAULTS,
+      ...(root === 'projects' && { refetchOnWindowFocus: refetchProjectsOnFocus })
+    })
   }
   client.setQueryDefaults(['sessions'], { gcTime: SESSIONS_GC_TIME_MS, ...LIST_DEFAULTS })
   return client
