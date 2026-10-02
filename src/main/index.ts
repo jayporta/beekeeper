@@ -11,7 +11,8 @@ import { hardenWebContents } from './security/windowSecurity'
 import { describeError } from './describeError'
 import { isFatalLoadFailure } from './startupFailure'
 
-const devServerUrl = is.dev ? process.env['ELECTRON_RENDERER_URL'] : undefined
+// An empty value counts as unset, so every check below agrees on it.
+const devServerUrl = (is.dev && process.env['ELECTRON_RENDERER_URL']) || undefined
 // Developer Tools only with a dev server, matching the request allowlist.
 const devToolsEnabled = devServerUrl !== undefined
 const rendererRoot = join(__dirname, '../renderer')
