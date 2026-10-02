@@ -79,7 +79,8 @@ export function mapSessionListItem(
               : {
                   window: summary.value.limitHit.window,
                   resetsAtMs: summary.value.limitHit.resetsAtMs
-                }
+                },
+          transcriptTokens: summary.value.transcriptTokens
         })
       : errResult(toIpcErrorCode(summary.error)),
     team: summary.ok ? team : null

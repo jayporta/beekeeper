@@ -84,4 +84,12 @@ export interface SessionSummary {
    * request was rejected for one.
    */
   readonly limitHit: LimitHit | null
+  /**
+   * The tokens the transcript's own assistant records report, one figure per
+   * message id, across every token class. Excludes subagent transcripts. It
+   * is what this file reports, not necessarily what the session spent, and
+   * is `null` when there is no valid assistant usage or the sum is not
+   * finite.
+   */
+  readonly transcriptTokens: number | null
 }

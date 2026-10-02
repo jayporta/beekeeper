@@ -25,6 +25,10 @@ interface TestSessionOptions {
   readonly costUSD?: number | null
   /** The recorded token total. Defaults to none. */
   readonly totalTokens?: number | null
+  /** The tokens the transcript reports. Defaults to `null`. */
+  readonly transcriptTokens?: number | null
+  /** How many subagent transcripts the session has, or `null` when unknown. Defaults to `0`. */
+  readonly subagentCount?: number | null
   /** The plan limit the session hit. Defaults to `null`. */
   readonly limitHit?: SessionSummaryDto['limitHit']
   /** Whether the summary could not be read. Defaults to `false`. */
@@ -49,6 +53,8 @@ export function testSession(n: number, options: TestSessionOptions = {}): Sessio
     model = null,
     costUSD,
     totalTokens,
+    transcriptTokens = null,
+    subagentCount = 0,
     limitHit = null,
     unreadable = false
   } = options
@@ -63,14 +69,15 @@ export function testSession(n: number, options: TestSessionOptions = {}): Sessio
     skippedLines: 0,
     role,
     model,
-    limitHit
+    limitHit,
+    transcriptTokens
   }
   return {
     projectDirName,
     sessionId: testSessionId(n),
     modifiedMs,
     sizeBytes: 1,
-    subagentCount: 0,
+    subagentCount,
     summary: unreadable
       ? { ok: false, error: { code: 'unreadable' } }
       : { ok: true, value: summary },

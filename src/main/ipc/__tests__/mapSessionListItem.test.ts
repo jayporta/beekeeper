@@ -10,7 +10,8 @@ const SUMMARY: SessionSummary = buildSessionSummary({
   usage: { totalUSD: 1.5, totalTokens: 295 },
   activity: { earliestMs: 1, latestMs: 2 },
   skippedLines: 3,
-  model: 'claude-opus-5'
+  model: 'claude-opus-5',
+  transcriptTokens: 1200
 })
 
 function scanned(summary: ScannedSession['summary']): ScannedSession {
@@ -41,6 +42,18 @@ describe('mapSessionListItem', () => {
     })
   })
 
+  it('copies the transcript token total to the item', () => {
+    const item = mapSessionListItem(scanned(ok(SUMMARY)), null)
+
+    expect(item.summary.ok && item.summary.value.transcriptTokens).toBe(1200)
+  })
+
+  it('copies a null transcript token total', () => {
+    const item = mapSessionListItem(scanned(ok({ ...SUMMARY, transcriptTokens: null })), null)
+
+    expect(item.summary.ok && item.summary.value.transcriptTokens).toBeNull()
+  })
+
   it('copies a null model', () => {
     const item = mapSessionListItem(scanned(ok({ ...SUMMARY, model: null })), null)
 
@@ -65,6 +78,21 @@ describe('mapSessionListItem', () => {
     const item = mapSessionListItem(scanned(ok(SUMMARY)), null)
 
     expect(item.summary.ok && item.summary.value.limitHit).toBeNull()
+  })
+
+  it('sends exactly the summary fields the DTO names', () => {
+    const { summary } = mapSessionListItem(scanned(ok(SUMMARY)), null)
+
+    expect(summary.ok && Object.keys(summary.value).sort()).toEqual([
+      'activity',
+      'limitHit',
+      'model',
+      'role',
+      'skippedLines',
+      'title',
+      'transcriptTokens',
+      'usage'
+    ])
   })
 
   it('does not copy summary fields the DTO does not name', () => {

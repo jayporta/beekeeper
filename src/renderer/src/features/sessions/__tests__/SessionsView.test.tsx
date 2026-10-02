@@ -121,6 +121,19 @@ describe('SessionsView table', () => {
     expect(text).toContain('-not recorded')
   })
 
+  it('shows the transcript total in the session usage cell of a session with no recorded usage', async () => {
+    showSessions([
+      testSession(5, { projectDirName: DIR, title: 'Still running', transcriptTokens: 1200 })
+    ])
+
+    const row = (await screen.findByRole('rowheader', { name: /Still running/ })).closest('tr')
+    const cells = within(row as HTMLElement).getAllByRole('cell')
+
+    // Cells: last active, duration, model, agents, session usage, team usage.
+    expect(cells[4]?.textContent).toContain('1.2K tokens')
+    expect(cells[4]?.textContent).not.toContain('tokens not recorded')
+  })
+
   it('marks team usage that does not apply to a teammate as not applicable, not as not recorded', async () => {
     showSessions()
     await userEvent.click(
