@@ -86,6 +86,29 @@ describe('priceTokens', () => {
     expect(result).toEqual({ kind: 'priced', usd: 1 })
   })
 
+  it('prices a million Sonnet 5.5 input tokens at 2 USD', () => {
+    const result = priceTokens({
+      model: 'claude-sonnet-5-5',
+      speed: 'standard',
+      tokens: { ...emptyTokenCounts, input: 1_000_000 }
+    })
+
+    expect(result).toEqual({ kind: 'priced', usd: 2 })
+  })
+
+  it.each(['claude-sonnet-5-5-20261001', 'claude-sonnet-5-5[1m]'])(
+    'prices the suffixed id %s as Sonnet 5.5',
+    (model) => {
+      const result = priceTokens({
+        model,
+        speed: 'standard',
+        tokens: { ...emptyTokenCounts, input: 1_000_000 }
+      })
+
+      expect(result).toEqual({ kind: 'priced', usd: 2 })
+    }
+  )
+
   it('prices a bracketed opus id against the base opus price', () => {
     const result = priceTokens({
       model: 'claude-opus-5[1m]',

@@ -11,10 +11,48 @@ const CURRENT_MODEL_IDS = [
   'claude-opus-4-8',
   'claude-opus-4-7',
   'claude-opus-4-6',
+  'claude-opus-4-5',
+  'claude-opus-4-1',
+  'claude-opus-4',
+  'claude-sonnet-5-5',
   'claude-sonnet-5',
   'claude-sonnet-4-6',
-  'claude-haiku-4-5'
+  'claude-sonnet-4-5',
+  'claude-sonnet-4',
+  'claude-haiku-4-5',
+  'claude-3-5-haiku'
 ]
+
+const ADDED_RATES = [
+  [
+    'claude-sonnet-5-5',
+    { input: 2, output: 10, cacheRead: 0.2, cacheWrite5m: 2.5, cacheWrite1h: 4 }
+  ],
+  [
+    'claude-opus-4-5',
+    { input: 5, output: 25, cacheRead: 0.5, cacheWrite5m: 6.25, cacheWrite1h: 10 }
+  ],
+  [
+    'claude-sonnet-4-5',
+    { input: 3, output: 15, cacheRead: 0.3, cacheWrite5m: 3.75, cacheWrite1h: 6 }
+  ],
+  [
+    'claude-opus-4-1',
+    { input: 15, output: 75, cacheRead: 1.5, cacheWrite5m: 18.75, cacheWrite1h: 30 }
+  ],
+  [
+    'claude-opus-4',
+    { input: 15, output: 75, cacheRead: 1.5, cacheWrite5m: 18.75, cacheWrite1h: 30 }
+  ],
+  [
+    'claude-sonnet-4',
+    { input: 3, output: 15, cacheRead: 0.3, cacheWrite5m: 3.75, cacheWrite1h: 6 }
+  ],
+  [
+    'claude-3-5-haiku',
+    { input: 0.8, output: 4, cacheRead: 0.08, cacheWrite5m: 1, cacheWrite1h: 1.6 }
+  ]
+] as const
 
 describe('priceTable', () => {
   it('cites an https source URL', () => {
@@ -27,6 +65,10 @@ describe('priceTable', () => {
 
   it.each(CURRENT_MODEL_IDS)('prices %s', (modelId) => {
     expect(priceTableModels.has(modelId)).toBe(true)
+  })
+
+  it.each(ADDED_RATES)('prices %s at the pricing page rates', (modelId, rates) => {
+    expect(priceTableModels.get(modelId)?.standard).toEqual(rates)
   })
 
   it('prices cache reads per model rather than by a family multiplier', () => {

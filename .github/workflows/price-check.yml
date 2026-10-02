@@ -80,8 +80,9 @@ jobs:
               "### Models\n\n" + modelList + "\n\n" +
               "### What to do\n\n" +
               "1. Open the source link above and check the input, output, cache read, 5-minute cache write, and 1-hour cache write rate for each model listed.\n" +
-              "2. Update `src/core/pricing/prices.json` with anything that changed, including `asOf`.\n" +
-              "3. Close this issue from the PR that updates the prices."
+              "2. Compare the model list at the source against the models listed above. Add any model Claude Code can use that is missing from the file, keyed by the id Claude Code records without its date suffix.\n" +
+              "3. Update `src/core/pricing/prices.json` with anything that changed, including `asOf`.\n" +
+              "4. Close this issue from the PR that updates the prices."
             ' <<<"$raw" >"$body_file"
 
           gh issue create --repo "$REPO" --title 'Check model prices' \
