@@ -82,4 +82,21 @@ describe('RefreshButton', () => {
 
     expect(onRefresh).toHaveBeenCalledOnce()
   })
+
+  it('fills the status after it is in the page, so a failure present at mount is announced', () => {
+    const added: string[] = []
+    const observer = new MutationObserver(() => undefined)
+    observer.observe(document.body, { childList: true, subtree: true })
+
+    render(<RefreshButton onRefresh={vi.fn()} status="failed" />)
+
+    for (const record of observer.takeRecords()) {
+      if (record.target instanceof HTMLElement && record.target.getAttribute('role') === 'status') {
+        record.addedNodes.forEach((node) => added.push(node.textContent ?? ''))
+      }
+    }
+    observer.disconnect()
+    expect(added).toEqual(["Couldn't refresh the lists."])
+    expect(screen.getByRole('status').textContent).toBe("Couldn't refresh the lists.")
+  })
 })

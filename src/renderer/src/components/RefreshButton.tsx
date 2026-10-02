@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import styles from './RefreshButton.module.css'
 
@@ -23,10 +24,14 @@ interface RefreshButtonProps {
  * A "Refresh" button with a polite status beside it. While a refresh runs the
  * button is marked `aria-disabled` and ignores clicks, rather than using
  * `disabled`, which would drop it from the tab order and send focus to the
- * page body. It never moves focus. The status is always rendered and empty
- * until a refresh has finished, so the region exists before its text
- * changes. A success is announced and stays visually hidden. A failure is
- * announced and also shown, since it needs a person's attention.
+ * page body. It never moves focus. A success is announced and stays visually
+ * hidden. A failure is announced and also shown, since it needs a person's
+ * attention.
+ *
+ * Screen readers announce a live region's changes, not what it held when it
+ * mounted. So the status renders empty, and its text is set once the region
+ * is in the page, which announces even a failure already present when the
+ * button mounts.
  *
  * @example
  * <RefreshButton onRefresh={refresh} status="idle" />
@@ -34,6 +39,12 @@ interface RefreshButtonProps {
 export function RefreshButton({ onRefresh, status }: RefreshButtonProps): React.JSX.Element {
   const { t } = useTranslation()
   const refreshing = status === 'refreshing'
+  const statusRef = useRef<HTMLParagraphElement>(null)
+  const message = status === 'refreshed' || status === 'failed' ? t(MESSAGE_KEYS[status]) : ''
+
+  useEffect(() => {
+    if (statusRef.current !== null) statusRef.current.textContent = message
+  }, [message])
 
   return (
     <>
@@ -46,9 +57,11 @@ export function RefreshButton({ onRefresh, status }: RefreshButtonProps): React.
       >
         {refreshing ? t('refreshing') : t('refresh')}
       </button>
-      <p role="status" className={status === 'failed' ? styles.note : 'visuallyHidden'}>
-        {status === 'refreshed' || status === 'failed' ? t(MESSAGE_KEYS[status]) : ''}
-      </p>
+      <p
+        ref={statusRef}
+        role="status"
+        className={status === 'failed' ? styles.note : 'visuallyHidden'}
+      />
     </>
   )
 }
