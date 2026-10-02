@@ -7,13 +7,17 @@ const MAX_RESETS_AT_S = 4_102_444_800
 
 /**
  * A transcript record carrying `quotaLimits`, which Claude Code writes on an
- * assistant API-error record when a request is rejected for a plan limit.
- * The field is undocumented, so only the three fields Beekeeper reads are
- * validated and any others are kept unread. `resetsAt` is Unix epoch
- * seconds, bounded so a hostile value can't become an absurd date.
+ * assistant API-error record when a request is rejected for a plan limit. The
+ * record must be an `assistant` record with `isApiErrorMessage: true`, so a
+ * `quotaLimits` field on any other record is ignored. The field is
+ * undocumented, so only the three fields Beekeeper reads are validated and any
+ * others are kept unread. `resetsAt` is Unix epoch seconds, bounded so a
+ * hostile value can't become an absurd date.
  */
 export const quotaLimitsRecordSchema = z
   .object({
+    type: z.literal('assistant'),
+    isApiErrorMessage: z.literal(true),
     quotaLimits: z
       .object({
         status: z.literal('rejected'),

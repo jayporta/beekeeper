@@ -35,6 +35,23 @@ describe('quotaLimitsRecordSchema', () => {
     )
   })
 
+  it('rejects a user record carrying quotaLimits', () => {
+    const record = { ...buildQuotaRejectionRecord(), type: 'user' }
+    expect(quotaLimitsRecordSchema.safeParse(record).success).toBe(false)
+  })
+
+  it('rejects an assistant record carrying quotaLimits that is not an API error', () => {
+    const record = { ...buildQuotaRejectionRecord(), isApiErrorMessage: false }
+    expect(quotaLimitsRecordSchema.safeParse(record).success).toBe(false)
+  })
+
+  it('rejects an assistant record carrying quotaLimits with no isApiErrorMessage', () => {
+    const record = Object.fromEntries(
+      Object.entries(buildQuotaRejectionRecord()).filter(([key]) => key !== 'isApiErrorMessage')
+    )
+    expect(quotaLimitsRecordSchema.safeParse(record).success).toBe(false)
+  })
+
   it('rejects an API error with no quotaLimits', () => {
     const record = buildAssistantRecord({ extra: { isApiErrorMessage: true } })
     expect(quotaLimitsRecordSchema.safeParse(record).success).toBe(false)

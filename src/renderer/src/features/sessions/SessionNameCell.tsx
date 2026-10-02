@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { limitHitNote } from './limitHitNote'
 import styles from './SessionNameCell.module.css'
@@ -6,6 +5,7 @@ import { rowId } from './rowId'
 import type { SessionRow } from './sessionRow'
 import type { SessionsT } from './sessionsT'
 import { useSessionsViewStore } from './state/useSessionsViewStore'
+import { useNowUntil } from './useNowUntil'
 
 /** Props for {@link SessionNameCell}. */
 interface SessionNameCellProps {
@@ -66,7 +66,8 @@ export function SessionNameCell({
   const expanded = useSessionsViewStore((state) => state.expanded.has(row.key))
   const toggle = useSessionsViewStore((state) => state.toggle)
   const { t } = useTranslation('sessions')
-  const [nowMs] = useState(Date.now)
+  const { summary } = row.item
+  const nowMs = useNowUntil(summary.ok ? (summary.value.limitHit?.resetsAtMs ?? null) : null)
   const { text, idHint } = row.label
   const count = row.teammates.length
 
