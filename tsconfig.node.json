@@ -10,6 +10,7 @@
   "compilerOptions": {
     "composite": true,
     "types": ["electron-vite/node"],
-    "noUncheckedIndexedAccess": true
+    "noUncheckedIndexedAccess": true,
+    "noImplicitAny": true
   }
 }
