@@ -248,7 +248,9 @@ describe('the Refresh button', () => {
     await screen.findByText(failure)
 
     expect(screen.queryByRole('button', { name: 'Refresh' })).not.toBeNull()
-    expect(refreshStatus()?.textContent).toBe(failure)
+    await waitFor(() => {
+      expect(refreshStatus()?.textContent).toBe(failure)
+    })
 
     await userEvent.click(screen.getByRole('button', { name: 'Refresh' }))
     await waitFor(() => {
@@ -308,7 +310,9 @@ describe('the Refresh button', () => {
     await focusAfterStaleTime()
 
     expect(calls).toBe(2)
-    expect(refreshStatus()?.textContent).toBe(failure)
+    await waitFor(() => {
+      expect(refreshStatus()?.textContent).toBe(failure)
+    })
 
     await focusAfterStaleTime()
 
@@ -374,7 +378,9 @@ describe('the Refresh button', () => {
 
     await focusAfterStaleTime()
 
-    expect(refreshStatus()?.textContent).toBe("Couldn't refresh the lists.")
+    await waitFor(() => {
+      expect(refreshStatus()?.textContent).toBe("Couldn't refresh the lists.")
+    })
 
     await focusAfterStaleTime()
 
@@ -409,6 +415,6 @@ describe('the Refresh button', () => {
       retry.settle({ ok: false, error: { code: 'unreadable' } })
       await new Promise((resolve) => setTimeout(resolve, 20))
     })
-    expect(screen.queryByText(failure)).not.toBeNull()
+    await screen.findByText(failure)
   })
 })

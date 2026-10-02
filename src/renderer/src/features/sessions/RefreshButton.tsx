@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import styles from './RefreshButton.module.css'
+import { STATUS_ANNOUNCE_DELAY_MS } from './statusAnnounceDelay'
 
 /** Where a refresh stands. */
 export type RefreshButtonStatus = 'idle' | 'refreshing' | 'refreshed' | 'failed'
@@ -29,21 +30,31 @@ interface RefreshButtonProps {
  * attention.
  *
  * Screen readers announce a live region's changes, not what it held when it
- * mounted. So the status renders empty, and its text is set once the region
- * is in the page, which announces even a failure already present when the
- * button mounts.
+ * mounted. So the status renders empty, and on every message change it is
+ * cleared and then filled after {@link STATUS_ANNOUNCE_DELAY_MS}. That
+ * announces even a failure already present when the button mounts, and keeps
+ * a failure that clears and returns quickly from merging into no change.
  *
  * @example
  * <RefreshButton onRefresh={refresh} status="idle" />
  */
 export function RefreshButton({ onRefresh, status }: RefreshButtonProps): React.JSX.Element {
-  const { t } = useTranslation()
+  const { t } = useTranslation('sessions')
   const refreshing = status === 'refreshing'
   const statusRef = useRef<HTMLParagraphElement>(null)
   const message = status === 'refreshed' || status === 'failed' ? t(MESSAGE_KEYS[status]) : ''
 
   useEffect(() => {
-    if (statusRef.current !== null) statusRef.current.textContent = message
+    const region = statusRef.current
+    if (region === null) return undefined
+    region.textContent = ''
+    if (message === '') return undefined
+    const timer = setTimeout(() => {
+      region.textContent = message
+    }, STATUS_ANNOUNCE_DELAY_MS)
+    return () => {
+      clearTimeout(timer)
+    }
   }, [message])
 
   return (

@@ -1,6 +1,6 @@
 import { useQueryClient, type QueryClient, type QueryKey } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import type { RefreshButtonStatus } from '@renderer/components/RefreshButton'
+import type { RefreshButtonStatus } from './RefreshButton'
 
 /** What {@link useRefreshLists} returns. */
 export interface RefreshLists {

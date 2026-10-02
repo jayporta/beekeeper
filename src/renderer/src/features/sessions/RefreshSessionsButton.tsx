@@ -1,4 +1,4 @@
-import { RefreshButton } from '@renderer/components/RefreshButton'
+import { RefreshButton } from './RefreshButton'
 import { useRefreshLists } from './useRefreshLists'
 
 /** Props for {@link RefreshSessionsButton}. */
