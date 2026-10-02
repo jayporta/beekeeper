@@ -42,10 +42,15 @@ function targetFolder(source, importerPath) {
  * Reads the string an import-like node points at.
  *
  * @param {import('estree').Node | null | undefined} node - A source node.
- * @returns {string | undefined} The specifier, or `undefined` when it is not a plain string.
+ * @returns {string | undefined} The specifier, or `undefined` when it is not a plain string or a template literal without expressions.
  */
 function sourceText(node) {
-  return node?.type === 'Literal' && typeof node.value === 'string' ? node.value : undefined
+  if (node?.type === 'Literal') return typeof node.value === 'string' ? node.value : undefined
+  // A template literal with no expressions, like import(`./a`), is a plain string.
+  if (node?.type === 'TemplateLiteral' && node.expressions.length === 0) {
+    return node.quasis[0]?.value.cooked ?? undefined
+  }
+  return undefined
 }
 
 /**

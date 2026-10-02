@@ -5,12 +5,14 @@
     "src/main/**/*",
     "src/preload/**/*",
     "src/core/**/*",
-    "src/shared/**/*"
+    "src/shared/**/*",
+    "lint/**/*"
   ],
   "compilerOptions": {
     "composite": true,
     "types": ["electron-vite/node"],
     "noUncheckedIndexedAccess": true,
-    "noImplicitAny": true
+    "noImplicitAny": true,
+    "allowJs": true
   }
 }

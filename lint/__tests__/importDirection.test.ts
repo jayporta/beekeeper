@@ -96,6 +96,12 @@ ruleTester.run('importDirection', importDirection, {
       options
     },
     {
+      name: 'a dynamic import with a template literal holding an expression is skipped',
+      filename: at('src/core/transcript/parse.ts'),
+      code: 'const m = await import(`../../main/${name}`)',
+      options
+    },
+    {
       name: 'a dynamic import with a computed source is skipped',
       filename: at('src/core/transcript/parse.ts'),
       code: 'const m = await import(name)',
@@ -260,6 +266,13 @@ ruleTester.run('importDirection', importDirection, {
       name: 'a dynamic import is checked',
       filename: at('src/core/transcript/parse.ts'),
       code: "const m = await import('../../main/index')",
+      options,
+      errors: forbidden
+    },
+    {
+      name: 'a dynamic import with a plain template literal is checked',
+      filename: at('src/core/transcript/parse.ts'),
+      code: 'const m = await import(`../../main/index`)',
       options,
       errors: forbidden
     },
