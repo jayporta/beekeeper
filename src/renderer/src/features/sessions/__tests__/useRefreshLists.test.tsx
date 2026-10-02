@@ -1,7 +1,9 @@
+import { hashKey, hydrate, QueryClient, type QueryState } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { IpcResult } from '../../../../../shared/ipc/ipcResult'
 import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
+import { toCachedQueryState } from '@renderer/app/toCachedQueryState'
 import { useProjects } from '@renderer/features/projects/useProjects'
 import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { createQueryWrapper } from '@renderer/testQueryWrapper'
@@ -152,5 +154,39 @@ describe('useRefreshLists', () => {
     await waitFor(() => {
       expect(result.current.status).toBe('refreshed')
     })
+  })
+
+  it('is idle at mount when the lists were restored from a cache that saved a failed reload', () => {
+    // A failed reload of a list that holds data, as the persister saves it.
+    const failedWithData: QueryState = {
+      data: [],
+      dataUpdateCount: 1,
+      dataUpdatedAt: 1000,
+      error: new Error('reload failed'),
+      errorUpdateCount: 1,
+      errorUpdatedAt: 2000,
+      fetchFailureCount: 1,
+      fetchFailureReason: new Error('reload failed'),
+      fetchMeta: null,
+      isInvalidated: false,
+      status: 'error',
+      fetchStatus: 'idle'
+    }
+    const client = new QueryClient()
+    hydrate(client, {
+      mutations: [],
+      queries: [['projects'], ['sessions', DIR]].map((queryKey) => ({
+        queryKey,
+        queryHash: hashKey(queryKey),
+        dehydratedAt: 0,
+        state: toCachedQueryState(failedWithData)
+      }))
+    })
+
+    const { result } = renderHook(() => useRefreshLists(DIR), {
+      wrapper: createQueryWrapper(client)
+    })
+
+    expect(result.current.status).toBe('idle')
   })
 })

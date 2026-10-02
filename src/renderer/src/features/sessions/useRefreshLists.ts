@@ -21,19 +21,26 @@ function listKeys(dirName: string): QueryKey[] {
 }
 
 /**
- * Whether either list's last load failed: its last error is newer than its
- * last data. Those timestamps don't move while a refetch is pending, so a
- * list that never loaded stays failed until a retry succeeds. A list that
- * fails to reload keeps its data, which would otherwise hide the failure.
+ * Whether either list's last load failed: its query is in the `error` state.
+ * A list that fails to reload keeps its data, which would otherwise hide the
+ * failure, and stays in `error` while it retries, until a load succeeds. A
+ * list that never loaded goes back to `pending` while it retries, and the
+ * page then says it is loading. A list restored from the persisted cache is
+ * never in `error`, since the cache saves a failed reload of a list with data
+ * as a success (see `toCachedQueryState`).
  */
 function listsFailed(queryClient: QueryClient, dirName: string): boolean {
-  return listKeys(dirName).some((queryKey) => {
-    const state = queryClient.getQueryState(queryKey)
-    return state !== undefined && state.errorUpdatedAt > state.dataUpdatedAt
-  })
+  return listKeys(dirName).some(
+    (queryKey) => queryClient.getQueryState(queryKey)?.status === 'error'
+  )
 }
 
-/** How many times either list has failed to load, which only grows. */
+/**
+ * How many times either list has failed to load. It grows while the lists
+ * stay cached, and is restored from the cache at launch. It starts over when
+ * a list is garbage-collected or removed, so a count taken earlier then
+ * differs from the new one, and a refresh result tied to it no longer holds.
+ */
 function failureCount(queryClient: QueryClient, dirName: string): number {
   return listKeys(dirName).reduce(
     (total, queryKey) => total + (queryClient.getQueryState(queryKey)?.errorUpdateCount ?? 0),

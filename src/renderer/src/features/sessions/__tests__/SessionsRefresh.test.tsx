@@ -86,8 +86,6 @@ async function showSessions(
   })
   render(<App />, { wrapper: createQueryWrapper() })
   await screen.findByRole('rowheader', { name: /Refactor parser/ })
-  // The clock is frozen, so move it on: a later failure must be newer than the first load.
-  vi.advanceTimersByTime(1)
   return api
 }
 
@@ -123,7 +121,7 @@ describe('refreshing the lists on window focus', () => {
     const api = await showSessions(() => loaded([lead]))
 
     await act(async () => {
-      vi.advanceTimersByTime(LISTS_STALE_TIME_MS - 2)
+      vi.advanceTimersByTime(LISTS_STALE_TIME_MS - 1)
       window.dispatchEvent(new Event('focus'))
       await new Promise((resolve) => setTimeout(resolve, 20))
     })
@@ -252,7 +250,6 @@ describe('the Refresh button', () => {
     expect(screen.queryByRole('button', { name: 'Refresh' })).not.toBeNull()
     expect(refreshStatus()?.textContent).toBe(failure)
 
-    vi.advanceTimersByTime(1)
     await userEvent.click(screen.getByRole('button', { name: 'Refresh' }))
     await waitFor(() => {
       expect(refreshStatus()?.textContent).toBe('Lists updated')
@@ -386,7 +383,7 @@ describe('the Refresh button', () => {
     })
   })
 
-  it('keeps the failure note while a retry of a list that never loaded is pending, and after it fails', async () => {
+  it('shows the failure again when the retry of a list that never loaded fails', async () => {
     const failure = "Couldn't refresh the lists."
     const retry = deferred()
     let calls = 0
@@ -406,7 +403,8 @@ describe('the Refresh button', () => {
     await focusAfterStaleTime()
 
     expect(calls).toBe(3)
-    expect(screen.queryByText(failure)).not.toBeNull()
+    // The retry has no list to show yet, so the page says it is loading instead.
+    expect(screen.queryByText(failure)).toBeNull()
     await act(async () => {
       retry.settle({ ok: false, error: { code: 'unreadable' } })
       await new Promise((resolve) => setTimeout(resolve, 20))
