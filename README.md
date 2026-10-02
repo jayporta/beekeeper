@@ -43,9 +43,9 @@ Beekeeper never reads `~/.claude/sessions/*.key` (a peer token, not session data
 Beekeeper keeps a cache of the project list and of the session lists you've opened, so the app opens without rescanning everything. The cache holds those lists exactly as the app shows them:
 
 - **Projects:** each project folder name, which encodes the path of the project, and which project is a worktree of which.
-- **Each session:** its id, title, agent type and name, model, and activity times; its transcript's size and modification time; its subagent count; its recorded token and cost totals, and the token total of its own transcript; how many lines couldn't be read; and any plan limit it hit, with its reset time.
-- **Why a summary is missing:** when a session's summary couldn't be read, the error code (`not-found`, `unreadable`, `internal`, `invalid-request`, or `untrusted-sender`).
-- **Teams:** the team name, and how a session groups with its lead and teammates, including how a teammate was matched to its lead, whether it stopped, and whether it's missing. For a lead, it also holds the team's token and cost totals, how many sessions have no figure, and whether the lead's spawn lists were capped.
+- **Each session:** its id, the project folder it's in, its title, whether it's a lead or a teammate agent, its agent type, name, and team, its model, and its activity times; its transcript's size and modification time; its subagent count; its recorded token and cost totals, and the token total of its own transcript; how many lines couldn't be read; and any plan limit it hit, with its reset time.
+- **Why a summary is missing:** when a session's summary couldn't be read, the error code (`not-found`, `unreadable`, or `internal`).
+- **Teams:** the team name, and how a session groups with its lead and teammates, including how a teammate was matched to its lead, whether it stopped, and whether it's missing. For a lead, it also holds the team's token and cost totals, how many sessions have no figure, and whether the lead's spawn or stop lists were capped.
 
 Beekeeper also keeps two preferences: the selected project and whether you've dismissed the first-run screen.
 
