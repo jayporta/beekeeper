@@ -59,7 +59,8 @@ export function testSession(n: number, options: TestSessionOptions = {}): Sessio
     activity: latestMs === undefined || earliestMs === undefined ? null : { earliestMs, latestMs },
     skippedLines: 0,
     role,
-    model
+    model,
+    limitHit: null
   }
   return {
     projectDirName,

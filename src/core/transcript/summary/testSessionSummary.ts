@@ -17,6 +17,7 @@ export function buildSessionSummary(overrides: Partial<SessionSummary> = {}): Se
     role: { kind: 'lead' },
     teamSpawns: { spawns: [], stops: [], truncated: false },
     model: null,
+    limitHit: null,
     ...overrides
   }
 }

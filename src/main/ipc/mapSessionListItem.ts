@@ -72,7 +72,14 @@ export function mapSessionListItem(
                 },
           skippedLines: summary.value.skippedLines,
           role: mapSessionRole(summary.value.role),
-          model: summary.value.model
+          model: summary.value.model,
+          limitHit:
+            summary.value.limitHit === null
+              ? null
+              : {
+                  window: summary.value.limitHit.window,
+                  resetsAtMs: summary.value.limitHit.resetsAtMs
+                }
         })
       : errResult(toIpcErrorCode(summary.error)),
     team: summary.ok ? team : null

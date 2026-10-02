@@ -47,6 +47,26 @@ describe('mapSessionListItem', () => {
     expect(item.summary.ok && item.summary.value.model).toBeNull()
   })
 
+  it('copies the plan limit hit, and only its two fields', () => {
+    const limitHit = {
+      window: 'fiveHour',
+      resetsAtMs: 1_767_243_600_000,
+      extra: 'dropped'
+    } as const
+    const item = mapSessionListItem(scanned(ok({ ...SUMMARY, limitHit })), null)
+
+    expect(item.summary.ok && item.summary.value.limitHit).toEqual({
+      window: 'fiveHour',
+      resetsAtMs: 1_767_243_600_000
+    })
+  })
+
+  it('copies a null plan limit hit', () => {
+    const item = mapSessionListItem(scanned(ok(SUMMARY)), null)
+
+    expect(item.summary.ok && item.summary.value.limitHit).toBeNull()
+  })
+
   it('does not copy summary fields the DTO does not name', () => {
     const withExtra = { ...SUMMARY, futureField: 'x' } as SessionSummary
     const { summary } = mapSessionListItem(scanned(ok(withExtra)), null)
