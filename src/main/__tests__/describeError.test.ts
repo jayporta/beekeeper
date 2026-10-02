@@ -7,6 +7,12 @@ describe('describeError', () => {
     expect(describeError(errorWithCode('ERR_FILE_NOT_FOUND'))).toBe('ERR_FILE_NOT_FOUND')
   })
 
+  it('names an error by its class when its code is not a plain constant', () => {
+    const described = describeError(errorWithCode('/Users/someone/secret\nforged line'))
+
+    expect(described).toBe('Error')
+  })
+
   it('names a codeless error by its class, never its message', () => {
     const described = describeError(new TypeError('/Users/someone/secret/path'))
 
