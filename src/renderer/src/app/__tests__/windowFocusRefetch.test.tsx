@@ -3,18 +3,21 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { registerWindowFocusRefetch } from '../windowFocusRefetch'
 
 let unregister: (() => void) | undefined
+let unsubscribe: (() => void) | undefined
 
 afterEach(() => {
   // focusManager is a module singleton, so every test removes what it registered.
   unregister?.()
   unregister = undefined
+  unsubscribe?.()
+  unsubscribe = undefined
   vi.restoreAllMocks()
 })
 
 /** Subscribes to the focus manager the way a query does, returning the spy it notifies. */
 function watchFocusManager(): ReturnType<typeof vi.fn> {
   const listener = vi.fn()
-  focusManager.subscribe(listener)
+  unsubscribe = focusManager.subscribe(listener)
   return listener
 }
 
