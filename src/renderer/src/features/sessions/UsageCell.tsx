@@ -17,8 +17,9 @@ interface UsageCellProps {
 }
 
 /**
- * A table data cell holding recorded tokens as its main line and the
- * API-priced cost as a muted second line. Each line that leaves something out
+ * A table data cell holding a token figure as its main line and the
+ * API-priced cost as a muted second line. A session's token figure is its
+ * recorded total, or its transcript's total when it recorded none. Each line that leaves something out
  * carries a muted `partial` note, and a line with no value shows an empty
  * marker that names what is missing. When neither value is known, or there
  * are no figures, the cell shows a single empty marker.
