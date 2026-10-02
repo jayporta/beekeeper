@@ -8,6 +8,7 @@ import {
 import { afterEach, describe, expect, it } from 'vitest'
 import { SESSIONS_GC_TIME_MS } from '@renderer/features/sessions/sessionsGcTime'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
+import { LISTS_STALE_TIME_MS } from '../listsStaleTime'
 import { PERSIST_MAX_AGE_MS } from '../persistMaxAge'
 import { createQueryClient } from '../queryClient'
 import { PERSISTED_QUERY_ROOTS } from '../shouldPersistQuery'
@@ -16,11 +17,26 @@ const gcTimeOf = (client: QueryClient, queryKey: readonly unknown[]): number =>
   client.getQueryCache().build(client, { queryKey }).gcTime
 
 describe('createQueryClient', () => {
-  it('does not refetch on window focus or reconnect', () => {
-    const { queries } = createQueryClient().getDefaultOptions()
+  it('does not refetch on reconnect, since every query is local IPC', () => {
+    expect(createQueryClient().getDefaultOptions().queries?.refetchOnReconnect).toBe(false)
+  })
 
-    expect(queries?.refetchOnWindowFocus).toBe(false)
-    expect(queries?.refetchOnReconnect).toBe(false)
+  it('does not refetch on window focus by default', () => {
+    const client = createQueryClient()
+
+    expect(
+      client.defaultQueryOptions({ queryKey: ['something-else', 'x'] }).refetchOnWindowFocus
+    ).toBe(false)
+  })
+
+  it.each([
+    ['projects', ['projects']],
+    ['sessions', ['sessions', 'x']]
+  ])('refetches a %s list on window focus once it is stale', (_root, queryKey) => {
+    const defaults = createQueryClient().defaultQueryOptions({ queryKey })
+
+    expect(defaults.refetchOnWindowFocus).toBe(true)
+    expect(defaults.staleTime).toBe(LISTS_STALE_TIME_MS)
   })
 
   it('leaves the default gcTime alone, so a query outside the persisted roots uses the stock one', () => {

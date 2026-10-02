@@ -2,6 +2,9 @@
   "appName": "Beekeeper",
   "sidebar": "Sidebar",
   "retry": "Retry",
+  "refresh": "Refresh",
+  "refreshing": "Refreshing",
+  "refreshed": "Lists updated",
   "error": {
     "heading": "Something went wrong",
     "unexpected": "Beekeeper hit an unexpected error. Reload to try again.",

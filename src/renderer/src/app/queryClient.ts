@@ -1,6 +1,7 @@
 import { QueryClient } from '@tanstack/react-query'
 import { SESSIONS_GC_TIME_MS } from '@renderer/features/sessions/sessionsGcTime'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
+import { LISTS_STALE_TIME_MS } from './listsStaleTime'
 import { PERSIST_MAX_AGE_MS } from './persistMaxAge'
 import { PERSISTED_QUERY_ROOTS } from './shouldPersistQuery'
 
@@ -22,10 +23,21 @@ function shouldRetry(failureCount: number, error: unknown): boolean {
 }
 
 /**
+ * What the project and session lists share: they refetch on window focus once
+ * stale, since agents keep writing while the app is open.
+ */
+const LIST_DEFAULTS = {
+  refetchOnWindowFocus: true,
+  staleTime: LISTS_STALE_TIME_MS
+} as const
+
+/**
  * Creates the app's query client. Queries run whether or not the OS reports a
  * network connection, since every one is a local IPC call, and they do not
- * refetch on window focus or reconnect, since the data is local files that
- * change only when an agent writes them. A failure that cannot change on
+ * refetch on reconnect. They do not refetch on window focus either, except
+ * the project and session lists: those are local files that agents keep
+ * writing while the app is open, so they refetch on focus once older than
+ * {@link LISTS_STALE_TIME_MS}. A failure that cannot change on
  * retry (see {@link shouldRetry}) is not retried. Queries keep TanStack's default `gcTime`, except under a
  * persisted root (see `PERSISTED_QUERY_ROOTS`), which keep {@link PERSIST_MAX_AGE_MS}
  * to match the persister's `maxAge`: a query garbage-collected sooner would
@@ -49,8 +61,8 @@ export function createQueryClient(): QueryClient {
     }
   })
   for (const root of PERSISTED_QUERY_ROOTS) {
-    client.setQueryDefaults([root], { gcTime: PERSIST_MAX_AGE_MS })
+    client.setQueryDefaults([root], { gcTime: PERSIST_MAX_AGE_MS, ...LIST_DEFAULTS })
   }
-  client.setQueryDefaults(['sessions'], { gcTime: SESSIONS_GC_TIME_MS })
+  client.setQueryDefaults(['sessions'], { gcTime: SESSIONS_GC_TIME_MS, ...LIST_DEFAULTS })
   return client
 }
