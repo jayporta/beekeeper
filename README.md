@@ -40,7 +40,7 @@ Beekeeper never reads `~/.claude/sessions/*.key` (a peer token, not session data
 
 ## What Beekeeper stores
 
-Beekeeper keeps a cache of the project list and of the session lists you've opened, so the app opens without rescanning everything. The cache holds project folder names (which encode each project's path), and for each session its id, title, agent and team names, which lead and teammates it's grouped with, subagent count, model, activity times, transcript size, token and cost totals, and any plan limit it hit. Beekeeper also keeps two preferences: the selected project and whether you've dismissed the first-run screen.
+Beekeeper keeps a cache of the project list and of the session lists you've opened, so the app opens without rescanning everything. The cache holds project folder names (which encode each project's path), and for each session its id, title, agent type and name, team name, which lead and teammates it's grouped with, subagent count, model, activity times, transcript size, token and cost totals, how many transcript lines couldn't be read, and any plan limit it hit. Beekeeper also keeps two preferences: the selected project and whether you've dismissed the first-run screen.
 
 - They live in IndexedDB in Beekeeper's own app data folder, never in `~/.claude` or in a repository, and they're never sent anywhere.
 - No cached list is older than 7 days, and an update that changes the data format clears the cache. The two preferences stay until you change them.
