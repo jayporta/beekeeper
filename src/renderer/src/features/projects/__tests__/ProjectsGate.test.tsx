@@ -146,6 +146,81 @@ describe('ProjectsGate states', () => {
     }
   )
 
+  describe('retrying a failed refresh of an empty list', () => {
+    /** Renders the gate over an empty list whose refresh then fails, and returns the alert. */
+    async function renderWithFailedRefresh(): Promise<{
+      alert: HTMLElement
+      holdNextCall: () => void
+      failFromNowOn: () => void
+      settlePending: (result: IpcResult<readonly ProjectDto[]>) => void
+    }> {
+      let mode: 'ok' | 'fail' | 'pending' = 'ok'
+      let settlePending: (result: IpcResult<readonly ProjectDto[]>) => void = () => undefined
+      installBeekeeperApi({
+        listProjects: () => {
+          if (mode === 'ok') return Promise.resolve({ ok: true, value: [] })
+          if (mode === 'fail') return failed('internal')
+          return new Promise((resolve) => (settlePending = resolve))
+        }
+      })
+      const client = createTestQueryClient()
+      render(<ProjectsGate>{null}</ProjectsGate>, { wrapper: createQueryWrapper(client) })
+      await screen.findByRole('heading', { level: 1, name: 'No sessions found' })
+
+      mode = 'fail'
+      await refetchAndSettle(client, ['projects'])
+      const alert = await screen.findByRole('alert')
+
+      return {
+        alert,
+        holdNextCall: () => (mode = 'pending'),
+        failFromNowOn: () => (mode = 'fail'),
+        settlePending: (result) => settlePending(result)
+      }
+    }
+
+    it('shows the loading status while Retry refetches', async () => {
+      const { holdNextCall } = await renderWithFailedRefresh()
+      holdNextCall()
+
+      await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
+
+      expect((await screen.findByRole('status')).textContent).toContain('Loading projects')
+      expect(screen.queryByRole('alert')).toBeNull()
+    })
+
+    it('mounts a fresh alert when the retry fails again', async () => {
+      const { alert, holdNextCall, failFromNowOn, settlePending } = await renderWithFailedRefresh()
+      holdNextCall()
+      await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
+      await screen.findByRole('status')
+
+      failFromNowOn()
+      settlePending({ ok: false, error: { code: 'internal' } })
+      const next = await screen.findByRole('alert')
+
+      expect(next).not.toBe(alert)
+      expect(alert.isConnected).toBe(false)
+    })
+  })
+
+  it('keeps the empty state during a background refetch of an empty list', async () => {
+    let pending = false
+    installBeekeeperApi({
+      listProjects: () =>
+        pending ? new Promise(() => undefined) : Promise.resolve({ ok: true, value: [] })
+    })
+    const client = createTestQueryClient()
+    render(<ProjectsGate>{null}</ProjectsGate>, { wrapper: createQueryWrapper(client) })
+    await screen.findByRole('heading', { level: 1, name: 'No sessions found' })
+
+    pending = true
+    void client.refetchQueries({ queryKey: ['projects'] })
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'No sessions found' })).toBeTruthy()
+    expect(screen.queryByRole('status')).toBeNull()
+  })
+
   it('shows the sessions heading with the selected folder name when a project loads', async () => {
     installBeekeeperApi()
     renderApp()

@@ -14,14 +14,15 @@ interface ProjectsGateProps {
  * Shows the project list's loading, empty, denied, and error states, and its
  * children once there is at least one project. A non-empty loaded list wins
  * over a failed background refresh, so it stays on screen. An empty list does
- * not: if its refresh fails, the error state shows instead of the empty one.
+ * not: if its refresh fails, the error state shows instead of the empty one,
+ * and loading shows again while it refetches.
  *
  * @example
  * <ProjectsGate><SessionsView /></ProjectsGate>
  */
 export function ProjectsGate({ children }: ProjectsGateProps): React.JSX.Element {
   const { t } = useTranslation(['projects', 'common'])
-  const { data, error, isError, refetch } = useProjects()
+  const { data, error, isError, isFetching, refetch } = useProjects()
   const retry = (): void => {
     void refetch()
   }
@@ -34,8 +35,11 @@ export function ProjectsGate({ children }: ProjectsGateProps): React.JSX.Element
   }
 
   // Each state has its own key, so an alert mounts fresh instead of reusing the
-  // loading element, and screen readers announce it.
-  if (!isError) return <StatusMessage key="loading" heading={t('loading')} role="status" />
+  // loading element, and screen readers announce it. An empty list whose refresh
+  // failed shows loading while it refetches, since the query keeps its error
+  // status then, so the next failure mounts a new alert.
+  if (!isError || isFetching)
+    return <StatusMessage key="loading" heading={t('loading')} role="status" />
 
   if (IpcCallError.codeOf(error) === 'unreadable') {
     return (
