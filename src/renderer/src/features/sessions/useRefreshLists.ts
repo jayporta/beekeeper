@@ -20,11 +20,17 @@ function listKeys(dirName: string): QueryKey[] {
   return [['projects'], ['sessions', dirName]]
 }
 
-/** Whether either list's last load failed. A list that fails to reload keeps its data. */
+/**
+ * Whether either list's last load failed: its last error is newer than its
+ * last data. Those timestamps don't move while a refetch is pending, so a
+ * list that never loaded stays failed until a retry succeeds. A list that
+ * fails to reload keeps its data.
+ */
 function listsFailed(queryClient: QueryClient, dirName: string): boolean {
-  return listKeys(dirName).some(
-    (queryKey) => queryClient.getQueryState(queryKey)?.status === 'error'
-  )
+  return listKeys(dirName).some((queryKey) => {
+    const state = queryClient.getQueryState(queryKey)
+    return state !== undefined && state.errorUpdatedAt > state.dataUpdatedAt
+  })
 }
 
 /**

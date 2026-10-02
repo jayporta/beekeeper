@@ -76,6 +76,8 @@ async function showSessions(
   })
   render(<App />, { wrapper: createQueryWrapper() })
   await screen.findByRole('rowheader', { name: /Refactor parser/ })
+  // The clock is frozen, so move it on: a later failure must be newer than the first load.
+  vi.advanceTimersByTime(1)
   return api
 }
 
@@ -111,7 +113,7 @@ describe('refreshing the lists on window focus', () => {
     const api = await showSessions(() => loaded([lead]))
 
     await act(async () => {
-      vi.advanceTimersByTime(LISTS_STALE_TIME_MS - 1)
+      vi.advanceTimersByTime(LISTS_STALE_TIME_MS - 2)
       window.dispatchEvent(new Event('focus'))
       await new Promise((resolve) => setTimeout(resolve, 20))
     })
@@ -225,7 +227,7 @@ describe('the Refresh button', () => {
   })
 
   it('shows and announces a failed refresh, with the button ready again, until a press succeeds', async () => {
-    const failure = "Couldn't refresh. Showing the last loaded lists."
+    const failure = "Couldn't refresh the lists."
     let calls = 0
     await showSessions(() => {
       calls += 1
@@ -267,7 +269,7 @@ describe('the Refresh button', () => {
   })
 
   it('drops the failure note once a later focus refetch loads the lists', async () => {
-    const failure = "Couldn't refresh. Showing the last loaded lists."
+    const failure = "Couldn't refresh the lists."
     let calls = 0
     await showSessions(() => {
       calls += 1
@@ -286,7 +288,7 @@ describe('the Refresh button', () => {
   })
 
   it('does not bring the failure note back when a later focus refetch fails on its own', async () => {
-    const failure = "Couldn't refresh. Showing the last loaded lists."
+    const failure = "Couldn't refresh the lists."
     let calls = 0
     await showSessions(() => {
       calls += 1
@@ -306,5 +308,33 @@ describe('the Refresh button', () => {
     expect(calls).toBe(4)
     expect(screen.queryByText(failure)).toBeNull()
     expect(refreshStatus()?.textContent).toBe('')
+  })
+
+  it('keeps the failure note while a retry of a list that never loaded is pending, and after it fails', async () => {
+    const failure = "Couldn't refresh the lists."
+    const retry = deferred()
+    let calls = 0
+    installBeekeeperApi({
+      listProjects: () => Promise.resolve({ ok: true, value: [testProject(DIR)] }),
+      listSessions: () => {
+        calls += 1
+        return calls === 3
+          ? retry.promise
+          : Promise.resolve({ ok: false, error: { code: 'unreadable' } })
+      }
+    })
+    render(<App />, { wrapper: createQueryWrapper() })
+    await userEvent.click(await screen.findByRole('button', { name: 'Refresh' }))
+    await screen.findByText(failure)
+
+    await focusAfterStaleTime()
+
+    expect(calls).toBe(3)
+    expect(screen.queryByText(failure)).not.toBeNull()
+    await act(async () => {
+      retry.settle({ ok: false, error: { code: 'unreadable' } })
+      await new Promise((resolve) => setTimeout(resolve, 20))
+    })
+    expect(screen.queryByText(failure)).not.toBeNull()
   })
 })

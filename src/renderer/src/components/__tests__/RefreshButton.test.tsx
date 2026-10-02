@@ -63,7 +63,7 @@ describe('RefreshButton', () => {
     render(<RefreshButton onRefresh={vi.fn()} status="failed" />)
 
     const note = screen.getByRole('status')
-    expect(note.textContent).toBe("Couldn't refresh. Showing the last loaded lists.")
+    expect(note.textContent).toBe("Couldn't refresh the lists.")
     expect(note.className).not.toContain('visuallyHidden')
     expect(screen.queryByRole('button', { name: 'Refresh' })).not.toBeNull()
   })
