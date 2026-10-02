@@ -2,6 +2,7 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { IpcResult } from '../../../../../shared/ipc/ipcResult'
+import type { ProjectDto } from '../../../../../shared/ipc/projectDto'
 import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
 import { LISTS_STALE_TIME_MS } from '@renderer/app/listsStaleTime'
 import { registerWindowFocusRefetch } from '@renderer/app/windowFocusRefetch'
@@ -65,13 +66,22 @@ afterEach(async () => {
   await resetPersistedState()
 })
 
-/** Renders the app with the given `listSessions` and waits for the first list. */
+/**
+ * Renders the app with the given list loaders and waits for the first session
+ * list. `projects` is a fixed list, or a loader for tests that make the
+ * project list fail.
+ */
 async function showSessions(
   listSessions: (dirName: string) => Promise<SessionsResult>,
-  projects = [testProject(DIR)]
+  projects: readonly ProjectDto[] | (() => Promise<IpcResult<readonly ProjectDto[]>>) = [
+    testProject(DIR)
+  ]
 ): Promise<TestBeekeeperApi> {
   const api = installBeekeeperApi({
-    listProjects: () => Promise.resolve({ ok: true, value: projects }),
+    listProjects:
+      typeof projects === 'function'
+        ? projects
+        : () => Promise.resolve({ ok: true, value: projects }),
     listSessions
   })
   render(<App />, { wrapper: createQueryWrapper() })
@@ -242,6 +252,7 @@ describe('the Refresh button', () => {
     expect(screen.queryByRole('button', { name: 'Refresh' })).not.toBeNull()
     expect(refreshStatus()?.textContent).toBe(failure)
 
+    vi.advanceTimersByTime(1)
     await userEvent.click(screen.getByRole('button', { name: 'Refresh' }))
     await waitFor(() => {
       expect(refreshStatus()?.textContent).toBe('Lists updated')
@@ -287,27 +298,92 @@ describe('the Refresh button', () => {
     })
   })
 
-  it('does not bring the failure note back when a later focus refetch fails on its own', async () => {
+  it('shows and announces a failure when a focus refetch fails on its own, and drops it on a later success', async () => {
     const failure = "Couldn't refresh the lists."
     let calls = 0
     await showSessions(() => {
       calls += 1
-      return calls === 2 || calls === 4
+      return calls === 2
+        ? Promise.resolve({ ok: false, error: { code: 'unreadable' } })
+        : loaded([lead])
+    })
+
+    await focusAfterStaleTime()
+
+    expect(calls).toBe(2)
+    expect(refreshStatus()?.textContent).toBe(failure)
+
+    await focusAfterStaleTime()
+
+    await waitFor(() => {
+      expect(refreshStatus()?.textContent).toBe('')
+    })
+  })
+
+  it('does not announce the lists updated again after a failure clears', async () => {
+    let calls = 0
+    await showSessions(() => {
+      calls += 1
+      return calls === 3
         ? Promise.resolve({ ok: false, error: { code: 'unreadable' } })
         : loaded([lead])
     })
     await userEvent.click(await screen.findByRole('button', { name: 'Refresh' }))
-    await screen.findByText(failure)
+    await waitFor(() => {
+      expect(refreshStatus()?.textContent).toBe('Lists updated')
+    })
     await focusAfterStaleTime()
     await waitFor(() => {
-      expect(screen.queryByText(failure)).toBeNull()
+      expect(refreshStatus()?.textContent).toBe("Couldn't refresh the lists.")
     })
 
     await focusAfterStaleTime()
 
-    expect(calls).toBe(4)
-    expect(screen.queryByText(failure)).toBeNull()
-    expect(refreshStatus()?.textContent).toBe('')
+    await waitFor(() => {
+      expect(refreshStatus()?.textContent).toBe('')
+    })
+  })
+
+  it('shows a failure when the project list fails to reload and the session list does not', async () => {
+    let projectCalls = 0
+    await showSessions(
+      () => loaded([lead]),
+      () => {
+        projectCalls += 1
+        return projectCalls === 2
+          ? Promise.resolve({ ok: false, error: { code: 'unreadable' } })
+          : Promise.resolve({ ok: true, value: [testProject(DIR)] })
+      }
+    )
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Refresh' }))
+
+    await waitFor(() => {
+      expect(refreshStatus()?.textContent).toBe("Couldn't refresh the lists.")
+    })
+  })
+
+  it('shows a failure when a focus refetch of the project list fails, and drops it on a later success', async () => {
+    let projectCalls = 0
+    await showSessions(
+      () => loaded([lead]),
+      () => {
+        projectCalls += 1
+        return projectCalls === 2
+          ? Promise.resolve({ ok: false, error: { code: 'unreadable' } })
+          : Promise.resolve({ ok: true, value: [testProject(DIR)] })
+      }
+    )
+
+    await focusAfterStaleTime()
+
+    expect(refreshStatus()?.textContent).toBe("Couldn't refresh the lists.")
+
+    await focusAfterStaleTime()
+
+    await waitFor(() => {
+      expect(refreshStatus()?.textContent).toBe('')
+    })
   })
 
   it('keeps the failure note while a retry of a list that never loaded is pending, and after it fails', async () => {
