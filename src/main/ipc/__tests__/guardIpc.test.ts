@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { IpcResult } from '../../../shared/ipc/ipcResult'
+import { errorWithCode } from '../../testErrorWithCode'
 import { guardIpc } from '../guardIpc'
 import { okResult } from '../ipcResults'
 import { toIpcErrorCode } from '../toIpcErrorCode'
@@ -89,25 +90,19 @@ describe('guardIpc logging', () => {
   })
 
   it('names an unmapped code in the line, never the message', async () => {
-    const { lines, run } = loggedLines(() =>
-      Promise.reject(Object.assign(new Error('read failed /Users/x/path'), { code: 'EIO' }))
-    )
+    const { lines, run } = loggedLines(() => Promise.reject(errorWithCode('EIO')))
     await run()
     expect(lines).toEqual(['Beekeeper hit an internal error handling an IPC call (EIO).'])
   })
 
   it('logs nothing for a missing file', async () => {
-    const { lines, run } = loggedLines(() =>
-      Promise.reject(Object.assign(new Error('/Users/x/path'), { code: 'ENOENT' }))
-    )
+    const { lines, run } = loggedLines(() => Promise.reject(errorWithCode('ENOENT')))
     await run()
     expect(lines).toEqual([])
   })
 
   it('logs nothing for a permission failure', async () => {
-    const { lines, run } = loggedLines(() =>
-      Promise.reject(Object.assign(new Error('/Users/x/path'), { code: 'EACCES' }))
-    )
+    const { lines, run } = loggedLines(() => Promise.reject(errorWithCode('EACCES')))
     await run()
     expect(lines).toEqual([])
   })
