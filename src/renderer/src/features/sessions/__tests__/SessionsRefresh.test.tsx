@@ -284,4 +284,27 @@ describe('the Refresh button', () => {
       expect(screen.queryByText(failure)).toBeNull()
     })
   })
+
+  it('does not bring the failure note back when a later focus refetch fails on its own', async () => {
+    const failure = "Couldn't refresh. Showing the last loaded lists."
+    let calls = 0
+    await showSessions(() => {
+      calls += 1
+      return calls === 2 || calls === 4
+        ? Promise.resolve({ ok: false, error: { code: 'unreadable' } })
+        : loaded([lead])
+    })
+    await userEvent.click(await screen.findByRole('button', { name: 'Refresh' }))
+    await screen.findByText(failure)
+    await focusAfterStaleTime()
+    await waitFor(() => {
+      expect(screen.queryByText(failure)).toBeNull()
+    })
+
+    await focusAfterStaleTime()
+
+    expect(calls).toBe(4)
+    expect(screen.queryByText(failure)).toBeNull()
+    expect(refreshStatus()?.textContent).toBe('')
+  })
 })

@@ -46,6 +46,9 @@ export function useRefreshLists(dirName: string): RefreshLists {
     () => listsFailed(queryClient, dirName)
   )
 
+  // A failure ends once neither list is in error, so a later failure of its own isn't a failed refresh.
+  if (status === 'failed' && !stillFailed) setStatus('idle')
+
   useEffect(() => {
     mounted.current = true
     return () => {
@@ -64,5 +67,5 @@ export function useRefreshLists(dirName: string): RefreshLists {
     })
   }, [queryClient, dirName])
 
-  return { refresh, status: status === 'failed' && !stillFailed ? 'idle' : status }
+  return { refresh, status }
 }
