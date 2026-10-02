@@ -2,9 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import styles from './RefreshButton.module.css'
 import { STATUS_ANNOUNCE_DELAY_MS } from './statusAnnounceDelay'
-
-/** Where a refresh stands. */
-export type RefreshButtonStatus = 'idle' | 'refreshing' | 'refreshed' | 'failed'
+import type { RefreshStatus } from './useRefreshLists'
 
 /** The status message for each finished refresh. */
 const MESSAGE_KEYS = { refreshed: 'refreshed', failed: 'refreshFailed' } as const
@@ -18,22 +16,23 @@ interface RefreshButtonProps {
    * ignores clicks. `refreshed` is announced and `failed` is announced and
    * shown, each in a polite status.
    */
-  readonly status: RefreshButtonStatus
+  readonly status: RefreshStatus
 }
 
 /**
- * A "Refresh" button with a polite status beside it. While a refresh runs the
- * button is marked `aria-disabled` and ignores clicks, rather than using
- * `disabled`, which would drop it from the tab order and send focus to the
- * page body. It never moves focus. A success is announced and stays visually
- * hidden. A failure is announced and also shown, since it needs a person's
- * attention.
+ * A "Refresh" button with a note and a polite status beside it. While a
+ * refresh runs the button is marked `aria-disabled` and ignores clicks,
+ * rather than using `disabled`, which would drop it from the tab order and
+ * send focus to the page body. It never moves focus.
  *
- * Screen readers announce a live region's changes, not what it held when it
- * mounted. So the status renders empty, and on every message change it is
- * cleared and then filled after {@link STATUS_ANNOUNCE_DELAY_MS}. That
- * announces even a failure already present when the button mounts, and keeps
- * a failure that clears and returns quickly from merging into no change.
+ * A failure is shown at once in a note that is hidden from assistive tech,
+ * since the status announces it. The status is always visually hidden and
+ * carries both messages. Screen readers announce a live region's changes, not
+ * what it held when it mounted, so it renders empty, and on every message
+ * change it is cleared and then filled after {@link STATUS_ANNOUNCE_DELAY_MS}.
+ * That announces even a failure already present when the button mounts, and
+ * keeps a failure that clears and returns quickly from merging into no
+ * change. Each message is heard once, through the status.
  *
  * @example
  * <RefreshButton onRefresh={refresh} status="idle" />
@@ -68,11 +67,12 @@ export function RefreshButton({ onRefresh, status }: RefreshButtonProps): React.
       >
         {refreshing ? t('refreshing') : t('refresh')}
       </button>
-      <p
-        ref={statusRef}
-        role="status"
-        className={status === 'failed' ? styles.note : 'visuallyHidden'}
-      />
+      {status === 'failed' && (
+        <p className={styles.note} aria-hidden="true">
+          {message}
+        </p>
+      )}
+      <p ref={statusRef} role="status" className="visuallyHidden" />
     </>
   )
 }

@@ -11,6 +11,7 @@ import { installBeekeeperApi, testProject, type TestBeekeeperApi } from '@render
 import { createQueryWrapper } from '@renderer/testQueryWrapper'
 import { resetPersistedState } from '@renderer/testRenderApp'
 import App from '@renderer/App'
+import { STATUS_ANNOUNCE_DELAY_MS } from '../statusAnnounceDelay'
 import { useSessionsViewStore } from '../state/useSessionsViewStore'
 import {
   testAgentRole,
@@ -92,6 +93,19 @@ async function showSessions(
 /** The refresh button's status region, the one inside the page heading. */
 const refreshStatus = (): HTMLElement | undefined =>
   screen.getAllByRole('status').find((region) => region.closest('header') !== null)
+
+const FAILURE = "Couldn't refresh the lists."
+
+/** The failure note sighted users see, which assistive tech skips. */
+const failureNote = (): HTMLElement | null =>
+  screen.queryByText(FAILURE, { selector: '[aria-hidden="true"]' })
+
+/** Lets the status region's delayed text arrive, so an assertion on it can fail. */
+async function afterAnnounceDelay(): Promise<void> {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, STATUS_ANNOUNCE_DELAY_MS + 20))
+  })
+}
 
 /** Ages the lists past their stale time, then focuses the window and lets the refetch start. */
 async function focusAfterStaleTime(): Promise<void> {
@@ -235,7 +249,6 @@ describe('the Refresh button', () => {
   })
 
   it('shows and announces a failed refresh, with the button ready again, until a press succeeds', async () => {
-    const failure = "Couldn't refresh the lists."
     let calls = 0
     await showSessions(() => {
       calls += 1
@@ -245,18 +258,19 @@ describe('the Refresh button', () => {
     })
 
     await userEvent.click(await screen.findByRole('button', { name: 'Refresh' }))
-    await screen.findByText(failure)
+    await waitFor(() => {
+      expect(failureNote()).not.toBeNull()
+    })
+    await afterAnnounceDelay()
 
     expect(screen.queryByRole('button', { name: 'Refresh' })).not.toBeNull()
-    await waitFor(() => {
-      expect(refreshStatus()?.textContent).toBe(failure)
-    })
+    expect(refreshStatus()?.textContent).toBe(FAILURE)
 
     await userEvent.click(screen.getByRole('button', { name: 'Refresh' }))
-    await waitFor(() => {
-      expect(refreshStatus()?.textContent).toBe('Lists updated')
-    })
-    expect(screen.queryByText(failure)).toBeNull()
+    await afterAnnounceDelay()
+
+    expect(refreshStatus()?.textContent).toBe('Lists updated')
+    expect(failureNote()).toBeNull()
   })
 
   it('gives the project switched to an idle button and an empty status mid-refresh', async () => {
@@ -275,11 +289,12 @@ describe('the Refresh button', () => {
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Project' }), OTHER)
 
     await screen.findByRole('button', { name: 'Refresh' })
+    await afterAnnounceDelay()
     expect(refreshStatus()?.textContent).toBe('')
+    expect(failureNote()).toBeNull()
   })
 
   it('drops the failure note once a later focus refetch loads the lists', async () => {
-    const failure = "Couldn't refresh the lists."
     let calls = 0
     await showSessions(() => {
       calls += 1
@@ -288,17 +303,18 @@ describe('the Refresh button', () => {
         : loaded([lead])
     })
     await userEvent.click(await screen.findByRole('button', { name: 'Refresh' }))
-    await screen.findByText(failure)
+    await waitFor(() => {
+      expect(failureNote()).not.toBeNull()
+    })
 
     await focusAfterStaleTime()
+    await afterAnnounceDelay()
 
-    await waitFor(() => {
-      expect(screen.queryByText(failure)).toBeNull()
-    })
+    expect(failureNote()).toBeNull()
+    expect(refreshStatus()?.textContent).toBe('')
   })
 
   it('shows and announces a failure when a focus refetch fails on its own, and drops it on a later success', async () => {
-    const failure = "Couldn't refresh the lists."
     let calls = 0
     await showSessions(() => {
       calls += 1
@@ -308,17 +324,17 @@ describe('the Refresh button', () => {
     })
 
     await focusAfterStaleTime()
+    await afterAnnounceDelay()
 
     expect(calls).toBe(2)
-    await waitFor(() => {
-      expect(refreshStatus()?.textContent).toBe(failure)
-    })
+    expect(failureNote()).not.toBeNull()
+    expect(refreshStatus()?.textContent).toBe(FAILURE)
 
     await focusAfterStaleTime()
+    await afterAnnounceDelay()
 
-    await waitFor(() => {
-      expect(refreshStatus()?.textContent).toBe('')
-    })
+    expect(failureNote()).toBeNull()
+    expect(refreshStatus()?.textContent).toBe('')
   })
 
   it('does not announce the lists updated again after a failure clears', async () => {
@@ -330,19 +346,16 @@ describe('the Refresh button', () => {
         : loaded([lead])
     })
     await userEvent.click(await screen.findByRole('button', { name: 'Refresh' }))
-    await waitFor(() => {
-      expect(refreshStatus()?.textContent).toBe('Lists updated')
-    })
+    await afterAnnounceDelay()
+    expect(refreshStatus()?.textContent).toBe('Lists updated')
     await focusAfterStaleTime()
-    await waitFor(() => {
-      expect(refreshStatus()?.textContent).toBe("Couldn't refresh the lists.")
-    })
+    await afterAnnounceDelay()
+    expect(refreshStatus()?.textContent).toBe(FAILURE)
 
     await focusAfterStaleTime()
+    await afterAnnounceDelay()
 
-    await waitFor(() => {
-      expect(refreshStatus()?.textContent).toBe('')
-    })
+    expect(refreshStatus()?.textContent).toBe('')
   })
 
   it('shows a failure when the project list fails to reload and the session list does not', async () => {
@@ -358,10 +371,9 @@ describe('the Refresh button', () => {
     )
 
     await userEvent.click(await screen.findByRole('button', { name: 'Refresh' }))
+    await afterAnnounceDelay()
 
-    await waitFor(() => {
-      expect(refreshStatus()?.textContent).toBe("Couldn't refresh the lists.")
-    })
+    expect(refreshStatus()?.textContent).toBe(FAILURE)
   })
 
   it('shows a failure when a focus refetch of the project list fails, and drops it on a later success', async () => {
@@ -377,20 +389,16 @@ describe('the Refresh button', () => {
     )
 
     await focusAfterStaleTime()
-
-    await waitFor(() => {
-      expect(refreshStatus()?.textContent).toBe("Couldn't refresh the lists.")
-    })
+    await afterAnnounceDelay()
+    expect(refreshStatus()?.textContent).toBe(FAILURE)
 
     await focusAfterStaleTime()
+    await afterAnnounceDelay()
 
-    await waitFor(() => {
-      expect(refreshStatus()?.textContent).toBe('')
-    })
+    expect(refreshStatus()?.textContent).toBe('')
   })
 
   it('shows the failure again when the retry of a list that never loaded fails', async () => {
-    const failure = "Couldn't refresh the lists."
     const retry = deferred()
     let calls = 0
     installBeekeeperApi({
@@ -404,17 +412,23 @@ describe('the Refresh button', () => {
     })
     render(<App />, { wrapper: createQueryWrapper() })
     await userEvent.click(await screen.findByRole('button', { name: 'Refresh' }))
-    await screen.findByText(failure)
+    await waitFor(() => {
+      expect(failureNote()).not.toBeNull()
+    })
 
     await focusAfterStaleTime()
+    await afterAnnounceDelay()
 
     expect(calls).toBe(3)
     // The retry has no list to show yet, so the page says it is loading instead.
-    expect(screen.queryByText(failure)).toBeNull()
+    expect(failureNote()).toBeNull()
+    expect(refreshStatus()?.textContent).toBe('')
     await act(async () => {
       retry.settle({ ok: false, error: { code: 'unreadable' } })
       await new Promise((resolve) => setTimeout(resolve, 20))
     })
-    await screen.findByText(failure)
+    await afterAnnounceDelay()
+    expect(failureNote()).not.toBeNull()
+    expect(refreshStatus()?.textContent).toBe(FAILURE)
   })
 })

@@ -57,17 +57,14 @@ describe('RefreshButton', () => {
     expect(onRefresh).toHaveBeenCalledOnce()
   })
 
-  it('keeps the success status visually hidden', () => {
-    render(<RefreshButton onRefresh={vi.fn()} status="refreshed" />)
+  it.each(['idle', 'refreshing', 'refreshed', 'failed'] as const)(
+    'keeps the status region visually hidden when the status is %s',
+    (status) => {
+      render(<RefreshButton onRefresh={vi.fn()} status={status} />)
 
-    expect(screen.getByRole('status').className).toContain('visuallyHidden')
-  })
-
-  it('shows the failure status, not visually hidden', () => {
-    render(<RefreshButton onRefresh={vi.fn()} status="failed" />)
-
-    expect(screen.getByRole('status').className).not.toContain('visuallyHidden')
-  })
+      expect(screen.getByRole('status').className).toContain('visuallyHidden')
+    }
+  )
 
   describe('the status text', () => {
     const FAILURE = "Couldn't refresh the lists."
@@ -89,6 +86,23 @@ describe('RefreshButton', () => {
       vi.advanceTimersByTime(STATUS_ANNOUNCE_DELAY_MS)
 
       expect(statusText()).toBe(FAILURE)
+    })
+
+    it('shows the failure note at once, hidden from assistive tech, while the status is still empty', () => {
+      render(<RefreshButton onRefresh={vi.fn()} status="failed" />)
+
+      const note = screen.getByText(FAILURE)
+
+      expect(note.getAttribute('aria-hidden')).toBe('true')
+      expect(note).not.toBe(screen.getByRole('status'))
+      expect(statusText()).toBe('')
+    })
+
+    it('shows no failure note unless the refresh failed', () => {
+      render(<RefreshButton onRefresh={vi.fn()} status="refreshed" />)
+      vi.advanceTimersByTime(STATUS_ANNOUNCE_DELAY_MS)
+
+      expect(screen.queryAllByText(FAILURE)).toHaveLength(0)
     })
 
     it('announces that the lists were updated, after the delay', () => {

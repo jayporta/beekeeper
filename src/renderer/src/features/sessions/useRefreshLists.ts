@@ -1,6 +1,8 @@
 import { useQueryClient, type QueryClient, type QueryKey } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import type { RefreshButtonStatus } from './RefreshButton'
+
+/** Where the lists stand after a refresh. */
+export type RefreshStatus = 'idle' | 'refreshing' | 'refreshed' | 'failed'
 
 /** What {@link useRefreshLists} returns. */
 export interface RefreshLists {
@@ -12,7 +14,7 @@ export interface RefreshLists {
    * window-focus refetch, or a retry. Otherwise `refreshed` when the last
    * press loaded both lists and nothing has failed since, else `idle`.
    */
-  readonly status: RefreshButtonStatus
+  readonly status: RefreshStatus
 }
 
 /** The keys of the lists a refresh covers: the projects and one folder's sessions. */
@@ -66,7 +68,7 @@ function pickStatus({
   failed,
   settledFailures,
   failures
-}: StatusInputs): RefreshButtonStatus {
+}: StatusInputs): RefreshStatus {
   if (refreshing) return 'refreshing'
   if (failed) return 'failed'
   return settledFailures === failures ? 'refreshed' : 'idle'
