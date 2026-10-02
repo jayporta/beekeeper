@@ -19,6 +19,13 @@ export interface SessionSummaryDto {
   readonly role: SessionRoleDto
   /** The transcript's latest model as the summary scan picks it, or `null`. */
   readonly model: string | null
+  /** The plan limit the session hit with the latest reset, or `null` when it hit none. */
+  readonly limitHit: {
+    /** Which plan limit: the 5-hour or the 7-day window. */
+    readonly window: 'fiveHour' | 'sevenDay'
+    /** When that window resets, in milliseconds since the Unix epoch. */
+    readonly resetsAtMs: number
+  } | null
 }
 
 /**

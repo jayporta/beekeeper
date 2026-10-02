@@ -32,6 +32,14 @@ export interface RecordedUsage {
   readonly totalTokens: number | null
 }
 
+/** A plan limit a session hit, from the `quotaLimits` of a rejected request. */
+export interface LimitHit {
+  /** Which plan limit rejected the request: the 5-hour or the 7-day window. */
+  readonly window: 'fiveHour' | 'sevenDay'
+  /** When that window resets, in milliseconds since the Unix epoch. */
+  readonly resetsAtMs: number
+}
+
 /**
  * What one pass over a transcript reveals about a session, without building
  * its agent tree or totalling its usage.
@@ -71,4 +79,9 @@ export interface SessionSummary {
   readonly teamSpawns: TranscriptTeamSpawns
   /** The transcript's latest model, as `createLatestModelObserver` picks it, or `null`. */
   readonly model: string | null
+  /**
+   * The plan limit the session hit with the latest reset, or `null` when no
+   * request was rejected for one.
+   */
+  readonly limitHit: LimitHit | null
 }

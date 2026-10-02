@@ -7,6 +7,7 @@ import {
   buildCostStateRecord,
   buildJsonlText,
   buildJsonlTextWithPartialLastLine,
+  buildQuotaRejectionRecord,
   buildUserRecord
 } from '../../testFixtures'
 import { buildTaskStopRecord, buildTeammateSpawnRecord } from '../../testTeammateFixtures'
@@ -41,6 +42,37 @@ describe('scanSessionSummary', () => {
     const summary = await scanSessionSummary(filePath)
 
     expect(summary.title).toBe('What the task turned out to be')
+  })
+
+  it('reports the plan limit hit with the latest reset', async () => {
+    const filePath = writeTranscript(
+      buildJsonlText([
+        buildAssistantRecord(),
+        buildQuotaRejectionRecord({
+          rateLimitType: 'seven_day',
+          resetsAt: Date.parse('2026-01-08T00:00:00Z') / 1000
+        }),
+        buildQuotaRejectionRecord({
+          rateLimitType: 'five_hour',
+          resetsAt: Date.parse('2026-01-01T05:00:00Z') / 1000
+        })
+      ])
+    )
+
+    const summary = await scanSessionSummary(filePath)
+
+    expect(summary.limitHit).toEqual({
+      window: 'sevenDay',
+      resetsAtMs: Date.parse('2026-01-08T00:00:00Z')
+    })
+  })
+
+  it('reports no plan limit hit for a transcript with no rejection', async () => {
+    const filePath = writeTranscript(buildJsonlText([buildAssistantRecord()]))
+
+    const summary = await scanSessionSummary(filePath)
+
+    expect(summary.limitHit).toBeNull()
   })
 
   it('keeps the last valid cost-state when a later cost-state record is malformed', async () => {
@@ -213,7 +245,8 @@ describe('scanSessionSummary', () => {
       skippedLines: 0,
       role: { kind: 'lead' },
       teamSpawns: { spawns: [], stops: [], truncated: false },
-      model: null
+      model: null,
+      limitHit: null
     })
   })
 
@@ -237,7 +270,8 @@ describe('scanSessionSummary', () => {
       skippedLines: 0,
       role: { kind: 'lead' },
       teamSpawns: { spawns: [], stops: [], truncated: false },
-      model: 'claude-opus-5'
+      model: 'claude-opus-5',
+      limitHit: null
     })
   })
 

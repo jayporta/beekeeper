@@ -1,6 +1,6 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { IpcResult } from '../../../../../shared/ipc/ipcResult'
 import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
@@ -154,6 +154,52 @@ describe('SessionsView table', () => {
 
     expect(cells[4]?.textContent).toBe('-not recorded')
     expect(cells[5]?.textContent).toBe('-not recorded')
+  })
+
+  it('notes the plan limit a session hit, and nothing on one that hit none', async () => {
+    showSessions([
+      testSession(5, {
+        projectDirName: DIR,
+        title: 'Hit a limit',
+        limitHit: { window: 'sevenDay', resetsAtMs: Date.parse('2099-01-01T00:00:00Z') }
+      }),
+      testSession(6, { projectDirName: DIR, title: 'No limit' })
+    ])
+
+    const header = await screen.findByRole('rowheader', { name: /Hit a limit/ })
+
+    expect(header.textContent).toMatch(/hit 7-day limit, resets /)
+    expect(screen.getByRole('rowheader', { name: /No limit/ }).textContent).not.toContain('hit ')
+  })
+
+  it('drops the reset time from a limit note once the reset passes while the view stays open', async () => {
+    const nowMs = Date.parse('2026-06-01T00:00:00Z')
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout', 'Date'],
+      now: nowMs,
+      shouldAdvanceTime: true
+    })
+    try {
+      showSessions([
+        testSession(5, {
+          projectDirName: DIR,
+          title: 'Hit a limit',
+          limitHit: { window: 'sevenDay', resetsAtMs: nowMs + 60_000 }
+        })
+      ])
+
+      const header = await screen.findByRole('rowheader', { name: /Hit a limit/ })
+      expect(header.textContent).toContain('resets')
+
+      act(() => {
+        vi.advanceTimersByTime(60_000)
+      })
+
+      expect(header.textContent).toContain('hit 7-day limit')
+      expect(header.textContent).not.toContain('resets')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('expands a lead teammates with a disclosure button and collapses them again', async () => {

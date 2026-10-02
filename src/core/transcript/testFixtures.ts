@@ -62,6 +62,42 @@ export function buildAssistantRecord(
   }
 }
 
+/** Options for {@link buildQuotaRejectionRecord}. */
+interface QuotaRejectionOptions {
+  /** The `quotaLimits.rateLimitType`. Defaults to `seven_day`. */
+  readonly rateLimitType?: unknown
+  /** The `quotaLimits.resetsAt`, in epoch seconds. Defaults to 2026-01-08T00:00:00Z. */
+  readonly resetsAt?: unknown
+  /** The `quotaLimits.status`. Defaults to `rejected`. */
+  readonly status?: unknown
+  /** The record's timestamp. Defaults to 2026-01-01T00:00:00.000Z. */
+  readonly timestamp?: string
+}
+
+/**
+ * Builds a synthetic assistant API-error record for a request rejected by a
+ * plan limit, shaped like the one Claude Code writes, with an unknown extra
+ * field in `quotaLimits` to stand in for the ones Beekeeper ignores.
+ */
+export function buildQuotaRejectionRecord(
+  options: QuotaRejectionOptions = {}
+): Record<string, unknown> {
+  const {
+    rateLimitType = 'seven_day',
+    resetsAt = Date.parse('2026-01-08T00:00:00Z') / 1000,
+    status = 'rejected',
+    timestamp = '2026-01-01T00:00:00.000Z'
+  } = options
+  return {
+    type: 'assistant',
+    timestamp,
+    isApiErrorMessage: true,
+    error: 'rate_limit',
+    message: { id: 'msg_limit', model: '<synthetic>', content: [] },
+    quotaLimits: { status, rateLimitType, resetsAt, overageStatus: 'rejected' }
+  }
+}
+
 /** Builds a synthetic `agent-setting` record, as a teammate agent's transcript begins with. */
 export function buildAgentSettingRecord(
   agentSetting: unknown = 'general-purpose'

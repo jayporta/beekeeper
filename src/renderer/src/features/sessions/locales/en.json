@@ -45,7 +45,13 @@
     "team": "team {{name}}",
     "stopped": "stopped",
     "leadIn": "lead in {{folder}}",
-    "in": "in {{folder}}"
+    "in": "in {{folder}}",
+    "limitHit": {
+      "fiveHour": "hit 5-hour limit",
+      "sevenDay": "hit 7-day limit",
+      "fiveHourResets": "hit 5-hour limit, resets {{value, shortDateTime}}",
+      "sevenDayResets": "hit 7-day limit, resets {{value, shortDateTime}}"
+    }
   },
   "teammateOf": "teammate of {{lead}}",
   "disclosure_one": "{{count, integer}} teammate of {{name}}",
