@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { MAX_TIMER_DELAY_MS, useNowUntil } from '../useNowUntil'
+import { RECHECK_INTERVAL_MS, useNowUntil } from '../useNowUntil'
 
 const START = Date.parse('2026-01-01T00:00:00Z')
 
@@ -41,14 +41,30 @@ describe('useNowUntil', () => {
     expect(vi.getTimerCount()).toBe(0)
   })
 
-  it('sets no timer for a deadline beyond the longest timer delay', () => {
-    renderHook(() => useNowUntil(START + MAX_TIMER_DELAY_MS + 1))
+  it('keeps one timer pending while a far deadline approaches, then moves the time past it', () => {
+    const farMs = 3 * 24 * 60 * 60 * 1000
+    const deadline = START + farMs
+    const { result } = renderHook(() => useNowUntil(deadline))
+    const steps = farMs / RECHECK_INTERVAL_MS
+    for (let step = 1; step <= steps; step++) {
+      expect(result.current).toBeLessThan(deadline)
+      expect(vi.getTimerCount()).toBe(1)
+      act(() => {
+        vi.advanceTimersByTime(RECHECK_INTERVAL_MS)
+      })
+    }
+    expect(result.current).toBeGreaterThanOrEqual(deadline)
     expect(vi.getTimerCount()).toBe(0)
   })
 
-  it('sets a timer for a deadline exactly at the longest timer delay', () => {
-    renderHook(() => useNowUntil(START + MAX_TIMER_DELAY_MS))
-    expect(vi.getTimerCount()).toBe(1)
+  it('notices a deadline within one interval after the clock jumps past it, as after sleep', () => {
+    const deadline = START + 10 * 60_000
+    const { result } = renderHook(() => useNowUntil(deadline))
+    vi.setSystemTime(deadline + 60_000)
+    act(() => {
+      vi.advanceTimersByTime(RECHECK_INTERVAL_MS)
+    })
+    expect(result.current).toBeGreaterThanOrEqual(deadline)
   })
 
   it('clears the timer on unmount', () => {
