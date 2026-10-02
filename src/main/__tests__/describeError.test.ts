@@ -1,13 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { describeError } from '../describeError'
-
-function withCode(code: string): Error {
-  return Object.assign(new Error('failed loading file:///Users/someone/app/index.html'), { code })
-}
+import { errorWithCode } from '../testErrorWithCode'
 
 describe('describeError', () => {
   it('names an error by its code', () => {
-    expect(describeError(withCode('ERR_FILE_NOT_FOUND'))).toBe('ERR_FILE_NOT_FOUND')
+    expect(describeError(errorWithCode('ERR_FILE_NOT_FOUND'))).toBe('ERR_FILE_NOT_FOUND')
   })
 
   it('names a codeless error by its class, never its message', () => {
