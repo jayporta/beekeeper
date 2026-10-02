@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import { err, ok } from '../../../core/shared/result'
 import { toProjectDirName, toSessionId } from '../../../core/transcript/ids'
 import type { SessionSummary } from '../../../core/transcript/summary/sessionSummary'
@@ -108,5 +108,44 @@ describe('mapSessionListItem', () => {
     const item = mapSessionListItem(scanned(err({ reason: 'unreadable', code: 'EACCES' })), null)
 
     expect(item.summary).toEqual({ ok: false, error: { code: 'unreadable' } })
+  })
+
+  describe('with an unmapped read failure', () => {
+    let spy: MockInstance<typeof console.error>
+
+    beforeEach(() => {
+      spy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    })
+
+    afterEach(() => {
+      spy.mockRestore()
+    })
+
+    it('reports an unmapped summary failure as internal and logs its code', () => {
+      const item = mapSessionListItem(scanned(err({ reason: 'unreadable', code: 'EIO' })), null)
+
+      expect(item.summary).toEqual({ ok: false, error: { code: 'internal' } })
+      expect(spy).toHaveBeenCalledExactlyOnceWith(
+        'Beekeeper hit an internal error handling an IPC call (EIO).'
+      )
+    })
+
+    it('logs an unmapped transcript stat failure by code', () => {
+      const failed: ScannedSession = {
+        ...scanned(ok(SUMMARY)),
+        entry: {
+          sessionId: toSessionId('11111111-1111-4111-8111-111111111111'),
+          transcript: err({ reason: 'unreadable', code: 'EIO' }),
+          subagents: ok([])
+        }
+      }
+
+      const item = mapSessionListItem(failed, null)
+
+      expect(item.summary).toEqual({ ok: false, error: { code: 'internal' } })
+      expect(spy).toHaveBeenCalledExactlyOnceWith(
+        'Beekeeper hit an internal error handling an IPC call (EIO).'
+      )
+    })
   })
 })

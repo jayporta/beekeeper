@@ -162,6 +162,33 @@ describe('toIpcErrorCode', () => {
     [new Error('boom'), 'internal'],
     ['string', 'internal']
   ])('maps %j to %s', (error, expected) => {
-    expect(toIpcErrorCode(error)).toBe(expected)
+    expect(toIpcErrorCode(error, () => undefined)).toBe(expected)
+  })
+})
+
+describe('toIpcErrorCode logging', () => {
+  it('logs one line naming an unmapped code, never the message or path', () => {
+    const lines: string[] = []
+    toIpcErrorCode(errorWithCode('EIO'), (line) => lines.push(line))
+    expect(lines).toEqual(['Beekeeper hit an internal error handling an IPC call (EIO).'])
+    expect(lines.join('\n')).not.toContain('/Users')
+  })
+
+  it.each(['ENOENT', 'ENOTDIR', 'EACCES', 'EPERM'])('logs nothing for %s', (code) => {
+    const lines: string[] = []
+    toIpcErrorCode(errorWithCode(code), (line) => lines.push(line))
+    expect(lines).toEqual([])
+  })
+
+  it('logs to the console when no logger is given', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      toIpcErrorCode(errorWithCode('EIO'))
+      expect(spy).toHaveBeenCalledWith(
+        'Beekeeper hit an internal error handling an IPC call (EIO).'
+      )
+    } finally {
+      spy.mockRestore()
+    }
   })
 })
