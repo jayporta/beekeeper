@@ -31,7 +31,7 @@ Beekeeper is local-first and read-only. It makes zero network calls and collects
 
 - `~/.claude/projects/**/*.jsonl`: the main transcript and subagent transcripts for every session
 - `~/.claude/projects/**/subagents/*.meta.json`: per-agent metadata (type, model, team, worktree)
-- Read-only git commands inside your project and worktree folders, to show what a worktree agent changed: `rev-parse`, `merge-base`, `diff`, `diff-index`, and `ls-files` for the changes themselves, `check-ref-format` to validate a branch name, `config --get-regexp` to find filter drivers, since a repo that defines one isn't diffed as a working tree, and `check-attr` to check whether a changed path has a filter attribute, since such a path isn't diffed as a working tree either. Beekeeper also runs `git --version` to find a usable git.
+- Read-only git commands inside your project and worktree folders, to show what a worktree agent changed: `rev-parse`, `merge-base`, `diff`, `diff-index`, and `ls-files` for the changes themselves, `check-ref-format` to validate a branch name, `config --get-regexp` to find filter drivers, since a repo that defines one isn't diffed as a working tree, and `check-attr` to check whether a changed path has a filter attribute, since such a path isn't diffed as a working tree either. To find a usable git, Beekeeper checks a few known install paths, runs `git --version`, and on macOS also runs `xcode-select -p` and `xcrun --find git`.
 - File metadata (`lstat`, `realpath`, `readlink`) inside project and worktree folders, to keep every git path confined to the folder it belongs to. Beekeeper doesn't read file contents there except through git.
 
 Planned: `~/.claude/sessions/*.json`, the live session registry, for a "running now" badge.
@@ -40,7 +40,7 @@ Beekeeper never reads `~/.claude/sessions/*.key` (a peer token, not session data
 
 ## What Beekeeper stores
 
-Beekeeper keeps a cache of the project list and each project's session list (titles, agent and team names, token and cost totals), so the app opens without rescanning everything, plus two preferences: the selected project and whether you've dismissed the first-run screen.
+Beekeeper keeps a cache of the project list and of the session lists you've opened, so the app opens without rescanning everything. The cache holds project folder names (which encode each project's path), and for each session its id, title, agent and team names, which lead and teammates it's grouped with, subagent count, model, activity times, transcript size, token and cost totals, and any plan limit it hit. Beekeeper also keeps two preferences: the selected project and whether you've dismissed the first-run screen.
 
 - They live in IndexedDB in Beekeeper's own app data folder, never in `~/.claude` or in a repository, and they're never sent anywhere.
 - No cached list is older than 7 days, and an update that changes the data format clears the cache. The two preferences stay until you change them.
