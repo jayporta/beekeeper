@@ -117,6 +117,35 @@ describe('ProjectsGate states', () => {
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
+  it.each([
+    ['internal', 'Something went wrong'],
+    ['unreadable', "Can't read your sessions"]
+  ] as const)(
+    'shows the %s error with Retry, not the empty state, when a refresh of an empty list fails',
+    async (code, heading) => {
+      let failing = false
+      installBeekeeperApi({
+        listProjects: () => (failing ? failed(code) : Promise.resolve({ ok: true, value: [] }))
+      })
+      const client = createTestQueryClient()
+      render(
+        <ProjectsGate>
+          <p>the list</p>
+        </ProjectsGate>,
+        { wrapper: createQueryWrapper(client) }
+      )
+      await screen.findByRole('heading', { level: 1, name: 'No sessions found' })
+
+      failing = true
+      await refetchAndSettle(client, ['projects'])
+
+      const alert = await screen.findByRole('alert')
+      expect(within(alert).getByRole('heading', { level: 1, name: heading })).toBeTruthy()
+      expect(within(alert).getByRole('button', { name: 'Retry' })).toBeTruthy()
+      expect(screen.queryByRole('heading', { name: 'No sessions found' })).toBeNull()
+    }
+  )
+
   it('shows the sessions heading with the selected folder name when a project loads', async () => {
     installBeekeeperApi()
     renderApp()
