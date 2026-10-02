@@ -3,7 +3,7 @@ import { parsePriceTable, priceTable, priceTableModels } from '../priceTable'
 
 const validEntry = { input: 1, output: 1, cacheRead: 1, cacheWrite5m: 1, cacheWrite1h: 1 }
 
-const CURRENT_MODEL_IDS = [
+const PRICED_MODEL_IDS = [
   'claude-fable-5-1',
   'claude-fable-5',
   'claude-opus-5-5',
@@ -23,7 +23,7 @@ const CURRENT_MODEL_IDS = [
   'claude-3-5-haiku'
 ]
 
-const ADDED_RATES = [
+const PINNED_RATES = [
   [
     'claude-sonnet-5-5',
     { input: 2, output: 10, cacheRead: 0.2, cacheWrite5m: 2.5, cacheWrite1h: 4 }
@@ -63,11 +63,11 @@ describe('priceTable', () => {
     expect(Number.isNaN(Date.parse(priceTable.asOf))).toBe(false)
   })
 
-  it.each(CURRENT_MODEL_IDS)('prices %s', (modelId) => {
+  it.each(PRICED_MODEL_IDS)('prices %s', (modelId) => {
     expect(priceTableModels.has(modelId)).toBe(true)
   })
 
-  it.each(ADDED_RATES)('prices %s at the pricing page rates', (modelId, rates) => {
+  it.each(PINNED_RATES)('prices %s at the pricing page rates', (modelId, rates) => {
     expect(priceTableModels.get(modelId)?.standard).toEqual(rates)
   })
 
