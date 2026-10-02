@@ -19,6 +19,14 @@ describe('describeError', () => {
     expect(described).toBe('TypeError')
   })
 
+  it('names an error as unknown when its class name is not a plain identifier', () => {
+    const error = Object.assign(new Error('message'), {
+      name: '/Users/someone/secret\nforged line'
+    })
+
+    expect(describeError(error)).toBe('unknown error')
+  })
+
   it('names a thrown non-error as unknown', () => {
     expect(describeError('/Users/someone/secret/path')).toBe('unknown error')
   })
