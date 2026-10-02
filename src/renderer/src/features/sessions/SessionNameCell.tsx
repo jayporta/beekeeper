@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { limitHitNote } from './limitHitNote'
 import styles from './SessionNameCell.module.css'
 import { rowId } from './rowId'
 import type { SessionRow } from './sessionRow'
@@ -23,18 +25,22 @@ interface SessionNameCellProps {
 interface NotesOptions {
   /** The folder the list is for, to mark sessions from another folder. */
   readonly selectedDirName: string
+  /** The time to compare a limit's reset against, in milliseconds since the Unix epoch. */
+  readonly nowMs: number
   /** The sessions translate function. */
   readonly t: SessionsT
 }
 
-/** The muted notes after a session's name: its team, stopped state, and folders. */
-function notesFor(row: SessionRow, { selectedDirName, t }: NotesOptions): string[] {
+/** The muted notes after a session's name: its team, stopped state, plan limit hit, and folders. */
+function notesFor(row: SessionRow, { selectedDirName, nowMs, t }: NotesOptions): string[] {
   const { item, leadFolder } = row
   const notes: string[] = []
   if (item.team?.kind === 'ungrouped' && item.team.teamName !== null) {
     notes.push(t('notes.team', { name: item.team.teamName }))
   }
   if (item.team?.kind === 'teammate' && item.team.stopped) notes.push(t('notes.stopped'))
+  const limit = item.summary.ok ? limitHitNote(item.summary.value.limitHit, { nowMs, t }) : null
+  if (limit !== null) notes.push(limit)
   if (leadFolder !== null) notes.push(t('notes.leadIn', { folder: leadFolder }))
   if (item.projectDirName !== selectedDirName) {
     notes.push(t('notes.in', { folder: item.projectDirName }))
@@ -60,6 +66,7 @@ export function SessionNameCell({
   const expanded = useSessionsViewStore((state) => state.expanded.has(row.key))
   const toggle = useSessionsViewStore((state) => state.toggle)
   const { t } = useTranslation('sessions')
+  const [nowMs] = useState(Date.now)
   const { text, idHint } = row.label
   const count = row.teammates.length
 
@@ -85,7 +92,7 @@ export function SessionNameCell({
           <span className="visuallyHidden">{t('teammateOf', { lead: leadLabel })}</span>
         )}
         {idHint !== null && <span className={styles.note}>{idHint}</span>}
-        {notesFor(row, { selectedDirName, t }).map((note) => (
+        {notesFor(row, { selectedDirName, nowMs, t }).map((note) => (
           <span key={note} className={styles.note}>
             {note}
           </span>

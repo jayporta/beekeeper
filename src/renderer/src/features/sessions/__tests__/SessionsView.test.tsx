@@ -156,6 +156,22 @@ describe('SessionsView table', () => {
     expect(cells[5]?.textContent).toBe('-not recorded')
   })
 
+  it('notes the plan limit a session hit, and nothing on one that hit none', async () => {
+    showSessions([
+      testSession(5, {
+        projectDirName: DIR,
+        title: 'Hit a limit',
+        limitHit: { window: 'sevenDay', resetsAtMs: Date.parse('2099-01-01T00:00:00Z') }
+      }),
+      testSession(6, { projectDirName: DIR, title: 'No limit' })
+    ])
+
+    const header = await screen.findByRole('rowheader', { name: /Hit a limit/ })
+
+    expect(header.textContent).toMatch(/hit 7-day limit, resets /)
+    expect(screen.getByRole('rowheader', { name: /No limit/ }).textContent).not.toContain('hit ')
+  })
+
   it('expands a lead teammates with a disclosure button and collapses them again', async () => {
     showSessions()
     const button = await screen.findByRole('button', { name: '2 teammates of Refactor parser' })

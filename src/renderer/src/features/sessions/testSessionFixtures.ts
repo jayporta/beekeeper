@@ -25,6 +25,8 @@ interface TestSessionOptions {
   readonly costUSD?: number | null
   /** The recorded token total. Defaults to none. */
   readonly totalTokens?: number | null
+  /** The plan limit the session hit. Defaults to `null`. */
+  readonly limitHit?: SessionSummaryDto['limitHit']
   /** Whether the summary could not be read. Defaults to `false`. */
   readonly unreadable?: boolean
 }
@@ -47,6 +49,7 @@ export function testSession(n: number, options: TestSessionOptions = {}): Sessio
     model = null,
     costUSD,
     totalTokens,
+    limitHit = null,
     unreadable = false
   } = options
 
@@ -60,7 +63,7 @@ export function testSession(n: number, options: TestSessionOptions = {}): Sessio
     skippedLines: 0,
     role,
     model,
-    limitHit: null
+    limitHit
   }
   return {
     projectDirName,
