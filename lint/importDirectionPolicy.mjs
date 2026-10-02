@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * The one-way dependency directions between the top folders of `src`, as the
  * option for the `beekeeper/import-direction` rule. Each key is a folder and

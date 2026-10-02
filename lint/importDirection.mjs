@@ -1,3 +1,4 @@
+// @ts-check
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -94,6 +95,7 @@ const importDirection = {
     const rules = from === undefined ? undefined : context.options[0]?.[from]
     if (rules === undefined) return {}
     const folders = new Set(rules.folders ?? [])
+    /** @type {string[]} */
     const packages = rules.packages ?? []
 
     /** @param {import('estree').Node | null | undefined} node */
@@ -114,7 +116,7 @@ const importDirection = {
       ExportNamedDeclaration: (node) => check(node.source),
       ImportExpression: (node) => check(node.source),
       // `typeof import('x')` and `import('x').T`.
-      TSImportType: (node) => check(node.source)
+      TSImportType: (/** @type {{ source: import('estree').Literal }} */ node) => check(node.source)
     }
   }
 }
