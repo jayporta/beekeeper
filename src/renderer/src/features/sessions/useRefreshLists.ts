@@ -2,24 +2,26 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 /** Where a manual refresh stands. */
-type RefreshStatus = 'idle' | 'refreshing' | 'refreshed'
+export type RefreshStatus = 'idle' | 'refreshing' | 'refreshed' | 'failed'
 
 /** What {@link useRefreshLists} returns. */
 export interface RefreshLists {
   /** Refetches the project list and the folder's session list now, whatever their age. */
   readonly refresh: () => void
-  /** Whether a refresh started from `refresh` is still running. */
-  readonly refreshing: boolean
-  /** Whether the last refresh finished with both lists loaded, rather than one failing. */
-  readonly refreshed: boolean
+  /**
+   * Where the last refresh stands: `refreshing` while it runs, then `refreshed`
+   * when both lists loaded or `failed` when either did not. A new `refresh`
+   * clears a failure.
+   */
+  readonly status: RefreshStatus
 }
 
 /**
  * Refetches the project list and one folder's session list on demand. A list
  * that is already loading is reused rather than fetched again, so a press
  * while a window-focus refetch is running, or two quick presses, make one
- * call per list. A list that fails to reload keeps its data; the refresh
- * still finishes, without reporting success.
+ * call per list. A list that fails to reload keeps its data, and the refresh
+ * reports `failed`.
  *
  * @param dirName - The folder whose session list to refetch.
  * @returns The refresh action and where it stands.
@@ -48,9 +50,9 @@ export function useRefreshLists(dirName: string): RefreshLists {
       const failed = queryKeys.some(
         (queryKey) => queryClient.getQueryState(queryKey)?.status === 'error'
       )
-      setStatus(failed ? 'idle' : 'refreshed')
+      setStatus(failed ? 'failed' : 'refreshed')
     })
   }, [queryClient, dirName])
 
-  return { refresh, refreshing: status === 'refreshing', refreshed: status === 'refreshed' }
+  return { refresh, status }
 }

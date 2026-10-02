@@ -9,12 +9,13 @@ interface RefreshSessionsButtonProps {
 
 /**
  * A button that refetches the project list and a folder's session list now.
+ * Its state belongs to one folder, so render it with `key={dirName}`.
  *
  * @example
  * <RefreshSessionsButton dirName="-Users-me-repo" />
  */
 export function RefreshSessionsButton({ dirName }: RefreshSessionsButtonProps): React.JSX.Element {
-  const { refresh, refreshing, refreshed } = useRefreshLists(dirName)
+  const { refresh, status } = useRefreshLists(dirName)
 
-  return <RefreshButton onRefresh={refresh} refreshing={refreshing} refreshed={refreshed} />
+  return <RefreshButton onRefresh={refresh} status={status} />
 }

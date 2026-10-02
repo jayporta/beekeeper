@@ -20,7 +20,7 @@ export function SessionsView(): React.JSX.Element {
     <div className={styles.view}>
       <SelectedProjectHeading
         headingId={headingId}
-        actions={dirName !== null && <RefreshSessionsButton dirName={dirName} />}
+        actions={dirName !== null && <RefreshSessionsButton key={dirName} dirName={dirName} />}
       />
       {dirName !== null && <SessionsContent dirName={dirName} headingId={headingId} />}
     </div>

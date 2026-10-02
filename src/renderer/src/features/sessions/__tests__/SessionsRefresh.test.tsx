@@ -67,7 +67,7 @@ afterEach(async () => {
 
 /** Renders the app with the given `listSessions` and waits for the first list. */
 async function showSessions(
-  listSessions: () => Promise<SessionsResult>,
+  listSessions: (dirName: string) => Promise<SessionsResult>,
   projects = [testProject(DIR)]
 ): Promise<TestBeekeeperApi> {
   const api = installBeekeeperApi({
@@ -78,6 +78,10 @@ async function showSessions(
   await screen.findByRole('rowheader', { name: /Refactor parser/ })
   return api
 }
+
+/** The refresh button's status region, the one inside the page heading. */
+const refreshStatus = (): HTMLElement | undefined =>
+  screen.getAllByRole('status').find((region) => region.closest('header') !== null)
 
 /** Ages the lists past their stale time, then focuses the window and lets the refetch start. */
 async function focusAfterStaleTime(): Promise<void> {
@@ -218,5 +222,47 @@ describe('the Refresh button', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Refresh' }))
 
     expect(api.listSessions).toHaveBeenCalledTimes(2)
+  })
+
+  it('shows and announces a failed refresh, with the button ready again, until a press succeeds', async () => {
+    const failure = "Couldn't refresh. Showing the last loaded lists."
+    let calls = 0
+    await showSessions(() => {
+      calls += 1
+      return calls === 2
+        ? Promise.resolve({ ok: false, error: { code: 'unreadable' } })
+        : loaded([lead])
+    })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Refresh' }))
+    await screen.findByText(failure)
+
+    expect(screen.queryByRole('button', { name: 'Refresh' })).not.toBeNull()
+    expect(refreshStatus()?.textContent).toBe(failure)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    await waitFor(() => {
+      expect(refreshStatus()?.textContent).toBe('Lists updated')
+    })
+    expect(screen.queryByText(failure)).toBeNull()
+  })
+
+  it('gives the project switched to an idle button and an empty status mid-refresh', async () => {
+    const pending = deferred()
+    let calls = 0
+    await showSessions(
+      (dirName) => {
+        calls += 1
+        return dirName === DIR && calls === 2 ? pending.promise : loaded([lead])
+      },
+      [testProject(DIR), testProject(OTHER)]
+    )
+    await userEvent.click(await screen.findByRole('button', { name: 'Refresh' }))
+    await screen.findByRole('button', { name: 'Refreshing' })
+
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Project' }), OTHER)
+
+    await screen.findByRole('button', { name: 'Refresh' })
+    expect(refreshStatus()?.textContent).toBe('')
   })
 })

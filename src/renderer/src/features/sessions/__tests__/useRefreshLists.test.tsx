@@ -31,10 +31,10 @@ function renderRefresh(listSessions: () => Promise<SessionsResult>): {
 const emptyList = (): Promise<SessionsResult> => Promise.resolve({ ok: true, value: [] })
 
 describe('useRefreshLists', () => {
-  it('starts idle, neither refreshing nor refreshed', () => {
+  it('starts idle', () => {
     const { result } = renderRefresh(emptyList)
 
-    expect(result.current).toMatchObject({ refreshing: false, refreshed: false })
+    expect(result.current.status).toBe('idle')
   })
 
   it('refetches the project list and the folder session list, however fresh they are', async () => {
@@ -48,7 +48,7 @@ describe('useRefreshLists', () => {
     })
 
     await waitFor(() => {
-      expect(result.current.refreshed).toBe(true)
+      expect(result.current.status).toBe('refreshed')
     })
     expect(api.listProjects).toHaveBeenCalledTimes(2)
     expect(api.listSessions).toHaveBeenCalledTimes(2)
@@ -74,17 +74,15 @@ describe('useRefreshLists', () => {
       result.current.refresh()
     })
     await waitFor(() => {
-      expect(result.current.refreshing).toBe(true)
+      expect(result.current.status).toBe('refreshing')
     })
-    expect(result.current.refreshed).toBe(false)
-
     await act(async () => {
       release()
       await Promise.resolve()
     })
 
     await waitFor(() => {
-      expect(result.current).toMatchObject({ refreshing: false, refreshed: true })
+      expect(result.current.status).toBe('refreshed')
     })
   })
 
@@ -103,13 +101,13 @@ describe('useRefreshLists', () => {
       result.current.refresh()
     })
     await waitFor(() => {
-      expect(result.current.refreshed).toBe(true)
+      expect(result.current.status).toBe('refreshed')
     })
 
     expect(calls).toBe(2)
   })
 
-  it('stops refreshing without announcing success when a list fails to load', async () => {
+  it('reports failed when a list fails to load', async () => {
     let calls = 0
     const { result } = renderRefresh(() => {
       calls += 1
@@ -125,11 +123,34 @@ describe('useRefreshLists', () => {
     })
 
     await waitFor(() => {
-      expect(calls).toBe(2)
+      expect(result.current.status).toBe('failed')
+    })
+  })
+
+  it('clears a failure when refreshed again, and reports refreshed once the lists load', async () => {
+    let calls = 0
+    const { result } = renderRefresh(() => {
+      calls += 1
+      if (calls === 2) return Promise.resolve({ ok: false, error: { code: 'unreadable' } })
+      return emptyList()
     })
     await waitFor(() => {
-      expect(result.current.refreshing).toBe(false)
+      expect(calls).toBe(1)
     })
-    expect(result.current.refreshed).toBe(false)
+    act(() => {
+      result.current.refresh()
+    })
+    await waitFor(() => {
+      expect(result.current.status).toBe('failed')
+    })
+
+    act(() => {
+      result.current.refresh()
+    })
+    expect(result.current.status).toBe('refreshing')
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('refreshed')
+    })
   })
 })
