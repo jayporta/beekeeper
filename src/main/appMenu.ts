@@ -76,7 +76,8 @@ export function buildAppMenuTemplate({
   platform,
   devTools
 }: AppMenuOptions): MenuItemConstructorOptions[] {
-  const first: MenuItemConstructorOptions =
-    platform === 'darwin' ? macAppMenu : { role: 'fileMenu' }
-  return [first, editMenu, viewMenu(devTools), { role: 'windowMenu' }]
+  // The file menu is Close on macOS, where it follows the app menu, and Quit elsewhere.
+  const leading: MenuItemConstructorOptions[] =
+    platform === 'darwin' ? [macAppMenu, { role: 'fileMenu' }] : [{ role: 'fileMenu' }]
+  return [...leading, editMenu, viewMenu(devTools), { role: 'windowMenu' }]
 }

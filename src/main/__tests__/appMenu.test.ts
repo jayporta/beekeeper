@@ -57,6 +57,12 @@ describe('buildAppMenuTemplate', () => {
       expect(items.filter((item) => item.click !== undefined)).toEqual([])
     })
 
+    it('has a file menu', () => {
+      const template = buildAppMenuTemplate({ platform, devTools: false })
+
+      expect(template.map((item) => item.role)).toContain('fileMenu')
+    })
+
     it('has no Help menu', () => {
       const roles = rolesOf(buildAppMenuTemplate({ platform, devTools: true }))
 
@@ -70,6 +76,12 @@ describe('buildAppMenuTemplate', () => {
     expect(rolesOf(template.slice(0, 1))).toEqual(
       expect.arrayContaining(['about', 'hide', 'hideOthers', 'unhide', 'quit'])
     )
+  })
+
+  it('puts the file menu right after the app menu on macOS', () => {
+    const template = buildAppMenuTemplate({ platform: 'darwin', devTools: false })
+
+    expect(template[1]?.role).toBe('fileMenu')
   })
 
   it.each(['linux', 'win32'] as const)('starts with the file menu on %s', (platform) => {
