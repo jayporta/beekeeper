@@ -246,7 +246,8 @@ describe('scanSessionSummary', () => {
       role: { kind: 'lead' },
       teamSpawns: { spawns: [], stops: [], truncated: false },
       model: null,
-      limitHit: null
+      limitHit: null,
+      transcriptTokens: null
     })
   })
 
@@ -271,7 +272,8 @@ describe('scanSessionSummary', () => {
       role: { kind: 'lead' },
       teamSpawns: { spawns: [], stops: [], truncated: false },
       model: 'claude-opus-5',
-      limitHit: null
+      limitHit: null,
+      transcriptTokens: 15
     })
   })
 
@@ -314,6 +316,32 @@ describe('scanSessionSummary', () => {
     const summary = await scanSessionSummary(filePath)
 
     expect(summary).toMatchObject({ title: 'Still running', skippedLines: 0 })
+  })
+
+  it('reports the transcript token total for a session that recorded no cost-state', async () => {
+    const filePath = writeTranscript(
+      buildJsonlText([
+        buildAssistantRecord({ messageId: 'msg_a', inputTokens: 100, outputTokens: 20 }),
+        buildAssistantRecord({ messageId: 'msg_b', inputTokens: 300, outputTokens: 40 })
+      ])
+    )
+
+    const summary = await scanSessionSummary(filePath)
+
+    expect([summary.usage, summary.transcriptTokens]).toEqual([null, 460])
+  })
+
+  it('totals only the complete lines of a transcript still being written', async () => {
+    const filePath = writeTranscript(
+      buildJsonlTextWithPartialLastLine(
+        [buildAssistantRecord({ messageId: 'msg_a', inputTokens: 100, outputTokens: 20 })],
+        '{"type":"assistant","message":{"id":"msg_b","model":"m","usage":{"input_tokens":9'
+      )
+    )
+
+    const summary = await scanSessionSummary(filePath)
+
+    expect(summary.transcriptTokens).toBe(120)
   })
 
   it('rejects a transcript that does not exist', async () => {

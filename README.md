@@ -40,7 +40,14 @@ Beekeeper never reads `~/.claude/sessions/*.key` (a peer token, not session data
 
 ## What Beekeeper stores
 
-Beekeeper keeps a cache of the project list and of the session lists you've opened, so the app opens without rescanning everything. The project cache holds each folder name and its worktree parent, if any. For each session, the cache holds its project folder and session id; transcript modification time and size; subagent count; summary read status or error code; title; token and cost totals; activity times; unreadable-line count; lead or agent role; agent type, agent name, team name, and model; plan-limit type and reset time; and team grouping data. Team grouping data includes lead and teammate session references, usage totals and missing-usage counts, missing or truncated teammate records, how a teammate was matched, whether it was stopped, and ungrouped team names. Beekeeper also keeps two preferences: the selected project and whether you've dismissed the first-run screen.
+Beekeeper keeps a cache of the project list and of the session lists you've opened, so the app opens without rescanning everything. The cache holds those lists exactly as the app shows them:
+
+- **Projects:** each project folder name, which encodes the path of the project, and which project is a worktree of which.
+- **Each session:** its id, the project folder it's in, its title, whether it's a lead or a teammate agent, its agent type, name, and team, its model, and its activity times; its transcript's size and modification time; its subagent count; its recorded token and cost totals, and the token total of its own transcript; how many lines couldn't be read; and any plan limit it hit, with its reset time.
+- **Why a summary is missing:** when a session's summary couldn't be read, the error code (`not-found`, `unreadable`, or `internal`).
+- **Teams:** the team name, and how a session groups with its lead and teammates, including how a teammate was matched to its lead, whether it stopped, and whether it's missing. For a lead, it also holds the team's token and cost totals, how many sessions have no figure, and whether the lead's spawn or stop lists were capped.
+
+Beekeeper also keeps two preferences: the selected project and whether you've dismissed the first-run screen.
 
 - They live in IndexedDB in Beekeeper's own app data folder, never in `~/.claude` or in a repository, and they're never sent anywhere.
 - No cached list is older than 7 days, and an update that changes the data format clears the cache. The two preferences stay until you change them.

@@ -56,6 +56,10 @@
   "teammateOf": "teammate of {{lead}}",
   "disclosure_one": "{{count, integer}} teammate of {{name}}",
   "disclosure_other": "{{count, integer}} teammates of {{name}}",
+  "refresh": "Refresh",
+  "refreshing": "Refreshing",
+  "refreshed": "Lists updated",
+  "refreshFailed": "Couldn't refresh the lists.",
   "search": {
     "label": "Search sessions",
     "noMatches": "No matching sessions",

@@ -9,13 +9,15 @@ import { createLimitHitObserver } from './limitHitObserver'
 import { recordedTokenTotal } from './recordedTokenTotal'
 import { recordTimestampMs } from './recordTimestampMs'
 import type { ActivitySpan, RecordedUsage, SessionSummary } from './sessionSummary'
+import { createTranscriptTokenObserver } from './transcriptTokenObserver'
 import { truncateTitle } from './truncateTitle'
 
 /**
  * Reads a transcript once and reports what a sessions list needs to show:
- * its title, its recorded usage, the span its records cover, its model,
- * and whether it is a lead or a teammate agent session, and which teammates
- * it spawned and stopped, and the plan limit it hit, if any.
+ * its title, its recorded usage, the tokens its own assistant records
+ * report, the span its records cover, its model, and whether it is a lead or
+ * a teammate agent session, and which teammates it spawned and stopped, and
+ * the plan limit it hit, if any.
  *
  * Every line is parsed. The title and the cost state are the last valid
  * record of their type by line order, since neither carries a timestamp
@@ -52,6 +54,7 @@ export async function scanSessionSummary(
   const teammateObserver = createTeammateSpawnObserver()
   const modelObserver = createLatestModelObserver()
   const limitHitObserver = createLimitHitObserver()
+  const tokenObserver = createTranscriptTokenObserver()
   let earliestMs: number | null = null
   let latestMs: number | null = null
   let skippedLines = 0
@@ -74,6 +77,7 @@ export async function scanSessionSummary(
     teammateObserver.observe(record)
     limitHitObserver.observe(record)
     modelObserver.observe(record, timestampMs)
+    tokenObserver.observe(record)
     if (record.type === 'ai-title') {
       const aiTitle = aiTitleRecordSchema.safeParse(record)
       if (aiTitle.success) title = truncateTitle(aiTitle.data.aiTitle)
@@ -96,6 +100,7 @@ export async function scanSessionSummary(
     role: roleObserver.role(),
     teamSpawns: teammateObserver.result(),
     model: modelObserver.model(),
-    limitHit: limitHitObserver.latest()
+    limitHit: limitHitObserver.latest(),
+    transcriptTokens: tokenObserver.total()
   }
 }

@@ -1,5 +1,5 @@
 import { combineTokenCounts, type TokenCounts } from '../pricing/tokenCounts'
-import type { Usage, UsageEntry } from '../transcript/schemas'
+import type { Usage, UsageEntry } from './schemas'
 
 /**
  * Converts one assistant message's usage into token counts.

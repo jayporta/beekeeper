@@ -121,6 +121,19 @@ describe('SessionsView table', () => {
     expect(text).toContain('-not recorded')
   })
 
+  it('shows the transcript total in the session usage cell of a session with no recorded usage', async () => {
+    showSessions([
+      testSession(5, { projectDirName: DIR, title: 'Still running', transcriptTokens: 1200 })
+    ])
+
+    const row = (await screen.findByRole('rowheader', { name: /Still running/ })).closest('tr')
+    const cells = within(row as HTMLElement).getAllByRole('cell')
+
+    // Cells: last active, duration, model, agents, session usage, team usage.
+    expect(cells[4]?.textContent).toContain('1.2K tokens')
+    expect(cells[4]?.textContent).not.toContain('tokens not recorded')
+  })
+
   it('marks team usage that does not apply to a teammate as not applicable, not as not recorded', async () => {
     showSessions()
     await userEvent.click(
@@ -305,12 +318,24 @@ describe('SessionsView search', () => {
   })
 })
 
+/**
+ * The search results live region: the status region with no heading of its own,
+ * outside the page heading, which holds the refresh button's status.
+ */
+const searchStatus = (): HTMLElement | undefined =>
+  screen
+    .getAllByRole('status')
+    .find(
+      (region) =>
+        within(region).queryByRole('heading') === null && region.closest('header') === null
+    )
+
 describe('SessionsView search announcements', () => {
   it('has an empty polite status region before anything is typed', async () => {
     showSessions()
     await screen.findByRole('table')
 
-    expect(screen.getByRole('status').textContent).toBe('')
+    expect(searchStatus()?.textContent).toBe('')
   })
 
   it('announces how many sessions match, and when none do', async () => {
@@ -320,26 +345,22 @@ describe('SessionsView search announcements', () => {
 
     await userEvent.type(search, 'code')
     await waitFor(() => {
-      expect(screen.getByRole('status').textContent).toBe('2 sessions match')
+      expect(searchStatus()?.textContent).toBe('2 sessions match')
     })
 
     await userEvent.clear(search)
     await userEvent.type(search, 'parser')
     await waitFor(() => {
-      expect(screen.getByRole('status').textContent).toBe('1 session matches')
+      expect(searchStatus()?.textContent).toBe('1 session matches')
     })
 
     await userEvent.clear(search)
     await userEvent.type(search, 'zzz')
     await waitFor(() => {
-      expect(screen.getByRole('status').textContent).toBe('No matching sessions')
+      expect(searchStatus()?.textContent).toBe('No matching sessions')
     })
   })
 })
-
-/** The search results live region: the status region with no heading of its own. */
-const searchStatus = (): HTMLElement | undefined =>
-  screen.getAllByRole('status').find((region) => within(region).queryByRole('heading') === null)
 
 /** The status message whose heading has this name. */
 const statusWithHeading = (name: string): HTMLElement | undefined =>

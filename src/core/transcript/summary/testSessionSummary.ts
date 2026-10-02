@@ -2,8 +2,8 @@ import type { SessionSummary } from './sessionSummary'
 
 /**
  * Builds a {@link SessionSummary} of an empty lead session, for test
- * fixtures: no title, usage, activity or model, no skipped lines, and no
- * spawned or stopped teammates.
+ * fixtures: no title, usage, activity, model or transcript tokens, no
+ * skipped lines, and no spawned or stopped teammates.
  *
  * @param overrides - Fields to set instead of the empty defaults.
  * @returns The summary.
@@ -18,6 +18,7 @@ export function buildSessionSummary(overrides: Partial<SessionSummary> = {}): Se
     teamSpawns: { spawns: [], stops: [], truncated: false },
     model: null,
     limitHit: null,
+    transcriptTokens: null,
     ...overrides
   }
 }

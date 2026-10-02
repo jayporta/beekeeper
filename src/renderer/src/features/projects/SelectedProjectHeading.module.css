@@ -4,6 +4,13 @@
   gap: var(--space-1);
 }
 
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
 .title {
   font-size: var(--font-size-lg);
 }

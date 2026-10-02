@@ -1,13 +1,15 @@
 import {
   dehydrate,
+  focusManager,
   hydrate,
   onlineManager,
   QueryClient,
   QueryObserver
 } from '@tanstack/react-query'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SESSIONS_GC_TIME_MS } from '@renderer/features/sessions/sessionsGcTime'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
+import { LISTS_STALE_TIME_MS } from '../listsStaleTime'
 import { PERSIST_MAX_AGE_MS } from '../persistMaxAge'
 import { createQueryClient } from '../queryClient'
 import { PERSISTED_QUERY_ROOTS } from '../shouldPersistQuery'
@@ -16,11 +18,102 @@ const gcTimeOf = (client: QueryClient, queryKey: readonly unknown[]): number =>
   client.getQueryCache().build(client, { queryKey }).gcTime
 
 describe('createQueryClient', () => {
-  it('does not refetch on window focus or reconnect', () => {
-    const { queries } = createQueryClient().getDefaultOptions()
+  it('does not refetch on reconnect, since every query is local IPC', () => {
+    expect(createQueryClient().getDefaultOptions().queries?.refetchOnReconnect).toBe(false)
+  })
 
-    expect(queries?.refetchOnWindowFocus).toBe(false)
-    expect(queries?.refetchOnReconnect).toBe(false)
+  it('does not refetch on window focus by default', () => {
+    const client = createQueryClient()
+
+    expect(
+      client.defaultQueryOptions({ queryKey: ['something-else', 'x'] }).refetchOnWindowFocus
+    ).toBe(false)
+  })
+
+  it.each([
+    ['projects', ['projects']],
+    ['sessions', ['sessions', 'x']]
+  ])('keeps a %s list fresh for the lists stale time', (_root, queryKey) => {
+    expect(createQueryClient().defaultQueryOptions({ queryKey }).staleTime).toBe(
+      LISTS_STALE_TIME_MS
+    )
+  })
+
+  describe('on window focus', () => {
+    afterEach(() => {
+      focusManager.setFocused(undefined)
+    })
+
+    /** What one load of the list query returns: its rows, or a failure. */
+    type Load = readonly unknown[] | 'error'
+
+    /**
+     * Mounts a list query that settles with each of `loads` in turn, ages it, and
+     * returns how many times a window focus refetches it. The last load repeats.
+     */
+    async function refetchesOnFocus(
+      queryKey: readonly unknown[],
+      loads: readonly Load[]
+    ): Promise<number> {
+      const client = createQueryClient()
+      // A client only listens to the focus manager while mounted, as the provider mounts it.
+      client.mount()
+      let calls = 0
+      const observer = new QueryObserver(client, {
+        queryKey,
+        retry: false,
+        queryFn: () => {
+          const load = loads[Math.min(calls, loads.length - 1)]
+          calls += 1
+          return load === 'error' ? Promise.reject(new Error('boom')) : Promise.resolve(load)
+        }
+      })
+      const unsubscribe = observer.subscribe(() => undefined)
+      await vi.waitFor(() => expect(observer.getCurrentResult().isFetching).toBe(false))
+      for (let reload = 1; reload < loads.length; reload += 1) {
+        await client.refetchQueries({ queryKey })
+      }
+      client.getQueryCache().find({ queryKey })?.invalidate()
+      const callsBeforeFocus = calls
+
+      focusManager.setFocused(false)
+      focusManager.setFocused(true)
+      await vi.waitFor(() => expect(observer.getCurrentResult().isFetching).toBe(false))
+      unsubscribe()
+      client.unmount()
+      return calls - callsBeforeFocus
+    }
+
+    const listKeys = [
+      ['projects', ['projects']],
+      ['sessions', ['sessions', 'x']]
+    ] as const
+
+    describe.each(listKeys)('a stale %s list', (_root, queryKey) => {
+      it('refetches when it loaded rows', async () => {
+        expect(await refetchesOnFocus(queryKey, [['row']])).toBe(1)
+      })
+
+      it('refetches when it loaded no rows', async () => {
+        expect(await refetchesOnFocus(queryKey, [[]])).toBe(1)
+      })
+
+      it('refetches when its last load failed and it still has rows', async () => {
+        expect(await refetchesOnFocus(queryKey, [['row'], 'error'])).toBe(1)
+      })
+
+      it('waits for an explicit retry when it failed and never loaded', async () => {
+        expect(await refetchesOnFocus(queryKey, ['error'])).toBe(0)
+      })
+    })
+
+    it('waits for an explicit retry when a projects list failed and has no rows, since the gate shows an error', async () => {
+      expect(await refetchesOnFocus(['projects'], [[], 'error'])).toBe(0)
+    })
+
+    it('refetches when a sessions list failed and has no rows, since the page shows its empty state', async () => {
+      expect(await refetchesOnFocus(['sessions', 'x'], [[], 'error'])).toBe(1)
+    })
   })
 
   it('leaves the default gcTime alone, so a query outside the persisted roots uses the stock one', () => {

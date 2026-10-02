@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { Usage } from '../../transcript/schemas'
 import { messageTokens } from '../messageTokens'
+import type { Usage } from '../schemas'
 
 describe('messageTokens', () => {
   it('reads every field from the top-level snapshot when there are no iterations', () => {

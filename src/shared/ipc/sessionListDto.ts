@@ -8,7 +8,9 @@ export interface SessionSummaryDto {
   readonly title: string | null
   /** What the session recorded about its own usage, or `null` when it recorded none. */
   readonly usage: {
+    /** The recorded total cost in US dollars, or `null` when the record carried none. */
     readonly totalUSD: number | null
+    /** The recorded total across every token class, or `null` when it held no model usage or the sum is not finite. */
     readonly totalTokens: number | null
   } | null
   /** The span of the file's timestamps, or `null` when no record has one. */
@@ -26,6 +28,13 @@ export interface SessionSummaryDto {
     /** When that window resets, in milliseconds since the Unix epoch. */
     readonly resetsAtMs: number
   } | null
+  /**
+   * The tokens the transcript's own assistant records report, one figure per
+   * message id, excluding subagent transcripts. `null` when there is no valid
+   * assistant usage, the sum is not finite, or the transcript held more
+   * distinct messages than the scan keeps.
+   */
+  readonly transcriptTokens: number | null
 }
 
 /**
