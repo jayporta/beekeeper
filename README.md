@@ -2,7 +2,7 @@
 
 See what your Claude Code agents did, what they changed, and what they cost. Local-only.
 
-**Status: pre-alpha.** There's nothing to look at in the app yet, just the scaffolding and the security setup. Come back once the sessions list lands.
+**Status: alpha.** The sessions list works: pick a project and see each session's agents, tokens, and API-equivalent cost. Session detail is next.
 
 ## Why
 
@@ -16,7 +16,7 @@ A rough roadmap, in build order:
 - [x] Read and parse Claude Code transcripts
 - [x] Agent tree, token usage, and cost estimates
 - [x] Worktree diffs
-- [ ] Sessions list
+- [x] Sessions list
 - [ ] Session detail: agents, timeline, and files
 
 ## Privacy promise
@@ -31,11 +31,19 @@ Beekeeper is local-first and read-only. It makes zero network calls and collects
 
 - `~/.claude/projects/**/*.jsonl`: the main transcript and subagent transcripts for every session
 - `~/.claude/projects/**/subagents/*.meta.json`: per-agent metadata (type, model, team, worktree)
-- Read-only git commands inside your project and worktree folders, to show what a worktree agent changed: `rev-parse`, `merge-base`, `diff`, `diff-index`, and `ls-files` for the changes themselves, `check-ref-format` to validate a branch name, and `config --get-regexp` to find filter drivers, since a repo that defines one isn't diffed as a working tree. Beekeeper also runs `git --version` to find a usable git.
+- Read-only git commands inside your project and worktree folders, to show what a worktree agent changed: `rev-parse`, `merge-base`, `diff`, `diff-index`, and `ls-files` for the changes themselves, `check-ref-format` to validate a branch name, `config --get-regexp` to find filter drivers, since a repo that defines one isn't diffed as a working tree, and `check-attr` to check whether a changed path has a filter attribute, since such a path isn't diffed as a working tree either. To find a usable git, Beekeeper checks a few known install paths, runs `git --version`, and on macOS also runs `xcode-select -p` and `xcrun --find git`.
+- File metadata (`lstat`, `realpath`, `readlink`) inside project and worktree folders, to keep every git path confined to the folder it belongs to. Beekeeper doesn't read file contents there except through git.
 
 Planned: `~/.claude/sessions/*.json`, the live session registry, for a "running now" badge.
 
 Beekeeper never reads `~/.claude/sessions/*.key` (a peer token, not session data), `~/.claude/history.jsonl` (your prompt history), or `~/.claude/file-history/` (Claude Code's own edit backups).
+
+## What Beekeeper stores
+
+Beekeeper keeps a cache of the project list and of the session lists you've opened, so the app opens without rescanning everything. The project cache holds each folder name and its worktree parent, if any. For each session, the cache holds its project folder and session id; transcript modification time and size; subagent count; summary read status or error code; title; token and cost totals; activity times; unreadable-line count; lead or agent role; agent type, agent name, team name, and model; plan-limit type and reset time; and team grouping data. Team grouping data includes lead and teammate session references, usage totals and missing-usage counts, missing or truncated teammate records, how a teammate was matched, whether it was stopped, and ungrouped team names. Beekeeper also keeps two preferences: the selected project and whether you've dismissed the first-run screen.
+
+- They live in IndexedDB in Beekeeper's own app data folder, never in `~/.claude` or in a repository, and they're never sent anywhere.
+- No cached list is older than 7 days, and an update that changes the data format clears the cache. The two preferences stay until you change them.
 
 ## Permissions you may see
 
@@ -49,7 +57,7 @@ Beekeeper never reads `~/.claude/sessions/*.key` (a peer token, not session data
 | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | Agent tree: lead, subagents, teammates, model, team                           | Files changed via Bash in a shared checkout (attribution is a guess without a hook)                           |
 | Tokens per agent, tool calls, wall-clock span, errors                         | Exact billed cost (subscription plans aren't billed per token, so Beekeeper shows an API-equivalent estimate) |
-| Files edited through Edit/Write, with the patch                               | A worktree's base commit once the worktree is deleted                                                         |
+| Files edited through Edit/Write (the transcript records each patch)           | A worktree's base commit once the worktree is deleted                                                         |
 | A worktree agent's exact `git diff` against its merge-base                    | History older than 30 days (Claude Code's default retention)                                                  |
 | Signs an agent went off the rails: error streaks, `stoppedByUser`, compaction | Live output while an agent is still running (Beekeeper reads what's on disk, not a live stream)               |
 
