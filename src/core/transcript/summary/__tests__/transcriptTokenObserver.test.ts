@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { buildAssistantRecord } from '../../testFixtures'
-import { createTranscriptTokenObserver } from '../transcriptTokenObserver'
+import {
+  createTranscriptTokenObserver,
+  MAX_MESSAGE_IDS,
+  type TranscriptTokenObserver
+} from '../transcriptTokenObserver'
 
 describe('createTranscriptTokenObserver', () => {
   it('reports no total when no assistant record was seen', () => {
@@ -80,5 +84,47 @@ describe('createTranscriptTokenObserver', () => {
     observer.observe(buildAssistantRecord({ messageId: 'msg_b', inputTokens: 1e308 }))
 
     expect(observer.total()).toBeNull()
+  })
+
+  describe('with more distinct message ids than the cap', () => {
+    const observeIds = (observer: TranscriptTokenObserver, count: number): void => {
+      for (let i = 0; i < count; i += 1) {
+        observer.observe(
+          buildAssistantRecord({ messageId: `msg_${i}`, inputTokens: 1, outputTokens: 0 })
+        )
+      }
+    }
+
+    it('still totals when the distinct ids are exactly the cap', () => {
+      const observer = createTranscriptTokenObserver()
+      observeIds(observer, MAX_MESSAGE_IDS)
+
+      expect(observer.total()).toBe(MAX_MESSAGE_IDS)
+    })
+
+    it('reports no total once one more distinct id arrives', () => {
+      const observer = createTranscriptTokenObserver()
+      observeIds(observer, MAX_MESSAGE_IDS + 1)
+
+      expect(observer.total()).toBeNull()
+    })
+
+    it('keeps reporting no total after the cap is passed, even for an id seen before', () => {
+      const observer = createTranscriptTokenObserver()
+      observeIds(observer, MAX_MESSAGE_IDS + 1)
+      observer.observe(buildAssistantRecord({ messageId: 'msg_0', inputTokens: 5 }))
+
+      expect(observer.total()).toBeNull()
+    })
+
+    it('still merges a repeat of an id seen before the cap is reached', () => {
+      const observer = createTranscriptTokenObserver()
+      observeIds(observer, MAX_MESSAGE_IDS)
+      observer.observe(
+        buildAssistantRecord({ messageId: 'msg_0', inputTokens: 5, outputTokens: 0 })
+      )
+
+      expect(observer.total()).toBe(MAX_MESSAGE_IDS + 4)
+    })
   })
 })

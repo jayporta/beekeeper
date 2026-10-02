@@ -3,13 +3,17 @@ import { tokenClasses } from '../../pricing/tokenClasses'
 import { messageTokens } from '../messageTokens'
 import { assistantRecordSchema } from '../schemas'
 
+/** The most distinct message ids an observer tracks before it gives up on a transcript. */
+export const MAX_MESSAGE_IDS = 50_000
+
 /** Totals the tokens a transcript's own assistant records report. */
 export interface TranscriptTokenObserver {
   /** Feeds one parsed record; anything but a valid `assistant` record is ignored. */
   observe(record: Record<string, unknown>): void
   /**
    * The total across every token class, or `null` when no valid assistant
-   * usage was seen or the sum is not finite.
+   * usage was seen, the sum is not finite, or the transcript held more than
+   * {@link MAX_MESSAGE_IDS} distinct message ids.
    */
   total(): number | null
 }
@@ -27,23 +31,32 @@ export interface TranscriptTokenObserver {
  * session spent: a resumed or forked transcript can hold copied records,
  * which the full scan counts per file the same way.
  *
- * Holds one entry per distinct message id in the transcript, each id capped
- * by the schema's identifier bound, and lives only for one scan.
+ * Holds at most {@link MAX_MESSAGE_IDS} entries, one per distinct message id,
+ * each id capped by the schema's identifier bound, and lives only for one
+ * scan. A transcript with more distinct ids is not totaled: the observer
+ * drops what it holds, ignores the rest of the records, and `total()` returns
+ * `null`.
  *
  * @returns An observer ready to `observe` a transcript's records.
  */
 export function createTranscriptTokenObserver(): TranscriptTokenObserver {
   const byMessageId = new Map<string, TokenCounts>()
+  let overflowed = false
 
   return {
     observe(record) {
-      if (record.type !== 'assistant') return
+      if (overflowed || record.type !== 'assistant') return
       const parsed = assistantRecordSchema.safeParse(record)
       if (!parsed.success) return
 
       const { message } = parsed.data
-      const tokens = messageTokens(message.usage)
       const existing = byMessageId.get(message.id)
+      if (existing === undefined && byMessageId.size >= MAX_MESSAGE_IDS) {
+        byMessageId.clear()
+        overflowed = true
+        return
+      }
+      const tokens = messageTokens(message.usage)
       byMessageId.set(
         message.id,
         existing === undefined ? tokens : combineTokenCounts([existing, tokens], Math.max)

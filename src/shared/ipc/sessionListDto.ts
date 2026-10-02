@@ -31,7 +31,8 @@ export interface SessionSummaryDto {
   /**
    * The tokens the transcript's own assistant records report, one figure per
    * message id, excluding subagent transcripts. `null` when there is no valid
-   * assistant usage or the sum is not finite.
+   * assistant usage, the sum is not finite, or the transcript held more
+   * distinct messages than the scan keeps.
    */
   readonly transcriptTokens: number | null
 }
