@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { RetryButton } from '@renderer/components/RetryButton'
 import { StatusMessage } from '@renderer/components/StatusMessage'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
+import { hasProjectsToShow } from './hasProjectsToShow'
 import { useProjects } from './useProjects'
 
 /** Props for {@link ProjectsGate}. */
@@ -27,11 +28,9 @@ export function ProjectsGate({ children }: ProjectsGateProps): React.JSX.Element
     void refetch()
   }
 
-  if (data !== undefined) {
-    if (data.length > 0) return <>{children}</>
-    if (!isError) {
-      return <StatusMessage key="empty" heading={t('empty.heading')} body={t('empty.body')} />
-    }
+  if (hasProjectsToShow(data)) return <>{children}</>
+  if (data !== undefined && !isError) {
+    return <StatusMessage key="empty" heading={t('empty.heading')} body={t('empty.body')} />
   }
 
   // Each state has its own key, so an alert mounts fresh instead of reusing the

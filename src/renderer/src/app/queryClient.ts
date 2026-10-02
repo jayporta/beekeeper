@@ -1,4 +1,5 @@
 import { QueryClient, type Query } from '@tanstack/react-query'
+import { hasProjectsToShow } from '@renderer/features/projects/hasProjectsToShow'
 import { SESSIONS_GC_TIME_MS } from '@renderer/features/sessions/sessionsGcTime'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import { LISTS_STALE_TIME_MS } from './listsStaleTime'
@@ -23,13 +24,13 @@ function shouldRetry(failureCount: number, error: unknown): boolean {
 }
 
 /**
- * Whether a list query refetches when the window regains focus: not while it
+ * Whether a list query refetches when the window regains focus. Not while it
  * is in error status and `showsErrorScreen` says the page shows that failure
- * as an error screen. That failure waits for an explicit Retry or Refresh
- * instead of swapping the screen, and a focused Retry button, for loading
- * behind the user's focus. Any other list refetches, so it recovers on its
- * own once the files can be read again, including a failed list whose rows
- * or empty state still show.
+ * as an error screen: a refetch would replace that screen, including a Retry
+ * button that may hold focus, with a loading message. That failure waits
+ * for an explicit Retry or Refresh. Any other list refetches, so it recovers
+ * on its own once the files can be read again, including a failed list that
+ * keeps showing its data.
  *
  * @param showsErrorScreen - Whether the page shows an error screen for a failed list holding this data.
  * @returns A predicate for `refetchOnWindowFocus`.
@@ -42,18 +43,17 @@ function refetchUnlessErrorScreen(
 
 /**
  * The focus rule a list gets by default: a failed list with no data shows an
- * error screen, and one with data shows it. `SessionsBody` follows this,
- * showing its empty state for a loaded list with no sessions.
+ * error screen, and a failed list with data keeps showing that data.
+ * `SessionsBody` follows this, showing its empty state for a loaded list with
+ * no sessions.
  */
 const refetchListOnFocus = refetchUnlessErrorScreen((data) => data === undefined)
 
 /**
- * The focus rule for the project list: `ProjectsGate` also shows an error
- * screen for a failed list with no projects, since it has no children to show.
+ * The focus rule for the project list: `ProjectsGate` shows an error screen
+ * for a failed list with no projects to show, loaded or not.
  */
-const refetchProjectsOnFocus = refetchUnlessErrorScreen(
-  (data) => !Array.isArray(data) || data.length === 0
-)
+const refetchProjectsOnFocus = refetchUnlessErrorScreen((data) => !hasProjectsToShow(data))
 
 /**
  * What the project and session lists share: they refetch on window focus once
