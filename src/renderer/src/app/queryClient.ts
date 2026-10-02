@@ -1,4 +1,4 @@
-import { QueryClient } from '@tanstack/react-query'
+import { QueryClient, type Query } from '@tanstack/react-query'
 import { SESSIONS_GC_TIME_MS } from '@renderer/features/sessions/sessionsGcTime'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import { LISTS_STALE_TIME_MS } from './listsStaleTime'
@@ -23,11 +23,24 @@ function shouldRetry(failureCount: number, error: unknown): boolean {
 }
 
 /**
+ * Whether a list query refetches when the window regains focus. A query in
+ * error status does not, so a failure waits for an explicit Retry or Refresh
+ * instead of swapping its error state for loading behind the user's focus.
+ *
+ * @param query - The list query the focus event reached.
+ * @returns `true` to refetch once the query is stale.
+ */
+function refetchListOnFocus(query: Query): boolean {
+  return query.state.status !== 'error'
+}
+
+/**
  * What the project and session lists share: they refetch on window focus once
- * stale, since agents keep writing while the app is open.
+ * stale, since agents keep writing while the app is open, unless the last
+ * attempt failed (see {@link refetchListOnFocus}).
  */
 const LIST_DEFAULTS = {
-  refetchOnWindowFocus: true,
+  refetchOnWindowFocus: refetchListOnFocus,
   staleTime: LISTS_STALE_TIME_MS
 } as const
 
@@ -37,8 +50,9 @@ const LIST_DEFAULTS = {
  * refetch on reconnect. They do not refetch on window focus either, except
  * the project and session lists: those are local files that agents keep
  * writing while the app is open, so they refetch on focus once older than
- * {@link LISTS_STALE_TIME_MS}. A failure that cannot change on
- * retry (see {@link shouldRetry}) is not retried. Queries keep TanStack's default `gcTime`, except under a
+ * {@link LISTS_STALE_TIME_MS}, except while in error status, which waits for an
+ * explicit Retry or Refresh. A failure that cannot change on retry (see
+ * {@link shouldRetry}) is not retried. Queries keep TanStack's default `gcTime`, except under a
  * persisted root (see `PERSISTED_QUERY_ROOTS`), which keep {@link PERSIST_MAX_AGE_MS}
  * to match the persister's `maxAge`: a query garbage-collected sooner would
  * never reach the persisted cache. `sessions` queries instead keep

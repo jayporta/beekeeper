@@ -1,11 +1,12 @@
 import {
   dehydrate,
+  focusManager,
   hydrate,
   onlineManager,
   QueryClient,
   QueryObserver
 } from '@tanstack/react-query'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SESSIONS_GC_TIME_MS } from '@renderer/features/sessions/sessionsGcTime'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import { LISTS_STALE_TIME_MS } from '../listsStaleTime'
@@ -32,11 +33,60 @@ describe('createQueryClient', () => {
   it.each([
     ['projects', ['projects']],
     ['sessions', ['sessions', 'x']]
-  ])('refetches a %s list on window focus once it is stale', (_root, queryKey) => {
-    const defaults = createQueryClient().defaultQueryOptions({ queryKey })
+  ])('keeps a %s list fresh for the lists stale time', (_root, queryKey) => {
+    expect(createQueryClient().defaultQueryOptions({ queryKey }).staleTime).toBe(
+      LISTS_STALE_TIME_MS
+    )
+  })
 
-    expect(defaults.refetchOnWindowFocus).toBe(true)
-    expect(defaults.staleTime).toBe(LISTS_STALE_TIME_MS)
+  describe('on window focus', () => {
+    afterEach(() => {
+      focusManager.setFocused(undefined)
+    })
+
+    /** Mounts a stale list query that settles as `outcome`, then returns how often a focus refetches it. */
+    async function refetchesOnFocus(
+      queryKey: readonly unknown[],
+      outcome: 'success' | 'error'
+    ): Promise<number> {
+      const client = createQueryClient()
+      // A client only listens to the focus manager while mounted, as the provider mounts it.
+      client.mount()
+      let calls = 0
+      const observer = new QueryObserver(client, {
+        queryKey,
+        retry: false,
+        queryFn: () => {
+          calls += 1
+          return outcome === 'success' ? Promise.resolve([]) : Promise.reject(new Error('boom'))
+        }
+      })
+      const unsubscribe = observer.subscribe(() => undefined)
+      await vi.waitFor(() => expect(observer.getCurrentResult().isFetching).toBe(false))
+      client.getQueryCache().find({ queryKey })?.invalidate()
+      const callsBeforeFocus = calls
+
+      focusManager.setFocused(false)
+      focusManager.setFocused(true)
+      await vi.waitFor(() => expect(observer.getCurrentResult().isFetching).toBe(false))
+      unsubscribe()
+      client.unmount()
+      return calls - callsBeforeFocus
+    }
+
+    it.each([
+      ['projects', ['projects']],
+      ['sessions', ['sessions', 'x']]
+    ])('refetches a stale %s list that loaded', async (_root, queryKey) => {
+      expect(await refetchesOnFocus(queryKey, 'success')).toBe(1)
+    })
+
+    it.each([
+      ['projects', ['projects']],
+      ['sessions', ['sessions', 'x']]
+    ])('leaves a stale %s list in error status for an explicit retry', async (_root, queryKey) => {
+      expect(await refetchesOnFocus(queryKey, 'error')).toBe(0)
+    })
   })
 
   it('leaves the default gcTime alone, so a query outside the persisted roots uses the stock one', () => {
