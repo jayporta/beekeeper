@@ -15,7 +15,7 @@ interface SelectedProjectHeadingProps {
  * as on disk, as a subtitle, and optional controls beside the title.
  *
  * @example
- * <SelectedProjectHeading actions={<RefreshSessionsButton dirName={dirName} />} />
+ * <SelectedProjectHeading actions={<RefreshSessionsButton key={dirName} dirName={dirName} />} />
  */
 export function SelectedProjectHeading({
   headingId,
