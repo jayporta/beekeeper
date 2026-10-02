@@ -2,7 +2,7 @@ import type { MenuItemConstructorOptions } from 'electron'
 
 /** Inputs that decide which menu items the application menu includes. */
 export interface AppMenuOptions {
-  /** The OS the app runs on. macOS gets an app menu, other platforms a File menu. */
+  /** The OS the app runs on. macOS adds an app menu before the File menu. */
   readonly platform: NodeJS.Platform
   /** Whether to include reload and Developer Tools items in the View menu. */
   readonly devTools: boolean
