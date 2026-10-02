@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 import styles from './RefreshButton.module.css'
 
 /** Where a refresh stands. */
-type RefreshButtonStatus = 'idle' | 'refreshing' | 'refreshed' | 'failed'
+export type RefreshButtonStatus = 'idle' | 'refreshing' | 'refreshed' | 'failed'
 
 /** The status message for each finished refresh. */
 const MESSAGE_KEYS = { refreshed: 'refreshed', failed: 'refreshFailed' } as const

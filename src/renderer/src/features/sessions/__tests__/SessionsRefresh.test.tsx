@@ -265,4 +265,23 @@ describe('the Refresh button', () => {
     await screen.findByRole('button', { name: 'Refresh' })
     expect(refreshStatus()?.textContent).toBe('')
   })
+
+  it('drops the failure note once a later focus refetch loads the lists', async () => {
+    const failure = "Couldn't refresh. Showing the last loaded lists."
+    let calls = 0
+    await showSessions(() => {
+      calls += 1
+      return calls === 2
+        ? Promise.resolve({ ok: false, error: { code: 'unreadable' } })
+        : loaded([lead])
+    })
+    await userEvent.click(await screen.findByRole('button', { name: 'Refresh' }))
+    await screen.findByText(failure)
+
+    await focusAfterStaleTime()
+
+    await waitFor(() => {
+      expect(screen.queryByText(failure)).toBeNull()
+    })
+  })
 })
