@@ -24,20 +24,23 @@ function shouldRetry(failureCount: number, error: unknown): boolean {
 
 /**
  * Whether a list query refetches when the window regains focus. A query in
- * error status does not, so a failure waits for an explicit Retry or Refresh
- * instead of swapping its error state for loading behind the user's focus.
+ * error status with no rows to show does not, so that failure waits for an
+ * explicit Retry or Refresh instead of swapping its error state for loading
+ * behind the user's focus. A failed list that still shows rows does refetch,
+ * so a list recovers on its own once the files can be read again.
  *
  * @param query - The list query the focus event reached.
  * @returns `true` to refetch once the query is stale.
  */
 function refetchListOnFocus(query: Query): boolean {
-  return query.state.status !== 'error'
+  const { data, status } = query.state
+  return status !== 'error' || (Array.isArray(data) && data.length > 0)
 }
 
 /**
  * What the project and session lists share: they refetch on window focus once
- * stale, since agents keep writing while the app is open, unless the last
- * attempt failed (see {@link refetchListOnFocus}).
+ * stale, since agents keep writing while the app is open, except a failed list
+ * with no rows to show (see {@link refetchListOnFocus}).
  */
 const LIST_DEFAULTS = {
   refetchOnWindowFocus: refetchListOnFocus,
@@ -50,9 +53,9 @@ const LIST_DEFAULTS = {
  * refetch on reconnect. They do not refetch on window focus either, except
  * the project and session lists: those are local files that agents keep
  * writing while the app is open, so they refetch on focus once older than
- * {@link LISTS_STALE_TIME_MS}, except while in error status, which waits for an
- * explicit Retry or Refresh. A failure that cannot change on retry (see
- * {@link shouldRetry}) is not retried. Queries keep TanStack's default `gcTime`, except under a
+ * {@link LISTS_STALE_TIME_MS}, except a failed list with no rows to show, which
+ * waits for an explicit Retry or Refresh. A failure that cannot change on retry
+ * (see {@link shouldRetry}) is not retried. Queries keep TanStack's default `gcTime`, except under a
  * persisted root (see `PERSISTED_QUERY_ROOTS`), which keep {@link PERSIST_MAX_AGE_MS}
  * to match the persister's `maxAge`: a query garbage-collected sooner would
  * never reach the persisted cache. `sessions` queries instead keep

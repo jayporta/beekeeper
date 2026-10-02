@@ -44,10 +44,16 @@ describe('createQueryClient', () => {
       focusManager.setFocused(undefined)
     })
 
-    /** Mounts a stale list query that settles as `outcome`, then returns how often a focus refetches it. */
+    /** What one load of the list query returns: its rows, or a failure. */
+    type Load = readonly unknown[] | 'error'
+
+    /**
+     * Mounts a list query that settles with each of `loads` in turn, ages it, and
+     * returns how many times a window focus refetches it. The last load repeats.
+     */
     async function refetchesOnFocus(
       queryKey: readonly unknown[],
-      outcome: 'success' | 'error'
+      loads: readonly Load[]
     ): Promise<number> {
       const client = createQueryClient()
       // A client only listens to the focus manager while mounted, as the provider mounts it.
@@ -57,12 +63,16 @@ describe('createQueryClient', () => {
         queryKey,
         retry: false,
         queryFn: () => {
+          const load = loads[Math.min(calls, loads.length - 1)]
           calls += 1
-          return outcome === 'success' ? Promise.resolve([]) : Promise.reject(new Error('boom'))
+          return load === 'error' ? Promise.reject(new Error('boom')) : Promise.resolve(load)
         }
       })
       const unsubscribe = observer.subscribe(() => undefined)
       await vi.waitFor(() => expect(observer.getCurrentResult().isFetching).toBe(false))
+      for (let reload = 1; reload < loads.length; reload += 1) {
+        await client.refetchQueries({ queryKey })
+      }
       client.getQueryCache().find({ queryKey })?.invalidate()
       const callsBeforeFocus = calls
 
@@ -74,18 +84,31 @@ describe('createQueryClient', () => {
       return calls - callsBeforeFocus
     }
 
-    it.each([
+    const listKeys = [
       ['projects', ['projects']],
       ['sessions', ['sessions', 'x']]
-    ])('refetches a stale %s list that loaded', async (_root, queryKey) => {
-      expect(await refetchesOnFocus(queryKey, 'success')).toBe(1)
-    })
+    ] as const
 
-    it.each([
-      ['projects', ['projects']],
-      ['sessions', ['sessions', 'x']]
-    ])('leaves a stale %s list in error status for an explicit retry', async (_root, queryKey) => {
-      expect(await refetchesOnFocus(queryKey, 'error')).toBe(0)
+    describe.each(listKeys)('a stale %s list', (_root, queryKey) => {
+      it('refetches when it loaded rows', async () => {
+        expect(await refetchesOnFocus(queryKey, [['row']])).toBe(1)
+      })
+
+      it('refetches when it loaded no rows', async () => {
+        expect(await refetchesOnFocus(queryKey, [[]])).toBe(1)
+      })
+
+      it('refetches when its last load failed and it still has rows', async () => {
+        expect(await refetchesOnFocus(queryKey, [['row'], 'error'])).toBe(1)
+      })
+
+      it('waits for an explicit retry when it failed and never loaded', async () => {
+        expect(await refetchesOnFocus(queryKey, ['error'])).toBe(0)
+      })
+
+      it('waits for an explicit retry when it failed and has no rows', async () => {
+        expect(await refetchesOnFocus(queryKey, [[], 'error'])).toBe(0)
+      })
     })
   })
 
