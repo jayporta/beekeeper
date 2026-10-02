@@ -88,6 +88,14 @@ describe('guardIpc logging', () => {
     expect(lines).toEqual(['Beekeeper hit an internal error handling an IPC call (TypeError).'])
   })
 
+  it('names an unmapped code in the line, never the message', async () => {
+    const { lines, run } = loggedLines(() =>
+      Promise.reject(Object.assign(new Error('read failed /Users/x/path'), { code: 'EIO' }))
+    )
+    await run()
+    expect(lines).toEqual(['Beekeeper hit an internal error handling an IPC call (EIO).'])
+  })
+
   it('logs nothing for a missing file', async () => {
     const { lines, run } = loggedLines(() =>
       Promise.reject(Object.assign(new Error('/Users/x/path'), { code: 'ENOENT' }))
