@@ -4,7 +4,8 @@ import { testProject } from '@renderer/testBeekeeperApi'
 import { pickProject } from '../pickProject'
 
 const parent = (dirName: string): ProjectDto => testProject(dirName)
-const worktree = (dirName: string, of: string): ProjectDto => testProject(dirName, of)
+const worktree = (dirName: string, of: string): ProjectDto =>
+  testProject(dirName, { worktreeOf: of, worktreeName: 'wt' })
 
 describe('pickProject', () => {
   it('returns null when there are no projects', () => {

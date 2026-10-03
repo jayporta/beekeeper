@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { MAIN_HEADING_ID } from '@renderer/components/mainHeading'
 import { SelectedProjectHeading } from '@renderer/features/projects/SelectedProjectHeading'
 import { useSelectedProjectDirName } from '@renderer/features/projects/state/useSelectedProjectDirName'
 import { RefreshSessionsButton } from './RefreshSessionsButton'
@@ -14,15 +14,14 @@ import styles from './SessionsView.module.css'
  */
 export function SessionsView(): React.JSX.Element {
   const dirName = useSelectedProjectDirName()
-  const headingId = useId()
 
   return (
     <div className={styles.view}>
       <SelectedProjectHeading
-        headingId={headingId}
+        headingId={MAIN_HEADING_ID}
         actions={dirName !== null && <RefreshSessionsButton key={dirName} dirName={dirName} />}
       />
-      {dirName !== null && <SessionsContent dirName={dirName} headingId={headingId} />}
+      {dirName !== null && <SessionsContent dirName={dirName} headingId={MAIN_HEADING_ID} />}
     </div>
   )
 }

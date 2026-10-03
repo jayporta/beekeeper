@@ -4,7 +4,8 @@ import { testProject } from '@renderer/testBeekeeperApi'
 import { groupProjects } from '../groupProjects'
 
 const parent = (dirName: string): ProjectDto => testProject(dirName)
-const worktree = (dirName: string, of: string): ProjectDto => testProject(dirName, of)
+const worktree = (dirName: string, of: string): ProjectDto =>
+  testProject(dirName, { worktreeOf: of, worktreeName: 'wt' })
 
 describe('groupProjects', () => {
   it('returns no groups for no projects', () => {

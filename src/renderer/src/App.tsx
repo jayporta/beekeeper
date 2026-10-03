@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import styles from './App.module.css'
 import { MainView } from '@renderer/app/MainView'
+import { MAIN_HEADING_ID } from '@renderer/components/mainHeading'
 import { SidebarContent } from '@renderer/app/SidebarContent'
 import { SkipLink } from '@renderer/app/SkipLink'
 import { useFocusMainOnNavigate } from '@renderer/app/useFocusMainOnNavigate'
@@ -35,7 +36,13 @@ function App(): React.JSX.Element {
       <aside className={styles.sidebar} aria-label={t('sidebar')}>
         {hydrated && <SidebarContent aboutRef={aboutRef} />}
       </aside>
-      <main id="main" ref={mainRef} tabIndex={-1} className={styles.main}>
+      <main
+        id="main"
+        ref={mainRef}
+        tabIndex={-1}
+        aria-labelledby={MAIN_HEADING_ID}
+        className={styles.main}
+      >
         {hydrated && <MainView />}
       </main>
     </div>

@@ -3,17 +3,28 @@ import type { BeekeeperApi } from '../../shared/ipc/beekeeperApi'
 import type { IpcResult } from '../../shared/ipc/ipcResult'
 import type { ProjectDto } from '../../shared/ipc/projectDto'
 
+/** What makes a test project a worktree: the folder it belongs to and its name. Set together or not at all. */
+export interface TestWorktree {
+  /** The name of the folder this one is a worktree of. */
+  readonly worktreeOf: string
+  /** The worktree's name, as the app reports it. */
+  readonly worktreeName: string
+}
+
 /**
  * A project folder, for stubbing `listProjects`.
  *
  * @param dirName - The folder's name under `~/.claude/projects`.
- * @param worktreeOf - The name of the folder this one is a worktree of, or `null` when it is not a worktree. The worktree name is the text after `--claude-worktrees-` in `dirName`.
- * @returns The project.
+ * @param worktree - Set when the folder is a worktree of another listed folder. Omit it for a top-level project.
+ * @returns The project, with no label.
  */
-export function testProject(dirName: string, worktreeOf: string | null = null): ProjectDto {
-  const worktreeName =
-    worktreeOf === null ? null : (dirName.split('--claude-worktrees-')[1] ?? null)
-  return { dirName, label: null, worktreeOf, worktreeName }
+export function testProject(dirName: string, worktree?: TestWorktree): ProjectDto {
+  return {
+    dirName,
+    label: null,
+    worktreeOf: worktree?.worktreeOf ?? null,
+    worktreeName: worktree?.worktreeName ?? null
+  }
 }
 
 /** The stubbed API: each method is a mock, so a test can assert on calls or change a result. */

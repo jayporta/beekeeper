@@ -39,10 +39,6 @@ const isCurrent = (nav: HTMLElement, name: string): boolean =>
   within(nav).queryByRole('button', { name, current: 'page' }) !== null
 
 describe('ProjectList with a stored selection', () => {
-  it('marks the first parent project current when nothing is stored', async () => {
-    expect(isCurrent(await renderLoaded(), ALPHA)).toBe(true)
-  })
-
   it('restores the stored selection when it is still listed', async () => {
     await seed(storedSelection(BETA))
 

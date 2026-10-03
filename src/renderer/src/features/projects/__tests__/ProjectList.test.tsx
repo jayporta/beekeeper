@@ -15,8 +15,8 @@ const BETA = '-Users-a-beta'
 
 const PROJECTS: readonly ProjectDto[] = [
   { ...testProject(ALPHA), label: 'acme-web' },
-  testProject(WORKTREE_X, ALPHA),
-  testProject(WORKTREE_Y, ALPHA),
+  testProject(WORKTREE_X, { worktreeOf: ALPHA, worktreeName: 'x' }),
+  testProject(WORKTREE_Y, { worktreeOf: ALPHA, worktreeName: 'y' }),
   testProject(BETA)
 ]
 
@@ -197,7 +197,10 @@ describe('ProjectList', () => {
     })
 
     it('lists a worktree with no listed parent as a top-level row', async () => {
-      const nav = await renderLoaded([testProject(WORKTREE_X, ALPHA), testProject(BETA)])
+      const nav = await renderLoaded([
+        testProject(WORKTREE_X, { worktreeOf: ALPHA, worktreeName: 'x' }),
+        testProject(BETA)
+      ])
 
       expectRows(nav, ['All projects', WORKTREE_X, BETA])
     })

@@ -1,4 +1,5 @@
 import styles from './StatusMessage.module.css'
+import { MAIN_HEADING_ID } from './mainHeading'
 
 /** Props for {@link StatusMessage}. */
 interface StatusMessageProps {
@@ -6,6 +7,7 @@ interface StatusMessageProps {
   readonly heading: string
   /**
    * The heading level: 1 when the message is the whole view, 2 when it sits under the view's own `h1`.
+   * A level 1 heading names the main landmark (see `MAIN_HEADING_ID`).
    * @defaultValue 1
    */
   readonly headingLevel?: 1 | 2
@@ -37,7 +39,9 @@ export function StatusMessage({
   const Heading = headingLevel === 1 ? 'h1' : 'h2'
   return (
     <div className={styles.message} role={role}>
-      <Heading className={styles.heading}>{heading}</Heading>
+      <Heading id={headingLevel === 1 ? MAIN_HEADING_ID : undefined} className={styles.heading}>
+        {heading}
+      </Heading>
       {body !== undefined && <p className={styles.body}>{body}</p>}
       {children}
     </div>
