@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
@@ -29,8 +29,9 @@ describe('App focus', () => {
 
   it('moves focus to main when All projects is chosen', async () => {
     renderApp()
+    const sidebar = await screen.findByRole('navigation', { name: 'Projects' })
 
-    await userEvent.click(await screen.findByRole('button', { name: 'All projects' }))
+    await userEvent.click(within(sidebar).getByRole('button', { name: 'All projects' }))
 
     expect(document.activeElement).toBe(screen.getByRole('main'))
   })

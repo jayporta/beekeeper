@@ -82,7 +82,7 @@
   /* Layout sizes. */
   --size-sidebar: 13rem;
   --size-readable: 44rem;
-  --size-search: 24rem;
+  --size-search-field: 16.25rem;
   --size-target-min: 44px;
 
   --radius-none: 0;

@@ -196,13 +196,13 @@ describe('ProjectList', () => {
       ).toBeTruthy()
     })
 
-    it('lists a worktree with no listed parent as a top-level row', async () => {
+    it('lists a worktree with no listed parent as a top-level row named by its worktree', async () => {
       const nav = await renderLoaded([
         testProject(WORKTREE_X, { worktreeOf: ALPHA, worktreeName: 'x' }),
         testProject(BETA)
       ])
 
-      expectRows(nav, ['All projects', WORKTREE_X, BETA])
+      expectRows(nav, ['All projects', 'x', BETA])
     })
   })
 
