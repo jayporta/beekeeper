@@ -1,10 +1,13 @@
 import { useDeferredValue, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { SelectedProjectHeading } from '@renderer/features/projects/SelectedProjectHeading'
 import { countMatches } from './countMatches'
 import { filterRows } from './filterRows'
 import { groupSessionRows } from './groupSessionRows'
+import { RefreshSessionsButton } from './RefreshSessionsButton'
 import { SearchResultsStatus } from './SearchResultsStatus'
 import { normalizeQuery } from './sessionMatches'
+import { SessionSearch } from './SessionSearch'
 import { SessionsBody } from './SessionsBody'
 import { SessionsTable } from './SessionsTable'
 import { useSessionsViewStore } from './state/useSessionsViewStore'
@@ -14,14 +17,16 @@ import { useSessions } from './useSessions'
 interface SessionsContentProps {
   /** The folder whose sessions to show. */
   readonly dirName: string
-  /** The id of the heading that names the table. */
+  /** The id for the view's `h1`, which also names the table. */
   readonly headingId: string
 }
 
 /**
- * The body of the sessions view for one folder, with the live region that
- * announces search results. The region is mounted in every state, so its text
- * changes while it is mounted and is announced.
+ * The sessions view for one folder: the project header with the search box and
+ * refresh button, the live region that announces search results, and the
+ * list. The search box shows only once a non-empty list has loaded. The region
+ * is mounted in every state, so its text changes while it is mounted and is
+ * announced.
  *
  * @example
  * <SessionsContent dirName="-Users-me-repo" headingId={headingId} />
@@ -35,11 +40,21 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
   const rows = useMemo(() => (data === undefined ? [] : groupSessionRows(data, t)), [data, t])
   const matching = useMemo(() => filterRows(rows, query), [rows, query])
   const matchCount = useMemo(() => countMatches(rows, query), [rows, query])
+  const searchable = data !== undefined && data.length > 0
   // An empty folder shows no search box, so a leftover query isn't a search.
-  const searching = data !== undefined && data.length > 0 && normalizeQuery(query) !== ''
+  const searching = searchable && normalizeQuery(query) !== ''
 
   return (
     <>
+      <SelectedProjectHeading
+        headingId={headingId}
+        actions={
+          <>
+            {searchable && <SessionSearch />}
+            <RefreshSessionsButton key={dirName} dirName={dirName} />
+          </>
+        }
+      />
       <SearchResultsStatus count={matchCount} searching={searching} />
       <SessionsBody
         data={data}

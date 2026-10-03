@@ -4,7 +4,8 @@ import styles from './SessionSearch.module.css'
 import { useSessionsViewStore } from './state/useSessionsViewStore'
 
 /**
- * A labeled search box that filters the sessions table by session name.
+ * A search box that filters the sessions list by session name. Its label is
+ * visually hidden and repeated as the placeholder.
  *
  * @example
  * <SessionSearch />
@@ -17,13 +18,14 @@ export function SessionSearch(): React.JSX.Element {
 
   return (
     <div className={styles.search}>
-      <label htmlFor={inputId} className={styles.label}>
+      <label htmlFor={inputId} className="visuallyHidden">
         {t('search.label')}
       </label>
       <input
         id={inputId}
         type="search"
         className={styles.input}
+        placeholder={t('search.label')}
         value={query}
         onChange={(event) => {
           setQuery(event.target.value)

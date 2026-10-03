@@ -44,7 +44,7 @@ describe('first-run screen', () => {
     await dismiss()
 
     expect(screen.queryByRole('heading', { name: 'Welcome to Beekeeper' })).toBeNull()
-    expect(await screen.findByRole('heading', { level: 1, name: 'Sessions' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: '-Users-a-repo' })).toBeTruthy()
   })
 
   it('moves focus to the main landmark after the first-launch Got it', async () => {
@@ -87,7 +87,7 @@ describe('first-run screen', () => {
 
       renderApp()
 
-      expect(await screen.findByRole('heading', { level: 1, name: 'Sessions' })).toBeTruthy()
+      expect(await screen.findByRole('heading', { level: 1, name: '-Users-a-repo' })).toBeTruthy()
       expect(screen.queryByRole('heading', { name: 'Welcome to Beekeeper' })).toBeNull()
     })
 
@@ -95,7 +95,7 @@ describe('first-run screen', () => {
       await seedDismissal()
 
       renderApp()
-      await screen.findByRole('heading', { level: 1, name: 'Sessions' })
+      await screen.findByRole('heading', { level: 1, name: '-Users-a-repo' })
 
       expect(document.activeElement).not.toBe(screen.getByRole('main'))
     })
@@ -167,7 +167,7 @@ describe('first-run screen', () => {
     expect(await welcome()).toBeTruthy()
 
     await dismiss()
-    expect(await screen.findByRole('heading', { level: 1, name: 'Sessions' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: '-Users-a-repo' })).toBeTruthy()
   })
 
   it('does not persist the reopened state', async () => {
@@ -197,7 +197,7 @@ describe('first-run screen', () => {
 
     await dismiss()
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Sessions' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: '-Users-a-repo' })).toBeTruthy()
     await vi.waitFor(() => {
       expect(log).toHaveBeenCalledWith('Beekeeper could not save "first-run" to IndexedDB.')
     })

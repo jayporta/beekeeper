@@ -3,7 +3,6 @@ import { RetryButton } from '@renderer/components/RetryButton'
 import { StatusMessage } from '@renderer/components/StatusMessage'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
-import { SessionSearch } from './SessionSearch'
 
 /** Props for {@link SessionsBody}. */
 interface SessionsBodyProps {
@@ -21,10 +20,10 @@ interface SessionsBodyProps {
 
 /**
  * What the sessions view shows for one folder: a loading, error or empty
- * state, or the search box with the table or a no-match message. Loaded data
- * wins over a failed background refresh, so a cached list stays on screen.
- * Each state has its own key, so an alert mounts fresh instead of reusing the
- * loading element, and screen readers announce it.
+ * state, or the table or a no-match message. Loaded data wins over a failed
+ * background refresh, so a cached list stays on screen. Each state has its own
+ * key, so an alert mounts fresh instead of reusing the loading element, and
+ * screen readers announce it.
  *
  * @example
  * <SessionsBody data={data} error={null} onRetry={retry} hasMatches>
@@ -82,18 +81,13 @@ export function SessionsBody({
     )
   }
 
-  return (
-    <>
-      <SessionSearch />
-      {hasMatches ? (
-        children
-      ) : (
-        <StatusMessage
-          heading={t('search.noMatches')}
-          headingLevel={2}
-          body={t('search.noMatchesBody')}
-        />
-      )}
-    </>
+  return hasMatches ? (
+    <>{children}</>
+  ) : (
+    <StatusMessage
+      heading={t('search.noMatches')}
+      headingLevel={2}
+      body={t('search.noMatchesBody')}
+    />
   )
 }

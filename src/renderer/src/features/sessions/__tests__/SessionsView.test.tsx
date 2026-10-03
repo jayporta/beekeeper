@@ -71,7 +71,7 @@ describe('SessionsView table', () => {
   it('renders a table named by the heading with the seven columns', async () => {
     showSessions()
 
-    const table = await screen.findByRole('table', { name: 'Sessions' })
+    const table = await screen.findByRole('table', { name: DIR })
     const headers = within(table)
       .getAllByRole('columnheader')
       .map((h) => h.textContent)

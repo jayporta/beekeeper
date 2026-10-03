@@ -7,15 +7,32 @@
 .titleRow {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-end;
+  justify-content: space-between;
   gap: var(--space-3);
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
 }
 
 .title {
   font-size: var(--font-size-lg);
+  overflow-wrap: anywhere;
 }
 
-.subtitle {
+.folder {
   color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
   overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
 }

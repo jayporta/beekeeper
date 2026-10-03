@@ -1,4 +1,4 @@
-import { act, screen } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
@@ -20,19 +20,20 @@ afterEach(async () => {
 })
 
 describe('the main landmark name', () => {
-  it('is the sessions heading on the sessions list', async () => {
+  it('is the project name on the sessions list', async () => {
     renderApp()
 
-    expect(await screen.findByRole('main', { name: 'Sessions' })).toBeTruthy()
+    expect(await screen.findByRole('main', { name: '-Users-a-repo' })).toBeTruthy()
   })
 
   it('becomes the new heading after each navigation', async () => {
     renderApp()
-    await userEvent.click(await screen.findByRole('button', { name: 'All projects' }))
+    const sidebar = await screen.findByRole('navigation', { name: 'Projects' })
+    await userEvent.click(within(sidebar).getByRole('button', { name: 'All projects' }))
     expect(await screen.findByRole('main', { name: 'All projects' })).toBeTruthy()
 
-    await userEvent.click(screen.getByRole('button', { name: '-Users-a-repo' }))
-    expect(await screen.findByRole('main', { name: 'Sessions' })).toBeTruthy()
+    await userEvent.click(within(sidebar).getByRole('button', { name: '-Users-a-repo' }))
+    expect(await screen.findByRole('main', { name: '-Users-a-repo' })).toBeTruthy()
 
     act(() => {
       useNavigationStore.getState().showSession(ref)

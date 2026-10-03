@@ -23,7 +23,7 @@ describe('MainView', () => {
   it('shows the sessions list by default', async () => {
     renderApp()
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Sessions' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: '-Users-a-repo' })).toBeTruthy()
   })
 
   it('shows the overview placeholder on the overview view', async () => {
@@ -31,7 +31,7 @@ describe('MainView', () => {
     renderApp()
 
     expect(await screen.findByRole('heading', { level: 1, name: 'All projects' })).toBeTruthy()
-    expect(screen.queryByRole('heading', { name: 'Sessions' })).toBeNull()
+    expect(screen.queryByRole('heading', { name: '-Users-a-repo' })).toBeNull()
   })
 
   it('shows the session placeholder with a breadcrumb on the session view', async () => {
@@ -48,7 +48,7 @@ describe('MainView', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: 'Sessions' }))
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Sessions' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: '-Users-a-repo' })).toBeTruthy()
     expect(useNavigationStore.getState().view).toBe('sessions')
   })
 
@@ -74,7 +74,7 @@ describe('MainView', () => {
 
   it('moves from one view to another when the store changes', async () => {
     renderApp()
-    await screen.findByRole('heading', { level: 1, name: 'Sessions' })
+    await screen.findByRole('heading', { level: 1, name: '-Users-a-repo' })
 
     act(() => {
       useNavigationStore.getState().showOverview()
@@ -100,6 +100,6 @@ describe('MainView', () => {
       useSelectedProjectStore.getState().select('-Users-a-two')
     })
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Sessions' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: '-Users-a-two' })).toBeTruthy()
   })
 })

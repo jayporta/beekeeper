@@ -82,7 +82,7 @@ describe('ProjectsGate states', () => {
     ).toBeTruthy()
     await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Sessions' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: '-Users-a-repo' })).toBeTruthy()
   })
 
   it('moves focus to the main landmark when Retry replaces the error with loading', async () => {
@@ -221,11 +221,11 @@ describe('ProjectsGate states', () => {
     expect(screen.queryByRole('status')).toBeNull()
   })
 
-  it('shows the sessions heading with the selected folder name when a project loads', async () => {
+  it('names the heading after the selected project, with its folder name beneath, when a project loads', async () => {
     installBeekeeperApi()
     renderApp()
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Sessions' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: '-Users-a-repo' })).toBeTruthy()
     expect(screen.getByText('-Users-a-repo', { selector: 'p' })).toBeTruthy()
   })
 })
