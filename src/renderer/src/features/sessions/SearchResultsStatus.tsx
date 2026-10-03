@@ -10,7 +10,7 @@ interface SearchResultsStatusProps {
 
 /**
  * A polite live region that announces the number of matches after a search,
- * for screen readers that can't see the table change (WCAG 4.1.3). It is
+ * for screen readers that can't see the list change (WCAG 4.1.3). It is
  * always rendered and empty until a search is active, so the region exists
  * before its text changes.
  *

@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
-import { groupSessionRows } from '../groupSessionRows'
 import { partialReasons, type PartialReason } from '../partialReasons'
-import { sessionKey } from '../sessionKey'
 import type { SessionRow } from '../sessionRow'
 import {
   testAgentRole,
@@ -12,17 +9,7 @@ import {
   testTeammateTeam,
   testUsage
 } from '../testSessionFixtures'
-import { testSessionsT } from '../testSessionsT'
-
-/** The card for session `n`, grouped with the other sessions as the list would. */
-function cardFor(n: number, items: readonly SessionListItemDto[]): SessionRow {
-  const target = items.find((item) => item.sessionId === testSession(n).sessionId)
-  const row = groupSessionRows(items, testSessionsT).find(
-    (candidate) => target !== undefined && candidate.key === sessionKey(target)
-  )
-  if (row === undefined) throw new Error(`no card for session ${n}`)
-  return row
-}
+import { testRow } from '../testSessionRows'
 
 const reasons = (row: SessionRow): PartialReason[] => [...partialReasons(row)].sort()
 
@@ -37,14 +24,14 @@ function teamCard(
     team: testTeammateTeam(testRef(1)),
     ...teammate
   })
-  return cardFor(1, [lead, mate])
+  return testRow(1, [lead, mate])
 }
 
 describe('partialReasons', () => {
   it('has no reasons for a clean solo session', () => {
     const solo = testSession(1, { totalTokens: 5, costUSD: 1 })
 
-    expect(reasons(cardFor(1, [solo]))).toEqual([])
+    expect(reasons(testRow(1, [solo]))).toEqual([])
   })
 
   it('has no reasons for a clean lead and its teammate', () => {
@@ -52,12 +39,12 @@ describe('partialReasons', () => {
   })
 
   it('does not call a solo session with no recorded usage unrecorded usage', () => {
-    expect(reasons(cardFor(1, [testSession(1)]))).toEqual([])
+    expect(reasons(testRow(1, [testSession(1)]))).toEqual([])
   })
 
   describe('unreadableLines', () => {
     it('applies when the card’s own session skipped lines', () => {
-      expect(reasons(cardFor(1, [testSession(1, { skippedLines: 2 })]))).toEqual([
+      expect(reasons(testRow(1, [testSession(1, { skippedLines: 2 })]))).toEqual([
         'unreadableLines'
       ])
     })
@@ -67,7 +54,7 @@ describe('partialReasons', () => {
     })
 
     it('does not apply to a session whose summary could not be read', () => {
-      expect(reasons(cardFor(1, [testSession(1, { unreadable: true })]))).toEqual([])
+      expect(reasons(testRow(1, [testSession(1, { unreadable: true })]))).toEqual([])
     })
   })
 
@@ -97,25 +84,25 @@ describe('partialReasons', () => {
     it('applies when a session shows its transcript tokens and has subagents', () => {
       const item = testSession(1, { transcriptTokens: 900, subagentCount: 2 })
 
-      expect(reasons(cardFor(1, [item]))).toEqual(['subagentsExcluded'])
+      expect(reasons(testRow(1, [item]))).toEqual(['subagentsExcluded'])
     })
 
     it('applies when the subagent count is unknown', () => {
       const item = testSession(1, { transcriptTokens: 900, subagentCount: null })
 
-      expect(reasons(cardFor(1, [item]))).toEqual(['subagentsExcluded'])
+      expect(reasons(testRow(1, [item]))).toEqual(['subagentsExcluded'])
     })
 
     it('does not apply to a transcript total with no subagents', () => {
       const item = testSession(1, { transcriptTokens: 900, subagentCount: 0 })
 
-      expect(reasons(cardFor(1, [item]))).toEqual([])
+      expect(reasons(testRow(1, [item]))).toEqual([])
     })
 
     it('does not apply to recorded tokens, whatever the subagent count', () => {
       const item = testSession(1, { totalTokens: 5, transcriptTokens: 900, subagentCount: 2 })
 
-      expect(reasons(cardFor(1, [item]))).toEqual([])
+      expect(reasons(testRow(1, [item]))).toEqual([])
     })
 
     it('applies when a teammate’s chip shows transcript tokens that leave out its subagents', () => {
@@ -139,7 +126,7 @@ describe('partialReasons', () => {
       })
       const mate = testSession(2, { team: testTeammateTeam(testRef(1)) })
 
-      expect(reasons(cardFor(1, [lead, mate]))).toEqual(['subagentsExcluded', 'unrecordedUsage'])
+      expect(reasons(testRow(1, [lead, mate]))).toEqual(['subagentsExcluded', 'unrecordedUsage'])
     })
 
     it('does not apply to a running lead whose shown figure is the team total', () => {
@@ -157,7 +144,7 @@ describe('partialReasons', () => {
       })
       const mate = testSession(2, { team: testTeammateTeam(testRef(1)) })
 
-      expect(reasons(cardFor(1, [lead, mate]))).toEqual(['unrecordedUsage'])
+      expect(reasons(testRow(1, [lead, mate]))).toEqual(['unrecordedUsage'])
     })
   })
 

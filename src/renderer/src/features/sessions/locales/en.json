@@ -1,14 +1,10 @@
 {
   "columns": {
     "session": "Session",
-    "lastActive": "Last active",
     "duration": "Duration",
-    "model": "Model",
     "agents": "Agents",
-    "sessionUsage": "Session usage",
-    "teamUsage": "Team usage"
+    "tokens": "Tokens"
   },
-  "table": "Sessions table",
   "label": {
     "untitled": "Untitled session",
     "unreadable": "Unreadable session"
@@ -34,10 +30,8 @@
   "tokens_one": "{{count, compactInteger}} token",
   "tokens_other": "{{count, compactInteger}} tokens",
   "apiCost": "{{value}} at API prices",
-  "partial": "partial",
   "emptyCell": {
     "notRecorded": "not recorded",
-    "notApplicable": "not applicable",
     "tokensNotRecorded": "tokens not recorded",
     "costNotRecorded": "cost not recorded"
   },
@@ -53,9 +47,6 @@
       "sevenDayResets": "hit 7-day limit, resets {{value, shortDateTime}}"
     }
   },
-  "teammateOf": "teammate of {{lead}}",
-  "disclosure_one": "{{count, integer}} teammate of {{name}}",
-  "disclosure_other": "{{count, integer}} teammates of {{name}}",
   "refresh": "Refresh",
   "refreshing": "Refreshing",
   "refreshed": "Lists updated",
@@ -76,5 +67,25 @@
   "emptyProject": {
     "heading": "No sessions in this project",
     "body": "Sessions appear here after you run Claude Code in this folder."
+  },
+  "teamTotal": "team total",
+  "partialMarker": "¹",
+  "partialNote": "partial, see note",
+  "metaSeparator": "·",
+  "agentStrip": {
+    "more": "+{{count, integer}}"
+  },
+  "chip": {
+    "matches": "matches search"
+  },
+  "chips": {
+    "label": "Teammates of {{name}}"
+  },
+  "footnote": {
+    "label": "¹ Partial:",
+    "unreadableLines": "Some transcript lines couldn't be read, so a total may be low.",
+    "missingTeammates": "Some teammates the lead spawned aren't in this list, so a team total may be low.",
+    "unrecordedUsage": "Some sessions recorded no usage, so a team total leaves them out.",
+    "subagentsExcluded": "A session still running or stopped early shows its transcript's tokens, which leave out its subagents."
   }
 }

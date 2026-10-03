@@ -1,0 +1,38 @@
+.chip {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  min-height: var(--size-target-min);
+  padding: var(--space-1-5) var(--space-2-5);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  text-align: left;
+  background: transparent;
+  border: var(--border-width-mark) solid var(--color-text);
+  border-radius: var(--radius-none);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--color-hover);
+  }
+}
+
+.highlighted {
+  background: var(--color-accent-100);
+  border: var(--border-width-strong) solid var(--color-accent-strong);
+
+  &:hover {
+    background: var(--color-accent-100);
+  }
+}
+
+.name {
+  font-weight: var(--font-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.note {
+  color: var(--color-text-muted);
+}

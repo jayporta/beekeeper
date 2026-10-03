@@ -17,7 +17,7 @@ function byLastActiveDescending(a: SessionRow, b: SessionRow): number {
 }
 
 /**
- * Arranges a project's session list into table rows. Leads, teammates whose
+ * Arranges a project's session list into rows. Leads, teammates whose
  * lead isn't in the list, and ungrouped teammates are top-level rows. The
  * teammates of a lead nest under it in the lead's order, and a session nests
  * at most once and never also appears top-level. Top-level rows are sorted by

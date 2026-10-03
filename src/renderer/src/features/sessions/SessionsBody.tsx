@@ -14,20 +14,20 @@ interface SessionsBodyProps {
   readonly onRetry: () => void
   /** Whether any session matches the search. */
   readonly hasMatches: boolean
-  /** The table of matching sessions, shown when there are matches. */
+  /** The list of matching sessions, shown when there are matches. */
   readonly children: React.ReactNode
 }
 
 /**
  * What the sessions view shows for one folder: a loading, error or empty
- * state, or the table or a no-match message. Loaded data wins over a failed
+ * state, or the list or a no-match message. Loaded data wins over a failed
  * background refresh, so a cached list stays on screen. Each state has its own
  * key, so an alert mounts fresh instead of reusing the loading element, and
  * screen readers announce it.
  *
  * @example
  * <SessionsBody data={data} error={null} onRetry={retry} hasMatches>
- *   <SessionsTable rows={rows} labelledBy={headingId} selectedDirName="-Users-me-repo" searching={false} />
+ *   <SessionCardList rows={rows} labelledBy={headingId} selectedDirName="-Users-me-repo" query="" />
  * </SessionsBody>
  */
 export function SessionsBody({
