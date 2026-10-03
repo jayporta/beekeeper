@@ -6,5 +6,7 @@
     "heading": "Something went wrong",
     "unexpected": "Beekeeper hit an unexpected error. Reload to try again.",
     "reload": "Reload"
-  }
+  },
+  "localOnly": "Local only · read-only",
+  "skipToMain": "Skip to main content"
 }

@@ -167,17 +167,14 @@ describe('refreshing the lists on window focus', () => {
         otherGone ? Promise.resolve({ ok: false, error: { code: 'not-found' } }) : loaded([lead]),
       [testProject(DIR), testProject(OTHER)]
     )
-    const picker = (await screen.findByRole('combobox', { name: 'Project' })) as HTMLSelectElement
-    await userEvent.selectOptions(picker, OTHER)
-    expect(picker.value).toBe(OTHER)
+    await userEvent.click(await screen.findByRole('button', { name: OTHER }))
+    expect(screen.getByRole('button', { name: OTHER }).getAttribute('aria-current')).toBe('page')
     otherGone = true
 
     await focusAfterStaleTime()
 
     await waitFor(() => {
-      expect((screen.getByRole('combobox', { name: 'Project' }) as HTMLSelectElement).value).toBe(
-        DIR
-      )
+      expect(screen.getByRole('button', { name: DIR }).getAttribute('aria-current')).toBe('page')
     })
   })
 })
@@ -286,7 +283,7 @@ describe('the Refresh button', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Refresh' }))
     await screen.findByRole('button', { name: 'Refreshing' })
 
-    await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Project' }), OTHER)
+    await userEvent.click(await screen.findByRole('button', { name: OTHER }))
 
     await screen.findByRole('button', { name: 'Refresh' })
     await afterAnnounceDelay()

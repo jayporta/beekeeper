@@ -1,0 +1,14 @@
+{
+  "breadcrumb": {
+    "label": "Breadcrumb",
+    "sessions": "Sessions"
+  },
+  "overview": {
+    "heading": "All projects",
+    "body": "The overview across all projects isn't built yet."
+  },
+  "session": {
+    "heading": "Session",
+    "body": "The session view isn't built yet."
+  }
+}

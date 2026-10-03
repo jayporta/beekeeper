@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
+import { MAIN_HEADING_ID } from '@renderer/components/mainHeading'
 import styles from './FirstRunScreen.module.css'
 import { isMacOS } from './isMacOs'
 import { useFirstRunStore } from './state/useFirstRunStore'
@@ -24,7 +25,7 @@ export function FirstRunScreen(): React.JSX.Element {
 
   return (
     <div className={styles.screen}>
-      <h1 ref={headingRef} tabIndex={-1} className={styles.title}>
+      <h1 id={MAIN_HEADING_ID} ref={headingRef} tabIndex={-1} className={styles.title}>
         {t('title')}
       </h1>
 

@@ -52,7 +52,7 @@ describe('registerIpcHandlers', () => {
     const listener = register().get(IPC_CHANNELS.listProjects)
     expect(await listener?.(trustedEvent)).toEqual({
       ok: true,
-      value: [{ dirName: TEST_PROJECT, label: null, worktreeOf: null }]
+      value: [{ dirName: TEST_PROJECT, label: null, worktreeOf: null, worktreeName: null }]
     })
   })
 

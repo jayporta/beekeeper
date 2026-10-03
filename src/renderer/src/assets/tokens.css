@@ -23,6 +23,8 @@
   --color-border-strong: #767879;
   --color-surface-header: var(--color-surface);
   --color-surface-nested: #ececed;
+  /* The tint a row takes on hover. Text over transparent, so it works on any surface. */
+  --color-hover: color-mix(in srgb, var(--color-text) 6%, transparent);
 
   /* Accent. The ramp inverts in dark mode, so 100 is always the lightest tint against the ground. */
   --color-accent: #5980a6;
@@ -48,6 +50,8 @@
   --font-heading: 'Barlow Condensed', var(--font-body);
   --font-mono: ui-monospace, Menlo, monospace;
   --line-height-body: 1.5;
+  --font-weight-semibold: 600;
+  --letter-spacing-caps: 0.08em;
   /* Sizes by pixel at a 16px root: 2xs 11, xs 12, sm 13, body 14, md 15, lg 18, xl 19, 2xl 24, 3xl 25, 4xl 32, 5xl 34. */
   --font-size-2xs: 0.6875rem;
   --font-size-xs: 0.75rem;
@@ -76,7 +80,7 @@
   --space-8: 2rem;
 
   /* Layout sizes. */
-  --size-sidebar: 16rem;
+  --size-sidebar: 13rem;
   --size-readable: 44rem;
   --size-search: 24rem;
   --size-target-min: 44px;

@@ -1,0 +1,40 @@
+.trail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  list-style: none;
+
+  & li {
+    display: flex;
+    align-items: center;
+  }
+
+  /* The empty alternative text keeps assistive technology from reading the separator. */
+  & li + li::before {
+    padding-inline: var(--space-1-5);
+    content: '/' / '';
+  }
+}
+
+.link {
+  min-height: var(--size-target-min);
+  padding: 0 var(--space-1);
+  color: inherit;
+  font: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--color-text);
+    text-decoration: underline;
+  }
+}
+
+.current {
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}

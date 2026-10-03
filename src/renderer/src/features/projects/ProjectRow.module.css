@@ -1,0 +1,68 @@
+.item {
+  display: flex;
+}
+
+.nested {
+  /* Indents the worktree rows beneath their project. */
+  margin-inline-start: var(--space-5-5);
+}
+
+.row {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  min-height: var(--size-target-min);
+  padding: var(--space-1-5) var(--space-2);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  text-align: start;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-none);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--color-hover);
+  }
+
+  &[aria-current='page'] {
+    font-weight: var(--font-weight-semibold);
+    background: var(--color-accent-200);
+  }
+}
+
+.label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  /* The arrow is decoration: the empty alternative text keeps it out of the accessible name. */
+  .nested &::before {
+    content: '↳ ' / '';
+  }
+}
+
+.meta {
+  flex: none;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.detail {
+  display: none;
+  flex-basis: 100%;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  overflow-wrap: anywhere;
+
+  .row:hover &,
+  .row:focus-visible & {
+    display: block;
+  }
+}

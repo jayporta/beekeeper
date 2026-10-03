@@ -33,6 +33,24 @@ export function worktreeParentOf(
 }
 
 /**
+ * Names a worktree: the text after the first `--claude-worktrees-` in its
+ * folder name. It is set exactly when {@link worktreeParentOf} finds a parent,
+ * so the two always agree on what is a worktree folder.
+ *
+ * @param dirName - A project folder name.
+ * @param listed - Every listed project folder name.
+ * @returns The worktree's name, or `null` when `dirName` is not a worktree
+ * folder of a listed folder. Never a path.
+ */
+export function worktreeNameOf(
+  dirName: ProjectDirName,
+  listed: ReadonlySet<ProjectDirName>
+): string | null {
+  const parent = worktreeParentOf(dirName, listed)
+  return parent === null ? null : dirName.slice(parent.length + WORKTREE_MARKER.length)
+}
+
+/**
  * Lists a project's family: its base folder (the folder itself, or its parent
  * when it is a worktree folder) followed by every listed worktree folder of
  * that base.

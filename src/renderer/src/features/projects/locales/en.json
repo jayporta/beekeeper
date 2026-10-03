@@ -1,8 +1,8 @@
 {
-  "picker": {
-    "label": "Project",
-    "worktreeGroup": "{{project}} worktrees",
-    "note": "Worktree folders are grouped under their project."
+  "list": {
+    "label": "Projects",
+    "all": "All projects",
+    "worktree": "worktree"
   },
   "heading": "Sessions",
   "empty": {

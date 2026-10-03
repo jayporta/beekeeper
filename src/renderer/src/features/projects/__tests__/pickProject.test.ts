@@ -1,13 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { ProjectDto } from '../../../../../shared/ipc/projectDto'
+import { testProject } from '@renderer/testBeekeeperApi'
 import { pickProject } from '../pickProject'
 
-const parent = (dirName: string): ProjectDto => ({ dirName, label: null, worktreeOf: null })
-const worktree = (dirName: string, of: string): ProjectDto => ({
-  dirName,
-  label: null,
-  worktreeOf: of
-})
+const parent = (dirName: string): ProjectDto => testProject(dirName)
+const worktree = (dirName: string, of: string): ProjectDto =>
+  testProject(dirName, { worktreeOf: of, worktreeName: 'wt' })
 
 describe('pickProject', () => {
   it('returns null when there are no projects', () => {

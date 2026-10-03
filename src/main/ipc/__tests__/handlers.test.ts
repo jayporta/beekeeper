@@ -27,7 +27,7 @@ describe('listProjectsHandler', () => {
   it('lists project folder names and nothing else', async () => {
     expect(await listProjectsHandler(ctx.deps)).toEqual({
       ok: true,
-      value: [{ dirName: TEST_PROJECT, label: null, worktreeOf: null }]
+      value: [{ dirName: TEST_PROJECT, label: null, worktreeOf: null, worktreeName: null }]
     })
   })
 
@@ -44,7 +44,7 @@ describe('listProjectsHandler', () => {
 
       expect(result).toEqual({
         ok: true,
-        value: [{ dirName: TEST_PROJECT, label: 'acme-web', worktreeOf: null }]
+        value: [{ dirName: TEST_PROJECT, label: 'acme-web', worktreeOf: null, worktreeName: null }]
       })
     } finally {
       await labelled.cleanup()
