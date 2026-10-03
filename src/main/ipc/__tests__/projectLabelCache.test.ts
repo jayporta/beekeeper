@@ -205,10 +205,29 @@ describe('createProjectLabelCache', () => {
       await cache.labelsFor([entry(tree, 'a')])
       await cache.labelsFor([])
       await writeFile(transcriptOf(tree), recording('/Users/dev/proj2'))
+      await pin(transcriptOf(tree))
 
       const labels = await cache.labelsFor([entry(tree, 'a')])
 
       expect(labels.get('a')).toBe('proj2')
+    })
+
+    it('is read again when an earlier transcript that gave none starts recording a cwd', async () => {
+      tree = await buildDiscoveryTree({
+        files: {
+          [`a/${idOf(1)}.jsonl`]: noCwd,
+          [`a/${idOf(2)}.jsonl`]: recording('/Users/dev/proj2')
+        }
+      })
+      await pin(join(tree.root, 'a'))
+      const cache = createProjectLabelCache()
+      await cache.labelsFor([entry(tree, 'a')])
+      await appendFile(transcriptOf(tree, idOf(1)), recording('/Users/dev/proj1'))
+      await pin(join(tree.root, 'a'))
+
+      const labels = await cache.labelsFor([entry(tree, 'a')])
+
+      expect(labels.get('a')).toBe('proj1')
     })
   })
 
