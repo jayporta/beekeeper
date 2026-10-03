@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { AgentMark } from './AgentMark'
 import { agentMarks } from './agentMarks'
 import styles from './AgentStrip.module.css'
 import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
@@ -26,7 +27,7 @@ export function AgentStrip({ item }: AgentStripProps): React.JSX.Element {
     <div className={styles.strip} aria-hidden="true">
       {marks.map((kind, index) => (
         // The marks are interchangeable and never reorder, so the position is the identity.
-        <span key={index} data-kind={kind} className={styles[kind]} />
+        <AgentMark key={index} kind={kind} />
       ))}
       {overflow > 0 && (
         <span className={styles.more}>{t('agentStrip.more', { count: overflow })}</span>

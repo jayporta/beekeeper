@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
+import { PARTIAL_FOOTNOTE_ID } from '../partialFootnoteId'
 import type { SessionRow } from '../sessionRow'
 import { TeammateChip } from '../TeammateChip'
 import {
@@ -87,7 +88,23 @@ describe('TeammateChip', () => {
     renderChip(teammateRow({ transcriptTokens: 400, subagentCount: 1 }))
 
     expect(screen.getByText('¹').getAttribute('aria-hidden')).toBe('true')
-    expect(screen.getByRole('button').textContent).toContain('partial, see note')
+    expect(screen.getByRole('button').textContent).toContain('partial, see the note below the list')
+  })
+
+  it('points a partial chip at the footnote, and an exact one at nothing', () => {
+    const { unmount } = render(
+      <TeammateChip
+        teammate={teammateRow({ transcriptTokens: 400, subagentCount: 1 })}
+        leadRef={LEAD_REF}
+        selectedDirName={DIR}
+        highlighted={false}
+      />
+    )
+    expect(screen.getByRole('button').getAttribute('aria-describedby')).toBe(PARTIAL_FOOTNOTE_ID)
+    unmount()
+
+    renderChip(teammateRow({ totalTokens: 400 }))
+    expect(screen.getByRole('button').getAttribute('aria-describedby')).toBeNull()
   })
 
   it('shows no partial marker for recorded tokens', () => {

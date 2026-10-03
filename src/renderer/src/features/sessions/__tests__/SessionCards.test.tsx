@@ -105,6 +105,15 @@ describe('session cards', () => {
     ).toBeTruthy()
   })
 
+  it('labels the agents cell and the duration cell for assistive technology', async () => {
+    showSessions()
+
+    const card = await cardOf('Refactor parser')
+
+    expect(within(card).getByText('Agents')).toBeTruthy()
+    expect(within(card).getByText('Duration')).toBeTruthy()
+  })
+
   it('shows the last active time, model, and duration of a session', async () => {
     showSessions()
 
@@ -215,6 +224,26 @@ describe('session cards', () => {
   })
 })
 
+describe('session cards: legend', () => {
+  it('names the kinds of mark on screen', async () => {
+    showSessions()
+    await cardOf('Refactor parser')
+
+    expect(screen.getByText('Lead')).toBeTruthy()
+    expect(screen.getByText('Teammate')).toBeTruthy()
+    expect(screen.getByText('Subagent')).toBeTruthy()
+  })
+
+  it('leaves out the kinds that no card on screen draws', async () => {
+    showSessions([testSession(5, { projectDirName: DIR, title: 'On its own' })])
+    await cardOf('On its own')
+
+    expect(screen.getByText('Lead')).toBeTruthy()
+    expect(screen.queryByText('Teammate')).toBeNull()
+    expect(screen.queryByText('Subagent')).toBeNull()
+  })
+})
+
 describe('session cards: partial figures', () => {
   it('shows no footnote when no figure is partial', async () => {
     showSessions([solo])
@@ -229,7 +258,7 @@ describe('session cards: partial figures', () => {
     const card = await cardOf('Refactor parser')
 
     expect(within(card).getByText('¹')).toBeTruthy()
-    expect(within(card).getByText('partial, see note')).toBeTruthy()
+    expect(within(card).getByText('partial, see the note below the list')).toBeTruthy()
     expect(
       screen.getByText("Some teammates the lead spawned aren't in this list", { exact: false })
         .textContent
@@ -253,6 +282,62 @@ describe('session cards: partial figures', () => {
     expect(note).toContain("Some transcript lines couldn't be read")
     expect(note).toContain("Some teammates the lead spawned aren't in this list")
     expect(note).not.toContain('recorded no usage')
+  })
+
+  it('says a reason that several cards share once', async () => {
+    const otherLead = testSession(5, {
+      projectDirName: DIR,
+      title: 'Also short a teammate',
+      latestMs: 2,
+      team: testLeadTeam([], testUsage({ missingTeammates: 3 }))
+    })
+    showSessions([lead, reviewer, writer, otherLead])
+    await cardOf('Also short a teammate')
+
+    const note = screen.getByText(/Partial:/).textContent ?? ''
+    const sentence = "Some teammates the lead spawned aren't in this list"
+    expect(note.split(sentence)).toHaveLength(2)
+  })
+
+  describe('for a lead that shows no figures', () => {
+    const nothingRecorded = testUsage({
+      leadTokens: null,
+      leadUSD: null,
+      teamTokens: null,
+      teamUSD: null,
+      sessionsWithoutTokens: 1,
+      missingTeammates: 1
+    })
+    const emptyLead = testSession(5, {
+      projectDirName: DIR,
+      title: 'Empty lead',
+      team: testLeadTeam([testRef(6, DIR)], nothingRecorded)
+    })
+    const chipOf = (options: Parameters<typeof testSession>[1]): SessionListItemDto =>
+      testSession(6, {
+        projectDirName: DIR,
+        role: testAgentRole('helper', 'code'),
+        team: testTeammateTeam(testRef(5, DIR)),
+        ...options
+      })
+
+    it('leaves its own reasons out of the footnote, since no marker explains them', async () => {
+      showSessions([emptyLead, chipOf({ totalTokens: 9 })])
+      const card = await cardOf('Empty lead')
+
+      expect(within(card).queryByText('¹')).toBeNull()
+      expect(screen.queryByText(/Partial:/)).toBeNull()
+    })
+
+    it("still explains a teammate chip's own marker", async () => {
+      showSessions([emptyLead, chipOf({ transcriptTokens: 400, subagentCount: 1 })])
+      const card = await cardOf('Empty lead')
+
+      expect(within(card).getByText('¹')).toBeTruthy()
+      expect(screen.getByText(/Partial:/).textContent).toBe(
+        "¹ Partial: A session still running or stopped early shows its transcript's tokens, which leave out its subagents."
+      )
+    })
   })
 
   it('drops a reason from the footnote when its card is filtered out', async () => {

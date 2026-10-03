@@ -19,12 +19,22 @@
   }
 }
 
+/*
+ * Inverted like the lead mark, so a match shows by more than color: the text
+ * is --color-bg on --color-accent-strong, a pair the contrast test holds to
+ * 4.5:1 in both color schemes, and the muted note takes the same text color.
+ */
 .highlighted {
-  background: var(--color-accent-100);
+  color: var(--color-bg);
+  background: var(--color-accent-strong);
   border: var(--border-width-strong) solid var(--color-accent-strong);
 
   &:hover {
-    background: var(--color-accent-100);
+    background: var(--color-accent-strong);
+  }
+
+  & .note {
+    color: inherit;
   }
 }
 

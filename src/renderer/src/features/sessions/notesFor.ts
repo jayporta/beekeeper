@@ -1,3 +1,4 @@
+import { folderNote, stoppedNote } from './itemNotes'
 import { limitHitNote } from './limitHitNote'
 import type { SessionRow } from './sessionRow'
 import type { SessionsT } from './sessionsT'
@@ -26,12 +27,12 @@ export function notesFor(row: SessionRow, { selectedDirName, nowMs, t }: NotesOp
   if (item.team?.kind === 'ungrouped' && item.team.teamName !== null) {
     notes.push(t('notes.team', { name: item.team.teamName }))
   }
-  if (item.team?.kind === 'teammate' && item.team.stopped) notes.push(t('notes.stopped'))
+  const stopped = stoppedNote(item, t)
+  if (stopped !== null) notes.push(stopped)
   const limit = item.summary.ok ? limitHitNote(item.summary.value.limitHit, { nowMs, t }) : null
   if (limit !== null) notes.push(limit)
   if (leadFolder !== null) notes.push(t('notes.leadIn', { folder: leadFolder }))
-  if (item.projectDirName !== selectedDirName) {
-    notes.push(t('notes.in', { folder: item.projectDirName }))
-  }
+  const folder = folderNote(item, selectedDirName, t)
+  if (folder !== null) notes.push(folder)
   return notes
 }

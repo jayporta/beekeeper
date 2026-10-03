@@ -70,10 +70,15 @@
   },
   "teamTotal": "team total",
   "partialMarker": "¹",
-  "partialNote": "partial, see note",
+  "partialNote": "partial, see the note below the list",
   "metaSeparator": "·",
   "agentStrip": {
     "more": "+{{count, integer}}"
+  },
+  "legend": {
+    "lead": "Lead",
+    "teammate": "Teammate",
+    "subagent": "Subagent"
   },
   "chip": {
     "matches": "matches search"

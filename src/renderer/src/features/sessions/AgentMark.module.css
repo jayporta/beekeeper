@@ -1,0 +1,19 @@
+.lead,
+.teammate {
+  width: var(--size-mark);
+  height: var(--size-mark);
+}
+
+.lead {
+  background: var(--color-accent);
+}
+
+.teammate {
+  border: var(--border-width-mark) solid var(--color-text);
+}
+
+.subagent {
+  width: var(--size-mark-subagent);
+  height: var(--size-mark-subagent);
+  border: var(--border-width-mark) dashed var(--color-text);
+}

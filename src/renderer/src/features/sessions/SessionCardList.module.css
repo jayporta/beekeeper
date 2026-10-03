@@ -2,6 +2,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  min-width: 0;
+  /* The cards and the header row size themselves to the list's width, not the window's. */
+  container-type: inline-size;
 }
 
 .header {
@@ -21,4 +24,17 @@
   gap: var(--space-3);
   padding: 0;
   list-style: none;
+}
+
+.notes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* The stacked card names its own figures, so the column header row has nothing to head. */
+@container (max-width: 40rem) {
+  .list .header {
+    display: none;
+  }
 }

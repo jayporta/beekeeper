@@ -3,6 +3,7 @@ import { useNavigationStore } from '@renderer/features/navigation/state/useNavig
 import type { SessionRefDto } from '../../../../shared/ipc/sessionRefDto'
 import { EmptyCell } from './EmptyCell'
 import { formatTokens } from './formatTokens'
+import { folderNote, stoppedNote } from './itemNotes'
 import { PARTIAL_FOOTNOTE_ID } from './partialFootnoteId'
 import { PartialMarker } from './PartialMarker'
 import { SeparatedText } from './SeparatedText'
@@ -42,12 +43,10 @@ export function TeammateChip({
   const { tokens, tokensPartial } = sessionUsage(item).session
   const subagents = item.subagentCount ?? 0
   const notes = [
-    ...(item.team?.kind === 'teammate' && item.team.stopped ? [t('notes.stopped')] : []),
-    ...(subagents > 0 ? [t('agents.subagents', { count: subagents })] : []),
-    ...(item.projectDirName === selectedDirName
-      ? []
-      : [t('notes.in', { folder: item.projectDirName })])
-  ]
+    stoppedNote(item, t),
+    subagents > 0 ? t('agents.subagents', { count: subagents }) : null,
+    folderNote(item, selectedDirName, t)
+  ].filter((note) => note !== null)
   const formatted = formatTokens(tokens, t)
 
   return (

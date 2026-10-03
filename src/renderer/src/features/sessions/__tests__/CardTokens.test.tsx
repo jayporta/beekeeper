@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { CardTokens } from '../CardTokens'
-import { PARTIAL_FOOTNOTE_ID } from '../partialFootnoteId'
 import type { UsageFigures } from '../sessionUsage'
 
 const FIGURES: UsageFigures = {
@@ -56,28 +55,20 @@ describe('CardTokens', () => {
     renderTokens({ partial: true })
 
     expect(screen.getByText('¹').getAttribute('aria-hidden')).toBe('true')
-    expect(screen.getByText('partial, see note')).toBeTruthy()
+    expect(screen.getByText('partial, see the note below the list')).toBeTruthy()
   })
 
-  it('points the figure at the footnote only when it is partial', () => {
-    const { unmount } = render(<CardTokens figures={FIGURES} teamTotal={false} partial />)
-    expect(
-      screen
-        .getByText('12.4M tokens')
-        .closest('[aria-describedby]')
-        ?.getAttribute('aria-describedby')
-    ).toBe(PARTIAL_FOOTNOTE_ID)
-    unmount()
+  it('does not describe the figure by the footnote, which a plain paragraph is not reliably read with', () => {
+    const container = renderTokens({ partial: true })
 
-    renderTokens()
-    expect(document.querySelector('[aria-describedby]')).toBeNull()
+    expect(container.querySelector('[aria-describedby]')).toBeNull()
   })
 
   it('shows no marker when the figures are complete', () => {
     renderTokens()
 
     expect(screen.queryByText('¹')).toBeNull()
-    expect(screen.queryByText('partial, see note')).toBeNull()
+    expect(screen.queryByText('partial, see the note below the list')).toBeNull()
   })
 
   it('names the missing tokens for assistive technology while the cost still shows', () => {

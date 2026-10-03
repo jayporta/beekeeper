@@ -1,11 +1,21 @@
 import { memo, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { AgentLegend } from './AgentLegend'
+import { agentMarks, type AgentMarkKind } from './agentMarks'
 import columns from './CardColumns.module.css'
 import { PartialFootnote } from './PartialFootnote'
 import { partialReasons, type PartialReason } from './partialReasons'
 import { SessionCard } from './SessionCard'
 import styles from './SessionCardList.module.css'
 import type { SessionRow } from './sessionRow'
+
+const KIND_ORDER = ['lead', 'teammate', 'subagent'] as const satisfies readonly AgentMarkKind[]
+
+/** The kinds of mark that the cards' agent strips draw, in the legend's order. */
+function kindsDrawn(rows: readonly SessionRow[]): readonly AgentMarkKind[] {
+  const drawn = new Set(rows.flatMap((row) => agentMarks(row.item).marks))
+  return KIND_ORDER.filter((kind) => drawn.has(kind))
+}
 
 /** Props for {@link SessionCardList}. */
 interface SessionCardListProps {
@@ -20,8 +30,8 @@ interface SessionCardListProps {
 }
 
 /**
- * The sessions as a list of cards under a column header row, then a footnote
- * for any partial figure. The header row is visual only: each card says what
+ * The sessions as a list of cards under a column header row, then a legend
+ * for the agent marks on screen and a footnote for any partial figure. The header row is visual only: each card says what
  * its figures are in words. It is memoized so a keystroke in the search box
  * skips it until the deferred filter catches up.
  *
@@ -40,6 +50,7 @@ export const SessionCardList = memo(function SessionCardList({
     () => new Set<PartialReason>(cards.flatMap(({ reasons }) => [...reasons])),
     [cards]
   )
+  const kinds = useMemo(() => kindsDrawn(rows), [rows])
 
   return (
     <div className={styles.list}>
@@ -55,12 +66,15 @@ export const SessionCardList = memo(function SessionCardList({
             key={row.key}
             row={row}
             selectedDirName={selectedDirName}
-            needle={query}
-            reasons={reasons}
+            needle={row.teammates.length > 0 ? query : ''}
+            partial={reasons.size > 0}
           />
         ))}
       </ol>
-      <PartialFootnote reasons={allReasons} />
+      <div className={styles.notes}>
+        <AgentLegend kinds={kinds} />
+        <PartialFootnote reasons={allReasons} />
+      </div>
     </div>
   )
 })

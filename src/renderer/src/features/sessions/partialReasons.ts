@@ -13,17 +13,22 @@ function skippedLines(item: SessionListItemDto): boolean {
 }
 
 /**
- * Works out why a card's figures may leave something out. The card shows a
- * partial marker when the set is not empty.
+ * Works out why the figures on a card, and on its teammates' chips, may leave
+ * something out. The card shows a partial marker when the set is not empty,
+ * and the footnote explains each reason in it.
  *
  * - `unreadableLines`: the card's session or one of its teammates skipped
  *   transcript lines.
  * - `missingTeammates`: a spawned teammate is not in the list, or the lead's
  *   spawn or stop lists were capped. Leads only.
- * - `unrecordedUsage`: a session in the team recorded no tokens or no cost, or
- *   the lead recorded no tokens of its own. Leads only.
+ * - `unrecordedUsage`: a session in the team recorded no tokens or no cost.
+ *   Leads only.
  * - `subagentsExcluded`: a figure shown is a transcript total, which leaves out
  *   subagents, on the card or on a teammate's chip.
+ *
+ * A card that shows no figures has no marker to explain, so its own reasons
+ * are left out. A chip that shows a transcript total has its own marker, so
+ * it still counts.
  *
  * @param row - The card's row, with its teammates.
  * @returns The reasons, empty when the figures are complete.
@@ -31,29 +36,23 @@ function skippedLines(item: SessionListItemDto): boolean {
 export function partialReasons(row: SessionRow): ReadonlySet<PartialReason> {
   const { item, teammates } = row
   const reasons = new Set<PartialReason>()
-
-  if (skippedLines(item) || teammates.some((teammate) => skippedLines(teammate.item))) {
-    reasons.add('unreadableLines')
-  }
-
-  if (item.team?.kind === 'lead') {
-    const { usage } = item.team
-    if (usage.missingTeammates > 0 || usage.teamListsTruncated) reasons.add('missingTeammates')
-    if (
-      usage.sessionsWithoutTokens > 0 ||
-      usage.sessionsWithoutCost > 0 ||
-      usage.leadTokens === null
-    ) {
-      reasons.add('unrecordedUsage')
-    }
-  }
-
   const { figures, teamTotal } = cardFigures(item)
-  const cardLeavesOutSubagents = !teamTotal && figures?.tokensPartial === true
-  if (
-    cardLeavesOutSubagents ||
-    teammates.some((teammate) => sessionUsage(teammate.item).session.tokensPartial)
-  ) {
+
+  if (figures !== null) {
+    if (skippedLines(item) || teammates.some((teammate) => skippedLines(teammate.item))) {
+      reasons.add('unreadableLines')
+    }
+    if (item.team?.kind === 'lead') {
+      const { usage } = item.team
+      if (usage.missingTeammates > 0 || usage.teamListsTruncated) reasons.add('missingTeammates')
+      if (usage.sessionsWithoutTokens > 0 || usage.sessionsWithoutCost > 0) {
+        reasons.add('unrecordedUsage')
+      }
+    }
+    if (!teamTotal && figures.tokensPartial) reasons.add('subagentsExcluded')
+  }
+
+  if (teammates.some((teammate) => sessionUsage(teammate.item).session.tokensPartial)) {
     reasons.add('subagentsExcluded')
   }
 

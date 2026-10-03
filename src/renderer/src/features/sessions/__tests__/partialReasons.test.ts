@@ -44,7 +44,7 @@ describe('partialReasons', () => {
 
   describe('unreadableLines', () => {
     it('applies when the card’s own session skipped lines', () => {
-      expect(reasons(testRow(1, [testSession(1, { skippedLines: 2 })]))).toEqual([
+      expect(reasons(testRow(1, [testSession(1, { skippedLines: 2, totalTokens: 5 })]))).toEqual([
         'unreadableLines'
       ])
     })
@@ -73,8 +73,7 @@ describe('partialReasons', () => {
   describe('unrecordedUsage', () => {
     it.each([
       ['a session with no tokens', { sessionsWithoutTokens: 1 }],
-      ['a session with no cost', { sessionsWithoutCost: 1 }],
-      ['a lead whose own tokens are unrecorded', { leadTokens: null }]
+      ['a session with no cost', { sessionsWithoutCost: 1 }]
     ])('applies to a lead with %s', (_label, overrides) => {
       expect(reasons(teamCard(testUsage(overrides)))).toEqual(['unrecordedUsage'])
     })
@@ -145,6 +144,27 @@ describe('partialReasons', () => {
       const mate = testSession(2, { team: testTeammateTeam(testRef(1)) })
 
       expect(reasons(testRow(1, [lead, mate]))).toEqual(['unrecordedUsage'])
+    })
+  })
+
+  describe('a card that shows no figures', () => {
+    const nothingRecorded = {
+      leadTokens: null,
+      leadUSD: null,
+      teamTokens: null,
+      teamUSD: null,
+      sessionsWithoutTokens: 1,
+      missingTeammates: 1
+    }
+
+    it('has no reasons of its own, since no marker is shown to explain', () => {
+      expect(reasons(teamCard(testUsage(nothingRecorded), { skippedLines: 1 }))).toEqual([])
+    })
+
+    it('still reports a teammate chip that shows a transcript total, since the chip has its own marker', () => {
+      const card = teamCard(testUsage(nothingRecorded), { transcriptTokens: 400, subagentCount: 1 })
+
+      expect(reasons(card)).toEqual(['subagentsExcluded'])
     })
   })
 

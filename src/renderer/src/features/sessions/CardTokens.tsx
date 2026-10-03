@@ -3,7 +3,6 @@ import { EmptyCell } from './EmptyCell'
 import styles from './CardTokens.module.css'
 import { formatTokens } from './formatTokens'
 import { formatUsd } from './formatUsd'
-import { PARTIAL_FOOTNOTE_ID } from './partialFootnoteId'
 import { PartialMarker } from './PartialMarker'
 import type { UsageFigures } from './sessionUsage'
 
@@ -23,7 +22,7 @@ interface CardTokensProps {
  * token figure or cost shows an empty marker that names what is missing, and
  * with no figures at all the cell shows a single empty marker. Partial
  * figures carry a superscript marker, hidden from assistive tech, plus a
- * spoken note, and are described by the footnote.
+ * spoken note that says where the footnote is.
  *
  * @example
  * <CardTokens figures={{ tokens: 12_400_000, usd: 3.2, tokensPartial: false, usdPartial: false }} teamTotal partial={false} />
@@ -44,7 +43,7 @@ export function CardTokens({ figures, teamTotal, partial }: CardTokensProps): Re
 
   return (
     <div className={styles.tokens}>
-      <p className={styles.figure} aria-describedby={partial ? PARTIAL_FOOTNOTE_ID : undefined}>
+      <p className={styles.figure}>
         {tokens ?? <EmptyCell spokenText={t('emptyCell.tokensNotRecorded')} />}
         {partial && <PartialMarker />}
       </p>

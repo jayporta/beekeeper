@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { agentCountLabel } from './agentCountLabel'
 import { AgentStrip } from './AgentStrip'
@@ -5,7 +6,6 @@ import { CardTokens } from './CardTokens'
 import { cardFigures } from './cardFigures'
 import { EmptyCell } from './EmptyCell'
 import { formatDuration } from './formatDuration'
-import type { PartialReason } from './partialReasons'
 import { rowMatches } from './sessionMatches'
 import { SessionCell } from './SessionCell'
 import styles from './SessionCard.module.css'
@@ -19,10 +19,13 @@ interface SessionCardProps {
   readonly row: SessionRow
   /** The folder the list is for. */
   readonly selectedDirName: string
-  /** The search text from `normalizeQuery`, or `''` when no search is active. It highlights the chips that match. */
+  /**
+   * The search text from `normalizeQuery`, or `''` when no search is active or the card
+   * has no chips to highlight. Passing `''` to a card without chips keeps it from re-rendering as the search changes.
+   */
   readonly needle: string
-  /** Why this card's figures are partial. A marker shows when it is not empty. */
-  readonly reasons: ReadonlySet<PartialReason>
+  /** Whether the card's figures are partial, which adds a marker that the footnote explains. */
+  readonly partial: boolean
 }
 
 /**
@@ -32,13 +35,13 @@ interface SessionCardProps {
  * empty markers that say what is missing.
  *
  * @example
- * <SessionCard row={row} selectedDirName="-Users-me-repo" needle="" reasons={new Set()} />
+ * <SessionCard row={row} selectedDirName="-Users-me-repo" needle="" partial={false} />
  */
-export function SessionCard({
+export const SessionCard = memo(function SessionCard({
   row,
   selectedDirName,
   needle,
-  reasons
+  partial
 }: SessionCardProps): React.JSX.Element {
   const { t } = useTranslation('sessions')
   const { item, label, teammates } = row
@@ -53,13 +56,16 @@ export function SessionCard({
         <SessionCell row={row} selectedDirName={selectedDirName} />
         <div>
           <AgentStrip item={item} />
-          <p className={styles.muted}>{agents ?? <EmptyCell />}</p>
+          <p className={styles.muted}>
+            <span className="visuallyHidden">{t('columns.agents')} </span>
+            {agents ?? <EmptyCell />}
+          </p>
         </div>
         <p>
           <span className="visuallyHidden">{t('columns.duration')} </span>
           {duration ?? <EmptyCell />}
         </p>
-        <CardTokens figures={figures} teamTotal={teamTotal} partial={reasons.size > 0} />
+        <CardTokens figures={figures} teamTotal={teamTotal} partial={partial} />
       </div>
       {teammates.length > 0 && (
         <ul className={styles.chips} aria-label={t('chips.label', { name: label.text })}>
@@ -77,4 +83,4 @@ export function SessionCard({
       )}
     </li>
   )
-}
+})
