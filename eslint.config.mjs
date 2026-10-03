@@ -7,6 +7,8 @@ import eslintPluginReactRefresh from 'eslint-plugin-react-refresh'
 import eslintPluginJsxA11y from 'eslint-plugin-jsx-a11y'
 import eslintPluginUnicorn from 'eslint-plugin-unicorn'
 import eslintPluginI18next from 'eslint-plugin-i18next'
+import importDirection from './lint/importDirection.mjs'
+import { importDirectionPolicy } from './lint/importDirectionPolicy.mjs'
 
 const NETWORK_MODULE_MESSAGE =
   'Beekeeper makes no network calls. See the no-network promise in the README.'
@@ -70,6 +72,14 @@ export default defineConfig(
         { name: 'WebSocket', message: NETWORK_MODULE_MESSAGE },
         { name: 'EventSource', message: NETWORK_MODULE_MESSAGE }
       ]
+    }
+  },
+  {
+    // Dependencies run one way. Each key is a top folder under src, and its value is what it may not import.
+    files: ['src/**/*.{ts,tsx}'],
+    plugins: { beekeeper: { rules: { 'import-direction': importDirection } } },
+    rules: {
+      'beekeeper/import-direction': ['error', importDirectionPolicy]
     }
   },
   {
@@ -140,7 +150,7 @@ export default defineConfig(
     }
   },
   {
-    files: ['docs/**/*.js'],
+    files: ['docs/**/*.js', 'lint/**/*.mjs'],
     rules: {
       // Plain JS has no type annotations to require; JSDoc carries the types.
       '@typescript-eslint/explicit-function-return-type': 'off'

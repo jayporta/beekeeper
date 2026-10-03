@@ -1,15 +1,20 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu } from 'electron'
 import { join } from 'path'
 import { optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { buildAppMenuTemplate } from './appMenu'
 import { createIpcDeps } from './ipc/createIpcDeps'
 import { registerIpcHandlers } from './ipc/registerIpcHandlers'
 import { isTrustedSender } from './ipc/senderValidation'
 import { hardenDefaultSession } from './security/session'
 import { hardenWebContents } from './security/windowSecurity'
-import { describeError, isFatalLoadFailure } from './startupFailure'
+import { describeError } from './describeError'
+import { isFatalLoadFailure } from './startupFailure'
 
-const devServerUrl = is.dev ? process.env['ELECTRON_RENDERER_URL'] : undefined
+// An empty value counts as unset, so every check below agrees on it.
+const devServerUrl = (is.dev && process.env['ELECTRON_RENDERER_URL']) || undefined
+// Developer Tools only with a dev server, matching the request allowlist.
+const devToolsEnabled = devServerUrl !== undefined
 const rendererRoot = join(__dirname, '../renderer')
 
 function createWindow(): void {
@@ -22,6 +27,7 @@ function createWindow(): void {
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
+      devTools: devToolsEnabled,
       preload: join(__dirname, '../preload/index.js'),
       sandbox: true,
       contextIsolation: true,
@@ -68,8 +74,17 @@ app
       deps: createIpcDeps(app.getPath('home'))
     })
 
+    // Set once, before any window: `activate` recreates windows, not the menu.
+    Menu.setApplicationMenu(
+      Menu.buildFromTemplate(
+        buildAppMenuTemplate({ platform: process.platform, devTools: devToolsEnabled })
+      )
+    )
+
     app.on('browser-window-created', (_, window) => {
-      optimizer.watchWindowShortcuts(window)
+      // `zoom: true` keeps the toolkit from cancelling the zoom keys. Cancelling
+      // a key event in the window also blocks the matching menu accelerator.
+      optimizer.watchWindowShortcuts(window, { zoom: true })
     })
 
     createWindow()

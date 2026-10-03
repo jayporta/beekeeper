@@ -8,27 +8,30 @@ export interface GuardIpcOptions<E, T> {
   readonly isTrusted: (event: E) => boolean
   /** Runs the call for a trusted sender. It receives the payload unvalidated. */
   readonly handle: (payload: unknown) => Promise<IpcResult<T>>
+  /** Receives the one-line log of an internal failure thrown by the call. Defaults to `console.error`. */
+  readonly log?: (line: string) => void
 }
 
 /**
  * Wraps a handler so an untrusted sender is refused and anything thrown,
  * including by the sender check itself, becomes a code-only error. Electron
  * forwards a thrown error's message to the renderer, so nothing may escape
- * as a throw. Nothing is logged, since an error's message can hold paths or
- * transcript text.
+ * as a throw. {@link toIpcErrorCode} logs an `internal` failure through the
+ * given logger, naming the error by code or class and never by message.
  *
- * @param options - The sender check and the handler.
+ * @param options - The sender check, the handler, and an optional logger.
  * @returns A listener for `ipcMain.handle`.
  */
 export function guardIpc<E, T>(
   options: GuardIpcOptions<E, T>
 ): (event: E, payload?: unknown) => Promise<IpcResult<T>> {
+  const { log = console.error } = options
   return async (event, payload) => {
     try {
       if (!options.isTrusted(event)) return errResult('untrusted-sender')
       return await options.handle(payload)
     } catch (error) {
-      return errResult(toIpcErrorCode(error))
+      return errResult(toIpcErrorCode(error, log))
     }
   }
 }
