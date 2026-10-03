@@ -12,7 +12,7 @@ body {
   color: var(--color-text);
   background: var(--color-bg);
   line-height: var(--line-height-body);
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: var(--font-size-body);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
