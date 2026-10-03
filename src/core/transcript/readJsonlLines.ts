@@ -49,8 +49,10 @@ export async function* readJsonlLines(
   const stream = createReadStream(filePath, { highWaterMark: options.highWaterMark })
   const maxLineChars = options.maxLineChars ?? DEFAULT_MAX_LINE_CHARS
   const decoder = new TextDecoder('utf-8')
-  let buffer = ''
-  let scanFrom = 0
+  // The line in progress, kept as decoded pieces and joined once its `\n`
+  // arrives, so a long line isn't re-copied on every chunk.
+  const pending: string[] = []
+  let pendingLength = 0
   let discardingOversizedLine = false
 
   // Drives the stream's iterator manually, rather than with `for await`, so
@@ -63,38 +65,43 @@ export async function* readJsonlLines(
       const next = await chunks.next()
       if (next.done) break
 
-      buffer += decoder.decode(next.value, { stream: true })
+      const text = decoder.decode(next.value, { stream: true })
+      let start = 0
 
       for (;;) {
-        const newlineIndex = buffer.indexOf('\n', scanFrom)
+        const newlineIndex = text.indexOf('\n', start)
 
         if (newlineIndex === -1) {
+          if (start < text.length) {
+            pending.push(start === 0 ? text : text.slice(start))
+            pendingLength += text.length - start
+          }
           // `>` rather than `>=`: leaves room for a lone trailing `\r`
           // that a `\n` in the next chunk would still strip, so a
           // borderline CRLF line isn't flagged early on a false alarm.
-          if (discardingOversizedLine || buffer.length > maxLineChars) {
-            // Drop what's buffered so a line with no terminator in sight
+          if (discardingOversizedLine || pendingLength > maxLineChars) {
+            // Drop what's pending so a line with no terminator in sight
             // never grows past one chunk, whether it crossed the cap in
             // this chunk or an earlier one.
             discardingOversizedLine = true
-            buffer = ''
-            scanFrom = 0
-          } else {
-            scanFrom = buffer.length
+            pending.length = 0
+            pendingLength = 0
           }
           break
         }
 
-        const rawLine = buffer.slice(0, newlineIndex)
-        buffer = buffer.slice(newlineIndex + 1)
-        scanFrom = 0
+        pending.push(text.slice(start, newlineIndex))
+        start = newlineIndex + 1
 
         // Strip the CR before the length check, so a CRLF line isn't
         // penalized one character versus the same line ending in bare `\n`.
-        const line = stripTrailingCarriageReturn(rawLine)
+        const line = stripTrailingCarriageReturn(pending.join(''))
+        const oversized = discardingOversizedLine || line.length >= maxLineChars
+        pending.length = 0
+        pendingLength = 0
+        discardingOversizedLine = false
 
-        if (discardingOversizedLine || line.length >= maxLineChars) {
-          discardingOversizedLine = false
+        if (oversized) {
           yield err({ reason: 'line-too-long' })
           continue
         }

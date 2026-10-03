@@ -142,6 +142,54 @@ describe('readJsonlLines', () => {
     ])
   })
 
+  it('reassembles a line spanning several chunks with a multi-byte character on each boundary', async () => {
+    // With 8-byte chunks, each 3-byte euro sign straddles a chunk boundary.
+    const line = `${'a'.repeat(7)}€${'b'.repeat(5)}€${'c'.repeat(4)}€`
+    const filePath = writeFixture('multibyte-multichunk.jsonl', `${line}\nnext\n`)
+
+    const lines = await collectLines(filePath, { highWaterMark: 8 })
+
+    expect(lines).toEqual([line, 'next'])
+  })
+
+  it('reports a line spanning chunks whose content is exactly maxLineChars characters', async () => {
+    const filePath = writeFixture('at-cap-multichunk.jsonl', `${'x'.repeat(20)}\nnext\n`)
+
+    const results = await collectResults(filePath, { highWaterMark: 8, maxLineChars: 20 })
+
+    expect(results).toEqual([
+      { ok: false, error: { reason: 'line-too-long' } },
+      { ok: true, value: 'next' }
+    ])
+  })
+
+  it('passes a line spanning chunks whose content is exactly maxLineChars - 1 characters', async () => {
+    const line = 'x'.repeat(19)
+    const filePath = writeFixture('under-cap-multichunk.jsonl', `${line}\nnext\n`)
+
+    const results = await collectResults(filePath, { highWaterMark: 8, maxLineChars: 20 })
+
+    expect(results).toEqual([
+      { ok: true, value: line },
+      { ok: true, value: 'next' }
+    ])
+  })
+
+  it('reports each oversized line once when one ends mid-chunk among normal lines', async () => {
+    const content = `${'x'.repeat(50)}\na\nb\n${'y'.repeat(25)}\nc\n`
+    const filePath = writeFixture('oversized-mid-chunk.jsonl', content)
+
+    const results = await collectResults(filePath, { highWaterMark: 16, maxLineChars: 20 })
+
+    expect(results).toEqual([
+      { ok: false, error: { reason: 'line-too-long' } },
+      { ok: true, value: 'a' },
+      { ok: true, value: 'b' },
+      { ok: false, error: { reason: 'line-too-long' } },
+      { ok: true, value: 'c' }
+    ])
+  })
+
   it('passes a CRLF line whose content is exactly maxLineChars - 1 characters', async () => {
     const line = 'A'.repeat(19)
     const filePath = writeFixture('crlf-at-cap.jsonl', `${line}\r\nnext\n`)
