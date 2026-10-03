@@ -2,7 +2,7 @@
  * The single source of design tokens: color, type, spacing, radius, and focus for every component.
  *
  * Palette: Industry. Text and the divider carry no alpha: each is a solid color, so contrast is the
- * same on every surface and `__tests__/tokens.contrast.test.ts` can check it. Declare every color as
+ * same on every surface and `__tests__/tokensContrast.test.ts` can check it. Declare every color as
  * a hex value or a `var()` reference to one, since that test resolves them.
  */
 :root {
