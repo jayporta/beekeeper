@@ -31,7 +31,7 @@ describe('listProjectsHandler', () => {
     })
   })
 
-  it('labels a project with the last segment of its newest transcript cwd', async () => {
+  it('labels a project with the last segment of its recorded cwd', async () => {
     const labelled = await buildDiscoveryTree({
       files: {
         [`.claude/projects/${TEST_PROJECT}/${TEST_SESSION_ID}.jsonl`]: buildJsonlText([

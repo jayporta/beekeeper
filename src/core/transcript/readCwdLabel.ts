@@ -21,10 +21,11 @@ const MAX_HEAD_LINE_CHARS = 1024 * 1024
 export async function readCwdLabel(transcriptPath: string): Promise<string | null> {
   let linesRead = 0
   for await (const record of readRecords(transcriptPath, { maxLineChars: MAX_HEAD_LINE_CHARS })) {
-    if (linesRead++ === MAX_HEAD_LINES) return null
-    if (!record.ok) continue
-    const cwd = record.value.cwd
-    if (typeof cwd === 'string') return labelFromCwd(cwd)
+    if (record.ok) {
+      const cwd = record.value.cwd
+      if (typeof cwd === 'string') return labelFromCwd(cwd)
+    }
+    if (++linesRead === MAX_HEAD_LINES) return null
   }
   return null
 }
