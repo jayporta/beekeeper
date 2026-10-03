@@ -1,5 +1,5 @@
 import { discoverProjects } from '../../core/transcript/discoverProjects'
-import { worktreeParentOf } from '../../core/teams/projectFamily'
+import { worktreeNameOf, worktreeParentOf } from '../../core/teams/projectFamily'
 import type { IpcResult } from '../../shared/ipc/ipcResult'
 import type { ProjectDto } from '../../shared/ipc/projectDto'
 import type { IpcDeps } from './ipcDeps'
@@ -7,8 +7,8 @@ import { okResult } from './ipcResults'
 
 /**
  * Lists the project folders under the projects root, each with a label read
- * from one of its first few transcripts and marked with the listed folder it is a
- * worktree of, if any.
+ * from one of its first few transcripts, and with the listed folder it is a
+ * worktree of and its worktree name, if any.
  * @param deps - The injected projects root and project label cache.
  * @returns The projects by folder name, or `[]` when the root doesn't exist.
  */
@@ -22,7 +22,8 @@ export async function listProjectsHandler(
     projects.map((project) => ({
       dirName: project.dirName,
       label: labels.get(project.dirName) ?? null,
-      worktreeOf: worktreeParentOf(project.dirName, listed)
+      worktreeOf: worktreeParentOf(project.dirName, listed),
+      worktreeName: worktreeNameOf(project.dirName, listed)
     }))
   )
 }

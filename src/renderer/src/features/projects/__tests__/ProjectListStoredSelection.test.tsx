@@ -34,20 +34,19 @@ async function renderLoaded(): Promise<HTMLElement> {
   return screen.findByRole('navigation', { name: 'Projects' })
 }
 
-const currentRow = (nav: HTMLElement): string | null =>
-  within(nav)
-    .getAllByRole('button')
-    .find((button) => button.getAttribute('aria-current') === 'page')?.textContent ?? null
+/** Whether the row with this accessible name is the current page. */
+const isCurrent = (nav: HTMLElement, name: string): boolean =>
+  within(nav).queryByRole('button', { name, current: 'page' }) !== null
 
 describe('ProjectList with a stored selection', () => {
   it('marks the first parent project current when nothing is stored', async () => {
-    expect(currentRow(await renderLoaded())).toBe(ALPHA)
+    expect(isCurrent(await renderLoaded(), ALPHA)).toBe(true)
   })
 
   it('restores the stored selection when it is still listed', async () => {
     await seed(storedSelection(BETA))
 
-    expect(currentRow(await renderLoaded())).toBe(BETA)
+    expect(isCurrent(await renderLoaded(), BETA)).toBe(true)
   })
 
   it('falls back to the first parent project when the stored one is no longer listed', async () => {
@@ -55,7 +54,7 @@ describe('ProjectList with a stored selection', () => {
 
     const nav = await renderLoaded()
 
-    expect(currentRow(nav)).toBe(ALPHA)
+    expect(isCurrent(nav, ALPHA)).toBe(true)
     expect(screen.getByText(ALPHA, { selector: 'p' })).toBeTruthy()
   })
 
@@ -65,7 +64,7 @@ describe('ProjectList with a stored selection', () => {
 
     const nav = await renderLoaded()
 
-    expect(currentRow(nav)).toBe(ALPHA)
+    expect(isCurrent(nav, ALPHA)).toBe(true)
     expect(log).toHaveBeenCalledExactlyOnceWith(
       'Beekeeper could not restore "selected-project" from IndexedDB.'
     )

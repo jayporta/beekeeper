@@ -15,4 +15,9 @@ export interface ProjectDto {
    * `<parent>--claude-worktrees-<name>`. Never a path.
    */
   readonly worktreeOf: string | null
+  /**
+   * The worktree's name, the text after `--claude-worktrees-` in the folder
+   * name, or `null` exactly when `worktreeOf` is `null`. Never a path.
+   */
+  readonly worktreeName: string | null
 }

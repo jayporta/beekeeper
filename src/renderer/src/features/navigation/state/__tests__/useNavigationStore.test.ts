@@ -4,6 +4,7 @@ import { useNavigationStore } from '../useNavigationStore'
 const ref = { projectDirName: '-Users-a-repo', sessionId: '11111111-1111-4111-8111-111111111111' }
 
 afterEach(() => {
+  useNavigationStore.setState({ navigationCount: 0 })
   useNavigationStore.getState().reset()
 })
 
@@ -59,6 +60,24 @@ describe('useNavigationStore', () => {
       selectedSessionRef: null,
       selectedAgentId: null
     })
+  })
+
+  it('counts each navigation the person starts', () => {
+    const { showOverview, showSessions, showSession } = useNavigationStore.getState()
+
+    showOverview()
+    showSessions()
+    showSession(ref)
+
+    expect(useNavigationStore.getState().navigationCount).toBe(3)
+  })
+
+  it('does not count a reset, which the app does on its own', () => {
+    useNavigationStore.getState().showSession(ref)
+
+    useNavigationStore.getState().reset()
+
+    expect(useNavigationStore.getState().navigationCount).toBe(1)
   })
 
   it('returns to the starting state on reset', () => {

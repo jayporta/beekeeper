@@ -1,7 +1,7 @@
 import { act, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
-import type { IpcResult } from '../../../../../../shared/ipc/ipcResult'
-import type { ProjectDto } from '../../../../../../shared/ipc/projectDto'
+import type { IpcResult } from '../../../../shared/ipc/ipcResult'
+import type { ProjectDto } from '../../../../shared/ipc/projectDto'
 import { useSelectedProjectDirName } from '@renderer/features/projects/state/useSelectedProjectDirName'
 import { useSelectedProjectStore } from '@renderer/features/projects/state/useSelectedProjectStore'
 import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
@@ -11,7 +11,7 @@ import {
   refetchAndSettle
 } from '@renderer/testQueryWrapper'
 import { resetPersistedState } from '@renderer/testRenderApp'
-import { useNavigationStore } from '../useNavigationStore'
+import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { useResetNavigationOnProjectChange } from '../useResetNavigationOnProjectChange'
 
 const ref = { projectDirName: 'a', sessionId: '11111111-1111-4111-8111-111111111111' }
@@ -80,6 +80,24 @@ describe('useResetNavigationOnProjectChange', () => {
     await screen.findByText('project:a')
 
     expect(useNavigationStore.getState().view).toBe('sessions')
+  })
+
+  it('keeps the overview when the selected project disappears and another takes its place', async () => {
+    let names = ['a', 'b']
+    installBeekeeperApi({ listProjects: () => listing(...names) })
+    useSelectedProjectStore.setState({ selectedDirName: 'b' })
+    const client = createTestQueryClient()
+    render(<Harness />, { wrapper: createQueryWrapper(client) })
+    await screen.findByText('project:b')
+    act(() => {
+      useNavigationStore.getState().showOverview()
+    })
+
+    names = ['a']
+    await refetchAndSettle(client, ['projects'])
+    await screen.findByText('project:a')
+
+    expect(useNavigationStore.getState().view).toBe('overview')
   })
 
   it('keeps the navigation state while the same project stays in effect', async () => {

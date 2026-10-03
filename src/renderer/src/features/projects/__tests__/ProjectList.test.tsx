@@ -38,10 +38,14 @@ async function renderLoaded(projects: readonly ProjectDto[] = PROJECTS): Promise
   return screen.findByRole('navigation', { name: 'Projects' })
 }
 
-const names = (nav: HTMLElement): (string | undefined)[] =>
-  within(nav)
-    .getAllByRole('button')
-    .map((button) => button.textContent ?? undefined)
+/** Asserts the rows, by accessible name, are exactly `expected`, in that order. */
+function expectRows(nav: HTMLElement, expected: readonly string[]): void {
+  const buttons = within(nav).getAllByRole('button')
+  expect(buttons).toHaveLength(expected.length)
+  expect(
+    expected.map((name) => buttons.indexOf(within(nav).getByRole('button', { name })))
+  ).toEqual(expected.map((_name, index) => index))
+}
 
 describe('ProjectList', () => {
   it('lists All projects first, then each top-level project by its label or folder name', async () => {
@@ -50,13 +54,33 @@ describe('ProjectList', () => {
       testProject(BETA)
     ])
 
-    expect(names(nav)).toEqual(['All projects', 'acme-web', BETA])
+    expectRows(nav, ['All projects', 'acme-web', BETA])
   })
 
-  it('shows the full folder name on hover of a project row', async () => {
+  it('describes a project row by its full folder name, without adding it to the name', async () => {
     const nav = await renderLoaded()
 
-    expect(within(nav).getByRole('button', { name: 'acme-web' }).getAttribute('title')).toBe(ALPHA)
+    expect(within(nav).getByRole('button', { name: 'acme-web', description: ALPHA })).toBeTruthy()
+  })
+
+  it('uses no title tooltip, which keyboard users cannot reach', async () => {
+    const nav = await renderLoaded()
+
+    expect(within(nav).getByRole('button', { name: 'acme-web' }).hasAttribute('title')).toBe(false)
+  })
+
+  it('tells two projects with the same label apart by their folder names', async () => {
+    const nav = await renderLoaded([
+      { ...testProject('-Users-a-one-app'), label: 'app' },
+      { ...testProject('-Users-b-two-app'), label: 'app' }
+    ])
+
+    expect(
+      within(nav).getByRole('button', { name: 'app', description: '-Users-a-one-app' })
+    ).toBeTruthy()
+    expect(
+      within(nav).getByRole('button', { name: 'app', description: '-Users-b-two-app' })
+    ).toBeTruthy()
   })
 
   it('renders a transcript-derived label as plain text', async () => {
@@ -131,7 +155,7 @@ describe('ProjectList', () => {
     it('lists the active project’s worktrees beneath it with a worktree note', async () => {
       const nav = await renderLoaded()
 
-      expect(names(nav)).toEqual(['All projects', 'acme-web', 'x worktree', 'y worktree', BETA])
+      expectRows(nav, ['All projects', 'acme-web', 'x worktree', 'y worktree', BETA])
     })
 
     it('shows no worktrees under a project that is not active', async () => {
@@ -139,7 +163,7 @@ describe('ProjectList', () => {
 
       await userEvent.click(within(nav).getByRole('button', { name: BETA }))
 
-      expect(names(nav)).toEqual(['All projects', 'acme-web', BETA])
+      expectRows(nav, ['All projects', 'acme-web', BETA])
     })
 
     it('hides every worktree while the overview shows', async () => {
@@ -147,7 +171,7 @@ describe('ProjectList', () => {
 
       await userEvent.click(within(nav).getByRole('button', { name: 'All projects' }))
 
-      expect(names(nav)).toEqual(['All projects', 'acme-web', BETA])
+      expectRows(nav, ['All projects', 'acme-web', BETA])
     })
 
     it('marks a worktree current, not its parent, when the worktree is selected', async () => {
@@ -161,21 +185,21 @@ describe('ProjectList', () => {
       expect(
         within(nav).getByRole('button', { name: 'acme-web' }).getAttribute('aria-current')
       ).toBeNull()
-      expect(names(nav)).toEqual(['All projects', 'acme-web', 'x worktree', 'y worktree', BETA])
+      expectRows(nav, ['All projects', 'acme-web', 'x worktree', 'y worktree', BETA])
     })
 
-    it('shows the worktree’s folder name on hover', async () => {
+    it('describes a worktree row by its full folder name', async () => {
       const nav = await renderLoaded()
 
-      expect(within(nav).getByRole('button', { name: 'x worktree' }).getAttribute('title')).toBe(
-        WORKTREE_X
-      )
+      expect(
+        within(nav).getByRole('button', { name: 'x worktree', description: WORKTREE_X })
+      ).toBeTruthy()
     })
 
     it('lists a worktree with no listed parent as a top-level row', async () => {
       const nav = await renderLoaded([testProject(WORKTREE_X, ALPHA), testProject(BETA)])
 
-      expect(names(nav)).toEqual(['All projects', WORKTREE_X, BETA])
+      expectRows(nav, ['All projects', WORKTREE_X, BETA])
     })
   })
 

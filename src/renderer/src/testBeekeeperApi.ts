@@ -7,11 +7,13 @@ import type { ProjectDto } from '../../shared/ipc/projectDto'
  * A project folder, for stubbing `listProjects`.
  *
  * @param dirName - The folder's name under `~/.claude/projects`.
- * @param worktreeOf - The name of the folder this one is a worktree of, or `null` when it is not a worktree.
+ * @param worktreeOf - The name of the folder this one is a worktree of, or `null` when it is not a worktree. The worktree name is the text after `--claude-worktrees-` in `dirName`.
  * @returns The project.
  */
 export function testProject(dirName: string, worktreeOf: string | null = null): ProjectDto {
-  return { dirName, label: null, worktreeOf }
+  const worktreeName =
+    worktreeOf === null ? null : (dirName.split('--claude-worktrees-')[1] ?? null)
+  return { dirName, label: null, worktreeOf, worktreeName }
 }
 
 /** The stubbed API: each method is a mock, so a test can assert on calls or change a result. */

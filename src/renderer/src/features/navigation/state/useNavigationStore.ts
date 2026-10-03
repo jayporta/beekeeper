@@ -12,6 +12,12 @@ interface NavigationState {
   readonly selectedSessionRef: SessionRefDto | null
   /** The agent selected within that session, or `null` for the lead. */
   readonly selectedAgentId: string | null
+  /**
+   * How many times the person has navigated: every `showOverview`,
+   * `showSessions`, and `showSession`. `reset` does not count, since the app
+   * does it on its own. A change tells the shell to move focus to the new view.
+   */
+  readonly navigationCount: number
   /** Shows the all-projects overview and clears the selected session and agent. */
   showOverview: () => void
   /** Shows the selected project's sessions list and clears the selected session and agent. */
@@ -39,14 +45,24 @@ const STARTING_STATE = {
  */
 export const useNavigationStore = create<NavigationState>()((set) => ({
   ...STARTING_STATE,
+  navigationCount: 0,
   showOverview: () => {
-    set({ ...STARTING_STATE, view: 'overview' })
+    set((state) => ({
+      ...STARTING_STATE,
+      view: 'overview',
+      navigationCount: state.navigationCount + 1
+    }))
   },
   showSessions: () => {
-    set(STARTING_STATE)
+    set((state) => ({ ...STARTING_STATE, navigationCount: state.navigationCount + 1 }))
   },
   showSession: (ref, agentId) => {
-    set({ view: 'session', selectedSessionRef: ref, selectedAgentId: agentId ?? null })
+    set((state) => ({
+      view: 'session',
+      selectedSessionRef: ref,
+      selectedAgentId: agentId ?? null,
+      navigationCount: state.navigationCount + 1
+    }))
   },
   reset: () => {
     set(STARTING_STATE)

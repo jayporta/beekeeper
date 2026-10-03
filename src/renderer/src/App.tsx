@@ -3,13 +3,16 @@ import { useTranslation } from 'react-i18next'
 import styles from './App.module.css'
 import { MainView } from '@renderer/app/MainView'
 import { SidebarContent } from '@renderer/app/SidebarContent'
+import { SkipLink } from '@renderer/app/SkipLink'
+import { useFocusMainOnNavigate } from '@renderer/app/useFocusMainOnNavigate'
 import { useFocusOnFirstRunClose } from '@renderer/features/firstRun/state/useFocusOnFirstRunClose'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useSelectedProjectStore } from '@renderer/features/projects/state/useSelectedProjectStore'
 import { usePersistHydrated } from '@renderer/storage/usePersistHydrated'
 
 /**
- * The app shell: a sidebar landmark beside the main content landmark. Until
+ * The app shell: a skip link, a sidebar landmark beside the main content
+ * landmark, and focus moves to main when the person navigates. Until
  * the persisted state is read it renders the empty shell, so neither the
  * first-run screen nor the main view flashes.
  *
@@ -24,13 +27,15 @@ function App(): React.JSX.Element {
   const mainRef = useRef<HTMLElement>(null)
   const aboutRef = useRef<HTMLButtonElement>(null)
   useFocusOnFirstRunClose({ main: mainRef, about: aboutRef, hydrated })
+  useFocusMainOnNavigate(mainRef)
 
   return (
     <div className={styles.shell}>
+      <SkipLink target={mainRef} />
       <aside className={styles.sidebar} aria-label={t('sidebar')}>
         {hydrated && <SidebarContent aboutRef={aboutRef} />}
       </aside>
-      <main ref={mainRef} tabIndex={-1} className={styles.main}>
+      <main id="main" ref={mainRef} tabIndex={-1} className={styles.main}>
         {hydrated && <MainView />}
       </main>
     </div>

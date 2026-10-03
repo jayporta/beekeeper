@@ -1,0 +1,15 @@
+.link {
+  position: absolute;
+  inset-block-start: var(--space-2);
+  inset-inline-start: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-bg);
+  font-weight: var(--font-weight-semibold);
+  background: var(--color-accent-strong);
+  /* Parked above the window until it takes focus. */
+  transform: translateY(-200%);
+
+  &:focus {
+    transform: none;
+  }
+}

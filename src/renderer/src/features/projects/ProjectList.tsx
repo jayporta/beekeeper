@@ -9,7 +9,6 @@ import { projectLabel } from './projectLabel'
 import { useSelectedProjectDirName } from './state/useSelectedProjectDirName'
 import { useSelectedProjectStore } from './state/useSelectedProjectStore'
 import { useProjects } from './useProjects'
-import { worktreeShortName } from './worktreeShortName'
 
 /**
  * The sidebar's project navigation: an "All projects" row, then a row for
@@ -26,7 +25,7 @@ export function ProjectList(): React.JSX.Element | null {
   const { data } = useProjects()
   const selected = useSelectedProjectDirName()
   const select = useSelectedProjectStore((state) => state.select)
-  const view = useNavigationStore((state) => state.view)
+  const isOverview = useNavigationStore((state) => state.view === 'overview')
   const showOverview = useNavigationStore((state) => state.showOverview)
   const showSessions = useNavigationStore((state) => state.showSessions)
   const labelId = useId()
@@ -37,7 +36,7 @@ export function ProjectList(): React.JSX.Element | null {
     select(dirName)
     showSessions()
   }
-  const isCurrent = (dirName: string): boolean => view !== 'overview' && dirName === selected
+  const isCurrent = (dirName: string): boolean => !isOverview && dirName === selected
 
   return (
     <nav className={styles.list} aria-labelledby={labelId}>
@@ -45,16 +44,16 @@ export function ProjectList(): React.JSX.Element | null {
         {t('list.label')}
       </p>
       <ul className={styles.rows}>
-        <ProjectRow label={t('list.all')} current={view === 'overview'} onSelect={showOverview} />
+        <ProjectRow label={t('list.all')} current={isOverview} onSelect={showOverview} />
         {groupProjects(data).flatMap(({ project, worktrees }) => {
           const isActiveGroup =
-            view !== 'overview' &&
+            !isOverview &&
             (project.dirName === selected || worktrees.some((w) => w.dirName === selected))
           return [
             <ProjectRow
               key={project.dirName}
               label={projectLabel(project)}
-              title={project.dirName}
+              detail={project.dirName}
               current={isCurrent(project.dirName)}
               onSelect={() => {
                 choose(project.dirName)
@@ -64,8 +63,8 @@ export function ProjectList(): React.JSX.Element | null {
               <ProjectRow
                 key={worktree.dirName}
                 nested
-                label={worktreeShortName(worktree)}
-                title={worktree.dirName}
+                label={worktree.worktreeName ?? projectLabel(worktree)}
+                detail={worktree.dirName}
                 meta={t('list.worktree')}
                 current={isCurrent(worktree.dirName)}
                 onSelect={() => {

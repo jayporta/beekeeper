@@ -1,13 +1,14 @@
 import { useEffect, useRef } from 'react'
+import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { useSelectedProjectDirName } from '@renderer/features/projects/state/useSelectedProjectDirName'
-import { useNavigationStore } from './useNavigationStore'
 
 /**
  * Returns navigation to the sessions list, with no session or agent selected,
  * whenever the project in effect changes to another project. That covers a
  * selection and a silent fallback when the selected project is no longer
  * listed. The first project to load, and any gap while the list is
- * unavailable, are not changes.
+ * unavailable, are not changes. The overview is not about one project, so a
+ * change never leaves it.
  *
  * Call it once, where the main area renders. It is an effect because it
  * syncs one store to another outside source: nothing here derives from
@@ -21,7 +22,8 @@ export function useResetNavigationOnProjectChange(): void {
 
   useEffect(() => {
     if (dirName === null) return
-    if (previous.current !== null && previous.current !== dirName) reset()
+    const changed = previous.current !== null && previous.current !== dirName
+    if (changed && useNavigationStore.getState().view !== 'overview') reset()
     previous.current = dirName
   }, [dirName, reset])
 }

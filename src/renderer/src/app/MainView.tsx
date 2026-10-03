@@ -6,9 +6,9 @@ import {
 import { OverviewPlaceholder } from '@renderer/features/navigation/OverviewPlaceholder'
 import { SessionPlaceholder } from '@renderer/features/navigation/SessionPlaceholder'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
-import { useResetNavigationOnProjectChange } from '@renderer/features/navigation/state/useResetNavigationOnProjectChange'
 import { ProjectsGate } from '@renderer/features/projects/ProjectsGate'
 import { SessionsView } from '@renderer/features/sessions/SessionsView'
+import { useResetNavigationOnProjectChange } from './useResetNavigationOnProjectChange'
 
 /**
  * The main area's current view: the first-run screen until it is dismissed

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { toProjectDirName, type ProjectDirName } from '../../transcript/ids'
-import { projectFamilyOf, worktreeParentOf } from '../projectFamily'
+import { projectFamilyOf, worktreeNameOf, worktreeParentOf } from '../projectFamily'
 
 const names = (...raw: string[]): ProjectDirName[] => raw.map(toProjectDirName)
 const dir = toProjectDirName
@@ -49,6 +49,36 @@ describe('worktreeParentOf', () => {
   it('returns null for a folder that only shares a prefix with a listed folder', () => {
     expect(worktreeParentOf(dir('-repo-two'), listedSet('-repo', '-repo-two'))).toBeNull()
     expect(worktreeParentOf(dir('-repo--claude-worktree-x'), listedSet('-repo'))).toBeNull()
+  })
+})
+
+describe('worktreeNameOf', () => {
+  it('returns the text after the marker for a worktree folder of a listed parent', () => {
+    const listed = listedSet('-repo', '-repo--claude-worktrees-feat-login')
+
+    expect(worktreeNameOf(dir('-repo--claude-worktrees-feat-login'), listed)).toBe('feat-login')
+  })
+
+  it('keeps everything after the first marker when the marker appears twice', () => {
+    const name = dir('-repo--claude-worktrees-a--claude-worktrees-b')
+
+    expect(worktreeNameOf(name, listedSet('-repo', name))).toBe('a--claude-worktrees-b')
+  })
+
+  it('returns null for a folder without the marker', () => {
+    expect(worktreeNameOf(dir('-repo'), listedSet('-repo'))).toBeNull()
+  })
+
+  it('returns null when the parent is not listed, like worktreeParentOf', () => {
+    const name = dir('-repo--claude-worktrees-feat')
+
+    expect(worktreeNameOf(name, listedSet(name))).toBeNull()
+  })
+
+  it('returns null when nothing follows the marker', () => {
+    const name = dir('-repo--claude-worktrees-')
+
+    expect(worktreeNameOf(name, listedSet('-repo', name))).toBeNull()
   })
 })
 
