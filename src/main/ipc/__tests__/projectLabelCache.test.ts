@@ -308,12 +308,11 @@ describe('createProjectLabelCache', () => {
     tree = await buildDiscoveryTree({})
     const { cache, logs } = recordingCache()
 
-    const labels = await cache.labelsFor([entry(tree, 'gone')])
+    const first = await cache.labelsFor([entry(tree, 'gone')])
+    await cache.labelsFor([entry(tree, 'gone')])
 
-    expect([labels.get('gone'), logs]).toEqual([
-      null,
-      ['Beekeeper could not read the label of project 1 of 1 (ENOENT).']
-    ])
+    const line = 'Beekeeper could not read the label of project 1 of 1 (ENOENT).'
+    expect([first.get('gone'), logs]).toEqual([null, [line, line]])
   })
 
   describe('with many projects', () => {

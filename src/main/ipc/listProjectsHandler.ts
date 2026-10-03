@@ -7,7 +7,7 @@ import { okResult } from './ipcResults'
 
 /**
  * Lists the project folders under the projects root, each with a label read
- * from its newest transcript and marked with the listed folder it is a
+ * from one of its first few transcripts and marked with the listed folder it is a
  * worktree of, if any.
  * @param deps - The injected projects root and project label cache.
  * @returns The projects by folder name, or `[]` when the root doesn't exist.

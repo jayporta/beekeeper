@@ -3,8 +3,9 @@ export interface ProjectDto {
   /** The folder's name exactly as on disk. Never a path. */
   readonly dirName: string
   /**
-   * The last path segment of a working directory the project's newest
-   * transcript records, or `null` when none was found or it was unusable.
+   * The last path segment of the working directory recorded in one of the
+   * project's first few transcripts by name, or `null` when none was found or
+   * it was unusable.
    * Transcript-derived, so render it as plain text only. Never a path.
    */
   readonly label: string | null

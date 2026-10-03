@@ -8,7 +8,7 @@ import type { SessionScanCache } from './sessionScanCache'
 export interface IpcDeps {
   /** The `~/.claude/projects` directory. */
   readonly projectsRoot: string
-  /** Project labels read from each project's newest transcript, kept for the app's lifetime. */
+  /** Project labels read from one of each project's first few transcripts, kept for the app's lifetime. */
   readonly projectLabels: ProjectLabelCache
   /** Summaries of scanned transcripts, kept for the app's lifetime. */
   readonly summaryCache: SessionSummaryCache

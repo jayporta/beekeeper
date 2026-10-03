@@ -104,7 +104,7 @@ describe('readCwdLabel', () => {
     expect(await readCwdLabel(await transcriptWith(buildJsonlText(records)))).toBeNull()
   })
 
-  it('counts an oversized line toward the head lines and skips it', async () => {
+  it('skips an oversized line and keeps reading', async () => {
     const oversized = JSON.stringify({
       ...buildCwdRecord('/Users/dev/big'),
       pad: 'x'.repeat(1_100_000)
@@ -114,6 +114,16 @@ describe('readCwdLabel', () => {
     )
 
     expect(await readCwdLabel(path)).toBe('acme-web')
+  })
+
+  it('counts an oversized line toward the head lines', async () => {
+    const oversized = JSON.stringify({ pad: 'x'.repeat(1_100_000) })
+    const head = [oversized, ...Array<string>(MAX_HEAD_LINES - 1).fill(JSON.stringify(noCwd))]
+    const path = await transcriptWith(
+      `${head.join('\n')}\n${JSON.stringify(buildCwdRecord('/Users/dev/acme-web'))}\n`
+    )
+
+    expect(await readCwdLabel(path)).toBeNull()
   })
 
   it('returns null when the first cwd has an unprintable segment', async () => {
