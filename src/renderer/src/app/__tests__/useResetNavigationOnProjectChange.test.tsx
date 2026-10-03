@@ -30,7 +30,7 @@ function Harness(): React.JSX.Element {
 /** Puts the navigation store on a session, as if the person had opened one. */
 function openSession(): void {
   act(() => {
-    useNavigationStore.getState().showSession(ref, 'agent-a1')
+    useNavigationStore.getState().showSession(ref, { kind: 'subagent', agentId: 'agent-a1' })
   })
 }
 
@@ -40,7 +40,7 @@ const listing = (...names: string[]): Promise<IpcResult<readonly ProjectDto[]>> 
 describe('useResetNavigationOnProjectChange', () => {
   it('keeps the navigation state when the first project loads', async () => {
     installBeekeeperApi({ listProjects: () => listing('a', 'b') })
-    useNavigationStore.getState().showSession(ref, 'agent-a1')
+    useNavigationStore.getState().showSession(ref, { kind: 'subagent', agentId: 'agent-a1' })
 
     render(<Harness />, { wrapper: createQueryWrapper() })
     await screen.findByText('project:a')
@@ -62,7 +62,7 @@ describe('useResetNavigationOnProjectChange', () => {
     expect(useNavigationStore.getState()).toMatchObject({
       view: 'sessions',
       selectedSessionRef: null,
-      selectedAgentId: null
+      selectedAgent: null
     })
   })
 

@@ -1,6 +1,6 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { IpcResult } from '../../../../../shared/ipc/ipcResult'
 import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
@@ -54,7 +54,7 @@ const SESSIONS = [lead, mateA, mateB, solo]
 
 beforeEach(() => {
   useFirstRunStore.setState({ dismissed: true })
-  useSessionsViewStore.setState({ query: '', expanded: new Set() })
+  useSessionsViewStore.setState({ query: '' })
 })
 
 afterEach(resetPersistedState)
@@ -67,254 +67,15 @@ function showSessions(sessions: readonly SessionListItemDto[] = SESSIONS): void 
   renderApp()
 }
 
-describe('SessionsView table', () => {
-  it('renders a table named by the heading with the seven columns', async () => {
-    showSessions()
-
-    const table = await screen.findByRole('table', { name: DIR })
-    const headers = within(table)
-      .getAllByRole('columnheader')
-      .map((h) => h.textContent)
-    expect(headers).toEqual([
-      'Session',
-      'Last active',
-      'Duration',
-      'Model',
-      'Agents',
-      'Session usage',
-      'Team usage'
-    ])
-  })
-
-  it('shows only top-level rows at first: leads and sessions with no lead', async () => {
-    showSessions()
-
-    await screen.findByRole('table')
-    expect(screen.getByRole('rowheader', { name: /^Refactor parser/ })).toBeTruthy()
-    expect(screen.getByRole('rowheader', { name: /Untitled session/ })).toBeTruthy()
-    expect(screen.queryByRole('rowheader', { name: /reviewer/ })).toBeNull()
-  })
-
-  it('shows the lead cells: duration, model, agents, usage and partial markers', async () => {
-    showSessions()
-
-    const row = (await screen.findByRole('rowheader', { name: /^Refactor parser/ })).closest('tr')
-    const cells = within(row as HTMLElement).getAllByRole('cell')
-    expect(cells.map((c) => c.textContent)).toEqual([
-      expect.stringMatching(/2026/),
-      '1h',
-      'claude-opus-5',
-      '2 teammates',
-      '100 tokens $1.00 at API prices',
-      '300 tokens partial $3.00 at API prices partial'
-    ])
-  })
-
-  it('marks a missing value as not recorded and a tiny cost as under a cent', async () => {
-    showSessions()
-
-    const row = (await screen.findByRole('rowheader', { name: /Untitled session/ })).closest('tr')
-    const text = within(row as HTMLElement)
-      .getAllByRole('cell')
-      .map((c) => c.textContent)
-    expect(text).toContain('-tokens not recorded <$0.01 at API prices')
-    expect(text).toContain('-not recorded')
-  })
-
-  it('shows the transcript total in the session usage cell of a session with no recorded usage', async () => {
-    showSessions([
-      testSession(5, { projectDirName: DIR, title: 'Still running', transcriptTokens: 1200 })
-    ])
-
-    const row = (await screen.findByRole('rowheader', { name: /Still running/ })).closest('tr')
-    const cells = within(row as HTMLElement).getAllByRole('cell')
-
-    // Cells: last active, duration, model, agents, session usage, team usage.
-    expect(cells[4]?.textContent).toContain('1.2K tokens')
-    expect(cells[4]?.textContent).not.toContain('tokens not recorded')
-  })
-
-  it('marks team usage that does not apply to a teammate as not applicable, not as not recorded', async () => {
-    showSessions()
-    await userEvent.click(
-      await screen.findByRole('button', { name: '2 teammates of Refactor parser' })
-    )
-
-    const row = screen.getByRole('rowheader', { name: /^reviewer \(code\)/ }).closest('tr')
-    const cells = within(row as HTMLElement)
-      .getAllByRole('cell')
-      .map((c) => c.textContent)
-
-    // Cells: last active, duration, model, agents, session usage, team usage.
-    expect(cells[5]).toBe('-not applicable')
-    expect(cells[4]).toBe('-not recorded')
-  })
-
-  it('marks the team usage of a solo session as not applicable', async () => {
-    showSessions()
-
-    const row = (await screen.findByRole('rowheader', { name: /Untitled session/ })).closest('tr')
-    const cells = within(row as HTMLElement).getAllByRole('cell')
-
-    expect(cells[5]?.textContent).toBe('-not applicable')
-  })
-
-  it('marks the usage of an unreadable session as not recorded in both columns', async () => {
-    showSessions([testSession(5, { projectDirName: DIR, unreadable: true })])
-
-    const row = (await screen.findByRole('rowheader', { name: /Unreadable session/ })).closest('tr')
-    const cells = within(row as HTMLElement).getAllByRole('cell')
-
-    expect(cells[4]?.textContent).toBe('-not recorded')
-    expect(cells[5]?.textContent).toBe('-not recorded')
-  })
-
-  it('notes the plan limit a session hit, and nothing on one that hit none', async () => {
-    showSessions([
-      testSession(5, {
-        projectDirName: DIR,
-        title: 'Hit a limit',
-        limitHit: { window: 'sevenDay', resetsAtMs: Date.parse('2099-01-01T00:00:00Z') }
-      }),
-      testSession(6, { projectDirName: DIR, title: 'No limit' })
-    ])
-
-    const header = await screen.findByRole('rowheader', { name: /Hit a limit/ })
-
-    expect(header.textContent).toMatch(/hit 7-day limit, resets /)
-    expect(screen.getByRole('rowheader', { name: /No limit/ }).textContent).not.toContain('hit ')
-  })
-
-  it('drops the reset time from a limit note once the reset passes while the view stays open', async () => {
-    const nowMs = Date.parse('2026-06-01T00:00:00Z')
-    vi.useFakeTimers({
-      toFake: ['setTimeout', 'clearTimeout', 'Date'],
-      now: nowMs,
-      shouldAdvanceTime: true
-    })
-    try {
-      showSessions([
-        testSession(5, {
-          projectDirName: DIR,
-          title: 'Hit a limit',
-          limitHit: { window: 'sevenDay', resetsAtMs: nowMs + 60_000 }
-        })
-      ])
-
-      const header = await screen.findByRole('rowheader', { name: /Hit a limit/ })
-      expect(header.textContent).toContain('resets')
-
-      act(() => {
-        vi.advanceTimersByTime(60_000)
-      })
-
-      expect(header.textContent).toContain('hit 7-day limit')
-      expect(header.textContent).not.toContain('resets')
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
-  it('expands a lead teammates with a disclosure button and collapses them again', async () => {
-    showSessions()
-    const button = await screen.findByRole('button', { name: '2 teammates of Refactor parser' })
-    expect(button.getAttribute('aria-expanded')).toBe('false')
-
-    await userEvent.click(button)
-
-    expect(button.getAttribute('aria-expanded')).toBe('true')
-    const nested = screen.getByRole('rowheader', { name: /reviewer \(code\)/ })
-    expect(nested.textContent).toContain('stopped')
-    expect(screen.getByRole('rowheader', { name: /writer \(code\)/ }).textContent).toContain(
-      'in -Users-a-other'
-    )
-
-    await userEvent.click(button)
-
-    expect(button.getAttribute('aria-expanded')).toBe('false')
-    expect(screen.queryByRole('rowheader', { name: /reviewer/ })).toBeNull()
-  })
-
-  it('can be operated from the keyboard', async () => {
-    showSessions()
-    const button = await screen.findByRole('button', { name: '2 teammates of Refactor parser' })
-
-    button.focus()
-    await userEvent.keyboard('{Enter}')
-
-    expect(button.getAttribute('aria-expanded')).toBe('true')
-  })
-
-  it('points the disclosure button at the teammate rows it shows', async () => {
-    showSessions()
-    const button = await screen.findByRole('button', { name: '2 teammates of Refactor parser' })
-    await userEvent.click(button)
-
-    const ids = (button.getAttribute('aria-controls') ?? '').split(' ')
-    expect(ids).toHaveLength(2)
-    for (const id of ids) expect(document.getElementById(id)).toBeTruthy()
-  })
-})
-
-describe('SessionsView transcript text', () => {
-  const HOSTILE = '<b>x</b> &amp; {{name}} $t(common:retry)'
-
-  it('shows a title that looks like markup or a translation placeholder literally, in text and in accessible names', async () => {
-    const hostileLead = testSession(1, {
-      projectDirName: DIR,
-      title: HOSTILE,
-      team: testLeadTeam([testRef(2, DIR)])
-    })
-    const mate = testSession(2, {
-      projectDirName: DIR,
-      role: testAgentRole('reviewer', 'code'),
-      team: testTeammateTeam(testRef(1, DIR))
-    })
-    showSessions([hostileLead, mate])
-
-    expect(await screen.findByText(HOSTILE)).toBeTruthy()
-    await userEvent.click(screen.getByRole('button', { name: `1 teammate of ${HOSTILE}` }))
-
-    expect(screen.getByText(`teammate of ${HOSTILE}`)).toBeTruthy()
-  })
-})
-
 describe('SessionsView search', () => {
-  it('filters rows by name and shows a matching teammate under its lead without expanding', async () => {
-    showSessions()
-    await screen.findByRole('table')
-
-    await userEvent.type(screen.getByRole('searchbox', { name: 'Search sessions' }), 'review')
-
-    expect(screen.getByRole('rowheader', { name: /^Refactor parser/ })).toBeTruthy()
-    expect(screen.getByRole('rowheader', { name: /reviewer \(code\)/ })).toBeTruthy()
-    expect(screen.queryByRole('rowheader', { name: /Untitled session/ })).toBeNull()
-    expect(screen.queryByRole('rowheader', { name: /writer/ })).toBeNull()
-    expect(screen.queryByRole('button', { name: /teammates of/ })).toBeNull()
-  })
-
-  it('tells a screen reader that a nested row is a teammate of its lead', async () => {
-    showSessions()
-    await userEvent.click(
-      await screen.findByRole('button', { name: '2 teammates of Refactor parser' })
-    )
-
-    expect(screen.getByRole('rowheader', { name: /reviewer \(code\)/ }).textContent).toContain(
-      'teammate of Refactor parser'
-    )
-    expect(screen.getByRole('rowheader', { name: /^Refactor parser/ }).textContent).not.toContain(
-      'teammate of'
-    )
-  })
-
   it('says so when nothing matches', async () => {
     showSessions()
-    await screen.findByRole('table')
+    await screen.findByRole('list', { name: DIR })
 
     await userEvent.type(screen.getByRole('searchbox', { name: 'Search sessions' }), 'zzz')
 
     expect(screen.getByRole('heading', { name: 'No matching sessions' })).toBeTruthy()
-    expect(screen.queryByRole('table')).toBeNull()
+    expect(screen.queryByRole('list', { name: DIR })).toBeNull()
   })
 })
 
@@ -333,14 +94,14 @@ const searchStatus = (): HTMLElement | undefined =>
 describe('SessionsView search announcements', () => {
   it('has an empty polite status region before anything is typed', async () => {
     showSessions()
-    await screen.findByRole('table')
+    await screen.findByRole('list', { name: DIR })
 
     expect(searchStatus()?.textContent).toBe('')
   })
 
   it('announces how many sessions match, and when none do', async () => {
     showSessions()
-    await screen.findByRole('table')
+    await screen.findByRole('list', { name: DIR })
     const search = screen.getByRole('searchbox', { name: 'Search sessions' })
 
     await userEvent.type(search, 'code')
@@ -459,13 +220,13 @@ describe('SessionsContent with a failed background refresh', () => {
     render(<SessionsContent dirName={DIR} headingId="h" />, {
       wrapper: createQueryWrapper(client)
     })
-    await screen.findByRole('table')
+    await screen.findByRole('list', { name: DIR })
 
     failing = true
     await refetchAndSettle(client, ['sessions', DIR])
 
     expect(client.getQueryState(['sessions', DIR])?.status).toBe('error')
-    expect(screen.getByRole('table')).toBeTruthy()
+    expect(screen.getByRole('list', { name: DIR })).toBeTruthy()
     expect(screen.queryByRole('alert')).toBeNull()
   })
 })
@@ -505,7 +266,7 @@ describe('SessionsView states', () => {
     expect(within(alert).getByRole('heading', { name: 'Something went wrong' })).toBeTruthy()
     await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
 
-    expect(await screen.findByRole('table')).toBeTruthy()
+    expect(await screen.findByRole('list', { name: DIR })).toBeTruthy()
   })
 
   it('moves focus to the main landmark when Retry replaces the error with loading', async () => {

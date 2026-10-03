@@ -1,0 +1,31 @@
+/* The columns of the session list: a card's title, agents, duration and tokens, and the header row above them. */
+.columns {
+  display: grid;
+  grid-template-columns:
+    1fr var(--size-card-agents) var(--size-card-duration)
+    var(--size-card-tokens);
+  column-gap: var(--space-4);
+  padding-inline: var(--space-4-5);
+}
+
+/*
+ * Below 40rem the list is too narrow for the fixed columns, so the card
+ * stacks: the title takes a row and agents, duration and tokens share the one
+ * beneath, wrapping when they must. A condition can't read a custom property,
+ * so the width is written out here and in SessionCardList.module.css.
+ */
+@container (max-width: 40rem) {
+  .columns {
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: var(--space-2);
+
+    & > * {
+      flex: 1 1 var(--size-card-duration);
+    }
+
+    & > :first-child {
+      flex-basis: 100%;
+    }
+  }
+}

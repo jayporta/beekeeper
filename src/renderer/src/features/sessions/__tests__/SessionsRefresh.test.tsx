@@ -57,7 +57,7 @@ beforeEach(() => {
   // Only the clock is faked, so a test can age the lists without waiting.
   vi.useFakeTimers({ toFake: ['Date'] })
   useFirstRunStore.setState({ dismissed: true })
-  useSessionsViewStore.setState({ query: '', expanded: new Set() })
+  useSessionsViewStore.setState({ query: '' })
   unregisterFocus = registerWindowFocusRefetch()
 })
 
@@ -86,7 +86,7 @@ async function showSessions(
     listSessions
   })
   render(<App />, { wrapper: createQueryWrapper() })
-  await screen.findByRole('rowheader', { name: /Refactor parser/ })
+  await screen.findByRole('heading', { level: 2, name: 'Refactor parser' })
   return api
 }
 
@@ -117,18 +117,16 @@ async function focusAfterStaleTime(): Promise<void> {
 }
 
 describe('refreshing the lists on window focus', () => {
-  it('shows a session that appeared, and keeps a lead expanded, after the stale time', async () => {
+  it('shows a session that appeared, and keeps the cards, after the stale time', async () => {
     let current = [lead, mate]
     await showSessions(() => loaded(current))
-    await userEvent.click(
-      await screen.findByRole('button', { name: '1 teammate of Refactor parser' })
-    )
     current = [lead, mate, added]
 
     await focusAfterStaleTime()
 
-    expect(await screen.findByRole('rowheader', { name: /Brand new session/ })).toBeTruthy()
-    expect(screen.queryByRole('rowheader', { name: /^reviewer/ })).not.toBeNull()
+    expect(await screen.findByRole('heading', { level: 2, name: 'Brand new session' })).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 2, name: 'Refactor parser' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /^reviewer \(code\)/ })).toBeTruthy()
   })
 
   it('makes no second call when the window is focused within the stale time', async () => {
@@ -151,7 +149,7 @@ describe('refreshing the lists on window focus', () => {
     current = [lead, testSession(3, { projectDirName: DIR, title: 'Refactor tests' })]
 
     await focusAfterStaleTime()
-    await screen.findByRole('rowheader', { name: /Refactor tests/ })
+    await screen.findByRole('heading', { level: 2, name: 'Refactor tests' })
 
     expect(api.listSessions).toHaveBeenCalledTimes(2)
     expect(document.activeElement).toBe(screen.getByRole('searchbox', { name: 'Search sessions' }))

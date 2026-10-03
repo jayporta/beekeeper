@@ -9,7 +9,7 @@ import { SearchResultsStatus } from './SearchResultsStatus'
 import { normalizeQuery } from './sessionMatches'
 import { SessionSearch } from './SessionSearch'
 import { SessionsBody } from './SessionsBody'
-import { SessionsTable } from './SessionsTable'
+import { SessionCardList } from './SessionCardList'
 import { useSessionsViewStore } from './state/useSessionsViewStore'
 import { useSessions } from './useSessions'
 
@@ -17,7 +17,7 @@ import { useSessions } from './useSessions'
 interface SessionsContentProps {
   /** The folder whose sessions to show. */
   readonly dirName: string
-  /** The id for the view's `h1`, which also names the table. */
+  /** The id for the view's `h1`, which also names the list. */
   readonly headingId: string
 }
 
@@ -35,7 +35,7 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
   const { t } = useTranslation('sessions')
   const { data, error, refetch } = useSessions(dirName)
   const typed = useSessionsViewStore((state) => state.query)
-  // Filtering waits on the deferred text, and the table is memoized, so typing stays responsive.
+  // Filtering waits on the deferred text, and the list is memoized, so typing stays responsive.
   const query = useDeferredValue(typed)
   const rows = useMemo(() => (data === undefined ? [] : groupSessionRows(data, t)), [data, t])
   const matching = useMemo(() => filterRows(rows, query), [rows, query])
@@ -64,11 +64,11 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
         }}
         hasMatches={matching.length > 0}
       >
-        <SessionsTable
+        <SessionCardList
           rows={matching}
           labelledBy={headingId}
           selectedDirName={dirName}
-          searching={searching}
+          query={normalizeQuery(query)}
         />
       </SessionsBody>
     </>

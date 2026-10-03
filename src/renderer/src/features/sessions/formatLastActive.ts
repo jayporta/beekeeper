@@ -1,7 +1,7 @@
 import type { SessionsT } from './sessionsT'
 
 /**
- * Formats a last-active time for the table, in the viewer's time zone and the
+ * Formats a last-active time for a session card, in the viewer's time zone and the
  * active language.
  *
  * @param ms - Milliseconds since the Unix epoch, or `null` when unknown.

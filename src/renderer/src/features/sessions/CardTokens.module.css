@@ -1,0 +1,14 @@
+.tokens {
+  text-align: right;
+}
+
+.figure {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-figure);
+  font-weight: var(--font-weight-semibold);
+}
+
+.sub {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2xs);
+}

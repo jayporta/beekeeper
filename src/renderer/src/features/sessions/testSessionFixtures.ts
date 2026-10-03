@@ -29,6 +29,8 @@ interface TestSessionOptions {
   readonly transcriptTokens?: number | null
   /** How many subagent transcripts the session has, or `null` when unknown. Defaults to `0`. */
   readonly subagentCount?: number | null
+  /** How many transcript lines could not be read. Defaults to `0`. */
+  readonly skippedLines?: number
   /** The plan limit the session hit. Defaults to `null`. */
   readonly limitHit?: SessionSummaryDto['limitHit']
   /** Whether the summary could not be read. Defaults to `false`. */
@@ -55,6 +57,7 @@ export function testSession(n: number, options: TestSessionOptions = {}): Sessio
     totalTokens,
     transcriptTokens = null,
     subagentCount = 0,
+    skippedLines = 0,
     limitHit = null,
     unreadable = false
   } = options
@@ -66,7 +69,7 @@ export function testSession(n: number, options: TestSessionOptions = {}): Sessio
         ? null
         : { totalUSD: costUSD ?? null, totalTokens: totalTokens ?? null },
     activity: latestMs === undefined || earliestMs === undefined ? null : { earliestMs, latestMs },
-    skippedLines: 0,
+    skippedLines,
     role,
     model,
     limitHit,

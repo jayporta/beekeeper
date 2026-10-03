@@ -4,6 +4,15 @@ import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
 /** The main area's views: the all-projects overview, a project's sessions list, or one session. */
 export type NavigationView = 'overview' | 'sessions' | 'session'
 
+/**
+ * The agent selected within a session: a subagent inside a transcript, by its
+ * agent id, or a teammate, by the ref of its own session, which may live in
+ * another folder than the lead's.
+ */
+export type SelectedAgent =
+  | { readonly kind: 'subagent'; readonly agentId: string }
+  | { readonly kind: 'teammate'; readonly ref: SessionRefDto }
+
 /** Which view the main area shows and what it is showing. */
 interface NavigationState {
   /** The view on screen. */
@@ -11,7 +20,7 @@ interface NavigationState {
   /** The session on show when `view` is `'session'`, otherwise `null`. */
   readonly selectedSessionRef: SessionRefDto | null
   /** The agent selected within that session, or `null` for the lead. */
-  readonly selectedAgentId: string | null
+  readonly selectedAgent: SelectedAgent | null
   /**
    * How many times the person has navigated: every `showOverview`,
    * `showSessions`, and `showSession`. `reset` does not count, since the app
@@ -25,9 +34,9 @@ interface NavigationState {
   /**
    * Shows one session.
    * @param ref - The session to show.
-   * @param agentId - The agent to select within it. Omit it for the lead.
+   * @param agent - The agent to select within it. Omit it for the lead.
    */
-  showSession: (ref: SessionRefDto, agentId?: string) => void
+  showSession: (ref: SessionRefDto, agent?: SelectedAgent) => void
   /** Returns to the starting state: the sessions list with nothing selected. */
   reset: () => void
 }
@@ -35,8 +44,8 @@ interface NavigationState {
 const STARTING_STATE = {
   view: 'sessions',
   selectedSessionRef: null,
-  selectedAgentId: null
-} as const satisfies Pick<NavigationState, 'view' | 'selectedSessionRef' | 'selectedAgentId'>
+  selectedAgent: null
+} as const satisfies Pick<NavigationState, 'view' | 'selectedSessionRef' | 'selectedAgent'>
 
 /**
  * The main area's navigation. It starts on the sessions list while the
@@ -56,11 +65,11 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
   showSessions: () => {
     set((state) => ({ ...STARTING_STATE, navigationCount: state.navigationCount + 1 }))
   },
-  showSession: (ref, agentId) => {
+  showSession: (ref, agent) => {
     set((state) => ({
       view: 'session',
       selectedSessionRef: ref,
-      selectedAgentId: agentId ?? null,
+      selectedAgent: agent ?? null,
       navigationCount: state.navigationCount + 1
     }))
   },

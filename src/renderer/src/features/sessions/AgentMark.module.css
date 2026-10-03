@@ -1,0 +1,25 @@
+.lead,
+.teammate {
+  width: var(--size-mark);
+  height: var(--size-mark);
+}
+
+.lead {
+  background: var(--color-accent);
+
+  /* Forced colors drop the fill, so the lead mark keeps a solid system color. */
+  @media (forced-colors: active) {
+    background: CanvasText;
+    forced-color-adjust: none;
+  }
+}
+
+.teammate {
+  border: var(--border-width-mark) solid var(--color-text);
+}
+
+.subagent {
+  width: var(--size-mark-subagent);
+  height: var(--size-mark-subagent);
+  border: var(--border-width-mark) dashed var(--color-text);
+}

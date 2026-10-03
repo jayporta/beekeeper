@@ -1,6 +1,6 @@
 import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
 
-/** One usage figure pair a table cell shows. */
+/** One usage figure pair a card shows. */
 export interface UsageFigures {
   /** Tokens across every class, or `null` when there is no figure. */
   readonly tokens: number | null
@@ -12,7 +12,7 @@ export interface UsageFigures {
   readonly usdPartial: boolean
 }
 
-/** The usage a table row shows. */
+/** The usage a session card shows. */
 export interface SessionUsage {
   /** The session's own usage. Its tokens are partial only when taken from its transcript. */
   readonly session: UsageFigures

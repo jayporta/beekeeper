@@ -2,7 +2,7 @@ import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
 import type { SessionsT } from './sessionsT'
 
 /**
- * Describes the agents a session used, for the table's Agents column: the
+ * Describes the agents a session used, for a card's agent count: the
  * teammates grouped under a lead and the subagents it spawned, as in
  * "3 teammates, 2 subagents".
  *
