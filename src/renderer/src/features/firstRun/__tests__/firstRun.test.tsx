@@ -70,7 +70,11 @@ describe('first-run screen', () => {
 
     const heading = await welcome()
 
-    expect(document.activeElement).toBe(heading)
+    // The heading mounts when the store rehydrates outside act, so the effect
+    // that focuses it can run after the heading is found.
+    await vi.waitFor(() => {
+      expect(document.activeElement).toBe(heading)
+    })
   })
 
   describe('with a stored dismissal', () => {
