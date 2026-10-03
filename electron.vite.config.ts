@@ -32,6 +32,10 @@ export default defineConfig({
     define: {
       __IPC_CONTRACT_HASH__: JSON.stringify(ipcContractHash())
     },
+    build: {
+      // The CSP allows fonts only from 'self', so a font file is never inlined as a data: URI.
+      assetsInlineLimit: (file) => (/\.woff2?$/.test(file) ? false : undefined)
+    },
     plugins: [react()]
   }
 })

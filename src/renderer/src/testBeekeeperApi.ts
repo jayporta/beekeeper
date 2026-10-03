@@ -11,7 +11,7 @@ import type { ProjectDto } from '../../shared/ipc/projectDto'
  * @returns The project.
  */
 export function testProject(dirName: string, worktreeOf: string | null = null): ProjectDto {
-  return { dirName, worktreeOf }
+  return { dirName, label: null, worktreeOf }
 }
 
 /** The stubbed API: each method is a mock, so a test can assert on calls or change a result. */

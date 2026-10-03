@@ -1,3 +1,6 @@
+import '@fontsource/barlow/latin-400.css'
+import '@fontsource/barlow/latin-500.css'
+import '@fontsource/barlow-condensed/latin-600.css'
 import './assets/main.css'
 
 import { StrictMode } from 'react'

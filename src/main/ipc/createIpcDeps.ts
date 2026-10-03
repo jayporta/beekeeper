@@ -2,6 +2,7 @@ import { join } from 'node:path'
 import { createSessionSummaryCache } from '../../core/transcript/summary/sessionSummaryCache'
 import { createGitLocator } from '../git/gitLocator'
 import type { IpcDeps } from './ipcDeps'
+import { createProjectLabelCache } from './projectLabelCache'
 import { createScanScheduler } from './scanScheduler'
 import { createSessionScanCache } from './sessionScanCache'
 
@@ -30,6 +31,7 @@ export const SCAN_CACHE_CAPACITY = 4
 export function createIpcDeps(homeDir: string): IpcDeps {
   return {
     projectsRoot: join(homeDir, '.claude', 'projects'),
+    projectLabels: createProjectLabelCache(),
     summaryCache: createSessionSummaryCache(),
     summaries: createScanScheduler({ maxConcurrent: MAX_CONCURRENT_SUMMARIES }),
     scans: createScanScheduler({ maxConcurrent: MAX_CONCURRENT_SCANS }),

@@ -190,8 +190,8 @@ describe('listSessionsHandler project family', () => {
     expect(projects).toEqual({
       ok: true,
       value: [
-        { dirName: TEST_PROJECT, worktreeOf: null },
-        { dirName: WORKTREE, worktreeOf: TEST_PROJECT }
+        { dirName: TEST_PROJECT, label: null, worktreeOf: null },
+        { dirName: WORKTREE, label: null, worktreeOf: TEST_PROJECT }
       ]
     })
   })

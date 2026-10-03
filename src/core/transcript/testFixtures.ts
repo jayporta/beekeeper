@@ -134,6 +134,11 @@ export function buildUserRecord(overrides: UserRecordOverrides = {}): Record<str
   }
 }
 
+/** Builds a synthetic `user` record that records the working directory `cwd`. */
+export function buildCwdRecord(cwd: string): Record<string, unknown> {
+  return buildUserRecord({ extra: { cwd } })
+}
+
 /** Builds an `assistant` record whose usage carries several iterations. */
 export function buildAssistantRecordWithIterations(): Record<string, unknown> {
   return {

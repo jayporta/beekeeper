@@ -5,13 +5,9 @@ import { captureSystemError } from './captureSystemError'
 import { discoverSubagents, type SubagentEntry } from './discoverSubagents'
 import { toSessionId, type SessionId } from './ids'
 import { readDirentsOrEmpty } from './readDirentsOrEmpty'
+import { SESSION_TRANSCRIPT_PATTERN, SESSION_TRANSCRIPT_SUFFIX } from './sessionTranscriptName'
 import { statTranscriptFile, type TranscriptFileInfo } from './statTranscriptFile'
 import type { UnreadableError } from './unreadableError'
-
-/** A session transcript's filename: a lowercase UUID followed by `.jsonl`. */
-const SESSION_TRANSCRIPT_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.jsonl$/
-const SESSION_TRANSCRIPT_SUFFIX = '.jsonl'
 
 /** One session found directly under a project folder. */
 export interface SessionEntry {
