@@ -91,12 +91,15 @@ export async function* readJsonlLines(
         }
 
         pending.push(text.slice(start, newlineIndex))
+        pendingLength += newlineIndex - start
         start = newlineIndex + 1
 
-        // Strip the CR before the length check, so a CRLF line isn't
+        // Check the length before joining, so an oversized line is never
+        // copied whole. A trailing CR doesn't count, so a CRLF line isn't
         // penalized one character versus the same line ending in bare `\n`.
-        const line = stripTrailingCarriageReturn(pending.join(''))
-        const oversized = discardingOversizedLine || line.length >= maxLineChars
+        const lineLength = pendingLength - (endsWithCarriageReturn(pending) ? 1 : 0)
+        const oversized = discardingOversizedLine || lineLength >= maxLineChars
+        const line = oversized ? '' : stripTrailingCarriageReturn(pending.join(''))
         pending.length = 0
         pendingLength = 0
         discardingOversizedLine = false
@@ -112,6 +115,15 @@ export async function* readJsonlLines(
   } finally {
     stream.destroy()
   }
+}
+
+/** Whether the last non-empty piece ends with `\r`. */
+function endsWithCarriageReturn(pieces: readonly string[]): boolean {
+  for (let i = pieces.length - 1; i >= 0; i--) {
+    const piece = pieces[i]
+    if (piece !== undefined && piece.length > 0) return piece.endsWith('\r')
+  }
+  return false
 }
 
 function stripTrailingCarriageReturn(line: string): string {
