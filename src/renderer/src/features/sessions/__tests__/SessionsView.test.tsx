@@ -280,7 +280,7 @@ describe('SessionsView transcript text', () => {
 })
 
 describe('SessionsView search', () => {
-  it('filters rows by name and shows a matching teammate under its lead without expanding', async () => {
+  it('filters rows by name and shows every teammate of a lead that matches through one, without expanding', async () => {
     showSessions()
     await screen.findByRole('table')
 
@@ -289,7 +289,7 @@ describe('SessionsView search', () => {
     expect(screen.getByRole('rowheader', { name: /^Refactor parser/ })).toBeTruthy()
     expect(screen.getByRole('rowheader', { name: /reviewer \(code\)/ })).toBeTruthy()
     expect(screen.queryByRole('rowheader', { name: /Untitled session/ })).toBeNull()
-    expect(screen.queryByRole('rowheader', { name: /writer/ })).toBeNull()
+    expect(screen.getByRole('rowheader', { name: /writer \(code\)/ })).toBeTruthy()
     expect(screen.queryByRole('button', { name: /teammates of/ })).toBeNull()
   })
 

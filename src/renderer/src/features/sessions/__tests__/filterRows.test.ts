@@ -38,44 +38,25 @@ describe('filterRows', () => {
     expect(filterRows(rows, 'LOGIN').map((row) => row.key)).toEqual([keyOf(4)])
   })
 
-  it('keeps a lead that matches, with no teammates when none match', () => {
+  it('keeps a lead that matches, with all its teammates', () => {
     const [kept] = filterRows(rows, 'parser')
 
     expect(kept?.key).toBe(keyOf(1))
-    expect(kept?.teammates).toEqual([])
+    expect(kept?.teammates.map((t) => t.key)).toEqual([keyOf(2), keyOf(3)])
   })
 
-  it('keeps a lead when only a teammate matches, with just the matching teammates', () => {
+  it('keeps a lead when only a teammate matches, with all its teammates', () => {
     const result = filterRows(rows, 'review')
 
     expect(result.map((row) => row.key)).toEqual([keyOf(1)])
-    expect(result[0]?.teammates.map((t) => t.key)).toEqual([keyOf(2)])
+    expect(result[0]?.teammates.map((t) => t.key)).toEqual([keyOf(2), keyOf(3)])
   })
 
   it('matches a teammate by its agent name and type label', () => {
-    expect(filterRows(rows, 'writer (code)')[0]?.teammates.map((t) => t.key)).toEqual([keyOf(3)])
-  })
-
-  it('returns the original row object when all of its teammates match', () => {
-    const [kept] = filterRows(rows, 'code')
-
-    expect(kept).toBe(rows[0])
-  })
-
-  it('returns a new row object when some of its teammates are filtered out', () => {
-    const [kept] = filterRows(rows, 'review')
-
-    expect(kept).not.toBe(rows[0])
-    expect(rows[0]?.teammates).toHaveLength(2)
+    expect(filterRows(rows, 'writer (code)').map((row) => row.key)).toEqual([keyOf(1)])
   })
 
   it('returns nothing when no row matches', () => {
     expect(filterRows(rows, 'zzz')).toEqual([])
-  })
-
-  it('does not change the rows it was given', () => {
-    filterRows(rows, 'review')
-
-    expect(rows[0]?.teammates).toHaveLength(2)
   })
 })

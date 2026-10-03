@@ -1,9 +1,8 @@
 import { useTranslation } from 'react-i18next'
-import { limitHitNote } from './limitHitNote'
+import { notesFor } from './notesFor'
 import styles from './SessionNameCell.module.css'
 import { rowId } from './rowId'
 import type { SessionRow } from './sessionRow'
-import type { SessionsT } from './sessionsT'
 import { useSessionsViewStore } from './state/useSessionsViewStore'
 import { useNowUntil } from './useNowUntil'
 
@@ -19,33 +18,6 @@ interface SessionNameCellProps {
   readonly canExpand: boolean
   /** The folder the list is for, to mark sessions from another folder. */
   readonly selectedDirName: string
-}
-
-/** What {@link notesFor} needs besides the row. */
-interface NotesOptions {
-  /** The folder the list is for, to mark sessions from another folder. */
-  readonly selectedDirName: string
-  /** The time to compare a limit's reset against, in milliseconds since the Unix epoch. */
-  readonly nowMs: number
-  /** The sessions translate function. */
-  readonly t: SessionsT
-}
-
-/** The muted notes after a session's name: its team, stopped state, plan limit hit, and folders. */
-function notesFor(row: SessionRow, { selectedDirName, nowMs, t }: NotesOptions): string[] {
-  const { item, leadFolder } = row
-  const notes: string[] = []
-  if (item.team?.kind === 'ungrouped' && item.team.teamName !== null) {
-    notes.push(t('notes.team', { name: item.team.teamName }))
-  }
-  if (item.team?.kind === 'teammate' && item.team.stopped) notes.push(t('notes.stopped'))
-  const limit = item.summary.ok ? limitHitNote(item.summary.value.limitHit, { nowMs, t }) : null
-  if (limit !== null) notes.push(limit)
-  if (leadFolder !== null) notes.push(t('notes.leadIn', { folder: leadFolder }))
-  if (item.projectDirName !== selectedDirName) {
-    notes.push(t('notes.in', { folder: item.projectDirName }))
-  }
-  return notes
 }
 
 /**
