@@ -32,6 +32,7 @@
   "apiCost": "{{value}} at API prices",
   "emptyCell": {
     "notRecorded": "not recorded",
+    "usageNotRecorded": "tokens and cost not recorded",
     "tokensNotRecorded": "tokens not recorded",
     "costNotRecorded": "cost not recorded"
   },

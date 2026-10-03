@@ -33,7 +33,7 @@ export function CardTokens({ figures, teamTotal, partial }: CardTokensProps): Re
   if (figures === null || (figures.tokens === null && figures.usd === null)) {
     return (
       <div className={styles.tokens}>
-        <EmptyCell />
+        <EmptyCell spokenText={t('emptyCell.usageNotRecorded')} />
       </div>
     )
   }

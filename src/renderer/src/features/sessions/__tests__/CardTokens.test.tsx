@@ -85,16 +85,16 @@ describe('CardTokens', () => {
     expect(container.textContent).toContain('-cost not recorded')
   })
 
-  it('shows a single not recorded when there are no figures', () => {
+  it('shows a single tokens and cost not recorded when there are no figures', () => {
     const container = renderTokens({ figures: null })
 
-    expect(container.textContent).toBe('-not recorded')
+    expect(container.textContent).toBe('-tokens and cost not recorded')
   })
 
-  it('shows a single not recorded when both figures are missing', () => {
+  it('shows a single tokens and cost not recorded when both figures are missing', () => {
     const container = renderTokens({ figures: { ...FIGURES, tokens: null, usd: null } })
 
-    expect(container.textContent).toBe('-not recorded')
+    expect(container.textContent).toBe('-tokens and cost not recorded')
     expect(container.textContent).not.toContain('at API prices')
   })
 })

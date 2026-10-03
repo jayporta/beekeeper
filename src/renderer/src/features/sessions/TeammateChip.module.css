@@ -36,6 +36,14 @@
   & .note {
     color: inherit;
   }
+
+  /* Forced colors drop the fill, so a match keeps its inversion in system colors. */
+  @media (forced-colors: active) {
+    color: HighlightText;
+    background: Highlight;
+    border-color: Highlight;
+    forced-color-adjust: none;
+  }
 }
 
 .name {

@@ -6,6 +6,12 @@
 
 .lead {
   background: var(--color-accent);
+
+  /* Forced colors drop the fill, so the lead mark keeps a solid system color. */
+  @media (forced-colors: active) {
+    background: CanvasText;
+    forced-color-adjust: none;
+  }
 }
 
 .teammate {
