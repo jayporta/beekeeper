@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import type { SessionRefDto } from '../../../../shared/ipc/sessionRefDto'
@@ -27,11 +28,12 @@ interface TeammateChipProps {
  * A button for one teammate under a lead's card: its name, a muted note
  * (stopped, its subagent count, or the folder it lives in), and its own
  * tokens. Pressing it opens the lead's session with the teammate selected.
+ * It is memoized so a search change re-renders only the chips whose match changes.
  *
  * @example
  * <TeammateChip teammate={teammate} leadRef={leadRef} selectedDirName="-Users-me-repo" highlighted={false} />
  */
-export function TeammateChip({
+export const TeammateChip = memo(function TeammateChip({
   teammate,
   leadRef,
   selectedDirName,
@@ -81,4 +83,4 @@ export function TeammateChip({
       )}
     </button>
   )
-}
+})

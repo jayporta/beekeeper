@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { agentCountLabel } from './agentCountLabel'
 import { AgentStrip } from './AgentStrip'
@@ -48,7 +48,8 @@ export const SessionCard = memo(function SessionCard({
   const { figures, teamTotal } = cardFigures(item)
   const agents = agentCountLabel(item, t)
   const duration = formatDuration(item.summary.ok ? item.summary.value.activity : null, t)
-  const leadRef = { projectDirName: item.projectDirName, sessionId: item.sessionId }
+  const { projectDirName, sessionId } = item
+  const leadRef = useMemo(() => ({ projectDirName, sessionId }), [projectDirName, sessionId])
 
   return (
     <li className={styles.card}>
