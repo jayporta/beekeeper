@@ -19,7 +19,7 @@ const WORKTREE_DIR = '-Users-a-acme--claude-worktrees-fix-bug'
 const acme: ProjectDto = { ...testProject(DIR), label: 'Acme Web' }
 const worktree: ProjectDto = {
   ...testProject(WORKTREE_DIR, { worktreeOf: DIR, worktreeName: 'fix-bug' }),
-  label: 'Acme Web'
+  label: 'acme-fix-bug'
 }
 
 const ok = (

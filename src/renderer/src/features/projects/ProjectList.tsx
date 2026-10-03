@@ -5,7 +5,6 @@ import { groupProjects } from './groupProjects'
 import { hasProjectsToShow } from './hasProjectsToShow'
 import { ProjectRow } from './ProjectRow'
 import styles from './ProjectList.module.css'
-import { projectLabel } from './projectLabel'
 import { projectTitle } from './projectTitle'
 import { useSelectedProjectDirName } from './state/useSelectedProjectDirName'
 import { useSelectedProjectStore } from './state/useSelectedProjectStore'
@@ -53,7 +52,7 @@ export function ProjectList(): React.JSX.Element | null {
           return [
             <ProjectRow
               key={project.dirName}
-              label={projectLabel(project)}
+              label={projectTitle(project)}
               detail={project.dirName}
               current={isCurrent(project.dirName)}
               onSelect={() => {
