@@ -7,8 +7,8 @@ import { SESSION_TRANSCRIPT_PATTERN } from './sessionTranscriptName'
 export const MAX_TRANSCRIPT_CANDIDATES = 3
 
 /**
- * Picks the few session transcripts a project is read from when only the
- * folder's name matters, not which session is newest.
+ * Picks the few session transcripts a project is labeled from: the first in
+ * name order, not the newest.
  *
  * Considers the same files session discovery lists: top-level regular files
  * named for a session id. `Dirent` never follows symlinks, so a symlink is

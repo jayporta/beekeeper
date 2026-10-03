@@ -165,6 +165,25 @@ describe('createProjectLabelCache', () => {
       expect([labels.get('a'), reads]).toEqual(['proj1', [transcriptOf(tree)]])
     })
 
+    it('is not read again when a transcript after the one that gave it grows', async () => {
+      tree = await buildDiscoveryTree({
+        files: {
+          [`a/${idOf(1)}.jsonl`]: recording('/Users/dev/proj1'),
+          [`a/${idOf(2)}.jsonl`]: noCwd
+        }
+      })
+      await pin(join(tree.root, 'a'))
+      await pin(transcriptOf(tree, idOf(1)))
+      const { cache, reads } = recordingCache()
+      await cache.labelsFor([entry(tree, 'a')])
+      await appendFile(transcriptOf(tree, idOf(2)), noCwd)
+      await pin(join(tree.root, 'a'))
+
+      await cache.labelsFor([entry(tree, 'a')])
+
+      expect(reads).toEqual([transcriptOf(tree, idOf(1))])
+    })
+
     it('follows a session from another working directory that shares the folder and sorts first', async () => {
       tree = await buildDiscoveryTree({
         files: { [`a/${idOf(2)}.jsonl`]: recording('/Users/dev/acme.web') }

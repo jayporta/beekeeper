@@ -8,9 +8,9 @@ import { fingerprintOf, readFolderMtime, stampTranscripts } from './projectLabel
 export interface ProjectLabelRead {
   /** The label, or `null` when no candidate transcript gave one. */
   readonly label: string | null
-  /** The candidate transcript names that were considered, in order. */
+  /** The candidate transcript names the label depends on, in order: every one read, up to the one that gave the label. */
   readonly names: readonly string[]
-  /** The folder and candidate state the read began under. Changes when a retry could find more. */
+  /** The state of the folder and of {@link ProjectLabelRead.names} the read began under. Changes when a new read could give a different label. */
   readonly fingerprint: string
 }
 
@@ -30,7 +30,8 @@ export interface ReadProjectLabelOptions {
  * decides the label.
  *
  * The fingerprint is taken before anything is read, so a transcript written
- * during the read changes it. A listing or read that fails with a system error
+ * during the read changes it. It covers the folder and the transcripts up to
+ * the one that gave the label, since a later one cannot change it. A listing or read that fails with a system error
  * is reported and counted as no label, and the fingerprint still covers it.
  *
  * @param project - The project to label.
@@ -46,12 +47,15 @@ export async function readProjectLabel(
   const listing = await captureSystemError(() => findTranscriptCandidates(project.path))
   if (!listing.ok) options.onFailure(listing.error)
   const names = listing.ok ? listing.value : []
-  const fingerprint = fingerprintOf(folderMtimeMs, await stampTranscripts(project.path, names))
+  const stamps = await stampTranscripts(project.path, names)
 
-  for (const name of names) {
+  for (const [index, name] of names.entries()) {
     const read = await captureSystemError(() => options.readLabel(join(project.path, name)))
     if (!read.ok) options.onFailure(read.error)
-    else if (read.value !== null) return { label: read.value, names, fingerprint }
+    else if (read.value !== null) {
+      const fingerprint = fingerprintOf(folderMtimeMs, stamps.slice(0, index + 1))
+      return { label: read.value, names: names.slice(0, index + 1), fingerprint }
+    }
   }
-  return { label: null, names, fingerprint }
+  return { label: null, names, fingerprint: fingerprintOf(folderMtimeMs, stamps) }
 }
