@@ -1,6 +1,8 @@
 import { chmod, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { buildDiscoveryTree } from '../../../core/transcript/testDiscoveryTree'
+import { buildCwdRecord, buildJsonlText } from '../../../core/transcript/testFixtures'
 import { createIpcDeps } from '../createIpcDeps'
 import { guardIpc } from '../guardIpc'
 import { getSessionHandler } from '../getSessionHandler'
@@ -25,8 +27,28 @@ describe('listProjectsHandler', () => {
   it('lists project folder names and nothing else', async () => {
     expect(await listProjectsHandler(ctx.deps)).toEqual({
       ok: true,
-      value: [{ dirName: TEST_PROJECT, worktreeOf: null }]
+      value: [{ dirName: TEST_PROJECT, label: null, worktreeOf: null }]
     })
+  })
+
+  it('labels a project with the last segment of its newest transcript cwd', async () => {
+    const labelled = await buildDiscoveryTree({
+      files: {
+        [`.claude/projects/${TEST_PROJECT}/${TEST_SESSION_ID}.jsonl`]: buildJsonlText([
+          buildCwdRecord('/Users/test/acme-web')
+        ])
+      }
+    })
+    try {
+      const result = await listProjectsHandler(createIpcDeps(labelled.root))
+
+      expect(result).toEqual({
+        ok: true,
+        value: [{ dirName: TEST_PROJECT, label: 'acme-web', worktreeOf: null }]
+      })
+    } finally {
+      await labelled.cleanup()
+    }
   })
 
   it('returns an empty list when the projects root does not exist', async () => {

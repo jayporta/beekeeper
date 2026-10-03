@@ -1,5 +1,6 @@
 import type { SessionSummaryCache } from '../../core/transcript/summary/sessionSummaryCache'
 import type { GitLocation } from '../git/gitLocator'
+import type { ProjectLabelCache } from './projectLabelCache'
 import type { ScanScheduler } from './scanScheduler'
 import type { SessionScanCache } from './sessionScanCache'
 
@@ -7,6 +8,8 @@ import type { SessionScanCache } from './sessionScanCache'
 export interface IpcDeps {
   /** The `~/.claude/projects` directory. */
   readonly projectsRoot: string
+  /** Project labels read from each project's newest transcript, kept for the app's lifetime. */
+  readonly projectLabels: ProjectLabelCache
   /** Summaries of scanned transcripts, kept for the app's lifetime. */
   readonly summaryCache: SessionSummaryCache
   /** Shares and caps the summary reads behind a session listing, one per transcript. */

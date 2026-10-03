@@ -6,19 +6,22 @@ import type { IpcDeps } from './ipcDeps'
 import { okResult } from './ipcResults'
 
 /**
- * Lists the project folders under the projects root, each marked with the
- * listed folder it is a worktree of, if any.
- * @param deps - The injected projects root.
+ * Lists the project folders under the projects root, each with a label read
+ * from its newest transcript and marked with the listed folder it is a
+ * worktree of, if any.
+ * @param deps - The injected projects root and project label cache.
  * @returns The projects by folder name, or `[]` when the root doesn't exist.
  */
 export async function listProjectsHandler(
-  deps: Pick<IpcDeps, 'projectsRoot'>
+  deps: Pick<IpcDeps, 'projectsRoot' | 'projectLabels'>
 ): Promise<IpcResult<readonly ProjectDto[]>> {
   const projects = await discoverProjects(deps.projectsRoot)
   const listed = new Set(projects.map((project) => project.dirName))
+  const labels = await deps.projectLabels.labelsFor(projects)
   return okResult(
     projects.map((project) => ({
       dirName: project.dirName,
+      label: labels.get(project.dirName) ?? null,
       worktreeOf: worktreeParentOf(project.dirName, listed)
     }))
   )
