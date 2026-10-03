@@ -70,6 +70,32 @@ describe('priceTokens', () => {
     expect(result).toEqual({ kind: 'unpriced', reason: 'unknown-speed' })
   })
 
+  it('prices a million fast-mode input tokens on Opus 5.5 at 8 USD', () => {
+    const result = priceTokens({
+      model: 'claude-opus-5-5',
+      speed: 'fast',
+      tokens: { ...emptyTokenCounts, input: 1_000_000 }
+    })
+
+    expect(result).toEqual({ kind: 'priced', usd: 8 })
+  })
+
+  it('prices a million fast-mode cache-read tokens on Opus 5.5 at 0.4 USD', () => {
+    const result = priceTokens({
+      model: 'claude-opus-5-5',
+      speed: 'fast',
+      tokens: { ...emptyTokenCounts, cacheRead: 1_000_000 }
+    })
+
+    expect(result).toEqual({ kind: 'priced', usd: 0.4 })
+  })
+
+  it('returns unknown-speed for an unrecognized speed on a model that has fast', () => {
+    const result = priceTokens({ model: 'claude-opus-5-5', speed: 'turbo', tokens: nonzeroTokens })
+
+    expect(result).toEqual({ kind: 'unpriced', reason: 'unknown-speed' })
+  })
+
   it('returns unknown-speed for a non-string speed value', () => {
     const result = priceTokens({ model: 'claude-sonnet-5', speed: 42, tokens: nonzeroTokens })
 

@@ -60,6 +60,8 @@ export function priceTokens(options: PriceTokensOptions): PriceTokensResult {
   if (!resolvedSpeed) return { kind: 'unpriced', reason: 'unknown-speed' }
 
   const price = modelPrices[resolvedSpeed]
+  if (!price) return { kind: 'unpriced', reason: 'unknown-speed' }
+
   const usd =
     tokenClasses.reduce((sum, tokenClass) => sum + tokens[tokenClass] * price[tokenClass], 0) /
     1_000_000

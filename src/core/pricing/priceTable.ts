@@ -13,7 +13,7 @@ const priceEntrySchema = z.record(z.enum(tokenClasses), z.number())
 export type PriceEntry = z.infer<typeof priceEntrySchema>
 
 /** The billing speeds prices.json carries a price entry for. */
-export const pricedSpeeds = ['standard'] as const
+export const pricedSpeeds = ['standard', 'fast'] as const
 
 /** One of the billing speeds in {@link pricedSpeeds}. */
 export type PricedSpeed = (typeof pricedSpeeds)[number]
@@ -22,12 +22,16 @@ export type PricedSpeed = (typeof pricedSpeeds)[number]
 export const DEFAULT_SPEED: PricedSpeed = 'standard'
 
 /**
- * One model's prices. Requires every speed in {@link pricedSpeeds}, so a
- * speed can never exist in one without the other.
+ * One model's prices. Requires a `standard` entry and allows a `fast` entry
+ * for the models that offer fast mode. A key outside {@link pricedSpeeds}
+ * is rejected, so a misspelled speed can't pass silently.
  */
-const modelPricesSchema = z.record(z.enum(pricedSpeeds), priceEntrySchema)
+const modelPricesSchema = z.strictObject({
+  standard: priceEntrySchema,
+  fast: priceEntrySchema.optional()
+})
 
-/** A validated model's prices, by billing speed. */
+/** A validated model's prices, by billing speed; `fast` is present only for models that offer it. */
 export type ModelPrices = z.infer<typeof modelPricesSchema>
 
 /** The shape of prices.json: a source citation, an as-of date, and prices by normalized model id. */
