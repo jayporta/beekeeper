@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { AboutButton } from '@renderer/features/firstRun/AboutButton'
-import { ProjectPicker } from '@renderer/features/projects/ProjectPicker'
+import { ProjectList } from '@renderer/features/projects/ProjectList'
 import styles from './SidebarContent.module.css'
 
 /** Props for {@link SidebarContent}. */
@@ -10,8 +10,8 @@ interface SidebarContentProps {
 }
 
 /**
- * What the sidebar holds: the app name, the project picker once projects are
- * loaded, and the About control.
+ * What the sidebar holds: the app name, the project list once projects are
+ * loaded, and a footer with the About control and the local-only note.
  *
  * @example
  * <aside aria-label="Sidebar"><SidebarContent aboutRef={aboutRef} /></aside>
@@ -22,9 +22,10 @@ export function SidebarContent({ aboutRef }: SidebarContentProps): React.JSX.Ele
   return (
     <div className={styles.content}>
       <p className={styles.name}>{t('appName')}</p>
-      <ProjectPicker />
+      <ProjectList />
       <div className={styles.footer}>
         <AboutButton buttonRef={aboutRef} />
+        <p className={styles.note}>{t('localOnly')}</p>
       </div>
     </div>
   )
