@@ -71,6 +71,23 @@ describe('priceTable', () => {
     expect(priceTableModels.get(modelId)?.standard).toEqual(rates)
   })
 
+  it.each([
+    [
+      'claude-opus-5-5',
+      { input: 8, output: 40, cacheRead: 0.4, cacheWrite5m: 10, cacheWrite1h: 16 }
+    ],
+    [
+      'claude-opus-5',
+      { input: 10, output: 50, cacheRead: 1, cacheWrite5m: 12.5, cacheWrite1h: 20 }
+    ],
+    [
+      'claude-opus-4-8',
+      { input: 10, output: 50, cacheRead: 1, cacheWrite5m: 12.5, cacheWrite1h: 20 }
+    ]
+  ] as const)('prices %s fast mode at the pricing page rates', (modelId, rates) => {
+    expect(priceTableModels.get(modelId)?.fast).toEqual(rates)
+  })
+
   it('prices cache reads per model rather than by a family multiplier', () => {
     expect(priceTableModels.get('claude-opus-5-5')?.standard.cacheRead).toBe(0.2)
     expect(priceTableModels.get('claude-fable-5')?.standard.cacheRead).toBe(1)
@@ -105,6 +122,46 @@ describe('parsePriceTable', () => {
       source: 'https://example.com/pricing',
       asOf: '2026-01-01',
       models: { 'claude-x': { standard: { ...validEntry, fast: 1 } } }
+    }
+
+    expect(() => parsePriceTable(raw)).toThrow()
+  })
+
+  it('accepts a model with a fast entry beside its standard entry', () => {
+    const raw = {
+      source: 'https://example.com/pricing',
+      asOf: '2026-01-01',
+      models: { 'claude-x': { standard: validEntry, fast: validEntry } }
+    }
+
+    expect(parsePriceTable(raw).models['claude-x']?.fast).toEqual(validEntry)
+  })
+
+  it('accepts a model with no fast entry', () => {
+    const raw = {
+      source: 'https://example.com/pricing',
+      asOf: '2026-01-01',
+      models: { 'claude-x': { standard: validEntry } }
+    }
+
+    expect(parsePriceTable(raw).models['claude-x']?.fast).toBeUndefined()
+  })
+
+  it('throws when a model carries an unknown speed key', () => {
+    const raw = {
+      source: 'https://example.com/pricing',
+      asOf: '2026-01-01',
+      models: { 'claude-x': { standard: validEntry, Fast: validEntry } }
+    }
+
+    expect(() => parsePriceTable(raw)).toThrow()
+  })
+
+  it('throws when a model has fast but no standard entry', () => {
+    const raw = {
+      source: 'https://example.com/pricing',
+      asOf: '2026-01-01',
+      models: { 'claude-x': { fast: validEntry } }
     }
 
     expect(() => parsePriceTable(raw)).toThrow()
