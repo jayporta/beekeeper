@@ -24,8 +24,10 @@ export interface ReadProjectLabelOptions {
 
 /**
  * Reads a project's label from its first few transcripts, in name order,
- * stopping at the first that gives one. The folder's name encodes its working
- * directory, so any transcript gives the same label.
+ * stopping at the first that gives one. Claude Code names the folder by
+ * replacing characters such as `/` and `.` in the working directory with `-`,
+ * so its transcripts can record different directories, and the first one
+ * decides the label.
  *
  * The fingerprint is taken before anything is read, so a transcript written
  * during the read changes it. A listing or read that fails with a system error

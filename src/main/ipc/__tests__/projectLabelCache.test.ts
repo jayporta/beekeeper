@@ -1,6 +1,6 @@
-import { appendFile, chmod, rm, symlink, utimes, writeFile } from 'node:fs/promises'
+import { appendFile, chmod, symlink, utimes, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { toProjectDirName } from '../../../core/transcript/ids'
 import { readCwdLabel } from '../../../core/transcript/readCwdLabel'
 import { buildDiscoveryTree, type DiscoveryTree } from '../../../core/transcript/testDiscoveryTree'
@@ -155,15 +155,29 @@ describe('createProjectLabelCache', () => {
   })
 
   describe('a label that was found', () => {
-    it('is returned with no filesystem access', async () => {
+    it('is not read again while its folder and transcripts are unchanged', async () => {
       tree = await buildPinnedTree(recording('/Users/dev/proj1'))
-      const cache = createProjectLabelCache()
+      const { cache, reads } = recordingCache()
       await cache.labelsFor([entry(tree, 'a')])
-      await rm(join(tree.root, 'a'), { recursive: true })
 
       const labels = await cache.labelsFor([entry(tree, 'a')])
 
-      expect(labels.get('a')).toBe('proj1')
+      expect([labels.get('a'), reads]).toEqual(['proj1', [transcriptOf(tree)]])
+    })
+
+    it('follows a session from another working directory that shares the folder and sorts first', async () => {
+      tree = await buildDiscoveryTree({
+        files: { [`a/${idOf(2)}.jsonl`]: recording('/Users/dev/acme.web') }
+      })
+      await pin(join(tree.root, 'a'))
+      const cache = createProjectLabelCache()
+      await cache.labelsFor([entry(tree, 'a')])
+      await writeFile(transcriptOf(tree, idOf(1)), recording('/Users/dev/acme-web'))
+      await pin(join(tree.root, 'a'), 5000)
+
+      const labels = await cache.labelsFor([entry(tree, 'a')])
+
+      expect(labels.get('a')).toBe('acme-web')
     })
 
     it('is forgotten once its project is no longer listed', async () => {
@@ -302,6 +316,44 @@ describe('createProjectLabelCache', () => {
 
       expect(labels.get('a')).toBe('proj1')
     })
+  })
+
+  it('keeps a newer call’s reads when an older, overlapping call finishes last', async () => {
+    tree = await buildDiscoveryTree({
+      files: {
+        [`a/${FIRST_ID}.jsonl`]: recording('/Users/dev/proj1'),
+        [`b/${FIRST_ID}.jsonl`]: recording('/Users/dev/slow')
+      }
+    })
+    await pin(join(tree.root, 'a'))
+    await pin(transcriptOf(tree))
+    let failNextReadOfA = true
+    let releaseB = (): void => undefined
+    const bBlocked = new Promise<void>((resolve) => {
+      releaseB = resolve
+    })
+    const cache = createProjectLabelCache({
+      log: () => undefined,
+      readLabel: async (path) => {
+        if (path.includes(join('b', FIRST_ID))) await bBlocked
+        else if (failNextReadOfA) {
+          failNextReadOfA = false
+          throw Object.assign(new Error('transient'), { code: 'EIO' })
+        }
+        return readCwdLabel(path)
+      }
+    })
+    const older = cache.labelsFor([entry(tree, 'a'), entry(tree, 'b')])
+    await vi.waitFor(() => {
+      expect(failNextReadOfA).toBe(false)
+    })
+    await cache.labelsFor([entry(tree, 'a')])
+    releaseB()
+    await older
+
+    const labels = await cache.labelsFor([entry(tree, 'a')])
+
+    expect(labels.get('a')).toBe('proj1')
   })
 
   it('logs and gives null for a project whose folder is gone, and retries it next call', async () => {

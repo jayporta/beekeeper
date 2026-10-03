@@ -16,14 +16,14 @@ export interface ProjectLabelCache {
    * never holds more than the projects last listed. Projects are read a few
    * at a time.
    *
-   * A folder's name encodes the working directory Claude Code was started in,
-   * so once a project has a label it cannot change, and it is returned with no
-   * filesystem access. A project with no label is retried only when its
-   * folder's modification time, or the modification time or size of a
-   * transcript that was read, changes. That includes a read that failed with a
-   * system error, which is logged by its code and the project's position in
-   * the list, never by name or path. A project whose folder cannot be stat'd
-   * gets `null` and is retried on the next call.
+   * A project is read again only when its folder's modification time, or the
+   * modification time or size of a transcript that was read, changes. That
+   * includes a read that failed with a system error, which is logged by its
+   * code and the project's position in the list, never by name or path. A
+   * project whose folder cannot be stat'd gets `null` and is retried on the
+   * next call. Several working directories can share one folder name, so a
+   * label can change when sessions are added. When calls overlap, only the
+   * latest one to start updates the cache.
    *
    * @param projects - Every project currently listed.
    * @returns Each project's label by folder name, `null` when it has none.
@@ -51,8 +51,9 @@ export function createProjectLabelCache(options: ProjectLabelCacheOptions = {}):
   const { log = console.warn, readLabel = readCwdLabel } = options
   const scheduler = createScanScheduler({ maxConcurrent: MAX_CONCURRENT_LABELS })
   let cached = new Map<string, ProjectLabelRead>()
+  let latestCall = 0
 
-  /** Whether a label-less entry still describes its folder and the transcripts it read. */
+  /** Whether an entry still describes its folder and the transcripts it read. */
   async function isCurrent(project: ProjectEntry, entry: ProjectLabelRead): Promise<boolean> {
     const now = await captureSystemError(async () =>
       fingerprintOf(
@@ -68,7 +69,7 @@ export function createProjectLabelCache(options: ProjectLabelCacheOptions = {}):
     position: string
   ): Promise<ProjectLabelRead | null> {
     const hit = cached.get(project.dirName)
-    if (hit !== undefined && (hit.label !== null || (await isCurrent(project, hit)))) return hit
+    if (hit !== undefined && (await isCurrent(project, hit))) return hit
 
     const logFailure = (error: { readonly code: string }): void => {
       log(`Beekeeper could not read the label of project ${position} (${describeError(error)}).`)
@@ -83,6 +84,7 @@ export function createProjectLabelCache(options: ProjectLabelCacheOptions = {}):
 
   return {
     async labelsFor(projects) {
+      const call = ++latestCall
       const results = await Promise.all(
         projects.map((project, index) =>
           scheduler.run(project.dirName, () =>
@@ -97,7 +99,7 @@ export function createProjectLabelCache(options: ProjectLabelCacheOptions = {}):
         labels.set(project.dirName, result?.label ?? null)
         if (result !== null) next.set(project.dirName, result)
       })
-      cached = next
+      if (call === latestCall) cached = next
       return labels
     }
   }
