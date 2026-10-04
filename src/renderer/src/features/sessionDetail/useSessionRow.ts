@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { SessionRefDto } from '../../../../shared/ipc/sessionRefDto'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
+import { useProjects } from '@renderer/features/projects/useProjects'
 import { groupSessionRows } from '@renderer/features/sessions/groupSessionRows'
 import type { SessionRow } from '@renderer/features/sessions/sessionRow'
 import { useSessions } from '@renderer/features/sessions/useSessions'
@@ -12,9 +13,14 @@ export interface SessionRowState {
   /** The session's row, or `null` while the list loads or when it doesn't hold the session. */
   readonly row: SessionRow | null
   /**
-   * Whether the folder's list is still loading or reports the folder gone. A
-   * session missing from the list can't be called not found yet: the folder's
-   * own message covers the second case once the app has dropped the folder.
+   * Whether the folder's list hasn't given its answer yet: its first load since
+   * mount is in flight, or it reports the folder gone and the project list
+   * hasn't settled since. Reporting the folder gone makes the app refetch the
+   * project list, so that refetch is the one awaited, from the very render the
+   * report arrives in. A session missing from the list can't be called not found
+   * yet. Later background refetches don't count, and neither does a gone folder
+   * once the project list has settled, since then the folder is still in effect
+   * and this view is the one to say so.
    */
   readonly listPending: boolean
 }
@@ -30,10 +36,14 @@ export interface SessionRowState {
  */
 export function useSessionRow(ref: SessionRefDto, dirName: string): SessionRowState {
   const { t } = useTranslation('sessions')
-  const { data, error, isFetching } = useSessions(dirName)
+  const { data, error, errorUpdatedAt, isFetching, isFetchedAfterMount } = useSessions(dirName)
+  const projects = useProjects()
   const row = useMemo(
     () => (data === undefined ? null : findSessionRow(groupSessionRows(data, t), ref)),
     [data, t, ref]
   )
-  return { row, listPending: isFetching || IpcCallError.codeOf(error) === 'not-found' }
+  const firstLoad = isFetching && !isFetchedAfterMount
+  const folderGone = IpcCallError.codeOf(error) === 'not-found'
+  const projectsSettledAt = Math.max(projects.dataUpdatedAt, projects.errorUpdatedAt)
+  return { row, listPending: firstLoad || (folderGone && projectsSettledAt < errorUpdatedAt) }
 }

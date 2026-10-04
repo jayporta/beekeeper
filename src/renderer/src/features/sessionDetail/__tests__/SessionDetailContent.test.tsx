@@ -1,12 +1,13 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it } from 'vitest'
+import type { ProjectDto } from '../../../../../shared/ipc/projectDto'
 import type { IpcResult } from '../../../../../shared/ipc/ipcResult'
 import type { SessionDetailDto } from '../../../../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { testRef, testSession } from '@renderer/features/sessions/testSessionFixtures'
-import { installBeekeeperApi, type TestBeekeeperApi } from '@renderer/testBeekeeperApi'
+import { installBeekeeperApi, testProject, type TestBeekeeperApi } from '@renderer/testBeekeeperApi'
 import {
   createQueryWrapper,
   createTestQueryClient,
@@ -38,6 +39,13 @@ function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
   return { promise, resolve }
 }
 
+/** Waits `ms` of real time, so a later timestamp differs from an earlier one. */
+async function pause(ms: number): Promise<void> {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, ms))
+  })
+}
+
 /** Lets pending query results reach the screen. */
 async function settle(): Promise<void> {
   await act(async () => {
@@ -50,11 +58,20 @@ function renderContent(
   options: {
     list?: Promise<IpcResult<readonly SessionListItemDto[]>>
     detail?: Promise<IpcResult<SessionDetailDto>>
+    /** Answers the project list's second and later loads, which the app starts when the folder is gone. */
+    projects?: () => Promise<IpcResult<readonly ProjectDto[]>>
   } = {}
 ): { api: TestBeekeeperApi; client: ReturnType<typeof createTestQueryClient> } {
   const { list = Promise.resolve({ ok: true, value: SESSIONS }), detail = Promise.resolve(GOOD) } =
     options
-  const api = installBeekeeperApi({ listSessions: () => list, getSession: () => detail })
+  const firstProjects = Promise.resolve({ ok: true, value: [testProject(DIR)] } as const)
+  let projectLoads = 0
+  const api = installBeekeeperApi({
+    listProjects: () =>
+      projectLoads++ === 0 ? firstProjects : (options.projects ?? (() => firstProjects))(),
+    listSessions: () => list,
+    getSession: () => detail
+  })
   const client = createTestQueryClient()
   render(<SessionDetailContent sessionRef={REF} dirName={DIR} />, {
     wrapper: createQueryWrapper(client)
@@ -125,34 +142,108 @@ describe('SessionDetailContent when the session is not found', () => {
     expect(await screen.findByRole('group', { name: 'Session not found' })).toBeTruthy()
   })
 
-  it('never shows it when the folder itself is gone, with the detail failing first', async () => {
+  it('holds the message while the project list refetches after the folder is reported gone, then shows it', async () => {
     const list = deferred<IpcResult<readonly SessionListItemDto[]>>()
-    const { api } = renderContent({ list: list.promise, detail: Promise.resolve(NOT_FOUND) })
+    const projects = deferred<IpcResult<readonly ProjectDto[]>>()
+    const { api } = renderContent({
+      list: list.promise,
+      detail: Promise.resolve(NOT_FOUND),
+      projects: () => projects.promise
+    })
     await waitFor(() => {
       expect(api.getSession).toHaveBeenCalled()
     })
-    await settle()
+    await pause(5)
 
     list.resolve(NOT_FOUND)
-    await settle()
-
-    expect(screen.getByRole('heading', { level: 1, name: 'Loading session' })).toBeTruthy()
-    expect(screen.queryByRole('group', { name: 'Session not found' })).toBeNull()
-  })
-
-  it('never shows it when the folder itself is gone, with the list failing first', async () => {
-    const detail = deferred<IpcResult<SessionDetailDto>>()
-    const { api } = renderContent({ list: Promise.resolve(NOT_FOUND), detail: detail.promise })
     await waitFor(() => {
-      expect(api.listSessions).toHaveBeenCalled()
+      expect(api.listProjects).toHaveBeenCalledTimes(2)
     })
     await settle()
 
-    detail.resolve(NOT_FOUND)
-    await settle()
-
     expect(screen.getByRole('heading', { level: 1, name: 'Loading session' })).toBeTruthy()
     expect(screen.queryByRole('group', { name: 'Session not found' })).toBeNull()
+
+    projects.resolve({ ok: true, value: [testProject(DIR)] })
+    expect(await screen.findByRole('group', { name: 'Session not found' })).toBeTruthy()
+  })
+
+  it('mounts no message and no alert, even for one render, between the folder being reported gone and the project list settling', async () => {
+    const list = deferred<IpcResult<readonly SessionListItemDto[]>>()
+    const projects = deferred<IpcResult<readonly ProjectDto[]>>()
+    const { api } = renderContent({
+      list: list.promise,
+      detail: Promise.resolve(NOT_FOUND),
+      projects: () => projects.promise
+    })
+    await waitFor(() => {
+      expect(api.getSession).toHaveBeenCalled()
+    })
+    await pause(5)
+    const mounted: string[] = []
+    const observer = new MutationObserver((records) => {
+      for (const { addedNodes } of records) {
+        for (const node of addedNodes) {
+          if (node instanceof Element && node.matches('[role="alert"], [role="group"]')) {
+            mounted.push(node.getAttribute('role') ?? '')
+          }
+        }
+      }
+    })
+    observer.observe(document.body, { childList: true, subtree: true })
+
+    list.resolve(NOT_FOUND)
+    await waitFor(() => {
+      expect(api.listProjects).toHaveBeenCalledTimes(2)
+    })
+    await settle()
+    observer.disconnect()
+
+    expect(mounted).toEqual([])
+  })
+
+  it('shows the message when the project list settles with the reported folder still in effect', async () => {
+    renderContent({ list: Promise.resolve(NOT_FOUND), detail: Promise.resolve(NOT_FOUND) })
+
+    expect(await screen.findByRole('group', { name: 'Session not found' })).toBeTruthy()
+  })
+
+  it('shows the message when the project list refetch fails', async () => {
+    renderContent({
+      list: Promise.resolve(NOT_FOUND),
+      detail: Promise.resolve(NOT_FOUND),
+      projects: () => Promise.resolve({ ok: false, error: { code: 'unreadable' } })
+    })
+
+    expect(await screen.findByRole('group', { name: 'Session not found' })).toBeTruthy()
+  })
+
+  it('keeps the message mounted, with focus on Back, through a background refetch of the list', async () => {
+    const { api, client } = renderContent({
+      list: Promise.resolve({ ok: true, value: [] }),
+      detail: Promise.resolve(NOT_FOUND)
+    })
+    const group = await screen.findByRole('group', { name: 'Session not found' })
+    const back = screen.getByRole('button', { name: 'Back to sessions' })
+    back.focus()
+    const refetch = deferred<IpcResult<readonly SessionListItemDto[]>>()
+    api.listSessions.mockReturnValueOnce(refetch.promise)
+
+    const refetching = act(async () => {
+      await client.invalidateQueries({ queryKey: ['sessions', DIR] })
+    })
+    await waitFor(() => {
+      expect(api.listSessions).toHaveBeenCalledTimes(2)
+    })
+    await settle()
+
+    expect(screen.getByRole('group', { name: 'Session not found' })).toBe(group)
+    expect(screen.queryByRole('heading', { name: 'Loading session' })).toBeNull()
+    expect(document.activeElement).toBe(back)
+
+    refetch.resolve({ ok: true, value: [] })
+    await refetching
+    expect(screen.getByRole('group', { name: 'Session not found' })).toBe(group)
   })
 })
 
