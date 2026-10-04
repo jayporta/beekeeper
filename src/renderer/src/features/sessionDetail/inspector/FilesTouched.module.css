@@ -1,0 +1,52 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.heading {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-caps);
+  text-transform: uppercase;
+}
+
+.empty {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.files {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  padding: 0;
+  list-style: none;
+}
+
+/* A long list is painted as it scrolls into view. */
+.file {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  justify-content: space-between;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 1.5rem;
+}
+
+/* The whole path wraps, so no part of it is hidden. */
+.path {
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  overflow-wrap: anywhere;
+}
+
+.tag {
+  flex: none;
+  padding: 0 var(--space-1-5);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2xs);
+  border: 1px solid var(--color-divider);
+}

@@ -1,0 +1,9 @@
+/* The graph beside the inspector. Below this width the inspector drops under the graph, so neither is squeezed. */
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--size-inspector);
+
+  @media (max-width: 60rem) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -20,7 +20,7 @@ import { installBeekeeperApi, type TestBeekeeperApi } from '@renderer/testBeekee
 import { createQueryWrapper } from '@renderer/testQueryWrapper'
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
 import { SessionDetailView } from '../SessionDetailView'
-import { testDetail } from '../testSessionDetail'
+import { testDetail, testReport, testTokenGroup } from '../testSessionDetail'
 
 const DIR = '-Users-a-repo'
 const OTHER = '-Users-a-other'
@@ -143,7 +143,13 @@ describe('SessionDetailView header', () => {
       transcriptTokens: 400,
       subagentCount: 1
     })
-    openSession(testRef(1, DIR), { sessions: [lead, chipPartial] })
+    const recorded = testDetail({
+      lead: testReport({ tokenGroups: [testTokenGroup({ input: 10 })] })
+    })
+    openSession(testRef(1, DIR), {
+      sessions: [lead, chipPartial],
+      detail: { ok: true, value: recorded }
+    })
     await screen.findByRole('heading', { level: 1, name: 'Refactor parser' })
 
     expect(screen.queryByText(/Partial:/)).toBeNull()

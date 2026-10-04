@@ -1,0 +1,107 @@
+import { render, screen, within } from '@testing-library/react'
+import { createElement } from 'react'
+import type { AgentReportDto, PriceDto } from '../../../../../shared/ipc/agentDto'
+import type { IpcResult } from '../../../../../shared/ipc/ipcResult'
+import type { SessionDetailDto } from '../../../../../shared/ipc/sessionDetailDto'
+import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
+import type { WorktreeDiffsDto } from '../../../../../shared/ipc/worktreeDiffDto'
+import { testRow } from '@renderer/features/sessions/testSessionRows'
+import { installBeekeeperApi, type TestBeekeeperApi } from '@renderer/testBeekeeperApi'
+import { createQueryWrapper, createTestQueryClient } from '@renderer/testQueryWrapper'
+import { SCENE_ITEMS, SCENE_SESSION } from '../graph/testGraphScene'
+import { SessionDetailBody } from '../SessionDetailBody'
+import { testDetail, testMeta, testNode, testReport, testTokenGroup } from '../testSessionDetail'
+
+const MIN = 60_000
+/** When the scene lead's activity starts. */
+export const SCENE_START = Date.parse('2026-01-15T11:00:00Z')
+
+/** A token group priced at `usd`. */
+export function pricedGroup(
+  tokens: Parameters<typeof testTokenGroup>[0],
+  price: PriceDto = { kind: 'priced', usd: 2.5 }
+): ReturnType<typeof testTokenGroup> {
+  return { ...testTokenGroup(tokens), price }
+}
+
+/** The scene lead's report: 1,600 tokens costing $2.50 over 90 minutes, 12 messages, and two files. */
+export const LEAD_REPORT: AgentReportDto = testReport({
+  tokenGroups: [
+    pricedGroup({ input: 1000, output: 400, cacheRead: 100, cacheWrite5m: 60, cacheWrite1h: 40 })
+  ],
+  messageCount: 12,
+  activity: { earliestMs: SCENE_START, latestMs: SCENE_START + 90 * MIN },
+  fileTouches: [
+    { filePath: '/repo/src/a.ts', operation: 'edit', source: 'edit-write' },
+    { filePath: '/repo/b.ts', operation: 'create', source: 'bash' }
+  ]
+})
+
+/** The scene lead's detail: lead report above, and subagents `scout` (40 tokens) and `reader`. */
+export const LEAD_DETAIL: SessionDetailDto = testDetail({
+  lead: LEAD_REPORT,
+  children: [
+    testNode('a1', { meta: testMeta({ name: 'scout', agentType: 'Explore' }) }),
+    testNode('a2', { meta: testMeta({ name: 'reader', agentType: 'Explore' }) })
+  ],
+  reports: { a1: testReport({ tokenGroups: [pricedGroup({ output: 40 })], messageCount: 3 }) }
+})
+
+/** What `renderInspectorScene` shows. */
+interface InspectorSceneOptions {
+  /** The lead's detail. Defaults to {@link LEAD_DETAIL}. */
+  readonly detail?: SessionDetailDto
+  /** The sessions list. Defaults to the graph scene's. */
+  readonly items?: readonly SessionListItemDto[]
+  /** What `getSession` answers for a session other than the lead, by session id. Others answer with an empty detail. */
+  readonly sessions?: Readonly<
+    Record<string, IpcResult<SessionDetailDto> | Promise<IpcResult<SessionDetailDto>>>
+  >
+  /** What `getWorktreeDiffs` answers, by session id. Others answer with no worktree agents. */
+  readonly diffs?: Readonly<
+    Record<string, IpcResult<WorktreeDiffsDto> | Promise<IpcResult<WorktreeDiffsDto>>>
+  >
+}
+
+/**
+ * Renders the session's graph and inspector for the scene's lead, with the
+ * lead's detail already cached as the view has it, and the sessions and
+ * worktree diffs it loads stubbed.
+ *
+ * @param options - What to show instead of the defaults.
+ * @returns The render result and the stubbed API.
+ */
+export function renderInspectorScene(
+  options: InspectorSceneOptions = {}
+): ReturnType<typeof render> & { readonly api: TestBeekeeperApi } {
+  const { detail = LEAD_DETAIL, items = SCENE_ITEMS, sessions = {}, diffs = {} } = options
+  const api = installBeekeeperApi({
+    getSession: (_folder, sessionId) =>
+      Promise.resolve(
+        sessionId === SCENE_SESSION.sessionId
+          ? { ok: true, value: detail }
+          : (sessions[sessionId] ?? { ok: true, value: testDetail() })
+      ),
+    getWorktreeDiffs: (_folder, sessionId) =>
+      Promise.resolve(
+        diffs[sessionId] ?? { ok: true, value: { git: 'ok', agents: [], sharedWorktree: null } }
+      )
+  })
+  // The view only shows the inspector once the lead's detail has loaded, so it is already cached.
+  const client = createTestQueryClient()
+  client.setQueryData(['session', SCENE_SESSION.projectDirName, SCENE_SESSION.sessionId], detail)
+  const rendered = render(
+    createElement(SessionDetailBody, {
+      detail,
+      sessionRef: SCENE_SESSION,
+      row: testRow(1, items)
+    }),
+    { wrapper: createQueryWrapper(client) }
+  )
+  return Object.assign(rendered, { api })
+}
+
+/** Queries inside the inspector region. */
+export function inspector(): ReturnType<typeof within> {
+  return within(screen.getByRole('region', { name: 'Agent inspector' }))
+}

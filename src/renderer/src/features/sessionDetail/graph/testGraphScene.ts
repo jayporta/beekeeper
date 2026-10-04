@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { createElement } from 'react'
+import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
 import type { IpcResult } from '../../../../../shared/ipc/ipcResult'
 import type { SessionDetailDto } from '../../../../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
@@ -17,6 +18,7 @@ import { installBeekeeperApi, type TestBeekeeperApi } from '@renderer/testBeekee
 import { createQueryWrapper } from '@renderer/testQueryWrapper'
 import { testDetail, testMeta, testNode, testReport, testTokenGroup } from '../testSessionDetail'
 import { GraphCanvas } from './GraphCanvas'
+import { useAgentGraph } from './useAgentGraph'
 
 /** The viewed session in the test scene: a lead with two teammates, one in another folder. */
 export const SCENE_SESSION = testRef(1)
@@ -58,6 +60,18 @@ export const SCENE_DETAIL = testDetail({
   reports: { a1: testReport({ tokenGroups: [testTokenGroup({ output: 40 })] }) }
 })
 
+/** Props for {@link SceneGraph}. */
+interface SceneGraphProps {
+  readonly detail: SessionDetailDto
+  readonly sessionRef: SessionRefDto
+  readonly row: SessionRow | null
+}
+
+/** Builds the graph the way the session view does, and shows only its canvas. */
+function SceneGraph(props: SceneGraphProps): React.JSX.Element {
+  return createElement(GraphCanvas, { graph: useAgentGraph(props) })
+}
+
 /** What `renderGraphWith` shows. */
 interface SceneOptions {
   /** The sessions list the lead's row is grouped from. Defaults to {@link SCENE_ITEMS}. */
@@ -89,7 +103,7 @@ export function renderGraphWith(options: SceneOptions = {}): RenderedScene {
     getSession: (_folder, sessionId) =>
       Promise.resolve(teammateDetails[sessionId] ?? { ok: true, value: testDetail() })
   })
-  const rendered = render(createElement(GraphCanvas, { detail, sessionRef: SCENE_SESSION, row }), {
+  const rendered = render(createElement(SceneGraph, { detail, sessionRef: SCENE_SESSION, row }), {
     wrapper: createQueryWrapper()
   })
   return Object.assign(rendered, { api })

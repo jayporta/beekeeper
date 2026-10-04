@@ -1,0 +1,12 @@
+.inspector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4-5);
+  padding: var(--space-6) var(--space-5-5);
+  border-left: 1px solid var(--color-divider);
+}
+
+.note {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}

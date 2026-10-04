@@ -1,9 +1,5 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { SessionDetailDto } from '../../../../../shared/ipc/sessionDetailDto'
-import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
-import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
-import type { SessionRow } from '@renderer/features/sessions/sessionRow'
 import { GraphEdges } from './GraphEdges'
 import styles from './GraphCanvas.module.css'
 import { GraphFootnote } from './GraphFootnote'
@@ -11,19 +7,14 @@ import { GRAPH_HINT_ID } from './graphFootnoteId'
 import { GraphNode } from './GraphNode'
 import { GraphViewport } from './GraphViewport'
 import { parentNames } from './parentNames'
-import { selectedAgentKey } from './selectedAgentKey'
-import { useAgentGraph } from './useAgentGraph'
+import type { AgentGraph } from './useAgentGraph'
 import { useGraphAnnouncement } from './useGraphAnnouncement'
 import { useGraphKeyboard } from './useGraphKeyboard'
 
 /** Props for {@link GraphCanvas}. */
 interface GraphCanvasProps {
-  /** The viewed session's agent tree and reports. */
-  readonly detail: SessionDetailDto
-  /** The viewed session. */
-  readonly sessionRef: SessionRefDto
-  /** The session's row in its folder's sessions list, or `null` when the list doesn't hold it. */
-  readonly row: SessionRow | null
+  /** The graph to show, from `useAgentGraph`. */
+  readonly graph: AgentGraph
 }
 
 /**
@@ -39,20 +30,11 @@ interface GraphCanvasProps {
  * announced in one status region.
  *
  * @example
- * <GraphCanvas detail={detail} sessionRef={ref} row={row} />
+ * <GraphCanvas graph={graph} />
  */
-export function GraphCanvas({ detail, sessionRef, row }: GraphCanvasProps): React.JSX.Element {
+export function GraphCanvas({ graph }: GraphCanvasProps): React.JSX.Element {
   const { t } = useTranslation('sessionDetail')
-  const { root, layout, loading, expansions } = useAgentGraph({ detail, sessionRef, row })
-  const selectedAgent = useNavigationStore((state) => state.selectedAgent)
-  const selectedKey = useMemo(
-    () =>
-      selectedAgentKey(
-        layout.nodes.map(({ node }) => node),
-        selectedAgent
-      ),
-    [layout, selectedAgent]
-  )
+  const { root, layout, loading, expansions, selectedKey } = graph
 
   const parents = useMemo(() => parentNames(layout), [layout])
   const selectedName = layout.nodes.find(({ node }) => node.key === selectedKey)?.node.name ?? ''
