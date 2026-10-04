@@ -1,4 +1,5 @@
 import { QueryClient, type Query } from '@tanstack/react-query'
+import { TOTALS_STALE_TIME_MS } from '@renderer/features/overview/totalsStaleTime'
 import { hasProjectsToShow } from '@renderer/features/projects/hasProjectsToShow'
 import { SESSIONS_GC_TIME_MS } from '@renderer/features/sessions/sessionsGcTime'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
@@ -70,15 +71,29 @@ const LIST_DEFAULTS = {
 } as const
 
 /**
+ * What a folder's totals get: they refetch on window focus once older than
+ * {@link TOTALS_STALE_TIME_MS}, which also retries one that failed with nothing
+ * to show, since no error screen holds a Retry button that a refetch would
+ * replace. Each totals request reads a whole folder, hence the longer stale
+ * time than a list's.
+ */
+const TOTALS_DEFAULTS = {
+  refetchOnWindowFocus: true,
+  staleTime: TOTALS_STALE_TIME_MS
+} as const
+
+/**
  * Creates the app's query client. Queries run whether or not the OS reports a
  * network connection, since every one is a local IPC call, and they do not
  * refetch on reconnect. They do not refetch on window focus either, except
- * the project and session lists: those are local files that agents keep
- * writing while the app is open, so they refetch on focus once older than
- * {@link LISTS_STALE_TIME_MS}, except a failed list the page shows an error
+ * the project and session lists and each folder's totals: those are local files
+ * that agents keep writing while the app is open, so they refetch on focus once
+ * older than {@link LISTS_STALE_TIME_MS} (the totals, which cost more to read,
+ * {@link TOTALS_STALE_TIME_MS}), except a failed list the page shows an error
  * screen for, which waits for an explicit Retry or Refresh (see
  * {@link refetchListOnFocus} and {@link refetchProjectsOnFocus}, which
- * differ because the two pages show different screens). A failure that cannot
+ * differ because the two pages show different screens). A folder's totals have
+ * no such screen, so a failed one with nothing to show is refetched too. A failure that cannot
  * change on retry (see {@link shouldRetry}) is not retried. Queries keep TanStack's default `gcTime`, except under a
  * persisted root (see `PERSISTED_QUERY_ROOTS`), which keep {@link PERSIST_MAX_AGE_MS}
  * to match the persister's `maxAge`: a query garbage-collected sooner would
@@ -104,7 +119,7 @@ export function createQueryClient(): QueryClient {
   for (const root of PERSISTED_QUERY_ROOTS) {
     client.setQueryDefaults([root], {
       gcTime: PERSIST_MAX_AGE_MS,
-      ...LIST_DEFAULTS,
+      ...(root === 'projectTotals' ? TOTALS_DEFAULTS : LIST_DEFAULTS),
       ...(root === 'projects' && { refetchOnWindowFocus: refetchProjectsOnFocus })
     })
   }

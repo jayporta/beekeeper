@@ -97,14 +97,17 @@ export type TotalsStatus = 'loading' | 'error' | 'ready'
 
 /**
  * Says what to show for a sum: its figures once any folder has totals, else
- * a loading state while a folder is still loading, else an error.
+ * a loading state while a folder is still loading, else an error when every
+ * folder failed. A sum of no folders is ready, with zero totals.
  *
  * @param totals - The sum.
  * @returns The state to show.
  */
 export function totalsStatus(totals: AggregateTotals): TotalsStatus {
-  if (totals.folders.ready > 0) return 'ready'
-  return totals.folders.loading > 0 ? 'loading' : 'error'
+  const { ready, loading, failed } = totals.folders
+  if (ready > 0) return 'ready'
+  if (loading > 0) return 'loading'
+  return failed > 0 ? 'error' : 'ready'
 }
 
 /**

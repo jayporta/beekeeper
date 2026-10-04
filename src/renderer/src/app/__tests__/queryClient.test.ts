@@ -7,6 +7,7 @@ import {
   QueryObserver
 } from '@tanstack/react-query'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { TOTALS_STALE_TIME_MS } from '@renderer/features/overview/totalsStaleTime'
 import { SESSIONS_GC_TIME_MS } from '@renderer/features/sessions/sessionsGcTime'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import { LISTS_STALE_TIME_MS } from '../listsStaleTime'
@@ -37,6 +38,15 @@ describe('createQueryClient', () => {
     expect(createQueryClient().defaultQueryOptions({ queryKey }).staleTime).toBe(
       LISTS_STALE_TIME_MS
     )
+  })
+
+  it('keeps a folder’s totals fresh for the totals stale time, longer than a list', () => {
+    const { staleTime } = createQueryClient().defaultQueryOptions({
+      queryKey: ['projectTotals', 'x', '7d']
+    })
+
+    expect(staleTime).toBe(TOTALS_STALE_TIME_MS)
+    expect(TOTALS_STALE_TIME_MS).toBeGreaterThan(LISTS_STALE_TIME_MS)
   })
 
   describe('on window focus', () => {
@@ -107,6 +117,25 @@ describe('createQueryClient', () => {
       it('waits for an explicit retry when it failed and never loaded', async () => {
         expect(await refetchesOnFocus(queryKey, ['error'])).toBe(0)
       })
+    })
+
+    describe('a stale folder’s totals', () => {
+      const key = ['projectTotals', 'x', '7d']
+
+      it('refetches when it loaded', async () => {
+        expect(await refetchesOnFocus(key, [['total']])).toBe(1)
+      })
+
+      it('refetches when its last load failed and it still has totals', async () => {
+        expect(await refetchesOnFocus(key, [['total'], 'error'])).toBe(1)
+      })
+
+      it.each(['error', 'not-found'] as const)(
+        'refetches when it failed with %s and never loaded, since no screen holds a Retry',
+        async (failure) => {
+          expect(await refetchesOnFocus(key, [failure])).toBe(1)
+        }
+      )
     })
 
     it('waits for an explicit retry when a projects list failed and has no rows, since the gate shows an error', async () => {

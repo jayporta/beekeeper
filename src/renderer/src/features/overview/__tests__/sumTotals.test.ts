@@ -115,8 +115,8 @@ describe('totalsStatus', () => {
     expect(totalsStatus(sumTotals([failed, failed]))).toBe('error')
   })
 
-  it('is an error for no folders at all, since there is nothing to show', () => {
-    expect(totalsStatus(sumTotals([]))).toBe('error')
+  it('is ready, with zero totals, for no folders at all', () => {
+    expect(totalsStatus(sumTotals([]))).toBe('ready')
   })
 })
 

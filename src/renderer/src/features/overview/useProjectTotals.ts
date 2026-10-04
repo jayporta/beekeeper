@@ -42,13 +42,14 @@ export interface ProjectTotals {
  * @remarks
  * Main reads each folder's sessions, so the requests are limited to two in
  * flight, first come first served, with the selected folder first and the
- * rest in list order. That leaves the summary reads behind them free for the
- * session list a person opens. A request still waiting when nobody shows it
+ * rest in list order, which bounds the summary reads queued at once; main's
+ * background lane keeps a session list a person opens ahead of them. A request still waiting when nobody shows it
  * any more never starts. While a folder's totals for a window load, its totals
  * for the other window, if cached, show in their place and are marked
  * refreshing, so switching windows never empties the screen. The queries
- * take the defaults of the persisted roots: they are fresh for ten seconds,
- * refetch on window focus once stale, and are cached across launches.
+ * take the defaults of the persisted roots: they stay fresh for five
+ * minutes (`TOTALS_STALE_TIME_MS`), refetch on window focus once stale, and are
+ * cached across launches.
  *
  * @returns The window and each folder's totals state.
  */

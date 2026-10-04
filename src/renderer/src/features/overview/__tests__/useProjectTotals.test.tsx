@@ -290,6 +290,8 @@ describe('useProjectTotals window', () => {
       totals: { tokens: 7 },
       refreshing: false
     })
+    // The limiter starts a refetch a microtask later, so let one begin before counting.
+    await new Promise((resolve) => setTimeout(resolve, 20))
     expect(api.getProjectTotals).toHaveBeenCalledTimes(2)
   })
 })

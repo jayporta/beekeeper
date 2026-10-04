@@ -42,7 +42,7 @@ export function createLimiter(max: number): Limiter {
           }
           if (signal?.aborted === true) {
             release()
-            reject(signal.reason as Error)
+            reject(signal.reason)
             return
           }
           Promise.resolve().then(task).then(resolve, reject).finally(release)
@@ -61,8 +61,10 @@ const limiters = new WeakMap<QueryClient, Limiter>()
 /**
  * Gives the limiter for a query client's totals requests. Every reader of the
  * totals shares it, so the sidebar and the overview together never ask for
- * more than {@link MAX_TOTALS_IN_FLIGHT} folders at a time. That leaves the
- * summaries scheduler free for the session list a person asks for.
+ * more than {@link MAX_TOTALS_IN_FLIGHT} folders at a time, which bounds the
+ * summary reads queued at once. Main reads a folder's sessions in the
+ * summaries scheduler's background lane, so a session list a person asks for
+ * is not queued behind them; this limiter does not do that.
  *
  * @param client - The query client the requests belong to.
  * @returns The client's limiter.

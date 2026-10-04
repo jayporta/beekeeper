@@ -82,11 +82,14 @@ async function removeTreeSession(): Promise<void> {
   await rm(join(ctx.tree.home, '.claude', 'projects', TEST_PROJECT, `${TEST_SESSION_ID}.jsonl`))
 }
 
+/** `deps` with the clock stopped at {@link NOW}. */
+const atNow = (deps: IpcDeps): IpcDeps => ({ ...deps, now: () => NOW })
+
 const totalsOf = async (
   deps: IpcDeps,
   window: '7d' | '30d' = '7d'
 ): ReturnType<typeof getProjectTotalsHandler> =>
-  getProjectTotalsHandler(deps, { ...request, window }, NOW)
+  getProjectTotalsHandler(atNow(deps), { ...request, window })
 
 function value(
   result: Awaited<ReturnType<typeof totalsOf>>
@@ -106,7 +109,7 @@ describe('getProjectTotalsHandler request validation', () => {
   ])('refuses %s, reading nothing', async (_label, payload) => {
     const { deps, reads } = spyingDeps()
 
-    expect(await getProjectTotalsHandler(deps, payload, NOW)).toEqual({
+    expect(await getProjectTotalsHandler(atNow(deps), payload)).toEqual({
       ok: false,
       error: { code: 'invalid-request' }
     })
@@ -116,7 +119,10 @@ describe('getProjectTotalsHandler request validation', () => {
   it('finds no project that is not listed, reading nothing', async () => {
     const { deps, reads } = spyingDeps()
 
-    const result = await getProjectTotalsHandler(deps, { ...request, projectDirName: '-nope' }, NOW)
+    const result = await getProjectTotalsHandler(atNow(deps), {
+      ...request,
+      projectDirName: '-nope'
+    })
 
     expect(result).toEqual({ ok: false, error: { code: 'not-found' } })
     expect(reads).toEqual([])
@@ -296,24 +302,30 @@ describe('getProjectTotalsHandler reading only what can count', () => {
     expect(value(await totalsOf(ctx.deps)).sessions).toBe(1)
   })
 
-  it('reads each kept transcript through the shared summary scheduler', async () => {
+  it('reads each kept transcript through the shared summary scheduler, in its background lane', async () => {
     await removeTreeSession()
     const fresh = await writeSession({ n: 1, activeMs: NOW - HOUR })
-    const keys: string[] = []
+    const background: string[] = []
+    const foreground: string[] = []
     const deps: IpcDeps = {
       ...ctx.deps,
       summaries: {
         run: (key, task) => {
-          keys.push(key)
+          foreground.push(key)
           return ctx.deps.summaries.run(key, task)
+        },
+        runInBackground: (key, task) => {
+          background.push(key)
+          return ctx.deps.summaries.runInBackground(key, task)
         }
       }
     }
 
     await totalsOf(deps)
 
-    expect(keys).toHaveLength(1)
-    expect(keys[0]).toContain(fresh)
+    expect(background).toHaveLength(1)
+    expect(background[0]).toContain(fresh)
+    expect(foreground).toEqual([])
   })
 })
 
@@ -323,7 +335,7 @@ describe('getProjectTotalsHandler failure codes', () => {
     await chmod(join(ctx.tree.home, '.claude', 'projects', TEST_PROJECT), 0o000)
     const listener = guardIpc({
       isTrusted: () => true,
-      handle: (payload) => getProjectTotalsHandler(ctx.deps, payload, NOW)
+      handle: (payload) => getProjectTotalsHandler(atNow(ctx.deps), payload)
     })
 
     expect(await listener({}, request)).toEqual({ ok: false, error: { code: 'unreadable' } })
@@ -336,7 +348,7 @@ describe('getProjectTotalsHandler failure codes', () => {
     }
     const listener = guardIpc({
       isTrusted: () => true,
-      handle: (payload) => getProjectTotalsHandler(deps, payload, NOW),
+      handle: (payload) => getProjectTotalsHandler(atNow(deps), payload),
       log: () => undefined
     })
 

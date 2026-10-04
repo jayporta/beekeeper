@@ -29,6 +29,7 @@ describe('listSessionsHandler summary reads', () => {
     }
     // Holds the first read open until the second listing has asked for the same file.
     const summaries: IpcDeps['summaries'] = {
+      ...ctx.deps.summaries,
       run: (key, task) => {
         runs += 1
         if (runs === 2) release()
@@ -95,6 +96,7 @@ describe('listSessionsHandler summary reads', () => {
         }
       }
       const summaries: IpcDeps['summaries'] = {
+        ...ctx.deps.summaries,
         run: (key, task) => {
           runs += 1
           if (runs === 2) signal.secondRun()

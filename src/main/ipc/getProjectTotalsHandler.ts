@@ -27,19 +27,20 @@ function toTotalsSession({ entry, summary }: ScannedSession): TotalsSession {
  * told from a lead by its summary's role, so no other folder is scanned and no
  * team is grouped. A session whose file is older than the window by more than a
  * day is skipped without being read, since its activity can't be later than
- * that. The rest are read through the shared summary cache and scheduler.
+ * that. The rest are read through the shared summary cache and scheduler, in
+ * its background lane, so a session list a person asks for is never queued
+ * behind them.
  *
- * @param deps - The projects root, the summary cache, and the summaries scheduler.
+ * @param deps - The projects root, the summary cache, the summaries scheduler,
+ * and the clock, which gives the end of the window.
  * @param payload - The renderer's payload, validated here.
- * @param nowMs - The end of the window. Defaults to the current time.
  * @returns The totals, `invalid-request` for a bad payload, or `not-found` for
  * an unknown project. A folder that can't be read comes back as the code of its
  * system error, through the IPC guard.
  */
 export async function getProjectTotalsHandler(
-  deps: Pick<IpcDeps, 'projectsRoot' | 'summaryCache' | 'summaries'>,
-  payload: unknown,
-  nowMs: number = Date.now()
+  deps: Pick<IpcDeps, 'projectsRoot' | 'summaryCache' | 'summaries' | 'now'>,
+  payload: unknown
 ): Promise<IpcResult<ProjectTotalsDto>> {
   const request = getProjectTotalsRequestSchema.safeParse(payload)
   if (!request.success) return errResult('invalid-request')
@@ -48,9 +49,11 @@ export async function getProjectTotalsHandler(
   const project = projects.find((entry) => entry.dirName === request.data.projectDirName)
   if (project === undefined) return errResult('not-found')
 
+  const nowMs = deps.now()
   const windowMs = TOTALS_WINDOW_MS[request.data.window]
   const scanned = await scanProjectSessions(project, deps, {
-    keep: (entry) => mayCountInWindow(entry, { nowMs, windowMs })
+    keep: (entry) => mayCountInWindow(entry, { nowMs, windowMs }),
+    background: true
   })
   return okResult(
     mapProjectTotals(folderTotals({ sessions: scanned.map(toTotalsSession), nowMs, windowMs }))
