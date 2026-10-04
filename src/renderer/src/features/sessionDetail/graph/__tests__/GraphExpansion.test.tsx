@@ -14,6 +14,16 @@ import {
   graphNodes,
   renderGraphWith
 } from '../testGraphScene'
+import { nodeAccessibleName } from '../nodeFacts'
+
+vi.mock('../nodeFacts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../nodeFacts')>()
+  return { ...actual, nodeAccessibleName: vi.fn(actual.nodeAccessibleName) }
+})
+
+/** How many times the named node has rendered, which names it once per render. */
+const rendersOf = (name: string): number =>
+  vi.mocked(nodeAccessibleName).mock.calls.filter(([node]) => node.name === name).length
 
 afterEach(() => {
   vi.useRealTimers()
@@ -177,6 +187,27 @@ describe('GraphCanvas teammate expansion', () => {
   })
 })
 
+describe('GraphCanvas render cost of an expansion', () => {
+  it('leaves the nodes that did not change alone when a teammate’s subagents arrive', async () => {
+    let finish: (result: IpcResult<SessionDetailDto>) => void = () => undefined
+    const held = new Promise<IpcResult<SessionDetailDto>>((resolve) => {
+      finish = resolve
+    })
+    renderGraphWith({ teammateDetails: { [WRITER.sessionId]: held } })
+    await click(/^writer/)
+    await screen.findByRole('button', { name: /loading subagents$/ })
+    const before = rendersOf('scout')
+
+    await act(async () => {
+      finish(writerDetail)
+      await held
+    })
+    await screen.findByRole('button', { name: /^drafter/ })
+
+    expect(rendersOf('scout')).toBe(before)
+  })
+})
+
 describe('GraphCanvas grafted subagents', () => {
   it('select by the teammate’s session, not the lead’s', async () => {
     renderGraphWith({ teammateDetails: { [WRITER.sessionId]: writerDetail } })
@@ -238,7 +269,7 @@ describe('GraphCanvas expansion announcements', () => {
     await click(/^writer/)
     await screen.findByRole('button', { name: /loading subagents$/ })
 
-    expect(status().textContent).toBe('')
+    expect(status().textContent).not.toMatch(/subagents/)
   })
 
   it('says how many subagents a teammate’s session added', async () => {
@@ -247,6 +278,20 @@ describe('GraphCanvas expansion announcements', () => {
     await click(/^writer/)
 
     await announced('Loaded 2 subagents of writer (code)')
+  })
+
+  it('counts every subagent a teammate’s session added, not only the first generation', async () => {
+    const nested: IpcResult<SessionDetailDto> = {
+      ok: true,
+      value: testDetail({
+        children: [testNode('w1', { children: [testNode('w2', { children: [testNode('w3')] })] })]
+      })
+    }
+    renderGraphWith({ teammateDetails: { [WRITER.sessionId]: nested } })
+
+    await click(/^writer/)
+
+    await announced('Loaded 3 subagents of writer (code)')
   })
 
   it('says it in the singular for one subagent', async () => {
@@ -296,7 +341,7 @@ describe('GraphCanvas expansion announcements', () => {
 
     await click(/^writer/)
 
-    expect(status().textContent).toBe('')
+    expect(status().textContent).not.toMatch(/subagents/)
   })
 
   it('announces each teammate that is opened', async () => {

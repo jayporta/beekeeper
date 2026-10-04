@@ -1,20 +1,20 @@
-import { useCallback, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { SessionDetailDto } from '../../../../../shared/ipc/sessionDetailDto'
 import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import type { SessionRow } from '@renderer/features/sessions/sessionRow'
-import { focusGraphNode } from './focusGraphNode'
 import { GraphEdges } from './GraphEdges'
 import styles from './GraphCanvas.module.css'
 import { GraphFootnote } from './GraphFootnote'
 import { GRAPH_HINT_ID } from './graphFootnoteId'
-import { directionOfKey, graphNeighbor } from './graphNavigation'
 import { GraphNode } from './GraphNode'
 import { GraphViewport } from './GraphViewport'
 import { parentNames } from './parentNames'
 import { selectedAgentKey } from './selectedAgentKey'
 import { useAgentGraph } from './useAgentGraph'
+import { useAnnounceSelection } from './useAnnounceSelection'
+import { useGraphKeyboard } from './useGraphKeyboard'
 
 /** Props for {@link GraphCanvas}. */
 interface GraphCanvasProps {
@@ -35,7 +35,8 @@ interface GraphCanvasProps {
  * arrow keys, Home and End move focus among the nodes without selecting them,
  * so a person can look around without changing what is selected. Notes under
  * the graph say so, and explain a partial node and any teammates that weren't
- * found. A teammate's load that settles is announced in a status region.
+ * found. A press that selects a node, and a teammate's load that settles, are
+ * announced in one status region.
  *
  * @example
  * <GraphCanvas detail={detail} sessionRef={ref} row={row} />
@@ -54,27 +55,10 @@ export function GraphCanvas({ detail, sessionRef, row }: GraphCanvasProps): Reac
   )
 
   const parents = useMemo(() => parentNames(layout), [layout])
+  const selectedName = layout.nodes.find(({ node }) => node.key === selectedKey)?.node.name ?? ''
+  const selectionAnnouncement = useAnnounceSelection({ key: selectedKey, name: selectedName })
 
-  const moveFocus = useCallback(
-    (event: React.KeyboardEvent<HTMLButtonElement>) => {
-      const direction = directionOfKey(event.key)
-      const from = event.currentTarget.dataset.agentKey
-      // Alt with an arrow is the browser's history shortcut, and Ctrl or Cmd belongs to the system.
-      if (
-        direction === null ||
-        from === undefined ||
-        event.altKey ||
-        event.ctrlKey ||
-        event.metaKey
-      )
-        return
-      // An arrow key never scrolls the window while a node is focused, even at the end of a branch.
-      event.preventDefault()
-      const target = graphNeighbor(root, from, direction)
-      if (target !== null) focusGraphNode(event.currentTarget, target)
-    },
-    [root]
-  )
+  const moveFocus = useGraphKeyboard(root)
 
   return (
     <section
@@ -103,7 +87,7 @@ export function GraphCanvas({ detail, sessionRef, row }: GraphCanvasProps): Reac
         teamListsTruncated={root.teamListsTruncated}
       />
       <p role="status" className="visuallyHidden">
-        {announcement}
+        {announcement || selectionAnnouncement}
       </p>
     </section>
   )

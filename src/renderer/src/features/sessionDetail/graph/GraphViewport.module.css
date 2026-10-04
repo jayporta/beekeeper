@@ -10,8 +10,14 @@
   min-height: var(--size-graph-min-height);
   max-height: var(--size-graph-max-height);
   overflow: auto;
-  /* Keeps a focused node clear of the zoom controls. */
+  /*
+   * Keeps a focused node clear of the zoom controls, which cover the bottom right corner and so
+   * only reach into the bottom padding. Fit leaves the same room below the graph.
+   */
   scroll-padding: var(--size-target-min);
+  scroll-padding-bottom: var(--size-graph-controls-clearance);
+  /* A drag on the background pans, and would otherwise select text and fight the pan by autoscrolling. */
+  user-select: none;
   cursor: grab;
   background-image: radial-gradient(circle, var(--color-graph-dot) 1px, transparent 1px);
   background-attachment: local;

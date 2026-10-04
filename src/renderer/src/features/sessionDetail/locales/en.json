@@ -25,7 +25,7 @@
       "loadingFlag": "loading…"
     },
     "footnote": {
-      "keyboard": "Arrow keys, Home and End move between agents. Enter selects one.",
+      "keyboard": "Up and Down move between siblings, Left goes to the parent and Right to the first child. Home and End go to the first and last agent. Enter selects.",
       "partial": "¹ Partial: part of this agent's data couldn't be read, so its tokens or files may be incomplete.",
       "missingTeammates_one": "{{count, integer}} teammate not found: the lead spawned it, but it isn't in the sessions list.",
       "missingTeammates_other": "{{count, integer}} teammates not found: the lead spawned them, but they aren't in the sessions list.",
@@ -34,7 +34,8 @@
     "announce": {
       "loaded_one": "Loaded {{count, integer}} subagent of {{name}}",
       "loaded_other": "Loaded {{count, integer}} subagents of {{name}}",
-      "failed": "Couldn't load the subagents of {{name}}"
+      "failed": "Couldn't load the subagents of {{name}}",
+      "selected": "{{name}} selected"
     },
     "zoom": {
       "label": "Zoom",

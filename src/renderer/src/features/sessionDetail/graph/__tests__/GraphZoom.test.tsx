@@ -132,10 +132,30 @@ describe('GraphCanvas zoom out near the far edges', () => {
 })
 
 describe('GraphCanvas fit', () => {
-  /** The scene's graph is 476 by 346 pixels. */
-  const sizeViewport = (width: number, height: number): void => {
+  const realComputedStyle = window.getComputedStyle.bind(window)
+
+  /**
+   * Sizes the view the way the stylesheet does: it is `width` wide, grows with the scaled graph
+   * plus the room the zoom controls cover below it, and stops at `maxHeight`. The scene's graph
+   * is 476 by 346 pixels.
+   */
+  const sizeViewport = (width: number, maxHeight: number, clearance = 0): void => {
+    const view = viewport()
     vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(width)
-    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(height)
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(function (
+      this: HTMLElement
+    ) {
+      const sizer = this.firstElementChild as HTMLElement | null
+      return Math.min(maxHeight, Number.parseFloat(sizer?.style.height ?? '0') + clearance)
+    })
+    vi.spyOn(window, 'getComputedStyle').mockImplementation((element, pseudo) =>
+      element === view
+        ? ({
+            maxHeight: `${maxHeight}px`,
+            scrollPaddingBottom: `${clearance}px`
+          } as CSSStyleDeclaration)
+        : realComputedStyle(element, pseudo)
+    )
   }
 
   it('scales the whole graph into a view narrower than it', async () => {
@@ -147,13 +167,39 @@ describe('GraphCanvas fit', () => {
     expect(scale()).toBeCloseTo(0.5)
   })
 
-  it('scales by the height when the view is shorter than the graph', async () => {
+  it('scales by the height when the view can’t grow tall enough for the graph', async () => {
     renderGraph()
     sizeViewport(1000, 173)
 
     await press('Fit the graph to the view')
 
     expect(scale()).toBeCloseTo(0.5)
+  })
+
+  it('leaves the room the zoom controls cover below the graph', async () => {
+    renderGraph()
+    sizeViewport(1000, 273, 100)
+
+    await press('Fit the graph to the view')
+
+    expect(scale()).toBeCloseTo(0.5)
+  })
+
+  it('gives the same scale however many times it is pressed, although the view grows and shrinks with the graph', async () => {
+    renderGraph()
+    sizeViewport(1000, 300, 56)
+    await press('Zoom out')
+    await press('Zoom out')
+
+    const scales: number[] = []
+    for (let i = 0; i < 3; i += 1) {
+      await press('Fit the graph to the view')
+      scales.push(scale())
+    }
+
+    expect(scales[0]).toBeCloseTo((300 - 56) / 346)
+    expect(scales[1]).toBeCloseTo(scales[0] ?? NaN)
+    expect(scales[2]).toBeCloseTo(scales[0] ?? NaN)
   })
 
   it('does not magnify a graph that already fits', async () => {

@@ -170,7 +170,7 @@ describe('GraphCanvas partial data', () => {
   it('has only the keyboard hint in the notes under a graph with nothing to explain', () => {
     renderGraph()
 
-    const notes = screen.getByText(/^Arrow keys/).parentElement
+    const notes = screen.getByText(/^Up and Down move/).parentElement
 
     expect(notes?.children).toHaveLength(1)
   })

@@ -16,8 +16,25 @@ interface GraphZoom {
   readonly zoomOut: () => void
   /** Magnifies by one step around the viewport's center. */
   readonly zoomIn: () => void
-  /** Scales the whole graph to fit the viewport, and scrolls to its top left. Does nothing while the viewport has no size. */
+  /** Scales the whole graph to fit the viewport at its tallest, and scrolls to its top left. Does nothing while the viewport has no size. */
   readonly fit: () => void
+}
+
+/**
+ * The size Fit aims for. The viewport grows with the scaled graph up to its
+ * maximum height, so its own height says nothing stable about the room there
+ * is: Fit aims at that maximum instead, less the space below the graph that the
+ * zoom controls cover (the viewport's bottom scroll padding). A viewport with
+ * no maximum falls back to its current height.
+ */
+function fitTarget(viewport: HTMLElement): Size {
+  const style = getComputedStyle(viewport)
+  const maxHeight = Number.parseFloat(style.maxHeight)
+  const covered = Number.parseFloat(style.scrollPaddingBottom) || 0
+  return {
+    width: viewport.clientWidth,
+    height: Number.isFinite(maxHeight) ? maxHeight - covered : viewport.clientHeight
+  }
 }
 
 /**
@@ -74,7 +91,7 @@ export function useGraphZoom(viewportRef: RefObject<HTMLElement | null>, content
   const fit = useCallback(() => {
     const viewport = viewportRef.current
     if (viewport === null) return
-    const next = fitScale(content, { width: viewport.clientWidth, height: viewport.clientHeight })
+    const next = fitScale(content, fitTarget(viewport))
     if (next === null) return
     applyScale(next)
     viewport.scrollLeft = 0

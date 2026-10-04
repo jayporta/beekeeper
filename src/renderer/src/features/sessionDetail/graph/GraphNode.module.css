@@ -13,7 +13,8 @@
   border-radius: var(--radius-none);
   cursor: pointer;
 
-  &:not(.lead):hover {
+  /* The selected node's fill is already a tint, and the overlay on it would take the muted text below 4.5:1 in dark mode. */
+  &:not(.lead, .selected):hover {
     background-image: linear-gradient(var(--color-hover), var(--color-hover));
   }
 

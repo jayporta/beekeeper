@@ -129,6 +129,36 @@ describe('graftTeammates', () => {
     expect(result.children[1]).toBe(mateA)
   })
 
+  it('returns the same root while every expanded teammate is still loading', () => {
+    expect(
+      graft([
+        ['mate:a', { status: 'loading' }],
+        ['mate:b', { status: 'loading' }]
+      ])
+    ).toBe(root)
+  })
+
+  it('returns the same root for a failed load of a teammate that was already partial', () => {
+    const partialRoot: RootAgentGraphNode = {
+      ...root,
+      children: [testGraphNode('mate:a', { kind: 'teammate', partial: true })]
+    }
+
+    const result = graftTeammates(partialRoot, new Map([['mate:a', { status: 'error' } as const]]))
+
+    expect(result).toBe(partialRoot)
+  })
+
+  it('returns a new root once any expanded teammate has something to change', () => {
+    const result = graft([
+      ['mate:a', { status: 'loading' }],
+      ['mate:b', { status: 'error' }]
+    ])
+
+    expect(result).not.toBe(root)
+    expect(result.children[2]?.partial).toBe(true)
+  })
+
   it('leaves every other node, and the root’s own fields, untouched', () => {
     const result = graft([['mate:a', { status: 'ready', children: [grafted], partial: false }]])
 

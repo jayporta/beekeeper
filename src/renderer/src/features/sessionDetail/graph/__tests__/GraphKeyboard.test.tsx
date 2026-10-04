@@ -48,9 +48,10 @@ describe('GraphCanvas roving tab stop', () => {
 })
 
 describe('GraphCanvas keyboard hint', () => {
-  const HINT = 'Arrow keys, Home and End move between agents. Enter selects one.'
+  const HINT =
+    'Up and Down move between siblings, Left goes to the parent and Right to the first child. Home and End go to the first and last agent. Enter selects.'
 
-  it('tells a person that the other nodes are reached by the arrow keys, Home and End', () => {
+  it('tells a person which keys reach the other nodes', () => {
     renderGraph()
 
     expect(screen.getByText(HINT)).toBeTruthy()
