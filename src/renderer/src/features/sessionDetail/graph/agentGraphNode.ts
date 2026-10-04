@@ -27,7 +27,7 @@ export interface AgentGraphNode {
   readonly agentType: string | null
   /** The model the agent ran on, or `null` when unknown. Transcript-derived. */
   readonly model: string | null
-  /** The agent's own tokens across every class, or `null` when its usage could not be read. */
+  /** The agent's own tokens across every class, or `null` when it has no readable usage. */
   readonly tokens: number | null
   /** Whether its usage or file list may be missing something: unreadable lines, an incomplete file list, or a report that could not be read. */
   readonly partial: boolean

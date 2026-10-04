@@ -1,9 +1,8 @@
 import type { AgentGraphNode, AgentKey } from './agentGraphNode'
 
-/** A graph node with only a key and children, unless overridden. */
+/** A graph node with only a key and no children, unless overridden. */
 export function testGraphNode(
   key: string,
-  children: readonly AgentGraphNode[] = [],
   overrides: Partial<AgentGraphNode> = {}
 ): AgentGraphNode {
   return {
@@ -17,7 +16,7 @@ export function testGraphNode(
     stopped: false,
     folder: null,
     selection: null,
-    children,
+    children: [],
     ...overrides
   }
 }

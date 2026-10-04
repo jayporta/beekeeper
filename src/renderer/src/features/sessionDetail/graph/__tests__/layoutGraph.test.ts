@@ -36,7 +36,9 @@ describe('layoutGraph', () => {
   })
 
   it('puts a chain in one row, a column per depth', () => {
-    const chain = testGraphNode('a', [testGraphNode('b', [testGraphNode('c')])])
+    const chain = testGraphNode('a', {
+      children: [testGraphNode('b', { children: [testGraphNode('c')] })]
+    })
 
     const placed = positions(chain)
 
@@ -48,7 +50,9 @@ describe('layoutGraph', () => {
   })
 
   it('stacks leaves at the leaf pitch and centers the root on them', () => {
-    const root = testGraphNode('root', [testGraphNode('a'), testGraphNode('b'), testGraphNode('c')])
+    const root = testGraphNode('root', {
+      children: [testGraphNode('a'), testGraphNode('b'), testGraphNode('c')]
+    })
 
     const placed = positions(root)
 
@@ -57,11 +61,15 @@ describe('layoutGraph', () => {
   })
 
   it('keeps leaves of uneven subtrees at a strict pitch, with no two nodes overlapping', () => {
-    const root = testGraphNode('root', [
-      testGraphNode('left', [testGraphNode('l1'), testGraphNode('l2')]),
-      testGraphNode('right', [testGraphNode('r1', [testGraphNode('r2')])]),
-      testGraphNode('solo')
-    ])
+    const root = testGraphNode('root', {
+      children: [
+        testGraphNode('left', { children: [testGraphNode('l1'), testGraphNode('l2')] }),
+        testGraphNode('right', {
+          children: [testGraphNode('r1', { children: [testGraphNode('r2')] })]
+        }),
+        testGraphNode('solo')
+      ]
+    })
 
     const layout = layoutGraph(root)
 
@@ -78,11 +86,15 @@ describe('layoutGraph', () => {
   })
 
   it('centers a parent on its first and last child, not its middle one', () => {
-    const root = testGraphNode('root', [
-      testGraphNode('a'),
-      testGraphNode('b'),
-      testGraphNode('c', [testGraphNode('c1'), testGraphNode('c2'), testGraphNode('c3')])
-    ])
+    const root = testGraphNode('root', {
+      children: [
+        testGraphNode('a'),
+        testGraphNode('b'),
+        testGraphNode('c', {
+          children: [testGraphNode('c1'), testGraphNode('c2'), testGraphNode('c3')]
+        })
+      ]
+    })
 
     const placed = positions(root)
 
@@ -91,7 +103,7 @@ describe('layoutGraph', () => {
   })
 
   it('draws an elbow from the parent’s right middle to the child’s left middle', () => {
-    const root = testGraphNode('root', [testGraphNode('a'), testGraphNode('b')])
+    const root = testGraphNode('root', { children: [testGraphNode('a'), testGraphNode('b')] })
 
     const { edges } = layoutGraph(root)
 
@@ -102,10 +114,12 @@ describe('layoutGraph', () => {
   })
 
   it('bounds the canvas by the farthest column and the lowest leaf', () => {
-    const root = testGraphNode('root', [
-      testGraphNode('a', [testGraphNode('a1'), testGraphNode('a2')]),
-      testGraphNode('b')
-    ])
+    const root = testGraphNode('root', {
+      children: [
+        testGraphNode('a', { children: [testGraphNode('a1'), testGraphNode('a2')] }),
+        testGraphNode('b')
+      ]
+    })
 
     const layout = layoutGraph(root)
 
@@ -114,10 +128,9 @@ describe('layoutGraph', () => {
   })
 
   it('lists nodes in preorder, once each, with one edge per non-root node', () => {
-    const root = testGraphNode('root', [
-      testGraphNode('a', [testGraphNode('a1')]),
-      testGraphNode('b')
-    ])
+    const root = testGraphNode('root', {
+      children: [testGraphNode('a', { children: [testGraphNode('a1')] }), testGraphNode('b')]
+    })
 
     const layout = layoutGraph(root)
 
@@ -128,7 +141,7 @@ describe('layoutGraph', () => {
   it('lays out two hundred nodes under one parent', () => {
     const leaves = Array.from({ length: 200 }, (_, i) => testGraphNode(`n${i}`))
 
-    const layout = layoutGraph(testGraphNode('root', leaves))
+    const layout = layoutGraph(testGraphNode('root', { children: leaves }))
 
     expect(layout.nodes).toHaveLength(201)
     expect(layout.nodes.at(-1)?.y).toBe(28 + 199 * 76)
@@ -137,7 +150,7 @@ describe('layoutGraph', () => {
 
   it('lays out a chain tens of thousands deep without recursing', () => {
     let tail = testGraphNode('n0')
-    for (let i = 1; i < 50_000; i += 1) tail = testGraphNode(`n${i}`, [tail])
+    for (let i = 1; i < 50_000; i += 1) tail = testGraphNode(`n${i}`, { children: [tail] })
 
     const layout = layoutGraph(tail)
 

@@ -57,16 +57,15 @@ export interface UsageLedger {
   entries(): readonly LedgerEntry[]
 }
 
-/** Combines two optional timestamps with `pick`, ignoring a `null`. */
-function mergeTimestamp(
-  a: number | null,
-  b: number | null,
+/** Lifts `pick` to optional timestamps: a `null` gives way to the other value. */
+function ignoringNull(
   pick: (a: number, b: number) => number
-): number | null {
-  if (a === null) return b
-  if (b === null) return a
-  return pick(a, b)
+): (a: number | null, b: number | null) => number | null {
+  return (a, b) => (a === null ? b : b === null ? a : pick(a, b))
 }
+
+const earlierTimestamp = ignoringNull(Math.min)
+const laterTimestamp = ignoringNull(Math.max)
 
 /**
  * Creates an empty {@link UsageLedger}.
@@ -100,8 +99,8 @@ export function createUsageLedger(): UsageLedger {
         model: existing.model,
         speed: messageReport.speed ?? existing.speed,
         tokens: combineTokenCounts([existing.tokens, messageReport.tokens], Math.max),
-        earliestMs: mergeTimestamp(existing.earliestMs, messageReport.timestampMs, Math.min),
-        latestMs: mergeTimestamp(existing.latestMs, messageReport.timestampMs, Math.max)
+        earliestMs: earlierTimestamp(existing.earliestMs, messageReport.timestampMs),
+        latestMs: laterTimestamp(existing.latestMs, messageReport.timestampMs)
       })
     },
     entries() {

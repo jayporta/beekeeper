@@ -76,6 +76,10 @@ describe('buildAgentGraph the root', () => {
     expect(graphOf(testDetail({ lead })).tokens).toBe(63)
   })
 
+  it('has no tokens when the lead reported no usage, like a teammate with none', () => {
+    expect(graphOf(testDetail({ lead: testReport({ tokenGroups: [] }) })).tokens).toBeNull()
+  })
+
   it('is partial when the lead has unreadable transcript lines', () => {
     expect(graphOf(testDetail({ lead: testReport({ skippedLines: 1 }) })).partial).toBe(true)
   })

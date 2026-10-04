@@ -5,9 +5,10 @@ import type { AgentReportDto } from '../../../../../shared/ipc/agentDto'
  * cache write counts both its 5-minute and its 1-hour window.
  *
  * @param report - The agent's report.
- * @returns The token total.
+ * @returns The token total, or `null` when the report has no usage.
  */
-export function reportTokens(report: AgentReportDto): number {
+export function reportTokens(report: AgentReportDto): number | null {
+  if (report.tokenGroups.length === 0) return null
   let total = 0
   for (const { tokens } of report.tokenGroups) {
     total +=
