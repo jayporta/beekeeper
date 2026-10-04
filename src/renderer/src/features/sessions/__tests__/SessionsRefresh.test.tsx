@@ -7,6 +7,7 @@ import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDt
 import { LISTS_STALE_TIME_MS } from '@renderer/app/listsStaleTime'
 import { registerWindowFocusRefetch } from '@renderer/app/windowFocusRefetch'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
+import { goneNoticeParts } from '@renderer/features/projects/testGoneNotice'
 import { installBeekeeperApi, testProject, type TestBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { createQueryWrapper } from '@renderer/testQueryWrapper'
 import { resetPersistedState } from '@renderer/testRenderApp'
@@ -176,7 +177,9 @@ describe('refreshing the lists on window focus', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: DIR }).getAttribute('aria-current')).toBe('page')
     })
-    expect(screen.getByText(`The folder ${OTHER} no longer exists. Showing ${DIR}.`)).toBeTruthy()
+    expect(
+      goneNoticeParts(`The folder ${OTHER} no longer exists. Showing ${DIR}.`).announced
+    ).toBeTruthy()
   })
 })
 

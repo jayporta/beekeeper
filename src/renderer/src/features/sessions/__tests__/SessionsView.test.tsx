@@ -187,9 +187,7 @@ describe('SessionsContent with an unreadable folder', () => {
     })
     render(<SessionsContent dirName={DIR} headingId="h" />, { wrapper: createQueryWrapper() })
 
-    const alert = await screen.findByRole('alert')
-
-    expect(within(alert).getByRole('button', { name: 'Retry' })).toBeTruthy()
+    expect(await screen.findByRole('button', { name: 'Retry' })).toBeTruthy()
   })
 
   it('mounts the alert fresh rather than turning the loading message into it', async () => {

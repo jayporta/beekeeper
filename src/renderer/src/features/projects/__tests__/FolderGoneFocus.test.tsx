@@ -6,9 +6,11 @@ import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunS
 import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
 import { useSelectedProjectStore } from '../state/useSelectedProjectStore'
+import { findAnnouncedGoneNotice, findVisibleGoneNotice, goneNoticeParts } from '../testGoneNotice'
 
 const ALPHA = '-Users-a-alpha'
 const BETA = '-Users-a-beta'
+const GAMMA = '-Users-a-gamma'
 const NOTICE = `The folder ${ALPHA} no longer exists. Showing ${BETA}.`
 
 beforeEach(() => {
@@ -48,22 +50,45 @@ async function renderWithHeldFallback(): Promise<(value: readonly ProjectDto[]) 
   }
 }
 
+/** Lets the held project refresh answer, so the fallback to BETA happens. */
+async function dropAlpha(settle: (value: readonly ProjectDto[]) => void): Promise<void> {
+  await act(async () => {
+    settle([testProject(BETA)])
+    await new Promise((resolve) => setTimeout(resolve, 20))
+  })
+}
+
 describe('focus when a gone folder switches the view', () => {
-  it('moves focus to the notice when the focused Retry button goes away', async () => {
+  it('moves focus to the notice, with no live region announcing it, when the focused Retry button goes away', async () => {
     const settle = await renderWithHeldFallback()
     screen.getByRole('button', { name: 'Retry' }).focus()
 
-    await act(async () => {
-      settle([testProject(BETA)])
-      await new Promise((resolve) => setTimeout(resolve, 20))
-    })
+    await dropAlpha(settle)
 
-    const notice = await screen.findByText(NOTICE)
+    const notice = await findVisibleGoneNotice(NOTICE)
     expect(document.activeElement).toBe(notice)
     expect(notice.getAttribute('role')).toBeNull()
+    expect(goneNoticeParts(NOTICE).announced).toBeNull()
   })
 
-  it('leaves focus in the sidebar when it was there', async () => {
+  it('announces a changed notice through the status region after the notice took focus', async () => {
+    const settle = await renderWithHeldFallback()
+    screen.getByRole('button', { name: 'Retry' }).focus()
+    await dropAlpha(settle)
+    const notice = await findVisibleGoneNotice(NOTICE)
+
+    act(() => {
+      useSelectedProjectStore.setState({ goneDirName: GAMMA })
+    })
+
+    const announced = await findAnnouncedGoneNotice(
+      `The folder ${GAMMA} no longer exists. Showing ${BETA}.`
+    )
+    expect(announced.getAttribute('role')).toBe('status')
+    expect(document.activeElement).toBe(notice)
+  })
+
+  it('leaves focus in the sidebar, and announces the notice, when focus was there', async () => {
     const settle = await renderWithHeldFallback()
     const sidebarButton = within(screen.getByRole('navigation', { name: 'Projects' })).getByRole(
       'button',
@@ -71,13 +96,9 @@ describe('focus when a gone folder switches the view', () => {
     )
     sidebarButton.focus()
 
-    await act(async () => {
-      settle([testProject(BETA)])
-      await new Promise((resolve) => setTimeout(resolve, 20))
-    })
+    await dropAlpha(settle)
 
-    const notice = await screen.findByText(NOTICE)
+    await findAnnouncedGoneNotice(NOTICE)
     expect(document.activeElement).toBe(sidebarButton)
-    expect(notice.getAttribute('role')).toBe('status')
   })
 })

@@ -6,6 +6,7 @@ import { createQueryWrapper } from '@renderer/testQueryWrapper'
 import { resetPersistedState } from '@renderer/testRenderApp'
 import { FolderGoneStatus } from '../FolderGoneStatus'
 import { useSelectedProjectStore } from '../state/useSelectedProjectStore'
+import { findVisibleGoneNotice } from '../testGoneNotice'
 
 const ALPHA = '-Users-a-alpha'
 const BETA = '-Users-a-beta'
@@ -136,12 +137,15 @@ describe('FolderGoneStatus', () => {
     expect(region.textContent).toBe(`${folderGone(WORKTREE)} Showing ${BETA}.`)
   })
 
-  it('is shown to sighted users, not hidden for assistive technology only', () => {
-    installBeekeeperApi({ listProjects: () => new Promise(() => undefined) })
+  it('shows the message as visible text and announces it from a hidden status region', async () => {
+    useSelectedProjectStore.setState({ goneDirName: ALPHA })
+    listing(testProject(BETA))
+    const region = await renderLoaded()
 
-    render(<FolderGoneStatus />, { wrapper: createQueryWrapper() })
+    const visible = await findVisibleGoneNotice(`${folderGone(ALPHA)} Showing ${BETA}.`)
 
-    expect(screen.getByRole('status').classList.contains('visuallyHidden')).toBe(false)
+    expect(visible.classList.contains('visuallyHidden')).toBe(false)
+    expect(region.classList.contains('visuallyHidden')).toBe(true)
   })
 
   it('clears its text when the person navigates', async () => {
