@@ -3,11 +3,11 @@ import { testGraphNode } from '../testGraphNode'
 import { testGraphT } from '../testGraphT'
 import { nodeAccessibleName, nodeDetail } from '../nodeFacts'
 
-const nameOf = (overrides: Parameters<typeof testGraphNode>[2]): string =>
-  nodeAccessibleName(
-    testGraphNode('lead', [], { name: 'Lead', kind: 'lead', ...overrides }),
-    testGraphT
-  )
+const nameOf = (overrides: Parameters<typeof testGraphNode>[2], loading = false): string =>
+  nodeAccessibleName(testGraphNode('lead', [], { name: 'Lead', kind: 'lead', ...overrides }), {
+    t: testGraphT,
+    loading
+  })
 
 describe('nodeDetail', () => {
   it('is the type and the model', () => {
@@ -54,6 +54,12 @@ describe('nodeAccessibleName', () => {
     const label = nameOf({ tokens: 5, model: 'm', stopped: true, partial: true })
 
     expect(label).toBe('Lead, lead, 5 tokens, m, stopped, partial data')
+  })
+
+  it('says a teammate is still loading its subagents, after the stopped flag', () => {
+    expect(nameOf({ kind: 'teammate', tokens: 5, stopped: true }, true)).toBe(
+      'Lead, teammate, 5 tokens, stopped, loading subagents'
+    )
   })
 
   it('names the folder of a teammate in another folder', () => {

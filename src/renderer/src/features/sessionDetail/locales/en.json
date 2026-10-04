@@ -19,13 +19,24 @@
       "stopped": "stopped",
       "stoppedFlag": "■ stopped",
       "partial": "partial data",
-      "partialMarker": "¹"
+      "partialMarker": "¹",
+      "loading": "loading subagents",
+      "loadingFlag": "loading…"
     },
     "footnote": {
       "partial": "¹ Partial: part of this agent's data couldn't be read, so its tokens or files may be incomplete.",
       "missingTeammates_one": "{{count, integer}} teammate not found: the lead spawned it, but it isn't in the sessions list.",
       "missingTeammates_other": "{{count, integer}} teammates not found: the lead spawned them, but they aren't in the sessions list.",
       "truncated": "The lead's spawn and stop lists hit their cap, so more teammates may be missing."
+    },
+    "zoom": {
+      "label": "Zoom",
+      "out": "−",
+      "outLabel": "Zoom out",
+      "fit": "Fit",
+      "fitLabel": "Fit the graph to the view",
+      "in": "+",
+      "inLabel": "Zoom in"
     }
   },
   "breadcrumb": {

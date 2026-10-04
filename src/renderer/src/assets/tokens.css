@@ -100,6 +100,9 @@
   --size-graph-grid: 1.25rem;
   --color-graph-dot: color-mix(in srgb, var(--color-text) 14%, transparent);
   --opacity-graph-edge: 0.45;
+  /* The graph's viewport grows with the graph, between these. */
+  --size-graph-min-height: 10rem;
+  --size-graph-max-height: 70vh;
 
   --radius-none: 0;
   --radius-sm: 2px;

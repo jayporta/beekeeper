@@ -1,0 +1,35 @@
+.stage {
+  position: relative;
+}
+
+/*
+ * The graph scrolls natively, so a keyboard user's focus brings a node into
+ * view by itself. The dots are a local background: they scroll with the graph.
+ */
+.viewport {
+  min-height: var(--size-graph-min-height);
+  max-height: var(--size-graph-max-height);
+  overflow: auto;
+  /* Keeps a focused node clear of the zoom controls. */
+  scroll-padding: var(--size-target-min);
+  cursor: grab;
+  background-image: radial-gradient(circle, var(--color-graph-dot) 1px, transparent 1px);
+  background-attachment: local;
+  background-size: var(--size-graph-grid) var(--size-graph-grid);
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+/* Sized to the scaled graph, so the scroll area follows the zoom. */
+.sizer {
+  position: relative;
+}
+
+.surface {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}

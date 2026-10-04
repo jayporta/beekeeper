@@ -1,77 +1,35 @@
-import { render, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { SessionDetailDto } from '../../../../../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto } from '../../../../../../shared/ipc/sessionListDto'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import {
-  testAgentRole,
   testLeadTeam,
   testRef,
   testSession,
-  testTeammateTeam,
   testUsage
 } from '@renderer/features/sessions/testSessionFixtures'
-import { testRow } from '@renderer/features/sessions/testSessionRows'
+import { testDetail, testNode, testReport } from '../../testSessionDetail'
 import { layoutGraph as layoutGraphOriginal } from '../layoutGraph'
-import { testDetail, testMeta, testNode, testReport, testTokenGroup } from '../../testSessionDetail'
-import { GraphCanvas } from '../GraphCanvas'
 import { COLUMN_WIDTH, LEAF_PITCH, NODE_HEIGHT, NODE_WIDTH } from '../graphMetrics'
+import {
+  SCENE_OTHER_FOLDER as OTHER,
+  SCENE_SESSION as SESSION,
+  graphNode as node,
+  graphNodes,
+  renderGraph,
+  renderGraphWith
+} from '../testGraphScene'
 
 vi.mock('../layoutGraph', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../layoutGraph')>()
   return { ...actual, layoutGraph: vi.fn(actual.layoutGraph) }
 })
 
-const SESSION = testRef(1)
-const OTHER = '-Users-a-other'
-
-const lead = testSession(1, {
-  model: 'claude-opus-5',
-  team: testLeadTeam(
-    [testRef(2), testRef(3, OTHER)],
-    testUsage({ missingTeammates: 0, teamListsTruncated: false })
-  )
-})
-const writer = testSession(2, {
-  role: testAgentRole('writer', 'code'),
-  model: 'claude-sonnet-5',
-  totalTokens: 2500,
-  team: testTeammateTeam(SESSION, true)
-})
-const tester = testSession(3, {
-  projectDirName: OTHER,
-  role: testAgentRole('tester', 'code'),
-  totalTokens: 900,
-  team: testTeammateTeam(SESSION)
-})
-const ITEMS = [lead, writer, tester]
-
-const subagents = [
-  testNode('a1', {
-    meta: testMeta({ name: 'scout', agentType: 'Explore', model: 'claude-haiku-5' })
-  }),
-  testNode('a2', { meta: testMeta({ name: 'reader', agentType: 'Explore' }) })
-]
-const DETAIL = testDetail({
-  lead: testReport({ tokenGroups: [testTokenGroup({ input: 1500 })] }),
-  children: subagents,
-  reports: { a1: testReport({ tokenGroups: [testTokenGroup({ output: 40 })] }) }
-})
-
 afterEach(() => {
   useNavigationStore.getState().reset()
   vi.mocked(layoutGraphOriginal).mockClear()
 })
-
-function renderGraph(
-  items: readonly SessionListItemDto[] = ITEMS,
-  detail: SessionDetailDto = DETAIL
-): ReturnType<typeof render> {
-  return render(<GraphCanvas detail={detail} sessionRef={SESSION} row={testRow(1, items)} />)
-}
-
-const node = (name: RegExp | string): HTMLElement => screen.getByRole('button', { name })
 
 describe('GraphCanvas', () => {
   it('is a labelled region', () => {
@@ -81,18 +39,18 @@ describe('GraphCanvas', () => {
   })
 
   it('is a single lead node for a session with no subagents and no team', () => {
-    render(<GraphCanvas detail={testDetail()} sessionRef={SESSION} row={null} />)
+    renderGraphWith({ detail: testDetail(), row: null })
 
     const region = within(screen.getByRole('region', { name: 'Agent graph' }))
 
-    expect(region.getAllByRole('button')).toHaveLength(1)
+    expect(graphNodes()).toHaveLength(1)
     expect(region.getByRole('button', { name: /^Lead, lead/ })).toBeTruthy()
   })
 
   it('has a node for the lead, each subagent, and each teammate, named by kind and tokens', () => {
     renderGraph()
 
-    const names = screen.getAllByRole('button').map((button) => button.getAttribute('aria-label'))
+    const names = graphNodes().map((button) => button.getAttribute('aria-label'))
 
     expect(names).toEqual([
       'Lead, lead, 1.5K tokens, claude-opus-5',
@@ -155,7 +113,7 @@ describe('GraphCanvas', () => {
 
   it('shows a dash for an agent whose tokens are not recorded', () => {
     const detail = testDetail({ children: [testNode('a1')], reports: { a1: 'error' } })
-    render(<GraphCanvas detail={detail} sessionRef={SESSION} row={null} />)
+    renderGraphWith({ detail: detail, row: null })
 
     expect(within(node(/^Explore, subagent/)).getByText('tokens not recorded')).toBeTruthy()
   })
@@ -186,7 +144,7 @@ describe('GraphCanvas partial data', () => {
   })
 
   it('marks a partial agent and names it as partial', () => {
-    render(<GraphCanvas detail={partialDetail} sessionRef={SESSION} row={null} />)
+    renderGraphWith({ detail: partialDetail, row: null })
 
     const button = node(/^Explore, subagent/)
 
@@ -195,7 +153,7 @@ describe('GraphCanvas partial data', () => {
   })
 
   it('explains the marker in a footnote that the partial agent points at', () => {
-    render(<GraphCanvas detail={partialDetail} sessionRef={SESSION} row={null} />)
+    renderGraphWith({ detail: partialDetail, row: null })
 
     const note = screen.getByText(/Partial: part of this agent's data couldn't be read/)
 
