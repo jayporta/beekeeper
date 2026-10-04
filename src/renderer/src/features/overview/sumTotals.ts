@@ -4,6 +4,7 @@ import type {
   ProjectTotalsPartialDto
 } from '../../../../shared/ipc/projectTotalsDto'
 import type { FolderTotalsState } from './folderTotalsState'
+import { partialReasonsOf } from './partialReasons'
 
 /** Several folders' totals added together, with how many of the folders are in each state. */
 export interface AggregateTotals {
@@ -118,16 +119,7 @@ export function totalsStatus(totals: AggregateTotals): TotalsStatus {
  * @returns `true` when they may be low.
  */
 export function isPartial(totals: AggregateTotals): boolean {
-  const { partial, folders } = totals
-  return (
-    folders.loading > 0 ||
-    folders.failed > 0 ||
-    partial.withoutTokens > 0 ||
-    partial.withoutCost > 0 ||
-    partial.unreadable > 0 ||
-    partial.lowTokens > 0 ||
-    partial.undated > 0
-  )
+  return partialReasonsOf(totals).length > 0
 }
 
 /**

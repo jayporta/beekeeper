@@ -1,5 +1,8 @@
+/** Every window a project's totals can cover. */
+export const TOTALS_WINDOWS = ['7d', '30d'] as const
+
 /** How far back a project's totals reach. */
-export type TotalsWindowDto = '7d' | '30d'
+export type TotalsWindowDto = (typeof TOTALS_WINDOWS)[number]
 
 /** The sessions of a folder that leave a total incomplete, counted by reason. A session may count under more than one. */
 export interface ProjectTotalsPartialDto {
