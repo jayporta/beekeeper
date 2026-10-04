@@ -1,11 +1,9 @@
 import type { ProjectGroup } from '@renderer/features/projects/groupProjects'
-import type { FolderTotalsState } from './folderTotalsState'
+import { LOADING, type FolderTotalsState } from './folderTotalsState'
 import { sumTotals, type AggregateTotals } from './sumTotals'
 
 /** Each folder's totals state, by folder name. A folder that is missing is still loading. */
 export type TotalsByFolder = ReadonlyMap<string, FolderTotalsState>
-
-const LOADING: FolderTotalsState = { status: 'loading' }
 
 function stateOf(byFolder: TotalsByFolder, dirName: string): FolderTotalsState {
   return byFolder.get(dirName) ?? LOADING

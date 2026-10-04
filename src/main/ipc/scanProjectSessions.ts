@@ -40,8 +40,10 @@ async function scanSession(
   return { projectDirName, entry, summary }
 }
 
-/** Options for {@link scanProjectSessions}. */
-export interface ScanProjectSessionsOptions {
+/** What {@link scanProjectSessions} reads. */
+export interface ProjectScan {
+  /** The folder to scan. */
+  readonly project: ProjectEntry
   /**
    * Decides whether a discovered session is read at all. A session it refuses
    * is left out of the result without its summary being read. Called once per
@@ -61,18 +63,16 @@ export interface ScanProjectSessionsOptions {
  * `keep` accepts. Summary reads are shared per transcript state (path, mtime,
  * size) and capped by the summaries scheduler.
  *
- * @param project - The folder to scan.
+ * @param scan - The folder, which of its sessions to read, and in which lane.
+ * Every session, in the foreground, by default.
  * @param deps - The summary cache and the summaries scheduler.
- * @param options - Which sessions to read, and in which lane. Every session, in
- * the foreground, by default.
  * @returns The kept sessions with the outcome of each summary read.
  */
 export async function scanProjectSessions(
-  project: ProjectEntry,
-  deps: ScanDeps,
-  options: ScanProjectSessionsOptions = {}
+  scan: ProjectScan,
+  deps: ScanDeps
 ): Promise<ScannedSession[]> {
-  const { keep = () => true, background = false } = options
+  const { project, keep = () => true, background = false } = scan
   const sessions = (await discoverSessions(project.path)).filter(keep)
   const readSummary = (file: TranscriptFileInfo): Promise<ScannedSession['summary']> =>
     background

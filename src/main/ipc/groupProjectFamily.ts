@@ -35,7 +35,7 @@ async function scanSiblingFolder(
   folder: ProjectEntry,
   deps: GroupProjectFamilyOptions['deps']
 ): Promise<readonly ScannedSession[]> {
-  const scan = await captureSystemError(() => scanProjectSessions(folder, deps))
+  const scan = await captureSystemError(() => scanProjectSessions({ project: folder }, deps))
   if (scan.ok) return scan.value
   console.warn(`Beekeeper skipped a project family folder (${scan.error.code}).`)
   return []
@@ -72,7 +72,7 @@ export async function groupProjectFamily(
     await Promise.all(
       family.map((folder) =>
         folder.dirName === project.dirName
-          ? scanProjectSessions(folder, deps)
+          ? scanProjectSessions({ project: folder }, deps)
           : scanSiblingFolder(folder, deps)
       )
     )

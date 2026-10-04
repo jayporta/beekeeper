@@ -21,3 +21,6 @@ export type FolderTotalsState =
       /** Whether these are the other window's figures, shown until this window's arrive. */
       readonly refreshing: boolean
     }
+
+/** The state of a folder whose totals haven't arrived. */
+export const LOADING: FolderTotalsState = { status: 'loading' }

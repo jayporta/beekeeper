@@ -5,7 +5,7 @@ import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import { unwrapIpcResult } from '@renderer/ipc/unwrapIpcResult'
 import { useProjects } from '@renderer/features/projects/useProjects'
 import { useSelectedProjectDirName } from '@renderer/features/projects/state/useSelectedProjectDirName'
-import type { FolderTotalsState } from './folderTotalsState'
+import { LOADING, type FolderTotalsState } from './folderTotalsState'
 import type { TotalsByFolder } from './projectTotalsOf'
 import { useTotalsWindowStore } from './state/useTotalsWindowStore'
 import { totalsLimiterFor } from './totalsLimiter'
@@ -14,8 +14,6 @@ const OTHER_WINDOW: Readonly<Record<TotalsWindowDto, TotalsWindowDto>> = {
   '7d': '30d',
   '30d': '7d'
 }
-
-const LOADING: FolderTotalsState = { status: 'loading' }
 
 function stateOf(result: UseQueryResult<ProjectTotalsDto>): FolderTotalsState {
   // Data wins over a failed background refresh, so figures on screen stay on screen.

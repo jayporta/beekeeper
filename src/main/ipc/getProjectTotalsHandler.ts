@@ -51,10 +51,10 @@ export async function getProjectTotalsHandler(
 
   const nowMs = deps.now()
   const windowMs = TOTALS_WINDOW_MS[request.data.window]
-  const scanned = await scanProjectSessions(project, deps, {
-    keep: (entry) => mayCountInWindow(entry, { nowMs, windowMs }),
-    background: true
-  })
+  const scanned = await scanProjectSessions(
+    { project, keep: (entry) => mayCountInWindow(entry, { nowMs, windowMs }), background: true },
+    deps
+  )
   return okResult(
     mapProjectTotals(folderTotals({ sessions: scanned.map(toTotalsSession), nowMs, windowMs }))
   )

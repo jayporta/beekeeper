@@ -31,9 +31,8 @@ async function scan(
     }
   }
   const scanned = await scanProjectSessions(
-    project,
-    deps,
-    keep === undefined ? {} : { keep: (entry) => keep(entry.sessionId) }
+    keep === undefined ? { project } : { project, keep: (entry) => keep(entry.sessionId) },
+    deps
   )
   return { ids: scanned.map((session) => session.entry.sessionId).sort(), reads }
 }
