@@ -40,14 +40,14 @@ function isListedFor(projectDirName: string, { session, team }: ListedSession): 
  * summaries scheduler. See {@link groupProjectFamily} for how an unreadable
  * sibling folder is treated.
  *
- * @param deps - The projects root, the summary cache, and the summaries
- * scheduler.
+ * @param deps - The projects root, the summary and agent terms caches, and the
+ * summaries scheduler.
  * @param payload - The renderer's payload, validated here.
  * @returns The sessions, `invalid-request` for a bad payload, or
  * `not-found` for an unknown project.
  */
 export async function listSessionsHandler(
-  deps: Pick<IpcDeps, 'projectsRoot' | 'summaryCache' | 'summaries'>,
+  deps: Pick<IpcDeps, 'projectsRoot' | 'summaryCache' | 'summaries' | 'agentTerms'>,
   payload: unknown
 ): Promise<IpcResult<readonly SessionListItemDto[]>> {
   const request = listSessionsRequestSchema.safeParse(payload)

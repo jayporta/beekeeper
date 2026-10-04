@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { AgentLegend } from './AgentLegend'
 import { agentMarks, type AgentMarkKind } from './agentMarks'
 import columns from './CardColumns.module.css'
+import { matchedAgentOf } from './sessionMatches'
 import { PartialFootnote } from './PartialFootnote'
 import { partialReasons, type PartialReason } from './partialReasons'
 import { SessionCard } from './SessionCard'
@@ -25,7 +26,7 @@ interface SessionCardListProps {
   readonly labelledBy: string
   /** The folder the list is for. */
   readonly selectedDirName: string
-  /** The search text from `normalizeQuery`, or `''` when no search is active. It highlights the chips that match. */
+  /** The search text from `normalizeQuery`, or `''` when no search is active. It highlights the chips that match and names a subagent a card matches only through. */
   readonly query: string
 }
 
@@ -51,6 +52,8 @@ export const SessionCardList = memo(function SessionCardList({
     [cards]
   )
   const kinds = useMemo(() => kindsDrawn(rows), [rows])
+  // Worked out here, as a string or `null`, so a card without chips re-renders only when its note changes.
+  const matchedAgents = useMemo(() => rows.map((row) => matchedAgentOf(row, query)), [rows, query])
 
   return (
     <div className={styles.list}>
@@ -61,13 +64,14 @@ export const SessionCardList = memo(function SessionCardList({
         <span className={styles.right}>{t('columns.tokens')}</span>
       </div>
       <ol className={styles.cards} aria-labelledby={labelledBy}>
-        {cards.map(({ row, reasons }) => (
+        {cards.map(({ row, reasons }, index) => (
           <SessionCard
             key={row.key}
             row={row}
             selectedDirName={selectedDirName}
             needle={row.teammates.length > 0 ? query : ''}
             partial={reasons.size > 0}
+            matchedAgent={matchedAgents[index] ?? null}
           />
         ))}
       </ol>

@@ -1,13 +1,21 @@
+import { NO_AGENT_TERMS, type AgentTerms } from '../../core/session/agentSearchTerms'
 import { err } from '../../core/shared/result'
 import { discoverSessions, type SessionEntry } from '../../core/transcript/discoverSessions'
 import type { ProjectEntry } from '../../core/transcript/discoverProjects'
 import type { ProjectDirName } from '../../core/transcript/ids'
 import type { SummarizedSession } from '../../core/teams/teamGrouping'
 import type { TranscriptFileInfo } from '../../core/transcript/statTranscriptFile'
+import { agentTermsKey } from './agentTermsCache'
 import type { IpcDeps } from './ipcDeps'
 import type { ScannedSession } from './mapSessionListItem'
 
-type ScanDeps = Pick<IpcDeps, 'summaryCache' | 'summaries'>
+/**
+ * What a scan needs: the summary cache and scheduler, and optionally the agent
+ * terms cache. Without it, sessions are scanned with no agent terms and no meta
+ * file is read.
+ */
+export type ScanDeps = Pick<IpcDeps, 'summaryCache' | 'summaries'> &
+  Partial<Pick<IpcDeps, 'agentTerms'>>
 
 /**
  * Reads a transcript's summary through the summary cache. The read is shared
@@ -29,15 +37,42 @@ function summaryKey(file: TranscriptFileInfo): string {
   return `${file.path}\0${file.mtimeMs}\0${file.size}`
 }
 
+/**
+ * Reads the search terms of a session's subagents through the agent terms
+ * cache, under the summaries scheduler. A session with no subagents, or whose
+ * subagents couldn't be listed, has none and costs no scheduler turn.
+ */
+function readAgentTerms(entry: SessionEntry, deps: ScanDeps): Promise<AgentTerms> {
+  const { agentTerms } = deps
+  if (agentTerms === undefined || !entry.subagents.ok) return Promise.resolve(NO_AGENT_TERMS)
+  const subagents = entry.subagents.value
+  if (subagents.length === 0) return Promise.resolve(NO_AGENT_TERMS)
+  return deps.summaries.run(`terms\0${agentTermsKey(subagents)}`, () => agentTerms.read(subagents))
+}
+
+/** How one scan reads each session's summary and subagent search terms. */
+interface SessionReaders {
+  readonly summary: (file: TranscriptFileInfo) => Promise<ScannedSession['summary']>
+  readonly agentTerms: (entry: SessionEntry) => Promise<AgentTerms>
+}
+
 async function scanSession(
   located: { readonly projectDirName: ProjectDirName; readonly entry: SessionEntry },
-  readSummary: (file: TranscriptFileInfo) => Promise<ScannedSession['summary']>
+  read: SessionReaders
 ): Promise<ScannedSession> {
   const { projectDirName, entry } = located
-  if (!entry.transcript.ok) return { projectDirName, entry, summary: err(entry.transcript.error) }
+  if (!entry.transcript.ok) {
+    return {
+      projectDirName,
+      entry,
+      summary: err(entry.transcript.error),
+      agentTerms: NO_AGENT_TERMS
+    }
+  }
 
-  const summary = await readSummary(entry.transcript.value)
-  return { projectDirName, entry, summary }
+  const summary = await read.summary(entry.transcript.value)
+  const agentTerms = await read.agentTerms(entry)
+  return { projectDirName, entry, summary, agentTerms }
 }
 
 /** What {@link scanProjectSessions} reads. */
@@ -61,11 +96,13 @@ export interface ProjectScan {
 /**
  * Discovers and summarizes every session of a project folder, or those
  * `keep` accepts. Summary reads are shared per transcript state (path, mtime,
- * size) and capped by the summaries scheduler.
+ * size) and capped by the summaries scheduler, and so are the reads of each
+ * session's subagent search terms. A background scan reads no search terms.
  *
  * @param scan - The folder, which of its sessions to read, and in which lane.
  * Every session, in the foreground, by default.
- * @param deps - The summary cache and the summaries scheduler.
+ * @param deps - The summary cache and the summaries scheduler, and the agent
+ * terms cache when sessions should carry search terms.
  * @returns The kept sessions with the outcome of each summary read.
  */
 export async function scanProjectSessions(
@@ -74,12 +111,18 @@ export async function scanProjectSessions(
 ): Promise<ScannedSession[]> {
   const { project, keep = () => true, background = false } = scan
   const sessions = (await discoverSessions(project.path)).filter(keep)
-  const readSummary = (file: TranscriptFileInfo): Promise<ScannedSession['summary']> =>
-    background
-      ? deps.summaries.runInBackground(summaryKey(file), () => deps.summaryCache.read(file))
-      : readSessionSummary(file, deps)
+  const read: SessionReaders = background
+    ? {
+        summary: (file) =>
+          deps.summaries.runInBackground(summaryKey(file), () => deps.summaryCache.read(file)),
+        agentTerms: () => Promise.resolve(NO_AGENT_TERMS)
+      }
+    : {
+        summary: (file) => readSessionSummary(file, deps),
+        agentTerms: (entry) => readAgentTerms(entry, deps)
+      }
   return Promise.all(
-    sessions.map((entry) => scanSession({ projectDirName: project.dirName, entry }, readSummary))
+    sessions.map((entry) => scanSession({ projectDirName: project.dirName, entry }, read))
   )
 }
 

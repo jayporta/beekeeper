@@ -1,3 +1,4 @@
+import type { AgentTerms } from '../../core/session/agentSearchTerms'
 import type { SessionEntry } from '../../core/transcript/discoverSessions'
 import type { ProjectDirName } from '../../core/transcript/ids'
 import type { Result } from '../../core/shared/result'
@@ -17,6 +18,8 @@ export interface ScannedSession {
   readonly entry: SessionEntry
   /** The summary read, or why there is none. A failed transcript stat carries its own error. */
   readonly summary: Result<SessionSummary, UnreadableError>
+  /** The search terms of the session's subagents, empty when they weren't read. */
+  readonly agentTerms: AgentTerms
 }
 
 /**
@@ -41,6 +44,8 @@ export function mapSessionListItem(
       modifiedMs: null,
       sizeBytes: null,
       subagentCount,
+      agentTerms: [],
+      agentTermsTruncated: false,
       summary: errResult(toIpcErrorCode(entry.transcript.error)),
       team: null
     }
@@ -53,6 +58,12 @@ export function mapSessionListItem(
     modifiedMs: file.mtimeMs,
     sizeBytes: file.size,
     subagentCount,
+    agentTerms: scanned.agentTerms.terms.map(({ name, description, agentType }) => ({
+      name,
+      description,
+      agentType
+    })),
+    agentTermsTruncated: scanned.agentTerms.truncated,
     summary: summary.ok
       ? okResult({
           title: summary.value.title,

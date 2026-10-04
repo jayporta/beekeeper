@@ -93,7 +93,7 @@ describe('listSessionsHandler', () => {
         })
     }
     const result = await listSessionsHandler(
-      { projectsRoot: ctx.deps.projectsRoot, summaryCache: cache, summaries: ctx.deps.summaries },
+      { ...ctx.deps, summaryCache: cache },
       { projectDirName: TEST_PROJECT }
     )
     expect(result).toMatchObject({

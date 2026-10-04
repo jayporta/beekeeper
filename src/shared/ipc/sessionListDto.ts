@@ -37,6 +37,16 @@ export interface SessionSummaryDto {
   readonly transcriptTokens: number | null
 }
 
+/** What a session search matches on for one subagent. Transcript-derived: render it as plain text. */
+export interface AgentSearchTermDto {
+  /** The subagent's name, or `null` when it has none. */
+  readonly name: string | null
+  /** The subagent's task description, or `null` when it has none. */
+  readonly description: string | null
+  /** The subagent's type, or `null` when it has none. */
+  readonly agentType: string | null
+}
+
 /**
  * One session in a project's session list. The list holds the project's own
  * sessions plus any session from another folder of the same project family
@@ -53,6 +63,14 @@ export interface SessionListItemDto {
   readonly sizeBytes: number | null
   /** How many subagent transcripts the session has, or `null` when its folder couldn't be read. */
   readonly subagentCount: number | null
+  /**
+   * What a search matches on for each of the session's subagents: distinct
+   * name, description and type, in agent id order, capped in number and total
+   * length. Empty when it has no subagents or none has a readable meta.
+   */
+  readonly agentTerms: readonly AgentSearchTermDto[]
+  /** Whether a further distinct subagent term was left out because a cap was reached. */
+  readonly agentTermsTruncated: boolean
   /** The session's summary, or why it is unavailable. */
   readonly summary: IpcResult<SessionSummaryDto>
   /**

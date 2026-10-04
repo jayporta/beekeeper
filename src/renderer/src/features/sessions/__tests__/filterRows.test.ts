@@ -56,6 +56,33 @@ describe('filterRows', () => {
     expect(filterRows(rows, 'writer (code)').map((row) => row.key)).toEqual([keyOf(1)])
   })
 
+  it('keeps a session whose subagent matches by name, description or type', () => {
+    const withAgents = testSession(5, {
+      title: 'Untouched title',
+      latestMs: 0,
+      agentTerms: [{ name: 'scout', description: 'Map auth', agentType: 'Explore' }]
+    })
+    const all = groupSessionRows([...rows.map((row) => row.item), withAgents], testSessionsT)
+
+    for (const query of ['SCOUT', 'map auth', 'explore']) {
+      expect(filterRows(all, query).map((row) => row.key)).toEqual([keyOf(5)])
+    }
+  })
+
+  it('keeps a lead, with all its teammates, when only a teammate’s subagent matches', () => {
+    const mateWithAgent = testSession(2, {
+      role: testAgentRole('reviewer', 'code'),
+      team: testTeammateTeam(testRef(1)),
+      agentTerms: [{ name: 'checker', description: null, agentType: null }]
+    })
+    const all = groupSessionRows([lead, mateWithAgent, mateB, other], testSessionsT)
+
+    const result = filterRows(all, 'checker')
+
+    expect(result.map((row) => row.key)).toEqual([keyOf(1)])
+    expect(result[0]?.teammates.map((t) => t.key)).toEqual([keyOf(2), keyOf(3)])
+  })
+
   it('returns nothing when no row matches', () => {
     expect(filterRows(rows, 'zzz')).toEqual([])
   })

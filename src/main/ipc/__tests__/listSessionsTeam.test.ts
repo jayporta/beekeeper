@@ -21,7 +21,7 @@ async function writeScoutInProject(sessionId: string): Promise<void> {
 
 /** Lists the test project's sessions with `deps` and maps each session id to its team entry. */
 async function readTeams(
-  deps: Pick<IpcDeps, 'projectsRoot' | 'summaryCache' | 'summaries'> = ctx.deps
+  deps: Pick<IpcDeps, 'projectsRoot' | 'summaryCache' | 'summaries' | 'agentTerms'> = ctx.deps
 ): Promise<Map<string, SessionTeamDto | null>> {
   const result = await listSessionsHandler(deps, { projectDirName: TEST_PROJECT })
 

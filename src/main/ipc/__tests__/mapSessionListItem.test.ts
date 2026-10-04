@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 import { err, ok } from '../../../core/shared/result'
 import { toProjectDirName, toSessionId } from '../../../core/transcript/ids'
 import type { SessionSummary } from '../../../core/transcript/summary/sessionSummary'
+import { NO_AGENT_TERMS } from '../../../core/session/agentSearchTerms'
 import { buildSessionSummary } from '../../../core/transcript/summary/testSessionSummary'
 import { mapSessionListItem, type ScannedSession } from '../mapSessionListItem'
 
@@ -22,7 +23,8 @@ function scanned(summary: ScannedSession['summary']): ScannedSession {
       transcript: ok({ path: '/x/s.jsonl', mtimeMs: 10, size: 20 }),
       subagents: ok([])
     },
-    summary
+    summary,
+    agentTerms: NO_AGENT_TERMS
   }
 }
 
@@ -102,6 +104,38 @@ describe('mapSessionListItem', () => {
     expect(summary.ok).toBe(true)
     if (!summary.ok) return
     expect(Object.keys(summary.value)).not.toContain('futureField')
+  })
+
+  it('copies the agent terms and the truncation flag, and only the three term fields', () => {
+    const withTerms: ScannedSession = {
+      ...scanned(ok(SUMMARY)),
+      agentTerms: {
+        terms: [{ name: 'scout', description: null, agentType: 'Explore', extra: 1 } as never],
+        truncated: true
+      }
+    }
+
+    const item = mapSessionListItem(withTerms, null)
+
+    expect(item.agentTerms).toEqual([{ name: 'scout', description: null, agentType: 'Explore' }])
+    expect(item.agentTermsTruncated).toBe(true)
+  })
+
+  it('sends no agent terms for a session whose transcript could not be read', () => {
+    const failed: ScannedSession = {
+      ...scanned(ok(SUMMARY)),
+      entry: {
+        sessionId: toSessionId('11111111-1111-4111-8111-111111111111'),
+        transcript: err({ reason: 'unreadable', code: 'ENOENT' }),
+        subagents: ok([])
+      },
+      agentTerms: { terms: [{ name: 'x', description: null, agentType: null }], truncated: true }
+    }
+
+    const item = mapSessionListItem(failed, null)
+
+    expect(item.agentTerms).toEqual([])
+    expect(item.agentTermsTruncated).toBe(false)
   })
 
   it('reports an unreadable summary as an error code', () => {
