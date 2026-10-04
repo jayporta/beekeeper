@@ -4,11 +4,11 @@ import {
   useFirstRunStore
 } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { OverviewPlaceholder } from '@renderer/features/navigation/OverviewPlaceholder'
-import { SessionPlaceholder } from '@renderer/features/navigation/SessionPlaceholder'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { FolderGoneStatus } from '@renderer/features/projects/FolderGoneStatus'
 import { ProjectsGate } from '@renderer/features/projects/ProjectsGate'
 import { useForgetUnlistedSelection } from '@renderer/features/projects/state/useForgetUnlistedSelection'
+import { SessionDetailView } from '@renderer/features/sessionDetail/SessionDetailView'
 import { SessionsView } from '@renderer/features/sessions/SessionsView'
 import { useResetNavigationOnProjectChange } from './useResetNavigationOnProjectChange'
 
@@ -46,7 +46,7 @@ export function MainView(): React.JSX.Element {
       <ProjectsGate>
         {view === 'overview' && <OverviewPlaceholder />}
         {view === 'sessions' && <SessionsView />}
-        {view === 'session' && <SessionPlaceholder />}
+        {view === 'session' && <SessionDetailView />}
       </ProjectsGate>
     </>
   )

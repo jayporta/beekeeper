@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
+import { testDetail } from '@renderer/features/sessionDetail/testSessionDetail'
 import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
 import { useSessionsViewStore } from '../state/useSessionsViewStore'
@@ -64,7 +65,8 @@ afterEach(async () => {
 function showSessions(sessions: readonly SessionListItemDto[] = SESSIONS): void {
   installBeekeeperApi({
     listProjects: () => Promise.resolve({ ok: true, value: [testProject(DIR)] }),
-    listSessions: () => Promise.resolve({ ok: true, value: sessions })
+    listSessions: () => Promise.resolve({ ok: true, value: sessions }),
+    getSession: () => Promise.resolve({ ok: true, value: testDetail() })
   })
   renderApp()
 }
@@ -411,7 +413,7 @@ describe('session cards: opening a session', () => {
     title.focus()
     await userEvent.keyboard('{Enter}')
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Session' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Refactor parser' })).toBeTruthy()
     expect(useNavigationStore.getState()).toMatchObject({
       view: 'session',
       selectedSessionRef: testRef(1, DIR),
@@ -426,7 +428,7 @@ describe('session cards: opening a session', () => {
     chip.focus()
     await userEvent.keyboard('{Enter}')
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Session' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Refactor parser' })).toBeTruthy()
     expect(useNavigationStore.getState()).toMatchObject({
       selectedSessionRef: testRef(1, DIR),
       selectedAgent: { kind: 'teammate', ref: testRef(3, OTHER) }

@@ -3,12 +3,16 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
+import { testDetail } from '@renderer/features/sessionDetail/testSessionDetail'
 import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
 
 beforeEach(() => {
   useFirstRunStore.setState({ dismissed: true })
-  installBeekeeperApi({ listSessions: () => Promise.resolve({ ok: true, value: [] }) })
+  installBeekeeperApi({
+    listSessions: () => Promise.resolve({ ok: true, value: [] }),
+    getSession: () => Promise.resolve({ ok: true, value: testDetail() })
+  })
 })
 
 afterEach(async () => {
