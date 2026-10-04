@@ -368,6 +368,17 @@ describe('a gone folder that comes back', () => {
     })
   })
 
+  it('brings back the search box and its match count once Retry loads its sessions', async () => {
+    useSessionsViewStore.setState({ query: 'Alpha' })
+    const { retry } = await renderGoneThenBack()
+    expect(screen.queryByRole('searchbox')).toBeNull()
+
+    await retry()
+
+    expect(await screen.findByRole('searchbox', { name: 'Search sessions' })).toBeTruthy()
+    expect(await screen.findByText('1 session matches')).toBeTruthy()
+  })
+
   it('does not say the folder is gone when a later list puts another project first', async () => {
     const { client, retry, listBetaFirst } = await renderGoneThenBack()
     await retry()
