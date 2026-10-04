@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { IpcResult } from '../../../../../shared/ipc/ipcResult'
@@ -62,6 +62,13 @@ beforeEach(() => {
 })
 
 afterEach(resetPersistedState)
+
+/** Waits so a change that would follow can happen, before an assertion that nothing did. */
+async function settleFor(ms: number): Promise<void> {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, ms))
+  })
+}
 
 /** The announcement text, or `null` when the app has said nothing about a gone folder. */
 const goneNotice = (): HTMLElement | null => screen.queryByText(/^The folder .* no longer exists\./)
@@ -356,5 +363,35 @@ describe('a gone folder that comes back', () => {
 
     expect(goneNotice()).toBeNull()
     expect(await screen.findByRole('heading', { level: 1, name: ALPHA })).toBeTruthy()
+  })
+})
+
+describe('a folder that went missing and later came back', () => {
+  it('can be chosen again from the sidebar without a false notice, while its old error is still cached', async () => {
+    useSelectedProjectStore.setState({ selectedDirName: ALPHA })
+    const client = createTestQueryClient()
+    let alphaGone = false
+    let listed = [testProject(ALPHA), testProject(BETA)]
+    installBeekeeperApi({
+      listProjects: () => projects(...listed),
+      listSessions: (dirName) =>
+        dirName === ALPHA && alphaGone ? notFound() : loaded([alphaSession, betaSession])
+    })
+    render(<App />, { wrapper: createQueryWrapper(client) })
+    await screen.findByRole('heading', { level: 2, name: 'Alpha work' })
+    alphaGone = true
+    listed = [testProject(BETA)]
+    await refetchAndSettle(client, ['sessions', ALPHA])
+    await screen.findByText(`${folderGone(ALPHA)} Showing ${BETA}.`)
+    alphaGone = false
+    listed = [testProject(BETA), testProject(ALPHA)]
+    await refetchAndSettle(client, ['projects'])
+
+    await userEvent.click(await screen.findByRole('button', { name: ALPHA }))
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Alpha work' })).toBeTruthy()
+    await settleFor(50)
+    expect(screen.getByRole('button', { name: ALPHA }).getAttribute('aria-current')).toBe('page')
+    expect(goneNotice()).toBeNull()
   })
 })

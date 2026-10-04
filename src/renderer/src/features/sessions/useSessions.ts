@@ -25,7 +25,10 @@ export function useSessions(dirName: string): UseQueryResult<readonly SessionLis
     queryKey: ['sessions', dirName],
     queryFn: async () => unwrapIpcResult(await window.beekeeper.listSessions(dirName))
   })
-  const folderGone = query.isError && IpcCallError.codeOf(query.error) === 'not-found'
+  // A refetch keeps the status and error of the failure before it, so a not-found
+  // counts only once no fetch is in flight and the error is this load's own.
+  const folderGone =
+    query.isError && !query.isFetching && IpcCallError.codeOf(query.error) === 'not-found'
 
   // `errorUpdatedAt` changes with every failed load, so a not-found that follows
   // another one (the query keeps its error status and data between them) runs this again.
