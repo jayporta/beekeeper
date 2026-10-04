@@ -367,15 +367,22 @@ describe('a gone folder that comes back', () => {
 })
 
 describe('a folder that went missing and later came back', () => {
-  it('can be chosen again from the sidebar without a false notice, while its old error is still cached', async () => {
+  /**
+   * Loads ALPHA's sessions, lets ALPHA go missing so the view falls back to BETA,
+   * then lists ALPHA again behind BETA, with ALPHA's sessions answered by
+   * `alphaAnswer`. ALPHA's old `not-found` error is still cached.
+   */
+  async function renderBackBehindBeta(alphaAnswer: () => Promise<SessionsResult>): Promise<void> {
     useSelectedProjectStore.setState({ selectedDirName: ALPHA })
     const client = createTestQueryClient()
     let alphaGone = false
     let listed = [testProject(ALPHA), testProject(BETA)]
     installBeekeeperApi({
       listProjects: () => projects(...listed),
-      listSessions: (dirName) =>
-        dirName === ALPHA && alphaGone ? notFound() : loaded([alphaSession, betaSession])
+      listSessions: (dirName) => {
+        if (dirName !== ALPHA) return loaded([betaSession])
+        return alphaGone ? notFound() : alphaAnswer()
+      }
     })
     render(<App />, { wrapper: createQueryWrapper(client) })
     await screen.findByRole('heading', { level: 2, name: 'Alpha work' })
@@ -386,6 +393,10 @@ describe('a folder that went missing and later came back', () => {
     alphaGone = false
     listed = [testProject(BETA), testProject(ALPHA)]
     await refetchAndSettle(client, ['projects'])
+  }
+
+  it('can be chosen again from the sidebar without a false notice, while its old error is still cached', async () => {
+    await renderBackBehindBeta(() => loaded([alphaSession, betaSession]))
 
     await userEvent.click(await screen.findByRole('button', { name: ALPHA }))
 
@@ -393,5 +404,30 @@ describe('a folder that went missing and later came back', () => {
     await settleFor(50)
     expect(screen.getByRole('button', { name: ALPHA }).getAttribute('aria-current')).toBe('page')
     expect(goneNotice()).toBeNull()
+  })
+
+  it('shows loading, not the not-found alert, while the returned folder reloads', async () => {
+    let settle: (result: SessionsResult) => void = () => undefined
+    const held = new Promise<SessionsResult>((resolve) => {
+      settle = resolve
+    })
+    let calls = 0
+    await renderBackBehindBeta(() => {
+      calls += 1
+      return calls === 1 ? loaded([alphaSession, betaSession]) : held
+    })
+
+    await userEvent.click(await screen.findByRole('button', { name: ALPHA }))
+
+    expect(await screen.findByRole('heading', { name: 'Loading sessions' })).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: 'Project folder not found' })).toBeNull()
+    expect(screen.queryByRole('alert')).toBeNull()
+
+    await act(async () => {
+      settle({ ok: true, value: [alphaSession] })
+      await Promise.resolve()
+    })
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Alpha work' })).toBeTruthy()
   })
 })

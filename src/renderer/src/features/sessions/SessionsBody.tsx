@@ -12,6 +12,8 @@ interface SessionsBodyProps {
   readonly error: unknown
   /** When the last load failed, in milliseconds. It changes with each failed load, so a repeated `not-found` mounts a new alert. */
   readonly errorUpdatedAt: number
+  /** Whether a load is in flight. A `not-found` error shows loading while one is, since it is the error of the load before. */
+  readonly isFetching: boolean
   /** Loads the list again. */
   readonly onRetry: () => void
   /** Whether any session matches the search. */
@@ -28,9 +30,11 @@ interface SessionsBodyProps {
  * state has its own key, so an alert mounts fresh instead of reusing the
  * loading element, and screen readers announce it. The `not-found` key also
  * changes with each failed load, so a repeat after Retry is announced again.
+ * While a load of that folder is in flight, its old `not-found` is not shown:
+ * loading is, so a folder that came back doesn't flash the alert.
  *
  * @example
- * <SessionsBody data={data} error={null} errorUpdatedAt={0} onRetry={retry} hasMatches>
+ * <SessionsBody data={data} error={null} errorUpdatedAt={0} isFetching={false} onRetry={retry} hasMatches>
  *   <SessionCardList rows={rows} labelledBy={headingId} selectedDirName="-Users-me-repo" query="" />
  * </SessionsBody>
  */
@@ -38,6 +42,7 @@ export function SessionsBody({
   data,
   error,
   errorUpdatedAt,
+  isFetching,
   onRetry,
   hasMatches,
   children
@@ -45,8 +50,12 @@ export function SessionsBody({
   const { t } = useTranslation(['sessions', 'common'])
 
   const code = IpcCallError.codeOf(error)
+  const loading = (
+    <StatusMessage key="loading" heading={t('loading')} headingLevel={2} role="status" />
+  )
 
   if (code === 'not-found') {
+    if (isFetching) return loading
     return (
       <StatusMessage
         key={`not-found-${errorUpdatedAt}`}
@@ -61,9 +70,7 @@ export function SessionsBody({
   }
 
   if (data === undefined) {
-    if (error === null) {
-      return <StatusMessage key="loading" heading={t('loading')} headingLevel={2} role="status" />
-    }
+    if (error === null) return loading
     if (code === 'unreadable') {
       return (
         <StatusMessage
