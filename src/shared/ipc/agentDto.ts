@@ -42,7 +42,15 @@ export interface FileTouchDto {
   readonly source: 'edit-write' | 'bash'
 }
 
-/** One agent's usage and file touches. */
+/** The span between an agent's first and last timestamped assistant messages. */
+export interface AgentActivityDto {
+  /** The earliest message timestamp, in epoch milliseconds. */
+  readonly earliestMs: number
+  /** The latest message timestamp, in epoch milliseconds. */
+  readonly latestMs: number
+}
+
+/** One agent's usage, file touches, and activity span. */
 export interface AgentReportDto {
   /** Tokens by model and speed. */
   readonly tokenGroups: readonly TokenGroupDto[]
@@ -67,6 +75,11 @@ export interface AgentReportDto {
    * result only truncated its diff hunks.
    */
   readonly fileListIncomplete: boolean
+  /**
+   * The span of its own assistant messages, or `null` when none has a usable
+   * timestamp. A fork's copies of the lead's messages don't count.
+   */
+  readonly activity: AgentActivityDto | null
 }
 
 /** The subagent meta fields the renderer may see. Unknown fields are dropped. */

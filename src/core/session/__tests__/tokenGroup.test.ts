@@ -11,6 +11,8 @@ function entry(overrides: Partial<LedgerEntry> = {}): LedgerEntry {
     model: 'claude-sonnet-5',
     speed: undefined,
     tokens: { ...emptyTokenCounts, input: 1_000_000 },
+    earliestMs: null,
+    latestMs: null,
     ...overrides
   }
 }

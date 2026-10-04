@@ -44,6 +44,24 @@ describe('collectAgentReports', () => {
     expect(reports[0]?.tokens).toMatchObject({ input: 5, output: 10 })
   })
 
+  it("carries a record's timestamp on its report as epoch milliseconds", async () => {
+    const { reports } = await collectAgentReports(
+      recordsOf(ok(buildAssistantRecord({ timestamp: '2026-01-01T00:00:01.500Z' }))),
+      leadIdentity
+    )
+
+    expect(reports[0]?.timestampMs).toBe(Date.parse('2026-01-01T00:00:01.500Z'))
+  })
+
+  it('reports a null timestamp for a record whose timestamp is not a date', async () => {
+    const { reports } = await collectAgentReports(
+      recordsOf(ok(buildAssistantRecord({ timestamp: 'not a date' }))),
+      leadIdentity
+    )
+
+    expect(reports[0]?.timestampMs).toBeNull()
+  })
+
   it('counts a skipped-line result without producing a report', async () => {
     const { reports, skippedLines } = await collectAgentReports(
       recordsOf(err({ reason: 'invalid-json' })),

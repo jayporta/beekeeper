@@ -1,0 +1,48 @@
+import type { PersistedClient, Persister } from '@tanstack/react-query-persist-client'
+
+/**
+ * Summarizes which persisted queries a client holds and the state each is
+ * in. The client's own `timestamp` is left out: it changes on every save, so
+ * it would make every client look new.
+ */
+function fingerprintOf(client: PersistedClient): string {
+  return JSON.stringify(
+    client.clientState.queries.map(({ queryHash, state }) => [
+      queryHash,
+      state.dataUpdatedAt,
+      state.errorUpdatedAt,
+      state.status
+    ])
+  )
+}
+
+/**
+ * Wraps a persister so a save is skipped when the persisted queries are
+ * unchanged since the last save. The persist provider dehydrates and saves on
+ * every cache event, so without this a query that is never persisted (such as
+ * a session's detail) would rewrite the whole saved cache each time it
+ * updates.
+ *
+ * Removing the saved cache forgets the last save, so the next one always
+ * writes.
+ *
+ * @param persister - The persister that does the saving.
+ * @returns A persister that saves only when a persisted query has changed.
+ */
+export function skipUnchangedSaves(persister: Persister): Persister {
+  let lastSaved: string | undefined
+
+  return {
+    persistClient(client) {
+      const fingerprint = fingerprintOf(client)
+      if (fingerprint === lastSaved) return
+      lastSaved = fingerprint
+      return persister.persistClient(client)
+    },
+    restoreClient: () => persister.restoreClient(),
+    removeClient() {
+      lastSaved = undefined
+      return persister.removeClient()
+    }
+  }
+}

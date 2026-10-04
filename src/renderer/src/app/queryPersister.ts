@@ -2,6 +2,7 @@ import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persi
 import type { PersistedClient, Persister } from '@tanstack/react-query-persist-client'
 import { idbStorage } from '@renderer/storage/idbStorage'
 import { keepFreshSavedQueries } from './keepFreshSavedQueries'
+import { skipUnchangedSaves } from './skipUnchangedSaves'
 import { toCachedQueryState } from './toCachedQueryState'
 
 /** The storage the persister saves to: anything with async string `getItem`, `setItem` and `removeItem`. */
@@ -72,16 +73,20 @@ export function logPersistError(): void {
 /**
  * Creates the persister that saves the query cache to IndexedDB. A failed
  * save is logged once and given up on, so the app keeps working without it.
+ * A save is skipped when the persisted queries haven't changed since the last
+ * one.
  *
  * @param storage - Where to save. Defaults to the app's IndexedDB adapter.
  * @returns The persister.
  */
 export function createQueryPersister(storage: PersisterStorage = idbStorage): Persister {
-  return createAsyncStoragePersister({
-    storage,
-    key: QUERY_CACHE_KEY,
-    retry: giveUpOnSave,
-    serialize: serializeClient,
-    deserialize: parseSavedCache
-  })
+  return skipUnchangedSaves(
+    createAsyncStoragePersister({
+      storage,
+      key: QUERY_CACHE_KEY,
+      retry: giveUpOnSave,
+      serialize: serializeClient,
+      deserialize: parseSavedCache
+    })
+  )
 }

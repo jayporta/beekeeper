@@ -41,6 +41,28 @@ describe('createQueryPersister', () => {
     expect(message).toBe('Beekeeper could not save its query cache to IndexedDB.')
   })
 
+  it('writes the storage once for two saves of the same persisted queries', async () => {
+    const setItem = vi.fn(() => Promise.resolve())
+    const storage = { ...memoryStorage(), setItem }
+    const persister = createQueryPersister(storage)
+    const client = new QueryClient()
+    client.setQueryData(['sessions', '-p'], ['a'])
+    const save = (): Promise<void> =>
+      Promise.resolve(
+        persister.persistClient({
+          timestamp: Date.now(),
+          buster: 'b',
+          clientState: dehydrate(client, { shouldDehydrateQuery: shouldPersistQuery })
+        })
+      )
+    await save()
+
+    client.setQueryData(['session', '-p', 's1'], { id: 's1' })
+    await save()
+
+    expect(setItem).toHaveBeenCalledTimes(1)
+  })
+
   it('saves and restores a client through the storage it is given', async () => {
     const persister = createQueryPersister(memoryStorage())
 
