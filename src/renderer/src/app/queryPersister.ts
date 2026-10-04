@@ -72,10 +72,10 @@ export function logPersistError(): void {
 
 /**
  * Creates the persister that saves the query cache to IndexedDB. A failed
- * save is logged once and given up on, so the app keeps working without it,
- * and the next cache event tries again.
- * A save is skipped when the persisted queries haven't changed since the last
- * successful one.
+ * save is logged once and given up on, so the app keeps working without it.
+ * The next cache event tries again, so while saves keep failing, every cache
+ * event retries and logs, at most once a second. Otherwise a save is skipped
+ * when the persisted queries haven't changed since the last one.
  *
  * @param storage - Where to save. Defaults to the app's IndexedDB adapter.
  * @returns The persister.

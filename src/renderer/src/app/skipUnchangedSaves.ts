@@ -21,13 +21,15 @@ function fingerprintOf(client: PersistedClient): string {
 
 /**
  * Wraps a persister so a save is skipped when the persisted queries are
- * unchanged since the last save. The persist provider dehydrates and saves on
+ * unchanged since the last save started. A skipped save resolves at once,
+ * without waiting for the save it matches. The persist provider dehydrates and saves on
  * every cache event, so without this a query that is never persisted (such as
  * a session's detail) would rewrite the whole saved cache each time it
  * updates.
  *
  * Removing the saved cache, or a failed save, forgets the last save, so the
- * next one always writes.
+ * next one always writes, even when only a query that is never persisted
+ * changed.
  *
  * @param createPersister - Creates the persister that does the saving, given
  * the callback it calls when a save fails.
