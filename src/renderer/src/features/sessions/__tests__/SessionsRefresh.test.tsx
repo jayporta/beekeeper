@@ -7,6 +7,7 @@ import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDt
 import { LISTS_STALE_TIME_MS } from '@renderer/app/listsStaleTime'
 import { registerWindowFocusRefetch } from '@renderer/app/windowFocusRefetch'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
+import { goneNoticeParts } from '@renderer/features/projects/testGoneNotice'
 import { installBeekeeperApi, testProject, type TestBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { createQueryWrapper } from '@renderer/testQueryWrapper'
 import { resetPersistedState } from '@renderer/testRenderApp'
@@ -161,8 +162,10 @@ describe('refreshing the lists on window focus', () => {
   it('resets the selected project when a refetch finds its folder gone', async () => {
     let otherGone = false
     await showSessions(
-      () =>
-        otherGone ? Promise.resolve({ ok: false, error: { code: 'not-found' } }) : loaded([lead]),
+      (dirName) =>
+        otherGone && dirName === OTHER
+          ? Promise.resolve({ ok: false, error: { code: 'not-found' } })
+          : loaded([lead]),
       [testProject(DIR), testProject(OTHER)]
     )
     await userEvent.click(await screen.findByRole('button', { name: OTHER }))
@@ -174,6 +177,9 @@ describe('refreshing the lists on window focus', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: DIR }).getAttribute('aria-current')).toBe('page')
     })
+    expect(
+      goneNoticeParts(`The folder ${OTHER} no longer exists. Showing ${DIR}.`).announced
+    ).toBeTruthy()
   })
 })
 

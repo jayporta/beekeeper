@@ -27,7 +27,9 @@ describe('ProjectsGate states', () => {
     installBeekeeperApi({ listProjects: () => new Promise(() => undefined) })
     renderApp()
 
-    expect((await screen.findByRole('status')).textContent).toContain('Loading projects')
+    const heading = await screen.findByRole('heading', { name: 'Loading projects' })
+
+    expect(heading.closest('[role="status"]')).not.toBeNull()
   })
 
   it('explains an empty result', async () => {
@@ -54,13 +56,16 @@ describe('ProjectsGate states', () => {
     let resolve: (value: IpcResult<readonly ProjectDto[]>) => void = () => undefined
     installBeekeeperApi({ listProjects: () => new Promise((r) => (resolve = r)) })
     renderApp()
-    const loading = await screen.findByRole('status')
+    const loading = (await screen.findByRole('heading', { name: 'Loading projects' })).closest(
+      '[role="status"]'
+    )
 
     resolve({ ok: false, error: { code: 'unreadable' } })
     const alert = await screen.findByRole('alert')
 
+    expect(loading).not.toBeNull()
     expect(alert).not.toBe(loading)
-    expect(loading.isConnected).toBe(false)
+    expect(loading?.isConnected).toBe(false)
   })
 
   it('shows a generic error with Retry for any other code, and Retry loads again', async () => {

@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+import { MAIN_HEADING_ID } from '../mainHeading'
 import { StatusMessage } from '../StatusMessage'
 
 describe('StatusMessage', () => {
@@ -24,5 +25,18 @@ describe('StatusMessage', () => {
     render(<StatusMessage heading="Loading" role="status" />)
 
     expect(screen.getByRole('status')).toBeTruthy()
+  })
+
+  it('gives a level 2 heading and the body the ids it is given', () => {
+    render(<StatusMessage heading="Gone" headingLevel={2} headingId="h" body="Why." bodyId="b" />)
+
+    expect(screen.getByRole('heading', { name: 'Gone' }).id).toBe('h')
+    expect(screen.getByText('Why.').id).toBe('b')
+  })
+
+  it('keeps a level 1 heading on the main heading id, whatever heading id is given', () => {
+    render(<StatusMessage heading="Gone" headingId="h" />)
+
+    expect(screen.getByRole('heading', { name: 'Gone' }).id).toBe(MAIN_HEADING_ID)
   })
 })

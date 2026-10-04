@@ -64,6 +64,10 @@
     "heading": "Can't read this project's sessions",
     "body": "Beekeeper can't read this project's folder. Check its permissions, then retry."
   },
+  "notFound": {
+    "heading": "Project folder not found",
+    "body": "This project's folder no longer exists in ~/.claude/projects."
+  },
   "error": "Beekeeper couldn't load this project's sessions.",
   "emptyProject": {
     "heading": "No sessions in this project",

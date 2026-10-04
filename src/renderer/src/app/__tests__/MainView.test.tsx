@@ -1,4 +1,4 @@
-import { act, screen } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
@@ -101,5 +101,20 @@ describe('MainView', () => {
     })
 
     expect(await screen.findByRole('heading', { level: 1, name: '-Users-a-two' })).toBeTruthy()
+  })
+
+  it('keeps the same gone-folder status in the page while the first-run screen closes', async () => {
+    useFirstRunStore.setState({ dismissed: false })
+    renderApp()
+    await screen.findByRole('heading', { level: 1, name: 'Welcome to Beekeeper' })
+    const statusRegion = (): HTMLElement | undefined =>
+      within(screen.getByRole('main')).queryAllByRole('status')[0]
+    const before = statusRegion()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Got it' }))
+    await screen.findByRole('heading', { level: 1, name: '-Users-a-repo' })
+
+    expect(before).toBeDefined()
+    expect(statusRegion()).toBe(before)
   })
 })

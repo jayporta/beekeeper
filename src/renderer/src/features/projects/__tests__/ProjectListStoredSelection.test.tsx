@@ -77,13 +77,21 @@ describe('ProjectList with a stored selection', () => {
     expect(useSelectedProjectStore.getState().selectedDirName).toBeNull()
   })
 
+  it('does not restore a stored missing folder', async () => {
+    await seed(storedSelection(ALPHA, { goneDirName: '-Users-gone' }))
+
+    await renderLoaded()
+
+    expect(useSelectedProjectStore.getState().goneDirName).toBeNull()
+  })
+
   it('keeps the store actions when the stored value has keys of the same name', async () => {
-    await seed(storedSelection(ALPHA, { select: 'x', resetSelection: 'y' }))
+    await seed(storedSelection(ALPHA, { select: 'x', forgetGoneFolder: 'y' }))
     const nav = await renderLoaded()
 
     await userEvent.click(within(nav).getByRole('button', { name: BETA }))
 
     expect(useSelectedProjectStore.getState().selectedDirName).toBe(BETA)
-    expect(typeof useSelectedProjectStore.getState().resetSelection).toBe('function')
+    expect(typeof useSelectedProjectStore.getState().forgetGoneFolder).toBe('function')
   })
 })

@@ -80,16 +80,18 @@ describe('SessionsView search', () => {
 })
 
 /**
- * The search results live region: the status region with no heading of its own,
- * outside the page heading, which holds the refresh button's status.
+ * The search results live region: the last status region with no heading of its
+ * own, outside the page heading, which holds the refresh button's status. The
+ * gone-folder region is another one, mounted before the sessions view.
  */
 const searchStatus = (): HTMLElement | undefined =>
   screen
     .getAllByRole('status')
-    .find(
+    .filter(
       (region) =>
         within(region).queryByRole('heading') === null && region.closest('header') === null
     )
+    .at(-1)
 
 describe('SessionsView search announcements', () => {
   it('has an empty polite status region before anything is typed', async () => {
@@ -185,9 +187,7 @@ describe('SessionsContent with an unreadable folder', () => {
     })
     render(<SessionsContent dirName={DIR} headingId="h" />, { wrapper: createQueryWrapper() })
 
-    const alert = await screen.findByRole('alert')
-
-    expect(within(alert).getByRole('button', { name: 'Retry' })).toBeTruthy()
+    expect(await screen.findByRole('button', { name: 'Retry' })).toBeTruthy()
   })
 
   it('mounts the alert fresh rather than turning the loading message into it', async () => {

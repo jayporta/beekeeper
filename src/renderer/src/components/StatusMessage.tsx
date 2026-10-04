@@ -11,8 +11,12 @@ interface StatusMessageProps {
    * @defaultValue 1
    */
   readonly headingLevel?: 1 | 2
+  /** The id of a level 2 heading, so another element can name itself by it. A level 1 heading ignores it. */
+  readonly headingId?: string
   /** One or two sentences of explanation. */
   readonly body?: string
+  /** The id of the body, so another element can describe itself by it. */
+  readonly bodyId?: string
   /**
    * The live-region role, for a message that appears without the person asking.
    * @defaultValue No role.
@@ -32,17 +36,23 @@ interface StatusMessageProps {
 export function StatusMessage({
   heading,
   headingLevel = 1,
+  headingId,
   body,
+  bodyId,
   role,
   children
 }: StatusMessageProps): React.JSX.Element {
   const Heading = headingLevel === 1 ? 'h1' : 'h2'
   return (
     <div className={styles.message} role={role}>
-      <Heading id={headingLevel === 1 ? MAIN_HEADING_ID : undefined} className={styles.heading}>
+      <Heading id={headingLevel === 1 ? MAIN_HEADING_ID : headingId} className={styles.heading}>
         {heading}
       </Heading>
-      {body !== undefined && <p className={styles.body}>{body}</p>}
+      {body !== undefined && (
+        <p id={bodyId} className={styles.body}>
+          {body}
+        </p>
+      )}
       {children}
     </div>
   )

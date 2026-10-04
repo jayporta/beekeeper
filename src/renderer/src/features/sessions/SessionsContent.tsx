@@ -1,6 +1,7 @@
 import { useDeferredValue, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SelectedProjectHeading } from '@renderer/features/projects/SelectedProjectHeading'
+import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import { countMatches } from './countMatches'
 import { filterRows } from './filterRows'
 import { groupSessionRows } from './groupSessionRows'
@@ -24,7 +25,8 @@ interface SessionsContentProps {
 /**
  * The sessions view for one folder: the project header with the search box and
  * refresh button, the live region that announces search results, and the
- * list. The search box shows only once a non-empty list has loaded. The region
+ * list. The search box shows only once a non-empty list has loaded, and not
+ * while the folder is gone. The region
  * is mounted in every state, so its text changes while it is mounted and is
  * announced.
  *
@@ -33,15 +35,17 @@ interface SessionsContentProps {
  */
 export function SessionsContent({ dirName, headingId }: SessionsContentProps): React.JSX.Element {
   const { t } = useTranslation('sessions')
-  const { data, error, refetch } = useSessions(dirName)
+  const { data, error, errorUpdatedAt, isFetching, refetch } = useSessions(dirName)
   const typed = useSessionsViewStore((state) => state.query)
   // Filtering waits on the deferred text, and the list is memoized, so typing stays responsive.
   const query = useDeferredValue(typed)
   const rows = useMemo(() => (data === undefined ? [] : groupSessionRows(data, t)), [data, t])
   const matching = useMemo(() => filterRows(rows, query), [rows, query])
   const matchCount = useMemo(() => countMatches(rows, query), [rows, query])
-  const searchable = data !== undefined && data.length > 0
-  // An empty folder shows no search box, so a leftover query isn't a search.
+  // A gone folder's cached list is hidden behind its alert, so it isn't searchable.
+  const gone = IpcCallError.codeOf(error) === 'not-found'
+  const searchable = !gone && data !== undefined && data.length > 0
+  // An empty or gone folder shows no search box, so a leftover query isn't a search.
   const searching = searchable && normalizeQuery(query) !== ''
 
   return (
@@ -59,6 +63,8 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
       <SessionsBody
         data={data}
         error={error}
+        errorUpdatedAt={errorUpdatedAt}
+        isFetching={isFetching}
         onRetry={() => {
           void refetch()
         }}

@@ -44,8 +44,8 @@ describe('createQueryClient', () => {
       focusManager.setFocused(undefined)
     })
 
-    /** What one load of the list query returns: its rows, or a failure. */
-    type Load = readonly unknown[] | 'error'
+    /** What one load of the list query returns: its rows, or a failure (`not-found` is a folder that is gone). */
+    type Load = readonly unknown[] | 'error' | 'not-found'
 
     /**
      * Mounts a list query that settles with each of `loads` in turn, ages it, and
@@ -65,7 +65,9 @@ describe('createQueryClient', () => {
         queryFn: () => {
           const load = loads[Math.min(calls, loads.length - 1)]
           calls += 1
-          return load === 'error' ? Promise.reject(new Error('boom')) : Promise.resolve(load)
+          if (load === 'error') return Promise.reject(new Error('boom'))
+          if (load === 'not-found') return Promise.reject(new IpcCallError('not-found'))
+          return Promise.resolve(load)
         }
       })
       const unsubscribe = observer.subscribe(() => undefined)
@@ -114,6 +116,16 @@ describe('createQueryClient', () => {
     it('refetches when a sessions list failed and has no rows, since the page shows its empty state', async () => {
       expect(await refetchesOnFocus(['sessions', 'x'], [[], 'error'])).toBe(1)
     })
+
+    it.each([
+      ['rows', [['row'], 'not-found']],
+      ['no rows', [[], 'not-found']]
+    ] as const)(
+      'waits for an explicit retry when a sessions list that held %s found its folder gone, since the page shows an alert',
+      async (_label, loads) => {
+        expect(await refetchesOnFocus(['sessions', 'x'], loads)).toBe(0)
+      }
+    )
   })
 
   it('leaves the default gcTime alone, so a query outside the persisted roots uses the stock one', () => {
