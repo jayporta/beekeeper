@@ -1,5 +1,6 @@
 import type { IpcResult } from './ipcResult'
 import type { ProjectDto } from './projectDto'
+import type { ProjectTotalsDto, TotalsWindowDto } from './projectTotalsDto'
 import type { SessionDetailDto } from './sessionDetailDto'
 import type { SessionListItemDto } from './sessionListDto'
 import type { WorktreeDiffsDto } from './worktreeDiffDto'
@@ -34,4 +35,15 @@ export interface BeekeeperApi {
    * @returns The diffs, with `git` saying whether git was usable, or `not-found` when the project or session is gone.
    */
   getWorktreeDiffs(projectDirName: string, sessionId: string): Promise<IpcResult<WorktreeDiffsDto>>
+
+  /**
+   * Adds up one project folder's own sessions over a window, from the summaries it reads.
+   * @param projectDirName - A folder name from {@link BeekeeperApi.listProjects}.
+   * @param window - How far back to count: `7d` or `30d`.
+   * @returns The folder's totals, or `not-found` for an unknown project. A worktree folder is its own project here, so a project with worktrees sums them.
+   */
+  getProjectTotals(
+    projectDirName: string,
+    window: TotalsWindowDto
+  ): Promise<IpcResult<ProjectTotalsDto>>
 }
