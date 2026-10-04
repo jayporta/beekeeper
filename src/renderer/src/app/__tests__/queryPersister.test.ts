@@ -6,6 +6,7 @@ import { shouldPersistQuery } from '../shouldPersistQuery'
 
 afterEach(() => {
   vi.restoreAllMocks()
+  vi.useRealTimers()
 })
 
 /** An in-memory stand-in for the persister's storage. */
@@ -39,6 +40,23 @@ describe('createQueryPersister', () => {
     expect(log).toHaveBeenCalledTimes(1)
     const [message] = log.mock.calls[0] ?? []
     expect(message).toBe('Beekeeper could not save its query cache to IndexedDB.')
+  })
+
+  it('saves the same persisted queries again after a save fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    // Only Date is faked: moving it past the throttle interval lets the retry run at once.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    const setItem = vi
+      .fn<() => Promise<void>>()
+      .mockRejectedValueOnce(new Error('quota exceeded'))
+      .mockResolvedValue(undefined)
+    const persister = createQueryPersister({ ...memoryStorage(), setItem })
+    await persister.persistClient(CLIENT)
+
+    vi.setSystemTime(Date.now() + 1000)
+    await persister.persistClient({ ...CLIENT, timestamp: CLIENT.timestamp + 1 })
+
+    expect(setItem).toHaveBeenCalledTimes(2)
   })
 
   it('writes the storage once for two saves of the same persisted queries', async () => {
@@ -155,10 +173,6 @@ describe('createQueryPersister round trip', () => {
 describe('createQueryPersister restore of an aged cache', () => {
   const DAY_MS = 24 * 60 * 60 * 1000
   const START = Date.parse('2026-03-01T00:00:00.000Z')
-
-  afterEach(() => {
-    vi.useRealTimers()
-  })
 
   it('drops a list that passed the maximum age since it was saved, and keeps a fresh one', async () => {
     // Only Date is faked: the persister's throttle needs real timers.

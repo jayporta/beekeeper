@@ -72,19 +72,23 @@ export function logPersistError(): void {
 
 /**
  * Creates the persister that saves the query cache to IndexedDB. A failed
- * save is logged once and given up on, so the app keeps working without it.
+ * save is logged once and given up on, so the app keeps working without it,
+ * and the next cache event tries again.
  * A save is skipped when the persisted queries haven't changed since the last
- * one.
+ * successful one.
  *
  * @param storage - Where to save. Defaults to the app's IndexedDB adapter.
  * @returns The persister.
  */
 export function createQueryPersister(storage: PersisterStorage = idbStorage): Persister {
-  return skipUnchangedSaves(
+  return skipUnchangedSaves((forgetLastSave) =>
     createAsyncStoragePersister({
       storage,
       key: QUERY_CACHE_KEY,
-      retry: giveUpOnSave,
+      retry: () => {
+        forgetLastSave()
+        return giveUpOnSave()
+      },
       serialize: serializeClient,
       deserialize: parseSavedCache
     })

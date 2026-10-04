@@ -33,14 +33,14 @@ describe('skipUnchangedSaves', () => {
   it('saves the first client it is given', async () => {
     const inner = spyPersister()
 
-    await skipUnchangedSaves(inner).persistClient(snapshot(clientWithSessions()))
+    await skipUnchangedSaves(() => inner).persistClient(snapshot(clientWithSessions()))
 
     expect(inner.persistClient).toHaveBeenCalledTimes(1)
   })
 
   it('skips a save when only a query outside the persisted roots was added or updated', async () => {
     const inner = spyPersister()
-    const persister = skipUnchangedSaves(inner)
+    const persister = skipUnchangedSaves(() => inner)
     const client = clientWithSessions()
     await persister.persistClient(snapshot(client))
 
@@ -54,7 +54,7 @@ describe('skipUnchangedSaves', () => {
 
   it('skips a save whose only difference is the client timestamp', async () => {
     const inner = spyPersister()
-    const persister = skipUnchangedSaves(inner)
+    const persister = skipUnchangedSaves(() => inner)
     const client = clientWithSessions()
     await persister.persistClient(snapshot(client, 1))
 
@@ -65,7 +65,7 @@ describe('skipUnchangedSaves', () => {
 
   it('saves again when a persisted query is updated', async () => {
     const inner = spyPersister()
-    const persister = skipUnchangedSaves(inner)
+    const persister = skipUnchangedSaves(() => inner)
     const client = clientWithSessions()
     await persister.persistClient(snapshot(client))
 
@@ -77,7 +77,7 @@ describe('skipUnchangedSaves', () => {
 
   it('saves again when a persisted query gets new data stamped with the same update time', async () => {
     const inner = spyPersister()
-    const persister = skipUnchangedSaves(inner)
+    const persister = skipUnchangedSaves(() => inner)
     const client = clientWithSessions()
     await persister.persistClient(snapshot(client))
     const updatedAt = client.getQueryState(['sessions', '-p'])?.dataUpdatedAt
@@ -90,7 +90,7 @@ describe('skipUnchangedSaves', () => {
 
   it('saves again when a persisted query is added', async () => {
     const inner = spyPersister()
-    const persister = skipUnchangedSaves(inner)
+    const persister = skipUnchangedSaves(() => inner)
     const client = clientWithSessions()
     await persister.persistClient(snapshot(client))
 
@@ -102,7 +102,7 @@ describe('skipUnchangedSaves', () => {
 
   it('saves again when a persisted query is removed', async () => {
     const inner = spyPersister()
-    const persister = skipUnchangedSaves(inner)
+    const persister = skipUnchangedSaves(() => inner)
     const client = clientWithSessions()
     await persister.persistClient(snapshot(client))
 
@@ -114,7 +114,7 @@ describe('skipUnchangedSaves', () => {
 
   it('saves again when a persisted query changes status without new data', async () => {
     const inner = spyPersister()
-    const persister = skipUnchangedSaves(inner)
+    const persister = skipUnchangedSaves(() => inner)
     const client = clientWithSessions()
     await persister.persistClient(snapshot(client))
 
@@ -159,7 +159,7 @@ describe('skipUnchangedSaves', () => {
     ]
   ])('saves again when %s', async (_label, change) => {
     const inner = spyPersister()
-    const persister = skipUnchangedSaves(inner)
+    const persister = skipUnchangedSaves(() => inner)
     const client = clientWithSessions()
     const query = client.getQueryCache().find({ queryKey: ['sessions', '-p'] })
     if (query === undefined) throw new Error('the sessions query was not cached')
@@ -173,7 +173,7 @@ describe('skipUnchangedSaves', () => {
 
   it('saves an unchanged client again once the saved cache has been removed', async () => {
     const inner = spyPersister()
-    const persister = skipUnchangedSaves(inner)
+    const persister = skipUnchangedSaves(() => inner)
     const client = clientWithSessions()
     await persister.persistClient(snapshot(client))
 
@@ -183,9 +183,25 @@ describe('skipUnchangedSaves', () => {
     expect(inner.persistClient).toHaveBeenCalledTimes(2)
   })
 
+  it('saves an unchanged client again once the persister reports a failed save', async () => {
+    const inner = spyPersister()
+    let forgetLastSave = (): void => undefined
+    const persister = skipUnchangedSaves((forget) => {
+      forgetLastSave = forget
+      return inner
+    })
+    const client = clientWithSessions()
+    await persister.persistClient(snapshot(client))
+
+    forgetLastSave()
+    await persister.persistClient(snapshot(client))
+
+    expect(inner.persistClient).toHaveBeenCalledTimes(2)
+  })
+
   it('passes restore and remove through to the persister it wraps', async () => {
     const inner = spyPersister()
-    const persister = skipUnchangedSaves(inner)
+    const persister = skipUnchangedSaves(() => inner)
 
     await persister.restoreClient()
     await persister.removeClient()

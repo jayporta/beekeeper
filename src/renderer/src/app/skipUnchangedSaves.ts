@@ -26,14 +26,20 @@ function fingerprintOf(client: PersistedClient): string {
  * a session's detail) would rewrite the whole saved cache each time it
  * updates.
  *
- * Removing the saved cache forgets the last save, so the next one always
- * writes.
+ * Removing the saved cache, or a failed save, forgets the last save, so the
+ * next one always writes.
  *
- * @param persister - The persister that does the saving.
+ * @param createPersister - Creates the persister that does the saving, given
+ * the callback it calls when a save fails.
  * @returns A persister that saves only when a persisted query has changed.
  */
-export function skipUnchangedSaves(persister: Persister): Persister {
+export function skipUnchangedSaves(
+  createPersister: (forgetLastSave: () => void) => Persister
+): Persister {
   let lastSaved: string | undefined
+  const persister = createPersister(() => {
+    lastSaved = undefined
+  })
 
   return {
     persistClient(client) {
