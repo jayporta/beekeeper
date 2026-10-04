@@ -1,9 +1,0 @@
-.cell {
-  padding: var(--space-2) var(--space-3);
-  white-space: nowrap;
-}
-
-.numeric {
-  composes: cell;
-  text-align: right;
-}

@@ -50,6 +50,7 @@
   --font-heading: 'Barlow Condensed', var(--font-body);
   --font-mono: ui-monospace, Menlo, monospace;
   --line-height-body: 1.5;
+  --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --letter-spacing-caps: 0.08em;
   /* Sizes by pixel at a 16px root: 2xs 11, xs 12, sm 13, body 14, md 15, lg 18, xl 19, 2xl 24, 3xl 25, 4xl 32, 5xl 34. */
@@ -64,6 +65,8 @@
   --font-size-3xl: 1.5625rem;
   --font-size-4xl: 2rem;
   --font-size-5xl: 2.125rem;
+  /* The figure on a session card: 20px. */
+  --font-size-figure: 1.25rem;
 
   /* Spacing is N x 4px. The half steps (1-5 is 6px) and 5-5 (22px) come from the design. */
   --space-1: 0.25rem;
@@ -84,6 +87,15 @@
   --size-readable: 44rem;
   --size-search-field: 16.25rem;
   --size-target-min: 44px;
+  /* A session card's columns after the title: agents 220px, duration 90px, tokens 110px. */
+  --size-card-agents: 13.75rem;
+  --size-card-duration: 5.625rem;
+  --size-card-tokens: 6.875rem;
+  /* The agent strip's marks: a lead, teammate or subagent mark is 12px, 12px or 9px. */
+  --size-mark: 0.75rem;
+  --size-mark-subagent: 0.5625rem;
+  --border-width-mark: 1.5px;
+  --border-width-strong: 2px;
 
   --radius-none: 0;
   --radius-sm: 2px;

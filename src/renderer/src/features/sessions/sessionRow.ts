@@ -1,7 +1,7 @@
 import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
 import type { SessionLabel } from './sessionLabel'
 
-/** One row of the sessions table, with the teammates nested under it. */
+/** One row of the sessions list, with the teammates nested under it. */
 export interface SessionRow {
   /** The session's key across folders, from `sessionKey`. */
   readonly key: string

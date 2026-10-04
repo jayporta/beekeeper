@@ -4,26 +4,14 @@ import { create } from 'zustand'
 interface SessionsViewState {
   /** The search text. */
   readonly query: string
-  /** The keys of the leads whose teammates are shown. */
-  readonly expanded: ReadonlySet<string>
   /** Sets the search text. */
   setQuery: (query: string) => void
-  /** Expands a collapsed lead, or collapses an expanded one. */
-  toggle: (key: string) => void
 }
 
-/** The sessions view's search text and which leads are expanded. */
+/** The sessions view's search text. */
 export const useSessionsViewStore = create<SessionsViewState>()((set) => ({
   query: '',
-  expanded: new Set<string>(),
   setQuery: (query) => {
     set({ query })
-  },
-  toggle: (key) => {
-    set((state) => {
-      const expanded = new Set(state.expanded)
-      if (!expanded.delete(key)) expanded.add(key)
-      return { expanded }
-    })
   }
 }))
