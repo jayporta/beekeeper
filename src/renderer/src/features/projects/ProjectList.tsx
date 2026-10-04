@@ -1,6 +1,9 @@
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
+import { overviewTotals, projectTotalsOf } from '@renderer/features/overview/projectTotalsOf'
+import { SidebarTotal } from '@renderer/features/overview/SidebarTotal'
+import { useProjectTotals } from '@renderer/features/overview/useProjectTotals'
 import { groupProjects } from './groupProjects'
 import { hasProjectsToShow } from './hasProjectsToShow'
 import { ProjectRow } from './ProjectRow'
@@ -12,10 +15,11 @@ import { useProjects } from './useProjects'
 
 /**
  * The sidebar's project navigation: an "All projects" row, then a row for
- * each top-level project. The worktrees of the project in effect, or of the
- * project a selected worktree belongs to, list beneath it. Pressing a project
- * selects it and shows its sessions. Renders nothing until there is a project
- * to show, the same condition under which `ProjectsGate` shows its children.
+ * each top-level project, each with its token total for the chosen window.
+ * The worktrees of the project in effect, or of the project a selected
+ * worktree belongs to, list beneath it. Pressing a project selects it and
+ * shows its sessions. Renders nothing until there is a project to show, the
+ * same condition under which `ProjectsGate` shows its children.
  *
  * @example
  * <ProjectList />
@@ -23,6 +27,7 @@ import { useProjects } from './useProjects'
 export function ProjectList(): React.JSX.Element | null {
   const { t } = useTranslation('projects')
   const { data } = useProjects()
+  const { byFolder } = useProjectTotals()
   const selected = useSelectedProjectDirName()
   const select = useSelectedProjectStore((state) => state.select)
   const isOverview = useNavigationStore((state) => state.view === 'overview')
@@ -36,6 +41,7 @@ export function ProjectList(): React.JSX.Element | null {
     select(dirName)
     showSessions()
   }
+  const groups = groupProjects(data)
   const isCurrent = (dirName: string): boolean => !isOverview && dirName === selected
 
   return (
@@ -44,8 +50,14 @@ export function ProjectList(): React.JSX.Element | null {
         {t('list.label')}
       </p>
       <ul className={styles.rows}>
-        <ProjectRow label={t('list.all')} current={isOverview} onSelect={showOverview} />
-        {groupProjects(data).flatMap(({ project, worktrees }) => {
+        <ProjectRow
+          label={t('list.all')}
+          meta={<SidebarTotal totals={overviewTotals(groups, byFolder)} />}
+          current={isOverview}
+          onSelect={showOverview}
+        />
+        {groups.flatMap((group) => {
+          const { project, worktrees } = group
           const isActiveGroup =
             !isOverview &&
             (project.dirName === selected || worktrees.some((w) => w.dirName === selected))
@@ -54,6 +66,7 @@ export function ProjectList(): React.JSX.Element | null {
               key={project.dirName}
               label={projectTitle(project)}
               detail={project.dirName}
+              meta={<SidebarTotal totals={projectTotalsOf(group, byFolder)} />}
               current={isCurrent(project.dirName)}
               onSelect={() => {
                 choose(project.dirName)

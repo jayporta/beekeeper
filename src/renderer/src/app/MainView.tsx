@@ -3,8 +3,8 @@ import {
   selectIsFirstRunShowing,
   useFirstRunStore
 } from '@renderer/features/firstRun/state/useFirstRunStore'
-import { OverviewPlaceholder } from '@renderer/features/navigation/OverviewPlaceholder'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
+import { OverviewView } from '@renderer/features/overview/OverviewView'
 import { FolderGoneStatus } from '@renderer/features/projects/FolderGoneStatus'
 import { ProjectsGate } from '@renderer/features/projects/ProjectsGate'
 import { useForgetUnlistedSelection } from '@renderer/features/projects/state/useForgetUnlistedSelection'
@@ -44,7 +44,7 @@ export function MainView(): React.JSX.Element {
     <>
       <FolderGoneStatus />
       <ProjectsGate>
-        {view === 'overview' && <OverviewPlaceholder />}
+        {view === 'overview' && <OverviewView />}
         {view === 'sessions' && <SessionsView />}
         {view === 'session' && <SessionDetailView />}
       </ProjectsGate>
