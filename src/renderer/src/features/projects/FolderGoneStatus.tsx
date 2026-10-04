@@ -32,7 +32,7 @@ export function FolderGoneStatus(): React.JSX.Element {
   const project = useSelectedProject()
   const isOverview = useNavigationStore((state) => state.view === 'overview')
   const goneDirName = useSelectedProjectStore((state) => state.goneDirName)
-  const region = useRef<HTMLParagraphElement>(null)
+  const notice = useRef<HTMLParagraphElement>(null)
   useClearGoneFolderOnNavigation()
 
   let message = ''
@@ -44,11 +44,11 @@ export function FolderGoneStatus(): React.JSX.Element {
     }
   }
 
-  const announce = useFocusOrAnnounce(region, message)
+  const announce = useFocusOrAnnounce(notice, message)
 
   return (
     <>
-      <p ref={region} tabIndex={-1} className={styles.notice}>
+      <p ref={notice} tabIndex={-1} className={styles.notice}>
         {message}
       </p>
       <p role="status" className="visuallyHidden">

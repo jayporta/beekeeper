@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
+import { LIVE_COPY_CLEAR_MS } from './liveCopyClearMs'
 
 /** What the hook decided for one trigger. */
 interface Decision {
@@ -25,7 +26,9 @@ const UNDECIDED: Decision = { trigger: '', announce: false }
  * @param target - The element to focus, which needs `tabIndex={-1}`.
  * @param trigger - A value that changes when a message appears, such as its text. An empty one decides nothing.
  * @returns Whether to announce the message for the current `trigger`. It is
- * `false` for an empty trigger, until the hook has decided, and when it focused `target`.
+ * `false` for an empty trigger, until the hook has decided, and when it focused
+ * `target`. It turns `false` again after {@link LIVE_COPY_CLEAR_MS}, so the
+ * hidden live copy empties out instead of lingering for a person browsing the page.
  */
 export function useFocusOrAnnounce(
   target: RefObject<HTMLElement | null>,
@@ -60,5 +63,17 @@ export function useFocusOrAnnounce(
     setDecision({ trigger, announce: element === null })
   }, [trigger, target])
 
-  return trigger !== '' && decision.trigger === trigger && decision.announce
+  const announce = decision.trigger === trigger && decision.announce
+
+  useEffect(() => {
+    if (!announce) return
+    const timer = setTimeout(() => {
+      setDecision({ trigger, announce: false })
+    }, LIVE_COPY_CLEAR_MS)
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [announce, trigger])
+
+  return announce
 }

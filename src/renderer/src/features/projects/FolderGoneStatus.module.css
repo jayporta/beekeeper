@@ -1,7 +1,7 @@
 .notice {
   margin: 0;
 
-  /* Only a notice with text takes up space, so the live region stays mounted but invisible while empty. */
+  /* Only a notice with text takes up space, so the notice stays mounted but invisible while empty. */
   &:not(:empty) {
     max-width: var(--size-readable);
     margin-bottom: var(--space-4);

@@ -1,8 +1,10 @@
-import { renderHook } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { act, renderHook } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { LIVE_COPY_CLEAR_MS } from '../liveCopyClearMs'
 import { useFocusOrAnnounce } from '../useFocusOrAnnounce'
 
 afterEach(() => {
+  vi.useRealTimers()
   document.body.replaceChildren()
 })
 
@@ -12,13 +14,14 @@ function mountOnTarget(): {
   seen: boolean[]
   rerender: (trigger: string) => void
   result: { readonly current: boolean }
+  unmount: () => void
 } {
   const target = document.createElement('div')
   target.tabIndex = -1
   document.body.append(target)
   const ref = { current: target }
   const seen: boolean[] = []
-  const { result, rerender } = renderHook(
+  const { result, rerender, unmount } = renderHook(
     ({ trigger }) => {
       const announce = useFocusOrAnnounce(ref, trigger)
       seen.push(announce)
@@ -26,7 +29,7 @@ function mountOnTarget(): {
     },
     { initialProps: { trigger: '' } }
   )
-  return { target, seen, result, rerender: (trigger) => rerender({ trigger }) }
+  return { target, seen, result, unmount, rerender: (trigger) => rerender({ trigger }) }
 }
 
 /** Focuses a new button, so the page has seen focus, and returns it. */
@@ -78,13 +81,66 @@ describe('useFocusOrAnnounce', () => {
     expect(result.current).toBe(true)
   })
 
-  it('announces nothing for an empty trigger', () => {
-    const { result, rerender } = mountOnTarget()
-    focusNewButton().remove()
+  it('moves focus nowhere and announces nothing when the trigger turns empty', () => {
+    const { target, result, rerender } = mountOnTarget()
+    const button = focusNewButton()
+    rerender('first')
+    button.remove()
 
     rerender('')
 
+    expect(document.activeElement).not.toBe(target)
     expect(result.current).toBe(false)
+  })
+
+  it('keeps announcing until the live copy has been up for its whole delay', () => {
+    vi.useFakeTimers()
+    const { result, rerender } = mountOnTarget()
+    rerender('gone')
+
+    act(() => {
+      vi.advanceTimersByTime(LIVE_COPY_CLEAR_MS - 1)
+    })
+
+    expect(result.current).toBe(true)
+  })
+
+  it('stops announcing once the live copy delay has passed', () => {
+    vi.useFakeTimers()
+    const { result, rerender } = mountOnTarget()
+    rerender('gone')
+
+    act(() => {
+      vi.advanceTimersByTime(LIVE_COPY_CLEAR_MS)
+    })
+
+    expect(result.current).toBe(false)
+  })
+
+  it('starts the delay over when the trigger changes', () => {
+    vi.useFakeTimers()
+    const { result, rerender } = mountOnTarget()
+    rerender('first')
+    act(() => {
+      vi.advanceTimersByTime(LIVE_COPY_CLEAR_MS - 1)
+    })
+    rerender('second')
+
+    act(() => {
+      vi.advanceTimersByTime(1)
+    })
+
+    expect(result.current).toBe(true)
+  })
+
+  it('leaves no timer running after it unmounts', () => {
+    vi.useFakeTimers()
+    const { unmount, rerender } = mountOnTarget()
+    rerender('gone')
+
+    unmount()
+
+    expect(vi.getTimerCount()).toBe(0)
   })
 
   it('never reports a returning trigger as announced before deciding it again', () => {

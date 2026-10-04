@@ -142,10 +142,14 @@ describe('FolderGoneStatus', () => {
     listing(testProject(BETA))
     const region = await renderLoaded()
 
-    const visible = await findVisibleGoneNotice(`${folderGone(ALPHA)} Showing ${BETA}.`)
+    const text = `${folderGone(ALPHA)} Showing ${BETA}.`
+    const visible = await findVisibleGoneNotice(text)
 
     expect(visible.classList.contains('visuallyHidden')).toBe(false)
     expect(region.classList.contains('visuallyHidden')).toBe(true)
+    await waitFor(() => {
+      expect(region.textContent).toBe(text)
+    })
   })
 
   it('clears its text when the person navigates', async () => {

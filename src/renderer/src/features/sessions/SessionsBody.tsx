@@ -1,4 +1,4 @@
-import { Fragment, useRef } from 'react'
+import { useId, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { RetryButton } from '@renderer/components/RetryButton'
 import { StatusMessage } from '@renderer/components/StatusMessage'
@@ -12,7 +12,7 @@ interface SessionsBodyProps {
   readonly data: readonly SessionListItemDto[] | undefined
   /** What the last load threw, or `null` when it didn't fail. Once there is data, only a `not-found` error is used. */
   readonly error: unknown
-  /** When the last load failed, in milliseconds. It changes with each failed load, so a repeated `not-found` mounts a new alert. */
+  /** When the last load failed, in milliseconds. It changes with each failed load, so a repeated `not-found` is announced again. */
   readonly errorUpdatedAt: number
   /** Whether a load is in flight. A `not-found` error shows loading while one is, since it is the error of the load before. */
   readonly isFetching: boolean
@@ -29,14 +29,13 @@ interface SessionsBodyProps {
  * state, or the list or a no-match message. Loaded data wins over a failed
  * background refresh, so a cached list stays on screen, except when the folder
  * is gone (`not-found`): its cached list is stale, so its own message shows.
- * Each state has its own key, so an alert mounts fresh instead of reusing the
- * loading element, and screen readers announce it. The `not-found` key also
- * changes with each failed load, so a repeat after Retry is announced again.
- * While a load of that folder is in flight, its old `not-found` is not shown:
+ * Each other state has its own key, so an alert mounts fresh instead of
+ * reusing the loading element, and screen readers announce it. While a load of that folder is in flight, its old `not-found` is not shown:
  * loading is, so a folder that came back doesn't flash the message. The
- * `not-found` message is a named group that is never a live region itself. When
- * it replaces a focused control, such as the search box, focus moves to it.
- * Otherwise a separate, visually hidden alert announces it.
+ * `not-found` message is a group named by its heading and described by its
+ * body, and is never a live region itself. When it replaces a focused control,
+ * such as the search box, focus moves to it. Otherwise a separate, visually
+ * hidden alert announces it, and again for each failed load, then empties out.
  *
  * @example
  * <SessionsBody data={data} error={null} errorUpdatedAt={0} isFetching={false} onRetry={retry} hasMatches>
@@ -54,11 +53,16 @@ export function SessionsBody({
 }: SessionsBodyProps): React.JSX.Element {
   const { t } = useTranslation(['sessions', 'common'])
   const notFoundMessage = useRef<HTMLDivElement>(null)
+  const notFoundHeadingId = useId()
+  const notFoundBodyId = useId()
 
   const code = IpcCallError.codeOf(error)
-  const notFoundKey = `not-found-${errorUpdatedAt}`
   const notFoundShown = code === 'not-found' && !isFetching
-  const announceNotFound = useFocusOrAnnounce(notFoundMessage, notFoundShown ? notFoundKey : '')
+  // The trigger changes with each failed load, so a repeat after Retry is announced again.
+  const announceNotFound = useFocusOrAnnounce(
+    notFoundMessage,
+    notFoundShown ? `not-found-${errorUpdatedAt}` : ''
+  )
   const loading = (
     <StatusMessage key="loading" heading={t('loading')} headingLevel={2} role="status" />
   )
@@ -66,9 +70,21 @@ export function SessionsBody({
   if (code === 'not-found') {
     if (isFetching) return loading
     return (
-      <Fragment key={notFoundKey}>
-        <div ref={notFoundMessage} role="group" aria-label={t('notFound.heading')} tabIndex={-1}>
-          <StatusMessage heading={t('notFound.heading')} headingLevel={2} body={t('notFound.body')}>
+      <>
+        <div
+          ref={notFoundMessage}
+          role="group"
+          aria-labelledby={notFoundHeadingId}
+          aria-describedby={notFoundBodyId}
+          tabIndex={-1}
+        >
+          <StatusMessage
+            heading={t('notFound.heading')}
+            headingLevel={2}
+            headingId={notFoundHeadingId}
+            body={t('notFound.body')}
+            bodyId={notFoundBodyId}
+          >
             <RetryButton onRetry={onRetry} />
           </StatusMessage>
         </div>
@@ -78,7 +94,7 @@ export function SessionsBody({
             <p>{t('notFound.body')}</p>
           </div>
         )}
-      </Fragment>
+      </>
     )
   }
 
