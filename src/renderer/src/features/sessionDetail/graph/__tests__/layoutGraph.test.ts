@@ -135,14 +135,14 @@ describe('layoutGraph', () => {
     expect(layout.height).toBe(28 + 199 * 76 + NODE_HEIGHT + ORIGIN_Y)
   })
 
-  it('lays out a chain thousands deep without recursing', () => {
+  it('lays out a chain tens of thousands deep without recursing', () => {
     let tail = testGraphNode('n0')
-    for (let i = 1; i < 5000; i += 1) tail = testGraphNode(`n${i}`, [tail])
+    for (let i = 1; i < 50_000; i += 1) tail = testGraphNode(`n${i}`, [tail])
 
     const layout = layoutGraph(tail)
 
-    expect(layout.nodes).toHaveLength(5000)
-    expect(layout.nodes.at(-1)?.depth).toBe(4999)
-    expect(layout.width).toBe(ORIGIN_X + 4999 * COLUMN_WIDTH + NODE_WIDTH + ORIGIN_X)
+    expect(layout.nodes).toHaveLength(50_000)
+    expect(layout.nodes.at(-1)?.depth).toBe(49_999)
+    expect(layout.width).toBe(ORIGIN_X + 49_999 * COLUMN_WIDTH + NODE_WIDTH + ORIGIN_X)
   })
 })

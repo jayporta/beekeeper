@@ -6,7 +6,7 @@ export interface SessionFacts {
   readonly agentType: string | null
   /** The session's latest model, or `null`. */
   readonly model: string | null
-  /** The session's recorded token total, or `null` when it recorded none. */
+  /** The tokens of the session's own transcript, excluding its subagents, or `null` when it has none. */
   readonly tokens: number | null
   /** Whether the session's summary couldn't be read, or skipped transcript lines. */
   readonly partial: boolean
@@ -27,11 +27,11 @@ export function sessionFacts(item: SessionListItemDto | null): SessionFacts {
     return { agentType: null, model: null, tokens: null, partial: true, stopped }
   }
 
-  const { role, model, usage, skippedLines } = item.summary.value
+  const { role, model, transcriptTokens, skippedLines } = item.summary.value
   return {
     agentType: role.kind === 'agent' ? role.agentType : null,
     model,
-    tokens: usage?.totalTokens ?? null,
+    tokens: transcriptTokens,
     partial: skippedLines > 0,
     stopped
   }

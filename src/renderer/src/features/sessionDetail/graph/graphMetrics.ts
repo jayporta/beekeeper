@@ -4,7 +4,7 @@ export const COLUMN_WIDTH = 232
 /** The distance between the tops of two vertically adjacent leaves, in pixels. */
 export const LEAF_PITCH = 76
 
-/** The space left of the first column and above the first leaf, in pixels. It is also the margin on the far sides. */
+/** The space left of the first column, and right of the last, in pixels. */
 export const ORIGIN_X = 28
 
 /** The space above the first leaf, and below the last, in pixels. */

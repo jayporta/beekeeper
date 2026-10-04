@@ -266,15 +266,15 @@ describe('buildAgentGraph subagents', () => {
     expect(graph).toMatchObject({ partial: true, children: [] })
   })
 
-  it('handles a spawn chain thousands deep', () => {
+  it('handles a spawn chain tens of thousands deep', () => {
     let tail: AgentNodeDto = testNode('agent-0')
-    for (let i = 1; i < 5000; i += 1) tail = testNode(`agent-${i}`, { children: [tail] })
+    for (let i = 1; i < 50_000; i += 1) tail = testNode(`agent-${i}`, { children: [tail] })
 
     const graph = graphOf(testDetail({ children: [tail] }))
 
     let depth = 0
     for (let node = graph.children[0]; node !== undefined; node = node.children[0]) depth += 1
-    expect(depth).toBe(5000)
+    expect(depth).toBe(50_000)
   })
 })
 
@@ -320,7 +320,8 @@ describe('buildAgentGraph teammate sessions', () => {
     role: testAgentRole('writer', 'general-purpose'),
     team: testTeammateTeam(REF),
     model: 'claude-sonnet-5',
-    totalTokens: 1234
+    totalTokens: 9999,
+    transcriptTokens: 1234
   })
   const second = testSession(3, {
     projectDirName: other,
@@ -367,7 +368,13 @@ describe('buildAgentGraph teammate sessions', () => {
     expect(graph.children.map((node) => node.stopped)).toEqual([false, true])
   })
 
-  it('have no tokens when the session recorded none', () => {
+  it('show their own transcript’s tokens, not the session total that includes their subagents', () => {
+    const graph = graphAmong([lead, first, second])
+
+    expect(graph.children[0]?.tokens).toBe(1234)
+  })
+
+  it('have no tokens when their own transcript has no usage', () => {
     const graph = graphAmong([lead, first, second])
 
     expect(graph.children[1]?.tokens).toBeNull()
