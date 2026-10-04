@@ -22,6 +22,8 @@ interface StatusMessageProps {
   readonly children?: React.ReactNode
   /** A ref to the message's root element. */
   readonly ref?: React.Ref<HTMLDivElement>
+  /** Set to -1 to let script focus the message. */
+  readonly tabIndex?: -1
 }
 
 /**
@@ -37,11 +39,12 @@ export function StatusMessage({
   body,
   role,
   children,
-  ref
+  ref,
+  tabIndex
 }: StatusMessageProps): React.JSX.Element {
   const Heading = headingLevel === 1 ? 'h1' : 'h2'
   return (
-    <div ref={ref} className={styles.message} role={role}>
+    <div ref={ref} tabIndex={tabIndex} className={styles.message} role={role}>
       <Heading id={headingLevel === 1 ? MAIN_HEADING_ID : undefined} className={styles.heading}>
         {heading}
       </Heading>

@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useFocusMainWhenFocusLost } from '@renderer/components/useFocusMainWhenFocusLost'
+import { useFocusWhenFocusLost } from '@renderer/components/useFocusWhenFocusLost'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import styles from './FolderGoneStatus.module.css'
 import { projectTitle } from './projectTitle'
@@ -18,8 +18,8 @@ import { useProjects } from './useProjects'
  * folder, and the project that took over when one did. It says nothing while
  * the project list loads, and nothing when the gone folder is still the project
  * in effect, since the sessions error covers that. On the overview no project
- * took over, so it names only the folder. When the change drops focus to the
- * page, it moves focus to the main landmark. Navigating clears it.
+ * took over, so it names only the folder. When the change removes the focused
+ * element, it moves focus to the notice. Navigating clears it.
  *
  * @example
  * <FolderGoneStatus />
@@ -42,10 +42,10 @@ export function FolderGoneStatus(): React.JSX.Element {
     }
   }
 
-  useFocusMainWhenFocusLost(region, message)
+  useFocusWhenFocusLost(region, message)
 
   return (
-    <p ref={region} role="status" className={styles.notice}>
+    <p ref={region} tabIndex={-1} role="status" className={styles.notice}>
       {message}
     </p>
   )

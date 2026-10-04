@@ -155,6 +155,7 @@ describe('a selected project whose folder is gone', () => {
     renderApp()
 
     expect(await screen.findByText(`${folderGone(DELETED)} Showing ${ALPHA}.`)).toBeTruthy()
+    expect(document.activeElement).toBe(document.body)
     await waitFor(async () => {
       const stored = await idbStorage.getItem('selected-project')
       expect(JSON.parse(stored ?? '{}')).toMatchObject({ state: { selectedDirName: null } })
@@ -255,7 +256,23 @@ describe('a list that was loaded before its folder went missing', () => {
     expect(screen.queryByText('Alpha work')).toBeNull()
   })
 
-  it('moves focus to the main landmark when the alert replaces the focused search box', async () => {
+  it('leaves focus on the page when the alert shows and nothing was ever focused', async () => {
+    installBeekeeperApi({ listSessions: notFound })
+    const client = createTestQueryClient()
+    client.setQueryData(['sessions', ALPHA], [alphaSession], { updatedAt: staleUpdatedAt })
+
+    render(
+      <main tabIndex={-1}>
+        <SessionsContent dirName={ALPHA} headingId="h" />
+      </main>,
+      { wrapper: createQueryWrapper(client) }
+    )
+
+    await screen.findByRole('alert')
+    expect(document.activeElement).toBe(document.body)
+  })
+
+  it('moves focus to the alert when it replaces the focused search box', async () => {
     let gone = false
     installBeekeeperApi({ listSessions: () => (gone ? notFound() : loaded([alphaSession])) })
     const client = createTestQueryClient()
@@ -271,8 +288,8 @@ describe('a list that was loaded before its folder went missing', () => {
     gone = true
     await refetchAndSettle(client, ['sessions', ALPHA])
 
-    await screen.findByRole('alert')
-    expect(document.activeElement).toBe(screen.getByRole('main'))
+    const alert = await screen.findByRole('alert')
+    expect(document.activeElement).toBe(alert)
   })
 
   it('hides the search box and announces no matches from the stale list', async () => {

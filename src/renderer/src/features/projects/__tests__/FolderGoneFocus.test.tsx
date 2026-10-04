@@ -49,7 +49,7 @@ async function renderWithHeldFallback(): Promise<(value: readonly ProjectDto[]) 
 }
 
 describe('focus when a gone folder switches the view', () => {
-  it('moves focus to the main landmark when the focused Retry button goes away', async () => {
+  it('moves focus to the notice when the focused Retry button goes away', async () => {
     const settle = await renderWithHeldFallback()
     screen.getByRole('button', { name: 'Retry' }).focus()
 
@@ -58,8 +58,7 @@ describe('focus when a gone folder switches the view', () => {
       await new Promise((resolve) => setTimeout(resolve, 20))
     })
 
-    await screen.findByText(NOTICE)
-    expect(document.activeElement).toBe(screen.getByRole('main'))
+    expect(document.activeElement).toBe(await screen.findByText(NOTICE))
   })
 
   it('leaves focus in the sidebar when it was there', async () => {
