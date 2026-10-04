@@ -142,31 +142,43 @@ describe('SessionDetailContent when the session is not found', () => {
     expect(await screen.findByRole('group', { name: 'Session not found' })).toBeTruthy()
   })
 
-  it('holds the message while the project list refetches after the folder is reported gone, then shows it', async () => {
-    const list = deferred<IpcResult<readonly SessionListItemDto[]>>()
-    const projects = deferred<IpcResult<readonly ProjectDto[]>>()
-    const { api } = renderContent({
-      list: list.promise,
-      detail: Promise.resolve(NOT_FOUND),
-      projects: () => projects.promise
-    })
-    await waitFor(() => {
-      expect(api.getSession).toHaveBeenCalled()
-    })
-    await pause(5)
+  it.each([
+    [
+      'settles with the reported folder still in effect',
+      { ok: true, value: [testProject(DIR)] } as IpcResult<readonly ProjectDto[]>
+    ],
+    [
+      'refetch fails',
+      { ok: false, error: { code: 'unreadable' } } as IpcResult<readonly ProjectDto[]>
+    ]
+  ])(
+    'holds the message while the project list refetches after the folder is reported gone, then shows it when the project list %s',
+    async (_outcome, answer) => {
+      const list = deferred<IpcResult<readonly SessionListItemDto[]>>()
+      const projects = deferred<IpcResult<readonly ProjectDto[]>>()
+      const { api } = renderContent({
+        list: list.promise,
+        detail: Promise.resolve(NOT_FOUND),
+        projects: () => projects.promise
+      })
+      await waitFor(() => {
+        expect(api.getSession).toHaveBeenCalled()
+      })
+      await pause(5)
 
-    list.resolve(NOT_FOUND)
-    await waitFor(() => {
-      expect(api.listProjects).toHaveBeenCalledTimes(2)
-    })
-    await settle()
+      list.resolve(NOT_FOUND)
+      await waitFor(() => {
+        expect(api.listProjects).toHaveBeenCalledTimes(2)
+      })
+      await settle()
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Loading session' })).toBeTruthy()
-    expect(screen.queryByRole('group', { name: 'Session not found' })).toBeNull()
+      expect(screen.getByRole('heading', { level: 1, name: 'Loading session' })).toBeTruthy()
+      expect(screen.queryByRole('group', { name: 'Session not found' })).toBeNull()
 
-    projects.resolve({ ok: true, value: [testProject(DIR)] })
-    expect(await screen.findByRole('group', { name: 'Session not found' })).toBeTruthy()
-  })
+      projects.resolve(answer)
+      expect(await screen.findByRole('group', { name: 'Session not found' })).toBeTruthy()
+    }
+  )
 
   it('mounts no message and no alert, even for one render, between the folder being reported gone and the project list settling', async () => {
     const list = deferred<IpcResult<readonly SessionListItemDto[]>>()
@@ -200,22 +212,6 @@ describe('SessionDetailContent when the session is not found', () => {
     observer.disconnect()
 
     expect(mounted).toEqual([])
-  })
-
-  it('shows the message when the project list settles with the reported folder still in effect', async () => {
-    renderContent({ list: Promise.resolve(NOT_FOUND), detail: Promise.resolve(NOT_FOUND) })
-
-    expect(await screen.findByRole('group', { name: 'Session not found' })).toBeTruthy()
-  })
-
-  it('shows the message when the project list refetch fails', async () => {
-    renderContent({
-      list: Promise.resolve(NOT_FOUND),
-      detail: Promise.resolve(NOT_FOUND),
-      projects: () => Promise.resolve({ ok: false, error: { code: 'unreadable' } })
-    })
-
-    expect(await screen.findByRole('group', { name: 'Session not found' })).toBeTruthy()
   })
 
   it('keeps the message mounted, with focus on Back, through a background refetch of the list', async () => {
