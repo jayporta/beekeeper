@@ -155,11 +155,27 @@ describe('a selected project whose folder is gone', () => {
     renderApp()
 
     expect(await screen.findByText(`${folderGone(DELETED)} Showing ${ALPHA}.`)).toBeTruthy()
-    expect(document.activeElement).toBe(document.body)
     await waitFor(async () => {
       const stored = await idbStorage.getItem('selected-project')
       expect(JSON.parse(stored ?? '{}')).toMatchObject({ state: { selectedDirName: null } })
     })
+  })
+
+  it('leaves focus on the page when the gone-folder notice shows at startup', async () => {
+    await idbStorage.setItem(
+      'selected-project',
+      JSON.stringify({ state: { selectedDirName: DELETED }, version: 0 })
+    )
+    installBeekeeperApi({
+      listProjects: () => projects(testProject(ALPHA), testProject(BETA)),
+      listSessions: () => loaded([alphaSession])
+    })
+
+    renderApp()
+
+    const notice = await screen.findByText(`${folderGone(DELETED)} Showing ${ALPHA}.`)
+    expect(document.activeElement).toBe(document.body)
+    expect(notice.getAttribute('role')).toBe('status')
   })
 })
 
@@ -288,8 +304,10 @@ describe('a list that was loaded before its folder went missing', () => {
     gone = true
     await refetchAndSettle(client, ['sessions', ALPHA])
 
-    const alert = await screen.findByRole('alert')
-    expect(document.activeElement).toBe(alert)
+    const heading = await screen.findByRole('heading', { name: 'Project folder not found' })
+    const focused = document.activeElement
+    expect(focused).toBe(heading.parentElement)
+    expect(focused?.getAttribute('role')).toBeNull()
   })
 
   it('hides the search box and announces no matches from the stale list', async () => {
@@ -324,9 +342,12 @@ describe('a list that was loaded before its folder went missing', () => {
     const api = installBeekeeperApi({ listSessions: notFound })
     const client = createTestQueryClient()
     client.setQueryData(['sessions', ALPHA], [alphaSession], { updatedAt: staleUpdatedAt })
-    render(<SessionsContent dirName={ALPHA} headingId="h" />, {
-      wrapper: createQueryWrapper(client)
-    })
+    render(
+      <main tabIndex={-1}>
+        <SessionsContent dirName={ALPHA} headingId="h" />
+      </main>,
+      { wrapper: createQueryWrapper(client) }
+    )
     const first = await screen.findByRole('alert')
 
     await userEvent.click(within(first).getByRole('button', { name: 'Retry' }))

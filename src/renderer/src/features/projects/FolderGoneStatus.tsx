@@ -19,7 +19,8 @@ import { useProjects } from './useProjects'
  * the project list loads, and nothing when the gone folder is still the project
  * in effect, since the sessions error covers that. On the overview no project
  * took over, so it names only the folder. When the change removes the focused
- * element, it moves focus to the notice. Navigating clears it.
+ * element, it moves focus to the notice and drops its live role so it isn't
+ * read twice. Navigating clears it.
  *
  * @example
  * <FolderGoneStatus />
@@ -42,10 +43,10 @@ export function FolderGoneStatus(): React.JSX.Element {
     }
   }
 
-  useFocusWhenFocusLost(region, message)
+  const tookFocus = useFocusWhenFocusLost(region, message)
 
   return (
-    <p ref={region} tabIndex={-1} role="status" className={styles.notice}>
+    <p ref={region} tabIndex={-1} role={tookFocus ? undefined : 'status'} className={styles.notice}>
       {message}
     </p>
   )

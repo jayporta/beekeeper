@@ -35,7 +35,7 @@ interface SessionsBodyProps {
  * While a load of that folder is in flight, its old `not-found` is not shown:
  * loading is, so a folder that came back doesn't flash the alert. When the
  * `not-found` alert replaces a focused control, such as the search box, focus
- * moves to the alert.
+ * moves to the alert, which then drops its `alert` role so it isn't read twice.
  *
  * @example
  * <SessionsBody data={data} error={null} errorUpdatedAt={0} isFetching={false} onRetry={retry} hasMatches>
@@ -57,7 +57,7 @@ export function SessionsBody({
   const code = IpcCallError.codeOf(error)
   const notFoundKey = `not-found-${errorUpdatedAt}`
   const notFoundShown = code === 'not-found' && !isFetching
-  useFocusWhenFocusLost(notFoundAlert, notFoundShown ? notFoundKey : '')
+  const tookFocus = useFocusWhenFocusLost(notFoundAlert, notFoundShown ? notFoundKey : '')
   const loading = (
     <StatusMessage key="loading" heading={t('loading')} headingLevel={2} role="status" />
   )
@@ -71,7 +71,7 @@ export function SessionsBody({
         tabIndex={-1}
         heading={t('notFound.heading')}
         headingLevel={2}
-        role="alert"
+        role={tookFocus ? undefined : 'alert'}
         body={t('notFound.body')}
       >
         <RetryButton onRetry={onRetry} />

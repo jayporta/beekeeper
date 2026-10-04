@@ -58,7 +58,9 @@ describe('focus when a gone folder switches the view', () => {
       await new Promise((resolve) => setTimeout(resolve, 20))
     })
 
-    expect(document.activeElement).toBe(await screen.findByText(NOTICE))
+    const notice = await screen.findByText(NOTICE)
+    expect(document.activeElement).toBe(notice)
+    expect(notice.getAttribute('role')).toBeNull()
   })
 
   it('leaves focus in the sidebar when it was there', async () => {
@@ -74,7 +76,8 @@ describe('focus when a gone folder switches the view', () => {
       await new Promise((resolve) => setTimeout(resolve, 20))
     })
 
-    await screen.findByText(NOTICE)
+    const notice = await screen.findByText(NOTICE)
     expect(document.activeElement).toBe(sidebarButton)
+    expect(notice.getAttribute('role')).toBe('status')
   })
 })
