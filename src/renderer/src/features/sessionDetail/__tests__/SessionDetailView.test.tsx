@@ -173,6 +173,34 @@ describe('SessionDetailView moving to another session', () => {
   })
 })
 
+describe('SessionDetailView graph', () => {
+  it('shows the agent graph under the header, selecting the lead', async () => {
+    openSession(testRef(1, DIR))
+
+    const region = within(await screen.findByRole('region', { name: 'Agent graph' }))
+
+    expect(region.getByRole('button', { name: /^Lead, lead/ }).getAttribute('aria-current')).toBe(
+      'true'
+    )
+  })
+
+  it('shows no graph while the detail loads', async () => {
+    openSession(testRef(1, DIR), {
+      detail: new Promise<IpcResult<SessionDetailDto>>(() => undefined)
+    })
+    await screen.findByRole('heading', { level: 1, name: 'Loading session' })
+
+    expect(screen.queryByRole('region', { name: 'Agent graph' })).toBeNull()
+  })
+
+  it('shows no graph when the detail fails', async () => {
+    openSession(testRef(1, DIR), { detail: { ok: false, error: { code: 'unreadable' } } })
+    await screen.findByRole('alert')
+
+    expect(screen.queryByRole('region', { name: 'Agent graph' })).toBeNull()
+  })
+})
+
 describe('SessionDetailView breadcrumb', () => {
   it('runs from the project through Sessions to the session, which is the current page', async () => {
     openSession(testRef(1, DIR))

@@ -1,0 +1,131 @@
+.node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-2-5);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  /* Opaque, so the grid's dots don't show through the text. */
+  background-color: var(--color-bg);
+  border: var(--border-width-mark) solid var(--color-text);
+  border-radius: var(--radius-none);
+  cursor: pointer;
+
+  /* The selected node's fill is already a tint, and the overlay on it would take the muted text below 4.5:1 in dark mode. */
+  &:not(.lead, .selected):hover {
+    background-image: linear-gradient(var(--color-hover), var(--color-hover));
+  }
+
+  /* The graph is scaled, so the focus ring is drawn wider by the inverse of the scale to keep its width on screen. */
+  &:focus-visible {
+    outline-width: calc(var(--focus-ring-width) / var(--graph-scale, 1));
+    outline-offset: calc(var(--focus-ring-offset) / var(--graph-scale, 1));
+  }
+}
+
+/* A subagent is a sidechain inside a transcript: a dashed border. A teammate, a session of its own, is solid. */
+.teammate {
+  border-style: solid;
+}
+
+.subagent {
+  border-style: dashed;
+}
+
+/* The lead is always filled: --color-bg on --color-accent-strong, a pair the contrast test holds to 4.5:1. */
+.lead {
+  color: var(--color-bg);
+  background-color: var(--color-accent-strong);
+  border-color: var(--color-accent-strong);
+
+  & .detail {
+    color: inherit;
+  }
+
+  /*
+   * Forced colors drop the fill, so the lead keeps a solid system color. Opting out of forced colors
+   * keeps the author's focus ring color too, so it takes a system color as well.
+   */
+  @media (forced-colors: active) {
+    color: HighlightText;
+    background-color: Highlight;
+    border-color: Highlight;
+    forced-color-adjust: none;
+
+    &:focus-visible {
+      outline-color: CanvasText;
+    }
+  }
+}
+
+/*
+ * The selected node has a heavier border and a ring of text color outside it, which is 3:1 or more
+ * against the ground (see the contrast test), so the choice shows without hue. The ring sits against
+ * the border, and the focus ring starts past it, so the two never overlap.
+ */
+.selected {
+  background-color: var(--color-accent-200);
+  border-color: var(--color-accent-strong);
+  border-width: var(--border-width-strong);
+  box-shadow: 0 0 0 calc(var(--border-width-strong) / var(--graph-scale, 1)) var(--color-text);
+
+  /* Forced colors drop shadows, so the border doubles instead. */
+  @media (forced-colors: active) {
+    border-color: Highlight;
+    border-width: calc(var(--border-width-strong) * 2);
+  }
+}
+
+/* A filled lead keeps its fill when selected, so its edge turns to the text color too. */
+.lead.selected {
+  background-color: var(--color-accent-strong);
+  border-color: var(--color-text);
+
+  @media (forced-colors: active) {
+    background-color: Highlight;
+    border-color: CanvasText;
+  }
+}
+
+.line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.name,
+.detail {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.name {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.detail {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2xs);
+}
+
+.tokens {
+  flex: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.flag {
+  flex: none;
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}

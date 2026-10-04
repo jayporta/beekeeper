@@ -1,0 +1,46 @@
+.stage {
+  position: relative;
+}
+
+/*
+ * The graph scrolls natively, so a keyboard user's focus brings a node into
+ * view by itself. The dots are a local background: they scroll with the graph.
+ */
+.viewport {
+  min-height: var(--size-graph-min-height);
+  max-height: var(--size-graph-max-height);
+  overflow: auto;
+  /*
+   * Keeps a focused node clear of the zoom controls, which cover the bottom right corner and so
+   * only reach into the bottom padding. Fit leaves the same room below the graph.
+   */
+  scroll-padding: var(--size-target-min);
+  scroll-padding-bottom: var(--size-graph-controls-clearance);
+  /* A drag on the background pans, and would otherwise select text and fight the pan by autoscrolling. */
+  user-select: none;
+  cursor: grab;
+  background-image: radial-gradient(circle, var(--color-graph-dot) 1px, transparent 1px);
+  background-attachment: local;
+  background-size: var(--size-graph-grid) var(--size-graph-grid);
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+/*
+ * Sized to the scaled graph, so the scroll area follows the zoom. The padding adds scroll space below
+ * it, so the last row can scroll clear of the zoom controls laid over the bottom right corner.
+ */
+.sizer {
+  position: relative;
+  box-sizing: content-box;
+  padding-bottom: var(--size-graph-controls-clearance);
+}
+
+.surface {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}

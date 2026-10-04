@@ -102,4 +102,26 @@ describe('useNavigationStore', () => {
       selectedAgent: null
     })
   })
+
+  it('selects an agent in the session on show without counting a navigation', () => {
+    useNavigationStore.getState().showSession(ref)
+    const before = useNavigationStore.getState().navigationCount
+
+    useNavigationStore.getState().selectAgent(subagent)
+
+    expect(useNavigationStore.getState()).toMatchObject({
+      view: 'session',
+      selectedSessionRef: ref,
+      selectedAgent: subagent,
+      navigationCount: before
+    })
+  })
+
+  it('selects the lead again by clearing the selected agent', () => {
+    useNavigationStore.getState().showSession(ref, teammate)
+
+    useNavigationStore.getState().selectAgent(null)
+
+    expect(useNavigationStore.getState().selectedAgent).toBeNull()
+  })
 })

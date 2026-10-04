@@ -1,0 +1,28 @@
+.controls {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  display: flex;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-strong);
+
+  & button {
+    min-width: var(--size-target-min);
+    min-height: var(--size-target-min);
+    padding: 0 var(--space-2);
+    color: var(--color-text);
+    font: inherit;
+    font-size: var(--font-size-sm);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--color-hover);
+    }
+  }
+
+  & button + button {
+    border-left: 1px solid var(--color-divider);
+  }
+}
