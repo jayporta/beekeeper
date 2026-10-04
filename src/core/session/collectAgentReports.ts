@@ -2,6 +2,7 @@ import type { Result } from '../shared/result'
 import type { SkippedLineError } from '../transcript/readRecords'
 import { messageTokens } from '../transcript/messageTokens'
 import { assistantRecordSchema } from '../transcript/schemas'
+import { recordTimestampMs } from '../transcript/summary/recordTimestampMs'
 import type { AgentIdentity } from './agentIdentity'
 import { createFileTouchCollector, type FileTouch } from './fileTouchCollector'
 import type { MessageReport } from './usageLedger'
@@ -73,7 +74,8 @@ export async function collectAgentReports(
       messageId: message.id,
       model: message.model,
       speed: message.usage.speed,
-      tokens: messageTokens(message.usage)
+      tokens: messageTokens(message.usage),
+      timestampMs: recordTimestampMs(record)
     })
   }
 

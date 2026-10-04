@@ -44,6 +44,7 @@ export function mapAgentReport(report: AgentReport): AgentReportDto {
       operation: touch.operation,
       source: touch.source
     })),
-    fileListIncomplete: report.fileListIncomplete
+    fileListIncomplete: report.fileListIncomplete,
+    activity: report.activity === null ? null : { ...report.activity }
   }
 }

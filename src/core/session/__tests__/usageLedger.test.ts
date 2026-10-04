@@ -11,6 +11,7 @@ function report(overrides: Partial<MessageReport> = {}): MessageReport {
     model: 'claude-sonnet-5',
     speed: undefined,
     tokens: emptyTokenCounts,
+    timestampMs: null,
     ...overrides
   }
 }
@@ -82,6 +83,62 @@ describe('createUsageLedger', () => {
     ledger.report(report({ speed: 'fast' }))
 
     expect(ledger.entries()).toEqual([expect.objectContaining({ speed: 'fast' })])
+  })
+
+  it('keeps the earliest and latest timestamp across records that run out of order', () => {
+    const ledger = createUsageLedger()
+
+    ledger.report(report({ timestampMs: 2000 }))
+    ledger.report(report({ timestampMs: 3000 }))
+    ledger.report(report({ timestampMs: 1000 }))
+
+    expect(ledger.entries()).toEqual([
+      expect.objectContaining({ earliestMs: 1000, latestMs: 3000 })
+    ])
+  })
+
+  it('keeps the timestamp span when a later record has no timestamp', () => {
+    const ledger = createUsageLedger()
+
+    ledger.report(report({ timestampMs: 1000 }))
+    ledger.report(report({ timestampMs: null }))
+
+    expect(ledger.entries()).toEqual([
+      expect.objectContaining({ earliestMs: 1000, latestMs: 1000 })
+    ])
+  })
+
+  it('takes a timestamp from a later record when the first had none', () => {
+    const ledger = createUsageLedger()
+
+    ledger.report(report({ timestampMs: null }))
+    ledger.report(report({ timestampMs: 1000 }))
+
+    expect(ledger.entries()).toEqual([
+      expect.objectContaining({ earliestMs: 1000, latestMs: 1000 })
+    ])
+  })
+
+  it('has no span when no record carried a timestamp', () => {
+    const ledger = createUsageLedger()
+
+    ledger.report(report({ timestampMs: null }))
+
+    expect(ledger.entries()).toEqual([
+      expect.objectContaining({ earliestMs: null, latestMs: null })
+    ])
+  })
+
+  it('ignores the timestamp of a later report from a different agent', () => {
+    const ledger = createUsageLedger()
+    const subagent = subagentIdentity(toAgentId('atask1'))
+
+    ledger.report(report({ identity: leadIdentity, timestampMs: 1000 }))
+    ledger.report(report({ identity: subagent, timestampMs: 9000 }))
+
+    expect(ledger.entries()).toEqual([
+      expect.objectContaining({ earliestMs: 1000, latestMs: 1000 })
+    ])
   })
 
   it('lists entries in first-reported order', () => {

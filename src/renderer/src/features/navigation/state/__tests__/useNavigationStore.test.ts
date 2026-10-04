@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { useNavigationStore } from '../useNavigationStore'
 
 const ref = { projectDirName: '-Users-a-repo', sessionId: '11111111-1111-4111-8111-111111111111' }
-const subagent = { kind: 'subagent', agentId: 'agent-a1' } as const
+const subagent = { kind: 'subagent', ownerRef: ref, agentId: 'agent-a1' } as const
 const teammate = {
   kind: 'teammate',
   ref: { projectDirName: '-Users-a-other', sessionId: '22222222-2222-4222-8222-222222222222' }

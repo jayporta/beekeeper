@@ -28,6 +28,21 @@ export interface AgentReport {
    * result only truncated its hunks.
    */
   readonly fileListIncomplete: boolean
+  /**
+   * The span of the agent's own assistant messages, from the earliest
+   * timestamp to the latest, or `null` when none of them has a usable
+   * timestamp. Messages credited to another agent, such as a fork's copy of
+   * the lead's history, don't count.
+   */
+  readonly activity: AgentActivity | null
+}
+
+/** The span between an agent's first and last timestamped assistant messages. */
+export interface AgentActivity {
+  /** The earliest message timestamp, in epoch milliseconds. */
+  readonly earliestMs: number
+  /** The latest message timestamp, in epoch milliseconds. */
+  readonly latestMs: number
 }
 
 /** Input for {@link applyAgentReports}. */
@@ -71,10 +86,29 @@ export interface BuildAgentReportInput {
 }
 
 /**
+ * Finds the span of the timestamps across an agent's ledger entries.
+ * @param entries - The entries the agent owns.
+ * @returns The span, or `null` when no entry has a timestamp.
+ */
+function activityOf(entries: readonly LedgerEntry[]): AgentActivity | null {
+  let earliestMs: number | null = null
+  let latestMs: number | null = null
+  for (const entry of entries) {
+    if (entry.earliestMs !== null && (earliestMs === null || entry.earliestMs < earliestMs)) {
+      earliestMs = entry.earliestMs
+    }
+    if (entry.latestMs !== null && (latestMs === null || entry.latestMs > latestMs)) {
+      latestMs = entry.latestMs
+    }
+  }
+  return earliestMs === null || latestMs === null ? null : { earliestMs, latestMs }
+}
+
+/**
  * Builds one agent's report from the ledger entries it owns.
  * @param input - The agent's identity, the grouped ledgers, and its
  * transcript's skipped-line count.
- * @returns The agent's usage and file touches.
+ * @returns The agent's usage, file touches, and activity span.
  */
 export function buildAgentReport(input: BuildAgentReportInput): AgentReport {
   const { identity, usageByOwner, touchesByOwner, incompleteOwners, skippedLines } = input
@@ -90,6 +124,7 @@ export function buildAgentReport(input: BuildAgentReportInput): AgentReport {
       skippedLines
     },
     fileTouches: ownedTouches.map((entry) => entry.touch),
-    fileListIncomplete: incompleteOwners.has(key)
+    fileListIncomplete: incompleteOwners.has(key),
+    activity: activityOf(owned)
   }
 }
