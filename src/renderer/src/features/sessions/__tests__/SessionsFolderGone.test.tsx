@@ -255,6 +255,21 @@ describe('a list that was loaded before its folder went missing', () => {
     expect(screen.queryByText('Alpha work')).toBeNull()
   })
 
+  it('hides the search box and announces no matches from the stale list', async () => {
+    useSessionsViewStore.setState({ query: 'Alpha' })
+    installBeekeeperApi({ listSessions: notFound })
+    const client = createTestQueryClient()
+    client.setQueryData(['sessions', ALPHA], [alphaSession], { updatedAt: staleUpdatedAt })
+
+    render(<SessionsContent dirName={ALPHA} headingId="h" />, {
+      wrapper: createQueryWrapper(client)
+    })
+
+    await screen.findByRole('alert')
+    expect(screen.queryByRole('searchbox')).toBeNull()
+    expect(screen.queryByText('1 session matches')).toBeNull()
+  })
+
   it('says the project folder was not found, in its own alert with Retry', async () => {
     installBeekeeperApi({ listSessions: notFound })
 
