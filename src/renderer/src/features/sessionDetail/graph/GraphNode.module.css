@@ -44,12 +44,19 @@
     color: inherit;
   }
 
-  /* Forced colors drop the fill, so the lead keeps a solid system color. */
+  /*
+   * Forced colors drop the fill, so the lead keeps a solid system color. Opting out of forced colors
+   * keeps the author's focus ring color too, so it takes a system color as well.
+   */
   @media (forced-colors: active) {
     color: HighlightText;
     background-color: Highlight;
     border-color: Highlight;
     forced-color-adjust: none;
+
+    &:focus-visible {
+      outline-color: CanvasText;
+    }
   }
 }
 
@@ -77,6 +84,7 @@
   border-color: var(--color-text);
 
   @media (forced-colors: active) {
+    background-color: Highlight;
     border-color: CanvasText;
   }
 }

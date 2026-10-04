@@ -13,7 +13,7 @@ import { GraphViewport } from './GraphViewport'
 import { parentNames } from './parentNames'
 import { selectedAgentKey } from './selectedAgentKey'
 import { useAgentGraph } from './useAgentGraph'
-import { useAnnounceSelection } from './useAnnounceSelection'
+import { useGraphAnnouncement } from './useGraphAnnouncement'
 import { useGraphKeyboard } from './useGraphKeyboard'
 
 /** Props for {@link GraphCanvas}. */
@@ -43,7 +43,7 @@ interface GraphCanvasProps {
  */
 export function GraphCanvas({ detail, sessionRef, row }: GraphCanvasProps): React.JSX.Element {
   const { t } = useTranslation('sessionDetail')
-  const { root, layout, loading, announcement } = useAgentGraph({ detail, sessionRef, row })
+  const { root, layout, loading, expansions } = useAgentGraph({ detail, sessionRef, row })
   const selectedAgent = useNavigationStore((state) => state.selectedAgent)
   const selectedKey = useMemo(
     () =>
@@ -56,7 +56,11 @@ export function GraphCanvas({ detail, sessionRef, row }: GraphCanvasProps): Reac
 
   const parents = useMemo(() => parentNames(layout), [layout])
   const selectedName = layout.nodes.find(({ node }) => node.key === selectedKey)?.node.name ?? ''
-  const selectionAnnouncement = useAnnounceSelection({ key: selectedKey, name: selectedName })
+  const announcement = useGraphAnnouncement({
+    root,
+    expansions,
+    selected: { key: selectedKey, name: selectedName }
+  })
 
   const moveFocus = useGraphKeyboard(root)
 
@@ -87,7 +91,7 @@ export function GraphCanvas({ detail, sessionRef, row }: GraphCanvasProps): Reac
         teamListsTruncated={root.teamListsTruncated}
       />
       <p role="status" className="visuallyHidden">
-        {announcement || selectionAnnouncement}
+        {announcement}
       </p>
     </section>
   )

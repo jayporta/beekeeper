@@ -344,6 +344,16 @@ describe('GraphCanvas expansion announcements', () => {
     expect(status().textContent).not.toMatch(/subagents/)
   })
 
+  it('says the newer of a load and a selection, even right after the other', async () => {
+    renderGraphWith({ teammateDetails: { [WRITER.sessionId]: writerDetail } })
+    await click(/^writer/)
+    await announced('Loaded 2 subagents of writer (code)')
+
+    await click(/^scout/)
+
+    await announced('scout selected')
+  })
+
   it('announces each teammate that is opened', async () => {
     renderGraphWith({ teammateDetails: { [WRITER.sessionId]: writerDetail } })
     await click(/^writer/)
