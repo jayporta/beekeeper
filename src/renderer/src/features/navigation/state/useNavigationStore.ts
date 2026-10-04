@@ -5,12 +5,13 @@ import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
 export type NavigationView = 'overview' | 'sessions' | 'session'
 
 /**
- * The agent selected within a session: a subagent inside a transcript, by its
- * agent id, or a teammate, by the ref of its own session, which may live in
- * another folder than the lead's.
+ * The agent selected within a session: a subagent inside a transcript, by the
+ * ref of the session whose transcript holds it and its agent id (a teammate's
+ * own subagents are selectable too), or a teammate, by the ref of its own
+ * session, which may live in another folder than the lead's.
  */
 export type SelectedAgent =
-  | { readonly kind: 'subagent'; readonly agentId: string }
+  | { readonly kind: 'subagent'; readonly ownerRef: SessionRefDto; readonly agentId: string }
   | { readonly kind: 'teammate'; readonly ref: SessionRefDto }
 
 /** Which view the main area shows and what it is showing. */
