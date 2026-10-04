@@ -255,6 +255,26 @@ describe('a list that was loaded before its folder went missing', () => {
     expect(screen.queryByText('Alpha work')).toBeNull()
   })
 
+  it('moves focus to the main landmark when the alert replaces the focused search box', async () => {
+    let gone = false
+    installBeekeeperApi({ listSessions: () => (gone ? notFound() : loaded([alphaSession])) })
+    const client = createTestQueryClient()
+    render(
+      <main tabIndex={-1}>
+        <SessionsContent dirName={ALPHA} headingId="h" />
+      </main>,
+      { wrapper: createQueryWrapper(client) }
+    )
+    await screen.findByText('Alpha work')
+    screen.getByRole('searchbox', { name: 'Search sessions' }).focus()
+
+    gone = true
+    await refetchAndSettle(client, ['sessions', ALPHA])
+
+    await screen.findByRole('alert')
+    expect(document.activeElement).toBe(screen.getByRole('main'))
+  })
+
   it('hides the search box and announces no matches from the stale list', async () => {
     useSessionsViewStore.setState({ query: 'Alpha' })
     installBeekeeperApi({ listSessions: notFound })

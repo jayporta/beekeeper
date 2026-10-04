@@ -20,6 +20,8 @@ interface StatusMessageProps {
   readonly role?: 'status' | 'alert'
   /** An action, such as a retry button, shown under the body. */
   readonly children?: React.ReactNode
+  /** A ref to the message's root element. */
+  readonly ref?: React.Ref<HTMLDivElement>
 }
 
 /**
@@ -34,11 +36,12 @@ export function StatusMessage({
   headingLevel = 1,
   body,
   role,
-  children
+  children,
+  ref
 }: StatusMessageProps): React.JSX.Element {
   const Heading = headingLevel === 1 ? 'h1' : 'h2'
   return (
-    <div className={styles.message} role={role}>
+    <div ref={ref} className={styles.message} role={role}>
       <Heading id={headingLevel === 1 ? MAIN_HEADING_ID : undefined} className={styles.heading}>
         {heading}
       </Heading>

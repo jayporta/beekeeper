@@ -1,6 +1,8 @@
+import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { RetryButton } from '@renderer/components/RetryButton'
 import { StatusMessage } from '@renderer/components/StatusMessage'
+import { useFocusMainWhenFocusLost } from '@renderer/components/useFocusMainWhenFocusLost'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
 
@@ -31,7 +33,9 @@ interface SessionsBodyProps {
  * loading element, and screen readers announce it. The `not-found` key also
  * changes with each failed load, so a repeat after Retry is announced again.
  * While a load of that folder is in flight, its old `not-found` is not shown:
- * loading is, so a folder that came back doesn't flash the alert.
+ * loading is, so a folder that came back doesn't flash the alert. When the
+ * `not-found` alert replaces a focused control, such as the search box, focus
+ * moves to the main landmark.
  *
  * @example
  * <SessionsBody data={data} error={null} errorUpdatedAt={0} isFetching={false} onRetry={retry} hasMatches>
@@ -48,8 +52,12 @@ export function SessionsBody({
   children
 }: SessionsBodyProps): React.JSX.Element {
   const { t } = useTranslation(['sessions', 'common'])
+  const notFoundAlert = useRef<HTMLDivElement>(null)
 
   const code = IpcCallError.codeOf(error)
+  const notFoundKey = `not-found-${errorUpdatedAt}`
+  const notFoundShown = code === 'not-found' && !isFetching
+  useFocusMainWhenFocusLost(notFoundAlert, notFoundShown ? notFoundKey : '')
   const loading = (
     <StatusMessage key="loading" heading={t('loading')} headingLevel={2} role="status" />
   )
@@ -58,7 +66,8 @@ export function SessionsBody({
     if (isFetching) return loading
     return (
       <StatusMessage
-        key={`not-found-${errorUpdatedAt}`}
+        key={notFoundKey}
+        ref={notFoundAlert}
         heading={t('notFound.heading')}
         headingLevel={2}
         role="alert"
