@@ -150,6 +150,12 @@ describe('skipUnchangedSaves', () => {
       (_client: QueryClient, query: Query) => {
         query.setState({ ...query.state, errorUpdatedAt: query.state.dataUpdatedAt + 1 })
       }
+    ],
+    [
+      'it fails again within the same millisecond',
+      (_client: QueryClient, query: Query) => {
+        query.setState({ ...query.state, errorUpdateCount: query.state.errorUpdateCount + 1 })
+      }
     ]
   ])('saves again when %s', async (_label, change) => {
     const inner = spyPersister()
