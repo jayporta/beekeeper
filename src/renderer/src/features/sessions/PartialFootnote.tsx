@@ -15,6 +15,12 @@ const REASON_ORDER = [
 interface PartialFootnoteProps {
   /** Why any figure on screen is partial. Nothing renders when it is empty. */
   readonly reasons: ReadonlySet<PartialReason>
+  /**
+   * Sentences to use in place of a reason's own, for a view whose wording
+   * differs from the list's, such as one with no list to point at.
+   * @defaultValue The list's sentence for every reason.
+   */
+  readonly overrides?: Partial<Record<PartialReason, string>>
 }
 
 /**
@@ -25,14 +31,18 @@ interface PartialFootnoteProps {
  * @example
  * <PartialFootnote reasons={new Set(['unreadableLines'])} />
  */
-export function PartialFootnote({ reasons }: PartialFootnoteProps): React.JSX.Element | null {
+export function PartialFootnote({
+  reasons,
+  overrides
+}: PartialFootnoteProps): React.JSX.Element | null {
   const { t } = useTranslation('sessions')
   const shown = REASON_ORDER.filter((reason) => reasons.has(reason))
   if (shown.length === 0) return null
 
   return (
     <p id={PARTIAL_FOOTNOTE_ID} className={styles.footnote}>
-      {t('footnote.label')} {shown.map((reason) => t(`footnote.${reason}`)).join(' ')}
+      {t('footnote.label')}{' '}
+      {shown.map((reason) => overrides?.[reason] ?? t(`footnote.${reason}`)).join(' ')}
     </p>
   )
 }

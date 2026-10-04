@@ -39,4 +39,13 @@ describe('PartialFootnote', () => {
       `¹ Partial: ${UNREADABLE} ${MISSING} ${UNRECORDED} ${SUBAGENTS}`
     )
   })
+
+  it('says an override in place of its reason’s sentence, and the list’s sentence for the others', () => {
+    const reasons = new Set<PartialReason>(['missingTeammates', 'unreadableLines'])
+    render(<PartialFootnote reasons={reasons} overrides={{ missingTeammates: 'Custom.' }} />)
+
+    expect(document.getElementById(PARTIAL_FOOTNOTE_ID)?.textContent).toBe(
+      `¹ Partial: ${UNREADABLE} Custom.`
+    )
+  })
 })

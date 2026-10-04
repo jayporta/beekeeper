@@ -10,6 +10,8 @@
   & li {
     display: flex;
     align-items: center;
+    /* A label can come from a transcript, so its text direction must not leak into the separators. */
+    unicode-bidi: isolate;
   }
 
   /* The empty alternative text keeps assistive technology from reading the separator. */

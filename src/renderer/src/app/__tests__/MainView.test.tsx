@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
+import { testDetail } from '@renderer/features/sessionDetail/testSessionDetail'
 import { useSelectedProjectStore } from '@renderer/features/projects/state/useSelectedProjectStore'
 import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
@@ -11,7 +12,10 @@ const ref = { projectDirName: '-Users-a-repo', sessionId: '11111111-1111-4111-81
 
 beforeEach(() => {
   useFirstRunStore.setState({ dismissed: true })
-  installBeekeeperApi({ listSessions: () => Promise.resolve({ ok: true, value: [] }) })
+  installBeekeeperApi({
+    listSessions: () => Promise.resolve({ ok: true, value: [] }),
+    getSession: () => Promise.resolve({ ok: true, value: testDetail() })
+  })
 })
 
 afterEach(async () => {
@@ -34,7 +38,7 @@ describe('MainView', () => {
     expect(screen.queryByRole('heading', { name: '-Users-a-repo' })).toBeNull()
   })
 
-  it('shows the session placeholder with a breadcrumb on the session view', async () => {
+  it('shows the session detail with a breadcrumb on the session view', async () => {
     useNavigationStore.getState().showSession(ref)
     renderApp()
 
@@ -90,7 +94,8 @@ describe('MainView', () => {
           ok: true,
           value: [testProject('-Users-a-one'), testProject('-Users-a-two')]
         }),
-      listSessions: () => Promise.resolve({ ok: true, value: [] })
+      listSessions: () => Promise.resolve({ ok: true, value: [] }),
+      getSession: () => Promise.resolve({ ok: true, value: testDetail() })
     })
     useNavigationStore.getState().showSession(ref)
     renderApp()

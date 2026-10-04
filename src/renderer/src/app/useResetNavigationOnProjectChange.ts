@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { isProjectChange } from '@renderer/features/navigation/isProjectChange'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { useSelectedProjectDirName } from '@renderer/features/projects/state/useSelectedProjectDirName'
 
@@ -22,7 +23,7 @@ export function useResetNavigationOnProjectChange(): void {
 
   useEffect(() => {
     if (dirName === null) return
-    const changed = previous.current !== null && previous.current !== dirName
+    const changed = isProjectChange(previous.current, dirName)
     if (changed && useNavigationStore.getState().view !== 'overview') reset()
     previous.current = dirName
   }, [dirName, reset])

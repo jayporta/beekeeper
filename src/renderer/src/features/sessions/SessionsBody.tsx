@@ -1,5 +1,6 @@
-import { useId, useRef } from 'react'
+import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { NotFoundMessage } from '@renderer/components/NotFoundMessage'
 import { RetryButton } from '@renderer/components/RetryButton'
 import { StatusMessage } from '@renderer/components/StatusMessage'
 import { useFocusOrAnnounce } from '@renderer/components/useFocusOrAnnounce'
@@ -54,8 +55,6 @@ export function SessionsBody({
 }: SessionsBodyProps): React.JSX.Element {
   const { t } = useTranslation(['sessions', 'common'])
   const notFoundMessage = useRef<HTMLDivElement>(null)
-  const notFoundHeadingId = useId()
-  const notFoundBodyId = useId()
 
   const code = IpcCallError.codeOf(error)
   const notFoundShown = code === 'not-found' && !isFetching
@@ -71,31 +70,15 @@ export function SessionsBody({
   if (code === 'not-found') {
     if (isFetching) return loading
     return (
-      <>
-        <div
-          ref={notFoundMessage}
-          role="group"
-          aria-labelledby={notFoundHeadingId}
-          aria-describedby={notFoundBodyId}
-          tabIndex={-1}
-        >
-          <StatusMessage
-            heading={t('notFound.heading')}
-            headingLevel={2}
-            headingId={notFoundHeadingId}
-            body={t('notFound.body')}
-            bodyId={notFoundBodyId}
-          >
-            <RetryButton onRetry={onRetry} />
-          </StatusMessage>
-        </div>
-        {announceNotFound && (
-          <div role="alert" className="visuallyHidden">
-            <p>{t('notFound.heading')}</p>
-            <p>{t('notFound.body')}</p>
-          </div>
-        )}
-      </>
+      <NotFoundMessage
+        heading={t('notFound.heading')}
+        headingLevel={2}
+        body={t('notFound.body')}
+        groupRef={notFoundMessage}
+        announce={announceNotFound}
+      >
+        <RetryButton onRetry={onRetry} />
+      </NotFoundMessage>
     )
   }
 
