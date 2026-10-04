@@ -80,16 +80,18 @@ describe('SessionsView search', () => {
 })
 
 /**
- * The search results live region: the status region with no heading of its own,
- * outside the page heading, which holds the refresh button's status.
+ * The search results live region: the last status region with no heading of its
+ * own, outside the page heading, which holds the refresh button's status. The
+ * gone-folder region is another one, mounted before the sessions view.
  */
 const searchStatus = (): HTMLElement | undefined =>
   screen
     .getAllByRole('status')
-    .find(
+    .filter(
       (region) =>
         within(region).queryByRole('heading') === null && region.closest('header') === null
     )
+    .at(-1)
 
 describe('SessionsView search announcements', () => {
   it('has an empty polite status region before anything is typed', async () => {

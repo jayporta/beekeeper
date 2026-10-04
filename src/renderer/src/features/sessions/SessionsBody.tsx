@@ -8,7 +8,7 @@ import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
 interface SessionsBodyProps {
   /** The folder's session list, or `undefined` until it has loaded. */
   readonly data: readonly SessionListItemDto[] | undefined
-  /** What the last load threw, or `null` when it didn't fail. Ignored once there is data. */
+  /** What the last load threw, or `null` when it didn't fail. Once there is data, only a `not-found` error is used. */
   readonly error: unknown
   /** Loads the list again. */
   readonly onRetry: () => void
@@ -21,7 +21,8 @@ interface SessionsBodyProps {
 /**
  * What the sessions view shows for one folder: a loading, error or empty
  * state, or the list or a no-match message. Loaded data wins over a failed
- * background refresh, so a cached list stays on screen. Each state has its own
+ * background refresh, so a cached list stays on screen, except when the folder
+ * is gone (`not-found`): its cached list is stale, so the error shows. Each state has its own
  * key, so an alert mounts fresh instead of reusing the loading element, and
  * screen readers announce it.
  *
@@ -39,8 +40,9 @@ export function SessionsBody({
 }: SessionsBodyProps): React.JSX.Element {
   const { t } = useTranslation(['sessions', 'common'])
 
-  if (data === undefined) {
-    const code = IpcCallError.codeOf(error)
+  const code = IpcCallError.codeOf(error)
+
+  if (data === undefined || code === 'not-found') {
     if (error === null) {
       return <StatusMessage key="loading" heading={t('loading')} headingLevel={2} role="status" />
     }

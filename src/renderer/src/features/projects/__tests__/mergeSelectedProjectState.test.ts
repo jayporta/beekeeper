@@ -3,8 +3,9 @@ import { mergeSelectedProjectState } from '../state/mergeSelectedProjectState'
 
 const current = {
   selectedDirName: null as string | null,
+  goneDirName: null as string | null,
   select: () => undefined,
-  resetSelection: () => undefined
+  forgetGoneFolder: () => undefined
 }
 
 describe('mergeSelectedProjectState', () => {
@@ -41,12 +42,21 @@ describe('mergeSelectedProjectState', () => {
 
   it('keeps the actions from the current state', () => {
     const merged = mergeSelectedProjectState(
-      { selectedDirName: '-Users-a-beta', select: 'x', resetSelection: 5 },
+      { selectedDirName: '-Users-a-beta', select: 'x', forgetGoneFolder: 5 },
       current
     )
 
     expect(merged.select).toBe(current.select)
-    expect(merged.resetSelection).toBe(current.resetSelection)
+    expect(merged.forgetGoneFolder).toBe(current.forgetGoneFolder)
+  })
+
+  it('never restores a stored missing folder', () => {
+    const merged = mergeSelectedProjectState(
+      { selectedDirName: '-Users-a-beta', goneDirName: '-Users-a-alpha' },
+      current
+    )
+
+    expect(merged.goneDirName).toBeNull()
   })
 
   it.each([

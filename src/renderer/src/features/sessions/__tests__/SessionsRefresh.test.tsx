@@ -161,8 +161,10 @@ describe('refreshing the lists on window focus', () => {
   it('resets the selected project when a refetch finds its folder gone', async () => {
     let otherGone = false
     await showSessions(
-      () =>
-        otherGone ? Promise.resolve({ ok: false, error: { code: 'not-found' } }) : loaded([lead]),
+      (dirName) =>
+        otherGone && dirName === OTHER
+          ? Promise.resolve({ ok: false, error: { code: 'not-found' } })
+          : loaded([lead]),
       [testProject(DIR), testProject(OTHER)]
     )
     await userEvent.click(await screen.findByRole('button', { name: OTHER }))
@@ -174,6 +176,7 @@ describe('refreshing the lists on window focus', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: DIR }).getAttribute('aria-current')).toBe('page')
     })
+    expect(screen.getByText(`That project's folder no longer exists. Showing ${DIR}.`)).toBeTruthy()
   })
 })
 

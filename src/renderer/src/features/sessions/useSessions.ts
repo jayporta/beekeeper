@@ -7,27 +7,30 @@ import { useSelectedProjectStore } from '@renderer/features/projects/state/useSe
 
 /**
  * Loads a project's sessions. Its cache lifetime is the `sessions` query
- * default, `SESSIONS_GC_TIME_MS`. When the folder no longer exists (`not-found`),
- * it forgets the stored selection and refreshes the project list, which may
- * be a persisted copy that still names the folder.
+ * default, `SESSIONS_GC_TIME_MS`. Each time a load finds the folder gone
+ * (`not-found`), including one after Retry, it forgets the stored selection,
+ * records the folder as gone, and refreshes the project list, which may be a
+ * persisted copy that still names the folder.
  *
  * @param dirName - A folder name from the project list.
  * @returns The session list query. A failed call surfaces as an `IpcCallError`.
  */
 export function useSessions(dirName: string): UseQueryResult<readonly SessionListItemDto[]> {
   const queryClient = useQueryClient()
-  const resetSelection = useSelectedProjectStore((state) => state.resetSelection)
+  const forgetGoneFolder = useSelectedProjectStore((state) => state.forgetGoneFolder)
   const query = useQuery({
     queryKey: ['sessions', dirName],
     queryFn: async () => unwrapIpcResult(await window.beekeeper.listSessions(dirName))
   })
   const folderGone = query.isError && IpcCallError.codeOf(query.error) === 'not-found'
 
+  // `errorUpdatedAt` changes with every failed load, so a not-found that follows
+  // another one (the query keeps its error status and data between them) runs this again.
   useEffect(() => {
     if (!folderGone) return
-    resetSelection()
+    forgetGoneFolder(dirName)
     void queryClient.invalidateQueries({ queryKey: ['projects'] })
-  }, [folderGone, resetSelection, queryClient])
+  }, [folderGone, query.errorUpdatedAt, dirName, forgetGoneFolder, queryClient])
 
   return query
 }

@@ -7,14 +7,24 @@ import { mergeSelectedProjectState } from './mergeSelectedProjectState'
 /** The IndexedDB key the project selection is stored under. */
 export const SELECTED_PROJECT_STORAGE_KEY = 'selected-project'
 
-/** Which project the person last selected. */
+/** Which project the person last selected, and the folder that went missing. */
 interface SelectedProjectState {
   /** The selected project's folder name, or `null` when none was chosen. */
   readonly selectedDirName: string | null
-  /** Selects a project by folder name. */
+  /**
+   * The folder name of a selected project whose folder no longer exists, or
+   * `null`. It is never persisted. It lets the app say why the selection changed.
+   */
+  readonly goneDirName: string | null
+  /** Selects a project by folder name, and drops any recorded missing folder. */
   select: (dirName: string) => void
-  /** Forgets the selection, so the first parent project is used. */
-  resetSelection: () => void
+  /**
+   * Forgets the selection because its folder no longer exists, so the first
+   * parent project is used, and records the folder.
+   */
+  forgetGoneFolder: (dirName: string) => void
+  /** Drops the recorded missing folder and keeps the selection. */
+  clearGoneFolder: () => void
 }
 
 /**
@@ -28,11 +38,15 @@ export const useSelectedProjectStore = create<SelectedProjectState>()(
   persist<SelectedProjectState, [], [], { selectedDirName: string | null }>(
     (set) => ({
       selectedDirName: null,
+      goneDirName: null,
       select: (dirName) => {
-        set({ selectedDirName: dirName })
+        set({ selectedDirName: dirName, goneDirName: null })
       },
-      resetSelection: () => {
-        set({ selectedDirName: null })
+      forgetGoneFolder: (dirName) => {
+        set({ selectedDirName: null, goneDirName: dirName })
+      },
+      clearGoneFolder: () => {
+        set({ goneDirName: null })
       }
     }),
     {

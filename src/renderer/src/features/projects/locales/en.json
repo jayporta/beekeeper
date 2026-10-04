@@ -14,5 +14,9 @@
     "heading": "Can't read your sessions",
     "body": "Beekeeper can't read ~/.claude/projects. Check that folder's permissions. On macOS, also check whether Beekeeper was denied access to it. Then retry."
   },
-  "error": "Beekeeper couldn't load your projects."
+  "error": "Beekeeper couldn't load your projects.",
+  "folderGone": {
+    "showing": "That project's folder no longer exists. Showing {{project}}.",
+    "none": "That project's folder no longer exists."
+  }
 }
