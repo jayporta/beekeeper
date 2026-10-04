@@ -96,6 +96,10 @@
   --size-mark-subagent: 0.5625rem;
   --border-width-mark: 1.5px;
   --border-width-strong: 2px;
+  /* The session graph's dot grid: a dot every 20px, and its edges at 45% opacity. */
+  --size-graph-grid: 1.25rem;
+  --color-graph-dot: color-mix(in srgb, var(--color-text) 14%, transparent);
+  --opacity-graph-edge: 0.45;
 
   --radius-none: 0;
   --radius-sm: 2px;

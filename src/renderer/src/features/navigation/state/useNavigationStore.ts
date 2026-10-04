@@ -38,6 +38,13 @@ interface NavigationState {
    * @param agent - The agent to select within it. Omit it for the lead.
    */
   showSession: (ref: SessionRefDto, agent?: SelectedAgent) => void
+  /**
+   * Selects an agent within the session on show. Choosing among a session's
+   * agents is not navigating, so it leaves `navigationCount` alone and focus
+   * stays where it is.
+   * @param agent - The agent to select, or `null` for the lead.
+   */
+  selectAgent: (agent: SelectedAgent | null) => void
   /** Returns to the starting state: the sessions list with nothing selected. */
   reset: () => void
 }
@@ -73,6 +80,9 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
       selectedAgent: agent ?? null,
       navigationCount: state.navigationCount + 1
     }))
+  },
+  selectAgent: (agent) => {
+    set({ selectedAgent: agent })
   },
   reset: () => {
     set(STARTING_STATE)

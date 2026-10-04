@@ -1,0 +1,30 @@
+.canvas {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--color-divider);
+}
+
+/* A graph wider than the view scrolls here. Its nodes are buttons, so a keyboard user reaches the rest by tabbing. */
+.scroll {
+  overflow-x: auto;
+}
+
+.surface {
+  position: relative;
+  min-width: 100%;
+  background-image: radial-gradient(circle, var(--color-graph-dot) 1px, transparent 1px);
+  background-size: var(--size-graph-grid) var(--size-graph-grid);
+}
+
+.edges {
+  position: absolute;
+  inset: 0;
+  color: var(--color-text);
+}
+
+.edge {
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1px;
+  stroke-opacity: var(--opacity-graph-edge);
+}

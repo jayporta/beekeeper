@@ -1,0 +1,108 @@
+.node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-2-5);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  /* Opaque, so the grid's dots don't show through the text. */
+  background-color: var(--color-bg);
+  border: var(--border-width-mark) solid var(--color-text);
+  border-radius: var(--radius-none);
+  cursor: pointer;
+
+  &:not(.lead):hover {
+    background-image: linear-gradient(var(--color-hover), var(--color-hover));
+  }
+}
+
+/* A subagent is a sidechain inside a transcript: a dashed border. A teammate, a session of its own, is solid. */
+.teammate {
+  border-style: solid;
+}
+
+.subagent {
+  border-style: dashed;
+}
+
+/* The lead is always filled: --color-bg on --color-accent-strong, a pair the contrast test holds to 4.5:1. */
+.lead {
+  color: var(--color-bg);
+  background-color: var(--color-accent-strong);
+  border-color: var(--color-accent-strong);
+
+  & .detail {
+    color: inherit;
+  }
+
+  /* Forced colors drop the fill, so the lead keeps a solid system color. */
+  @media (forced-colors: active) {
+    color: HighlightText;
+    background-color: Highlight;
+    border-color: Highlight;
+    forced-color-adjust: none;
+  }
+}
+
+.selected {
+  background-color: var(--color-accent-200);
+  border-color: var(--color-accent-strong);
+  border-width: var(--border-width-strong);
+
+  @media (forced-colors: active) {
+    border-color: Highlight;
+  }
+}
+
+/* A filled lead keeps its fill when selected, so its edge turns to the text color to show the choice. */
+.lead.selected {
+  background-color: var(--color-accent-strong);
+  border-color: var(--color-text);
+
+  @media (forced-colors: active) {
+    border-color: CanvasText;
+  }
+}
+
+.line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.name,
+.detail {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.name {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.detail {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2xs);
+}
+
+.tokens {
+  flex: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.flag {
+  flex: none;
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
