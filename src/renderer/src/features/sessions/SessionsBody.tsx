@@ -29,9 +29,10 @@ interface SessionsBodyProps {
  * state, or the list or a no-match message. Loaded data wins over a failed
  * background refresh, so a cached list stays on screen, except when the folder
  * is gone (`not-found`): its cached list is stale, so its own message shows.
- * Each other state has its own key, so an alert mounts fresh instead of
- * reusing the loading element, and screen readers announce it. While a load of that folder is in flight, its old `not-found` is not shown:
- * loading is, so a folder that came back doesn't flash the message. The
+ * The loading, unreadable, error and empty states have their own keys, so an alert
+ * mounts fresh instead of reusing the loading element, and screen readers
+ * announce it. While a load of that folder is in flight, its old `not-found`
+ * is not shown: loading is, so a folder that came back doesn't flash the message. The
  * `not-found` message is a group named by its heading and described by its
  * body, and is never a live region itself. When it replaces a focused control,
  * such as the search box, focus moves to it. Otherwise a separate, visually

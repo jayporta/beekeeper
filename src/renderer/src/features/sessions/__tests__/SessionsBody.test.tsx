@@ -46,7 +46,7 @@ describe('SessionsBody for a gone folder', () => {
     expect(first.isConnected).toBe(false)
   })
 
-  it('empties its alert once the live copy delay has passed, and keeps the message', () => {
+  it('removes its alert once the live copy delay has passed, and keeps the message', () => {
     vi.useFakeTimers()
     render(notFoundBody(1))
     expect(screen.getByRole('alert')).toBeTruthy()
