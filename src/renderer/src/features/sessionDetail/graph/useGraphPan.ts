@@ -12,10 +12,22 @@ interface GraphPan {
   readonly onPointerCancel: () => void
 }
 
+/** Whether a press landed on the scrollbar of the element the handler is on, which lies outside its client area. */
+function onScrollbar(event: PointerEvent<HTMLElement>): boolean {
+  const { currentTarget, nativeEvent } = event
+  // The offsets are relative to the pressed element, so they only place a press on this one.
+  if (event.target !== currentTarget) return false
+  return (
+    nativeEvent.offsetX >= currentTarget.clientWidth ||
+    nativeEvent.offsetY >= currentTarget.clientHeight
+  )
+}
+
 /**
  * Pans a scrolling element by dragging its background with the primary
- * button. A press on a node starts nothing, so nodes are never dragged, and a
- * press on a zoom control never reaches the viewport.
+ * button. A press on a node starts nothing, so nodes are never dragged, a
+ * press on a zoom control never reaches the viewport, and a press on the
+ * element's own scrollbar is left to the scrollbar.
  *
  * @param viewportRef - The scrolling element.
  * @returns The pointer handlers to put on it.
@@ -26,7 +38,7 @@ export function useGraphPan(viewportRef: RefObject<HTMLElement | null>): GraphPa
   return {
     onPointerDown(event) {
       const onNode = event.target instanceof Element && event.target.closest('button') !== null
-      if (event.button !== 0 || onNode) return
+      if (event.button !== 0 || onNode || onScrollbar(event)) return
       last.current = { x: event.clientX, y: event.clientY }
       event.currentTarget.setPointerCapture(event.pointerId)
     },

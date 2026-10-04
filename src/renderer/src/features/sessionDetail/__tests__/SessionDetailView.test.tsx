@@ -184,7 +184,16 @@ describe('SessionDetailView graph', () => {
     )
   })
 
-  it('shows no graph while the detail loads or when it fails', async () => {
+  it('shows no graph while the detail loads', async () => {
+    openSession(testRef(1, DIR), {
+      detail: new Promise<IpcResult<SessionDetailDto>>(() => undefined)
+    })
+    await screen.findByRole('heading', { level: 1, name: 'Loading session' })
+
+    expect(screen.queryByRole('region', { name: 'Agent graph' })).toBeNull()
+  })
+
+  it('shows no graph when the detail fails', async () => {
     openSession(testRef(1, DIR), { detail: { ok: false, error: { code: 'unreadable' } } })
     await screen.findByRole('alert')
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type RefObject } from 'react'
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import { flushSync } from 'react-dom'
 import { fitScale, scaleAfterWheel, stepScale, type Size } from './graphZoom'
 
@@ -33,32 +33,42 @@ interface GraphZoom {
  */
 export function useGraphZoom(viewportRef: RefObject<HTMLElement | null>, content: Size): GraphZoom {
   const [scale, setScale] = useState(1)
+  // The scale the latest change set, for handlers that outlive a render, so the wheel listener attaches once.
+  const scaleRef = useRef(scale)
+
+  const applyScale = useCallback((next: number) => {
+    scaleRef.current = next
+    // Scrolling needs the resized content in place, so the update can't wait for the next frame.
+    flushSync(() => {
+      setScale(next)
+    })
+  }, [])
 
   const zoomAround = useCallback(
     (next: number, anchor: Point) => {
       const viewport = viewportRef.current
-      if (viewport === null || next === scale) return
-      const ratio = next / scale
-      // Scrolling needs the resized content in place, so the update can't wait for the next frame.
-      flushSync(() => {
-        setScale(next)
-      })
-      viewport.scrollLeft = (viewport.scrollLeft + anchor.x) * ratio - anchor.x
-      viewport.scrollTop = (viewport.scrollTop + anchor.y) * ratio - anchor.y
+      const current = scaleRef.current
+      if (viewport === null || next === current) return
+      const ratio = next / current
+      // Shrinking the content makes the browser clamp the offsets, so they are read before it does.
+      const { scrollLeft, scrollTop } = viewport
+      applyScale(next)
+      viewport.scrollLeft = (scrollLeft + anchor.x) * ratio - anchor.x
+      viewport.scrollTop = (scrollTop + anchor.y) * ratio - anchor.y
     },
-    [viewportRef, scale]
+    [viewportRef, applyScale]
   )
 
   const zoomBy = useCallback(
     (direction: 'in' | 'out') => {
       const viewport = viewportRef.current
       if (viewport === null) return
-      zoomAround(stepScale(scale, direction), {
+      zoomAround(stepScale(scaleRef.current, direction), {
         x: viewport.clientWidth / 2,
         y: viewport.clientHeight / 2
       })
     },
-    [viewportRef, scale, zoomAround]
+    [viewportRef, zoomAround]
   )
 
   const fit = useCallback(() => {
@@ -66,12 +76,10 @@ export function useGraphZoom(viewportRef: RefObject<HTMLElement | null>, content
     if (viewport === null) return
     const next = fitScale(content, { width: viewport.clientWidth, height: viewport.clientHeight })
     if (next === null) return
-    flushSync(() => {
-      setScale(next)
-    })
+    applyScale(next)
     viewport.scrollLeft = 0
     viewport.scrollTop = 0
-  }, [viewportRef, content])
+  }, [viewportRef, content, applyScale])
 
   // A wheel listener has to be non-passive to cancel the browser's own page zoom.
   useEffect(() => {
@@ -81,7 +89,7 @@ export function useGraphZoom(viewportRef: RefObject<HTMLElement | null>, content
       if (!event.ctrlKey && !event.metaKey) return
       event.preventDefault()
       const rect = viewport.getBoundingClientRect()
-      zoomAround(scaleAfterWheel(scale, event.deltaY), {
+      zoomAround(scaleAfterWheel(scaleRef.current, event.deltaY), {
         x: event.clientX - rect.left,
         y: event.clientY - rect.top
       })
@@ -90,7 +98,7 @@ export function useGraphZoom(viewportRef: RefObject<HTMLElement | null>, content
     return () => {
       viewport.removeEventListener('wheel', onWheel)
     }
-  }, [viewportRef, scale, zoomAround])
+  }, [viewportRef, zoomAround])
 
   return {
     scale,

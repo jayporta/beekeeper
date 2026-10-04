@@ -47,17 +47,17 @@ describe('GraphCanvas', () => {
     expect(region.getByRole('button', { name: /^Lead, lead/ })).toBeTruthy()
   })
 
-  it('has a node for the lead, each subagent, and each teammate, named by kind and tokens', () => {
+  it('has a node for the lead, each subagent, and each teammate, named by kind, parent and tokens', () => {
     renderGraph()
 
     const names = graphNodes().map((button) => button.getAttribute('aria-label'))
 
     expect(names).toEqual([
       'Lead, lead, 1.5K tokens, claude-opus-5',
-      'scout, subagent, 40 tokens, Explore, claude-haiku-5',
-      'reader, subagent, tokens not recorded, Explore',
-      'writer (code), teammate, 2.5K tokens, code, claude-sonnet-5, stopped',
-      'tester (code), teammate, 900 tokens, in -Users-a-other'
+      'scout, subagent of Lead, 40 tokens, Explore, claude-haiku-5',
+      'reader, subagent of Lead, tokens not recorded, Explore',
+      'writer (code), teammate of Lead, 2.5K tokens, code, claude-sonnet-5, stopped',
+      'tester (code), teammate of Lead, 900 tokens, in -Users-a-other'
     ])
   })
 
@@ -167,10 +167,12 @@ describe('GraphCanvas partial data', () => {
     expect(screen.queryByText(/Partial:/)).toBeNull()
   })
 
-  it('leaves no empty notes container under a graph with nothing to explain', () => {
+  it('has only the keyboard hint in the notes under a graph with nothing to explain', () => {
     renderGraph()
 
-    expect(screen.getByRole('region', { name: 'Agent graph' }).children).toHaveLength(1)
+    const notes = screen.getByText(/^Arrow keys/).parentElement
+
+    expect(notes?.children).toHaveLength(1)
   })
 })
 

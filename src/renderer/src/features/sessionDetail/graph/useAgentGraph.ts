@@ -7,6 +7,7 @@ import type { AgentKey, RootAgentGraphNode } from './agentGraphNode'
 import { buildAgentGraph } from './buildAgentGraph'
 import { layoutGraph, type GraphLayout } from './layoutGraph'
 import { graftTeammates } from './teammateExpansion'
+import { useAnnounceExpansions } from './useAnnounceExpansions'
 import { useTeammateExpansions } from './useTeammateExpansions'
 
 /** Input for {@link useAgentGraph}. */
@@ -27,16 +28,19 @@ interface AgentGraph {
   readonly layout: GraphLayout
   /** The teammates whose sessions are still loading. */
   readonly loading: ReadonlySet<AgentKey>
+  /** What to say about a teammate's load that just settled, or an empty string. */
+  readonly announcement: string
 }
 
 /**
  * Builds a session's agent graph, adds the subagents of the teammates the
  * person has opened, and lays it out. Each step is memoized on its inputs, so
  * a render that changes none of them, such as a selection change that opens
- * no teammate, reuses the same nodes and positions.
+ * no teammate, reuses the same nodes and positions. A teammate's load that
+ * settles is announced once.
  *
  * @param input - The session's detail, ref, and list row.
- * @returns The model, its layout, and the teammates still loading.
+ * @returns The model, its layout, the teammates still loading, and the announcement of a load that settled.
  */
 export function useAgentGraph(input: UseAgentGraphInput): AgentGraph {
   const { detail, sessionRef, row } = input
@@ -54,5 +58,6 @@ export function useAgentGraph(input: UseAgentGraphInput): AgentGraph {
       new Set([...expansions].filter(([, { status }]) => status === 'loading').map(([key]) => key)),
     [expansions]
   )
-  return { root, layout, loading }
+  const announcement = useAnnounceExpansions(root, expansions)
+  return { root, layout, loading, announcement }
 }

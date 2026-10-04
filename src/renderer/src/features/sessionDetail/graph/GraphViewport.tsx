@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, type CSSProperties } from 'react'
 import styles from './GraphViewport.module.css'
 import { GraphZoomControls } from './GraphZoomControls'
 import { useGraphPan } from './useGraphPan'
@@ -28,12 +28,19 @@ export function GraphViewport({ width, height, children }: GraphViewportProps): 
   const viewportRef = useRef<HTMLDivElement>(null)
   const { scale, zoomOut, zoomIn, fit } = useGraphZoom(viewportRef, { width, height })
   const pan = useGraphPan(viewportRef)
+  // React types no custom properties, so the scale the graph's styles read takes an assertion.
+  const surfaceStyle = {
+    width,
+    height,
+    transform: `scale(${scale})`,
+    '--graph-scale': scale
+  } as CSSProperties
 
   return (
     <div className={styles.stage}>
       <div ref={viewportRef} className={styles.viewport} {...pan}>
         <div className={styles.sizer} style={{ width: width * scale, height: height * scale }}>
-          <div className={styles.surface} style={{ width, height, transform: `scale(${scale})` }}>
+          <div className={styles.surface} style={surfaceStyle}>
             {children}
           </div>
         </div>

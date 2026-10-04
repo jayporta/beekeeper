@@ -16,6 +16,12 @@
   &:not(.lead):hover {
     background-image: linear-gradient(var(--color-hover), var(--color-hover));
   }
+
+  /* The graph is scaled, so the focus ring is drawn wider by the inverse of the scale to keep its width on screen. */
+  &:focus-visible {
+    outline-width: calc(var(--focus-ring-width) / var(--graph-scale, 1));
+    outline-offset: calc(var(--focus-ring-offset) / var(--graph-scale, 1));
+  }
 }
 
 /* A subagent is a sidechain inside a transcript: a dashed border. A teammate, a session of its own, is solid. */
@@ -46,17 +52,25 @@
   }
 }
 
+/*
+ * The selected node has a heavier border and a ring of text color outside it, which is 3:1 or more
+ * against the ground (see the contrast test), so the choice shows without hue. The ring sits against
+ * the border, and the focus ring starts past it, so the two never overlap.
+ */
 .selected {
   background-color: var(--color-accent-200);
   border-color: var(--color-accent-strong);
   border-width: var(--border-width-strong);
+  box-shadow: 0 0 0 calc(var(--border-width-strong) / var(--graph-scale, 1)) var(--color-text);
 
+  /* Forced colors drop shadows, so the border doubles instead. */
   @media (forced-colors: active) {
     border-color: Highlight;
+    border-width: calc(var(--border-width-strong) * 2);
   }
 }
 
-/* A filled lead keeps its fill when selected, so its edge turns to the text color to show the choice. */
+/* A filled lead keeps its fill when selected, so its edge turns to the text color too. */
 .lead.selected {
   background-color: var(--color-accent-strong);
   border-color: var(--color-text);

@@ -10,6 +10,7 @@
         "subagent": "subagent"
       },
       "label": "{{name}}, {{kind}}, {{details}}",
+      "labelWithParent": "{{name}}, {{kind}} of {{parent}}, {{details}}",
       "labelSeparator": ", ",
       "lineSeparator": " · ",
       "tokens_one": "{{count, compactInteger}} token",
@@ -24,10 +25,16 @@
       "loadingFlag": "loading…"
     },
     "footnote": {
+      "keyboard": "Arrow keys, Home and End move between agents. Enter selects one.",
       "partial": "¹ Partial: part of this agent's data couldn't be read, so its tokens or files may be incomplete.",
       "missingTeammates_one": "{{count, integer}} teammate not found: the lead spawned it, but it isn't in the sessions list.",
       "missingTeammates_other": "{{count, integer}} teammates not found: the lead spawned them, but they aren't in the sessions list.",
       "truncated": "The lead's spawn and stop lists hit their cap, so more teammates may be missing."
+    },
+    "announce": {
+      "loaded_one": "Loaded {{count, integer}} subagent of {{name}}",
+      "loaded_other": "Loaded {{count, integer}} subagents of {{name}}",
+      "failed": "Couldn't load the subagents of {{name}}"
     },
     "zoom": {
       "label": "Zoom",

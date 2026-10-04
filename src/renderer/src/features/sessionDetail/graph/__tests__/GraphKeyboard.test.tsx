@@ -47,6 +47,22 @@ describe('GraphCanvas roving tab stop', () => {
   })
 })
 
+describe('GraphCanvas keyboard hint', () => {
+  const HINT = 'Arrow keys, Home and End move between agents. Enter selects one.'
+
+  it('tells a person that the other nodes are reached by the arrow keys, Home and End', () => {
+    renderGraph()
+
+    expect(screen.getByText(HINT)).toBeTruthy()
+  })
+
+  it('describes the graph region, so a screen reader meets it on entering', () => {
+    renderGraph()
+
+    expect(screen.getByRole('region', { name: 'Agent graph', description: HINT })).toBeTruthy()
+  })
+})
+
 describe('GraphCanvas arrow keys', () => {
   const focused = (): string => document.activeElement?.getAttribute('aria-label') ?? ''
 

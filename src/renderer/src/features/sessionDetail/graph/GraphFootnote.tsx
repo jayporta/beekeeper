@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import styles from './GraphFootnote.module.css'
-import { GRAPH_FOOTNOTE_ID } from './graphFootnoteId'
+import { GRAPH_FOOTNOTE_ID, GRAPH_HINT_ID } from './graphFootnoteId'
 
 /** Props for {@link GraphFootnote}. */
 interface GraphFootnoteProps {
@@ -13,9 +13,11 @@ interface GraphFootnoteProps {
 }
 
 /**
- * The quiet notes under the graph: why a "¹" marks a node, how many teammates
- * the lead spawned that aren't in the sessions list, and that the lead's lists
- * hit their cap. It renders nothing when there is nothing to say.
+ * The quiet notes under the graph: how to move among the nodes with the
+ * keyboard, then why a "¹" marks a node, how many teammates the lead spawned
+ * that aren't in the sessions list, and that the lead's lists hit their cap.
+ * Only the selected node is in the tab order, so the keyboard hint is always
+ * there.
  *
  * @example
  * <GraphFootnote partial={false} missingTeammates={2} teamListsTruncated={false} />
@@ -24,12 +26,12 @@ export function GraphFootnote({
   partial,
   missingTeammates,
   teamListsTruncated
-}: GraphFootnoteProps): React.JSX.Element | null {
+}: GraphFootnoteProps): React.JSX.Element {
   const { t } = useTranslation('sessionDetail')
-  if (!partial && missingTeammates === 0 && !teamListsTruncated) return null
 
   return (
     <div className={styles.footnotes}>
+      <p id={GRAPH_HINT_ID}>{t('graph.footnote.keyboard')}</p>
       {partial && <p id={GRAPH_FOOTNOTE_ID}>{t('graph.footnote.partial')}</p>}
       {missingTeammates > 0 && (
         <p>{t('graph.footnote.missingTeammates', { count: missingTeammates })}</p>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { contrastRatio } from '../testContrast'
+import { blendOver, contrastRatio } from '../testContrast'
 import { readTokenSchemes } from '../testTokens'
 
 const schemes = readTokenSchemes(new URL('../tokens.css', import.meta.url))
@@ -29,6 +29,33 @@ describe.each(Object.entries(schemes))('%s color scheme', (_scheme, tokens) => {
       throw new Error(`Missing token: ${foreground} or ${background}`)
 
     expect(contrastRatio(fg, bg)).toBeGreaterThanOrEqual(minimum)
+  })
+})
+
+describe.each(Object.entries(schemes))('%s color scheme graph edges', (_scheme, tokens) => {
+  it('are at least 3:1 against the ground, text at the edge opacity (WCAG 1.4.11)', () => {
+    const text = tokens['--color-text']
+    const ground = tokens['--color-bg']
+    const opacity = Number(tokens['--opacity-graph-edge'])
+    if (text === undefined || ground === undefined || Number.isNaN(opacity))
+      throw new Error('Missing token: --color-text, --color-bg or --opacity-graph-edge')
+
+    expect(contrastRatio(blendOver(text, ground, opacity), ground)).toBeGreaterThanOrEqual(3)
+  })
+})
+
+describe('blendOver', () => {
+  it('is the foreground at full opacity and the background at none', () => {
+    expect(blendOver('#102030', '#ffffff', 1)).toBe('#102030')
+    expect(blendOver('#102030', '#ffffff', 0)).toBe('#ffffff')
+  })
+
+  it('lands halfway between the two at half opacity', () => {
+    expect(blendOver('#000000', '#ffffff', 0.5)).toBe('#808080')
+  })
+
+  it('rejects a color that is not 6-digit hex', () => {
+    expect(() => blendOver('red', '#ffffff', 0.5)).toThrow('Not a 6-digit hex color')
   })
 })
 

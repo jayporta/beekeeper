@@ -1,6 +1,6 @@
-import { fireEvent, screen } from '@testing-library/react'
+import { createEvent, fireEvent, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { MAX_SCALE, MIN_SCALE, ZOOM_STEP } from '../graphZoom'
 import { graphNode, renderGraph } from '../testGraphScene'
@@ -36,6 +36,15 @@ describe('GraphCanvas zoom controls', () => {
     renderGraph()
 
     expect(scale()).toBe(1)
+  })
+
+  it('exposes the scale to the graph’s styles, so a node can keep its focus ring’s on-screen width', async () => {
+    renderGraph()
+    expect(surface().style.getPropertyValue('--graph-scale')).toBe('1')
+
+    await press('Zoom in')
+
+    expect(Number(surface().style.getPropertyValue('--graph-scale'))).toBeCloseTo(ZOOM_STEP)
   })
 
   it('magnifies by a step with zoom in, and shrinks by a step with zoom out', async () => {
@@ -84,6 +93,41 @@ describe('GraphCanvas zoom controls', () => {
 
     // The point at 40 + 100 scrolled to 140 / 1 * 1.25 = 175 from the origin; the center stays at 100.
     expect(viewport().scrollLeft).toBeCloseTo((40 + 100) * ZOOM_STEP - 100)
+  })
+})
+
+describe('GraphCanvas zoom out near the far edges', () => {
+  it('keeps the center where it was although the browser clamps the offsets to the shrunken graph', async () => {
+    renderGraph()
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(200)
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(100)
+    await press('Zoom in')
+    // Stands in for the browser: an offset can't pass the end of the scaled graph.
+    const sizer = surface().parentElement as HTMLElement
+    const offsets = { left: 0, top: 0 }
+    Object.defineProperties(viewport(), {
+      scrollLeft: {
+        configurable: true,
+        get: () => Math.min(offsets.left, Math.max(0, Number.parseFloat(sizer.style.width) - 200)),
+        set: (value: number) => {
+          offsets.left = value
+        }
+      },
+      scrollTop: {
+        configurable: true,
+        get: () => Math.min(offsets.top, Math.max(0, Number.parseFloat(sizer.style.height) - 100)),
+        set: (value: number) => {
+          offsets.top = value
+        }
+      }
+    })
+    viewport().scrollLeft = 300
+    viewport().scrollTop = 300
+
+    await press('Zoom out')
+
+    expect(viewport().scrollLeft).toBeCloseTo((300 + 100) / ZOOM_STEP - 100)
+    expect(viewport().scrollTop).toBeCloseTo((300 + 50) / ZOOM_STEP - 50)
   })
 })
 
@@ -204,6 +248,29 @@ describe('GraphCanvas wheel', () => {
     expect(scale()).toBe(MIN_SCALE)
   })
 
+  it('listens once, however many times the scale changes', async () => {
+    const add = vi.spyOn(HTMLElement.prototype, 'addEventListener')
+    renderGraph()
+
+    await press('Zoom in')
+    await press('Zoom in')
+    fireEvent.wheel(viewport(), { deltaY: -100, ctrlKey: true })
+
+    const onViewport = add.mock.calls.filter(
+      ([type], call) => type === 'wheel' && add.mock.contexts[call] === viewport()
+    )
+    expect(onViewport).toHaveLength(1)
+  })
+
+  it('zooms from the scale the last change left, not the one it first saw', async () => {
+    renderGraph()
+    await press('Zoom in')
+
+    fireEvent.wheel(viewport(), { deltaY: 0, ctrlKey: true })
+
+    expect(scale()).toBeCloseTo(ZOOM_STEP)
+  })
+
   it('stops listening once the graph is gone', () => {
     const { unmount } = renderGraph()
     const element = viewport()
@@ -216,6 +283,12 @@ describe('GraphCanvas wheel', () => {
 })
 
 describe('GraphCanvas pan', () => {
+  // A view with a size has a client area, which a press on its scrollbar falls outside of.
+  beforeEach(() => {
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1000)
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(1000)
+  })
+
   const down = (target: Element, x: number, y: number): void => {
     fireEvent.pointerDown(target, { clientX: x, clientY: y, button: 0, pointerId: 1 })
   }
@@ -253,6 +326,42 @@ describe('GraphCanvas pan', () => {
     move(viewport(), 100, 200)
 
     expect(viewport().scrollLeft).toBe(100)
+  })
+
+  /** Presses the view's background at an offset from its top left, as the browser reports it. */
+  const downAtOffset = (offsetX: number, offsetY: number): void => {
+    const press = createEvent.pointerDown(viewport(), {
+      clientX: 200,
+      clientY: 200,
+      button: 0,
+      pointerId: 1
+    })
+    Object.defineProperties(press, { offsetX: { value: offsetX }, offsetY: { value: offsetY } })
+    fireEvent(viewport(), press)
+  }
+
+  it.each([
+    ['vertical', 1005, 50],
+    ['horizontal', 50, 1005]
+  ])('does not pan from a press on the view’s %s scrollbar', (_bar, offsetX, offsetY) => {
+    renderGraph()
+    viewport().scrollLeft = 100
+    viewport().scrollTop = 100
+
+    downAtOffset(offsetX, offsetY)
+    move(viewport(), 100, 100)
+
+    expect([viewport().scrollLeft, viewport().scrollTop]).toEqual([100, 100])
+  })
+
+  it('still pans from a press just inside the view’s content area', () => {
+    renderGraph()
+    viewport().scrollLeft = 100
+
+    downAtOffset(999, 999)
+    move(viewport(), 170, 200)
+
+    expect(viewport().scrollLeft).toBe(130)
   })
 
   it('does not pan from any button but the primary', () => {

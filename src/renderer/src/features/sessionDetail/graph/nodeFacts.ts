@@ -20,18 +20,24 @@ interface NodeNameOptions {
   readonly t: GraphT
   /** Whether the teammate's own subagents are still loading. */
   readonly loading: boolean
+  /** The name of the agent that spawned this one, or `null` for the root. Transcript-derived. */
+  readonly parent: string | null
 }
 
 /**
- * The accessible name of a node's button: its name, its kind, its tokens, its
- * second line, then each flag. It carries everything the node shows, so a
- * screen reader hears the same facts a sighted reader sees.
+ * The accessible name of a node's button: its name, its kind and parent, its
+ * tokens, its second line, then each flag. It carries everything the node
+ * shows, and the edge to its parent, so a screen reader hears the same facts a
+ * sighted reader sees and can tell same-named siblings apart by where they hang.
  *
  * @param node - The node.
- * @param options - The translate function, and whether the node is still loading.
+ * @param options - The translate function, whether the node is still loading, and its parent's name.
  * @returns The name. Transcript-derived: render as plain text.
  */
-export function nodeAccessibleName(node: AgentGraphNode, { t, loading }: NodeNameOptions): string {
+export function nodeAccessibleName(
+  node: AgentGraphNode,
+  { t, loading, parent }: NodeNameOptions
+): string {
   const details = [
     node.tokens === null
       ? t('graph.node.tokensUnknown')
@@ -42,9 +48,12 @@ export function nodeAccessibleName(node: AgentGraphNode, { t, loading }: NodeNam
     node.partial ? t('graph.node.partial') : null
   ].filter((part) => part !== null)
 
-  return t('graph.node.label', {
+  const facts = {
     name: node.name,
     kind: t(`graph.node.kind.${node.kind}`),
     details: details.join(t('graph.node.labelSeparator'))
-  })
+  }
+  return parent === null
+    ? t('graph.node.label', facts)
+    : t('graph.node.labelWithParent', { ...facts, parent })
 }

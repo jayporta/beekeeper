@@ -1,0 +1,12 @@
+.edges {
+  position: absolute;
+  inset: 0;
+  color: var(--color-text);
+}
+
+.edge {
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1px;
+  stroke-opacity: var(--opacity-graph-edge);
+}

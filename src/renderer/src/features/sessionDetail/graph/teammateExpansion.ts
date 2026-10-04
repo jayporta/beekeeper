@@ -1,5 +1,6 @@
 import type { SessionDetailDto } from '../../../../../shared/ipc/sessionDetailDto'
 import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
+import { sessionKey } from '@renderer/features/sessions/sessionKey'
 import type { AgentGraphNode, AgentKey, RootAgentGraphNode } from './agentGraphNode'
 import { buildSubagentNodes } from './subagentNodes'
 
@@ -15,9 +16,17 @@ export type TeammateExpansion =
       readonly partial: boolean
     }
 
+const LOADING: TeammateExpansion = { status: 'loading' }
+const ERRORED: TeammateExpansion = { status: 'error' }
+
+/** Each loaded detail's expansion, by the teammate session it was read for. A detail the query drops takes its entry with it. */
+const readyExpansions = new WeakMap<SessionDetailDto, Map<string, TeammateExpansion>>()
+
 /**
  * Reads how a teammate's session load stands. A detail that arrived wins over
- * a failed refresh, so a teammate stays expanded once loaded.
+ * a failed refresh, so a teammate stays expanded once loaded. The same detail
+ * for the same teammate gives back the same expansion, so its nodes keep their
+ * identity while the detail does.
  *
  * @param query - The teammate's detail query: its data, and whether the last load failed.
  * @param ref - The teammate's own session, which owns the subagents it holds.
@@ -27,12 +36,20 @@ export function expansionOf(
   query: { readonly data: SessionDetailDto | undefined; readonly isError: boolean },
   ref: SessionRefDto
 ): TeammateExpansion {
-  if (query.data === undefined) return { status: query.isError ? 'error' : 'loading' }
-  return {
+  const { data } = query
+  if (data === undefined) return query.isError ? ERRORED : LOADING
+  const forTeammates = readyExpansions.get(data) ?? new Map<string, TeammateExpansion>()
+  readyExpansions.set(data, forTeammates)
+  const key = sessionKey(ref)
+  const known = forTeammates.get(key)
+  if (known !== undefined) return known
+  const expansion: TeammateExpansion = {
     status: 'ready',
-    children: buildSubagentNodes(query.data, ref),
-    partial: !query.data.subagents.ok
+    children: buildSubagentNodes(data, ref),
+    partial: !data.subagents.ok
   }
+  forTeammates.set(key, expansion)
+  return expansion
 }
 
 /**

@@ -1,8 +1,9 @@
-import { screen, waitFor } from '@testing-library/react'
+import { act, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { IpcResult } from '../../../../../../shared/ipc/ipcResult'
 import type { SessionDetailDto } from '../../../../../../shared/ipc/sessionDetailDto'
+import { LIVE_COPY_CLEAR_MS } from '@renderer/components/liveCopyClearMs'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { testRef } from '@renderer/features/sessions/testSessionFixtures'
 import { testDetail, testMeta, testNode, testReport, testTokenGroup } from '../../testSessionDetail'
@@ -15,6 +16,7 @@ import {
 } from '../testGraphScene'
 
 afterEach(() => {
+  vi.useRealTimers()
   useNavigationStore.getState().reset()
 })
 
@@ -50,7 +52,9 @@ describe('GraphCanvas teammate expansion', () => {
     await click(/^writer/)
 
     expect(
-      await screen.findByRole('button', { name: /^drafter, subagent, 70 tokens/ })
+      await screen.findByRole('button', {
+        name: /^drafter, subagent of writer \(code\), 70 tokens/
+      })
     ).toBeTruthy()
     expect(api.getSession).toHaveBeenCalledExactlyOnceWith(WRITER.projectDirName, WRITER.sessionId)
   })
@@ -211,5 +215,97 @@ describe('GraphCanvas grafted subagents', () => {
     await userEvent.keyboard('{ArrowRight}')
 
     expect(document.activeElement).toBe(graphNode(/^drafter/))
+  })
+})
+
+describe('GraphCanvas expansion announcements', () => {
+  const status = (): HTMLElement => screen.getByRole('status')
+  const announced = async (text: string): Promise<void> => {
+    await waitFor(() => {
+      expect(status().textContent).toBe(text)
+    })
+  }
+
+  it('says nothing before a teammate is opened', () => {
+    renderGraphWith({ teammateDetails: { [WRITER.sessionId]: writerDetail } })
+
+    expect(status().textContent).toBe('')
+  })
+
+  it('says nothing while a teammate’s subagents are still loading', async () => {
+    renderGraphWith({ teammateDetails: { [WRITER.sessionId]: new Promise(() => undefined) } })
+
+    await click(/^writer/)
+    await screen.findByRole('button', { name: /loading subagents$/ })
+
+    expect(status().textContent).toBe('')
+  })
+
+  it('says how many subagents a teammate’s session added', async () => {
+    renderGraphWith({ teammateDetails: { [WRITER.sessionId]: writerDetail } })
+
+    await click(/^writer/)
+
+    await announced('Loaded 2 subagents of writer (code)')
+  })
+
+  it('says it in the singular for one subagent', async () => {
+    const one: IpcResult<SessionDetailDto> = {
+      ok: true,
+      value: testDetail({ children: [testNode('w1')] })
+    }
+    renderGraphWith({ teammateDetails: { [WRITER.sessionId]: one } })
+
+    await click(/^writer/)
+
+    await announced('Loaded 1 subagent of writer (code)')
+  })
+
+  it('says a teammate’s subagents could not be loaded when its session fails', async () => {
+    renderGraphWith({
+      teammateDetails: { [WRITER.sessionId]: { ok: false, error: { code: 'unreadable' } } }
+    })
+
+    await click(/^writer/)
+
+    await announced("Couldn't load the subagents of writer (code)")
+  })
+
+  it('empties the announcement once it has been read', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    renderGraphWith({ teammateDetails: { [WRITER.sessionId]: writerDetail } })
+    await click(/^writer/)
+    await announced('Loaded 2 subagents of writer (code)')
+
+    act(() => {
+      vi.advanceTimersByTime(LIVE_COPY_CLEAR_MS)
+    })
+
+    expect(status().textContent).toBe('')
+  })
+
+  it('does not announce a teammate again when it is selected a second time', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    renderGraphWith({ teammateDetails: { [WRITER.sessionId]: writerDetail } })
+    await click(/^writer/)
+    await announced('Loaded 2 subagents of writer (code)')
+    act(() => {
+      vi.advanceTimersByTime(LIVE_COPY_CLEAR_MS)
+    })
+    await click(/^scout/)
+
+    await click(/^writer/)
+
+    expect(status().textContent).toBe('')
+  })
+
+  it('announces each teammate that is opened', async () => {
+    renderGraphWith({ teammateDetails: { [WRITER.sessionId]: writerDetail } })
+    await click(/^writer/)
+    await announced('Loaded 2 subagents of writer (code)')
+
+    await click(/^tester/)
+
+    await announced('Loaded 0 subagents of tester (code)')
   })
 })

@@ -5,11 +5,14 @@ import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import type { SessionRow } from '@renderer/features/sessions/sessionRow'
 import { focusGraphNode } from './focusGraphNode'
+import { GraphEdges } from './GraphEdges'
 import styles from './GraphCanvas.module.css'
 import { GraphFootnote } from './GraphFootnote'
+import { GRAPH_HINT_ID } from './graphFootnoteId'
 import { directionOfKey, graphNeighbor } from './graphNavigation'
 import { GraphNode } from './GraphNode'
 import { GraphViewport } from './GraphViewport'
+import { parentNames } from './parentNames'
 import { selectedAgentKey } from './selectedAgentKey'
 import { useAgentGraph } from './useAgentGraph'
 
@@ -31,14 +34,15 @@ interface GraphCanvasProps {
  * subagents under it. Only the selected node is in the tab order, and the
  * arrow keys, Home and End move focus among the nodes without selecting them,
  * so a person can look around without changing what is selected. Notes under
- * the graph explain a partial node and any teammates that weren't found.
+ * the graph say so, and explain a partial node and any teammates that weren't
+ * found. A teammate's load that settles is announced in a status region.
  *
  * @example
  * <GraphCanvas detail={detail} sessionRef={ref} row={row} />
  */
 export function GraphCanvas({ detail, sessionRef, row }: GraphCanvasProps): React.JSX.Element {
   const { t } = useTranslation('sessionDetail')
-  const { root, layout, loading } = useAgentGraph({ detail, sessionRef, row })
+  const { root, layout, loading, announcement } = useAgentGraph({ detail, sessionRef, row })
   const selectedAgent = useNavigationStore((state) => state.selectedAgent)
   const selectedKey = useMemo(
     () =>
@@ -48,6 +52,8 @@ export function GraphCanvas({ detail, sessionRef, row }: GraphCanvasProps): Reac
       ),
     [layout, selectedAgent]
   )
+
+  const parents = useMemo(() => parentNames(layout), [layout])
 
   const moveFocus = useCallback(
     (event: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -71,19 +77,13 @@ export function GraphCanvas({ detail, sessionRef, row }: GraphCanvasProps): Reac
   )
 
   return (
-    <section aria-label={t('graph.label')} className={styles.canvas}>
+    <section
+      aria-label={t('graph.label')}
+      aria-describedby={GRAPH_HINT_ID}
+      className={styles.canvas}
+    >
       <GraphViewport width={layout.width} height={layout.height}>
-        <svg
-          className={styles.edges}
-          width={layout.width}
-          height={layout.height}
-          aria-hidden="true"
-          focusable="false"
-        >
-          {layout.edges.map((edge) => (
-            <path key={edge.to} className={styles.edge} d={edge.path} />
-          ))}
-        </svg>
+        <GraphEdges edges={layout.edges} width={layout.width} height={layout.height} />
         {layout.nodes.map(({ node, x, y }) => (
           <GraphNode
             key={node.key}
@@ -92,6 +92,7 @@ export function GraphCanvas({ detail, sessionRef, row }: GraphCanvasProps): Reac
             y={y}
             selected={node.key === selectedKey}
             loading={loading.has(node.key)}
+            parentName={parents.get(node.key) ?? null}
             onKeyDown={moveFocus}
           />
         ))}
@@ -101,6 +102,9 @@ export function GraphCanvas({ detail, sessionRef, row }: GraphCanvasProps): Reac
         missingTeammates={root.missingTeammates}
         teamListsTruncated={root.teamListsTruncated}
       />
+      <p role="status" className="visuallyHidden">
+        {announcement}
+      </p>
     </section>
   )
 }

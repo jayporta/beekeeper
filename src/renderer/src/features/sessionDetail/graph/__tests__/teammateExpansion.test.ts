@@ -35,6 +35,25 @@ describe('expansionOf', () => {
     expect(child?.children).toHaveLength(1)
   })
 
+  it('hands back the same expansion, and so the same nodes, for the same detail and teammate', () => {
+    const detail = testDetail({ children: [testNode('w1')] })
+
+    const first = expansionOf({ data: detail, isError: false }, MATE)
+    const again = expansionOf({ data: detail, isError: true }, testRef(2, '-other'))
+
+    expect(again).toBe(first)
+  })
+
+  it('builds anew for another detail, or for another teammate’s session', () => {
+    const detail = testDetail({ children: [testNode('w1')] })
+    const first = expansionOf({ data: detail, isError: false }, MATE)
+
+    expect(
+      expansionOf({ data: testDetail({ children: [testNode('w1')] }), isError: false }, MATE)
+    ).not.toBe(first)
+    expect(expansionOf({ data: detail, isError: false }, testRef(3, '-other'))).not.toBe(first)
+  })
+
   it('keeps a loaded detail when a later refresh failed', () => {
     const expansion = expansionOf({ data: testDetail(), isError: true }, MATE)
 

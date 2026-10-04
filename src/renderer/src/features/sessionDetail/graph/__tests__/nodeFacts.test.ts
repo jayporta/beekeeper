@@ -3,10 +3,14 @@ import { testGraphNode } from '../testGraphNode'
 import { testGraphT } from '../testGraphT'
 import { nodeAccessibleName, nodeDetail } from '../nodeFacts'
 
-const nameOf = (overrides: Parameters<typeof testGraphNode>[1], loading = false): string =>
+const nameOf = (
+  overrides: Parameters<typeof testGraphNode>[1],
+  { loading = false, parent = null }: { loading?: boolean; parent?: string | null } = {}
+): string =>
   nodeAccessibleName(testGraphNode('lead', { name: 'Lead', kind: 'lead', ...overrides }), {
     t: testGraphT,
-    loading
+    loading,
+    parent
   })
 
 describe('nodeDetail', () => {
@@ -50,6 +54,19 @@ describe('nodeAccessibleName', () => {
     expect(nameOf({ tokens: 0 })).toBe('Lead, lead, 0 tokens')
   })
 
+  it('names the parent after the kind, so same-named siblings still read apart by where they hang', () => {
+    expect(nameOf({ kind: 'subagent', tokens: 1 }, { parent: 'Lead' })).toBe(
+      'Lead, subagent of Lead, 1 token'
+    )
+    expect(nameOf({ kind: 'teammate', tokens: 1, model: 'm' }, { parent: 'a, b' })).toBe(
+      'Lead, teammate of a, b, 1 token, m'
+    )
+  })
+
+  it('leaves the root’s name as it was', () => {
+    expect(nameOf({ tokens: 1 })).toBe('Lead, lead, 1 token')
+  })
+
   it('names the flags last', () => {
     const label = nameOf({ tokens: 5, model: 'm', stopped: true, partial: true })
 
@@ -57,7 +74,7 @@ describe('nodeAccessibleName', () => {
   })
 
   it('says a teammate is still loading its subagents, after the stopped flag', () => {
-    expect(nameOf({ kind: 'teammate', tokens: 5, stopped: true }, true)).toBe(
+    expect(nameOf({ kind: 'teammate', tokens: 5, stopped: true }, { loading: true })).toBe(
       'Lead, teammate, 5 tokens, stopped, loading subagents'
     )
   })
