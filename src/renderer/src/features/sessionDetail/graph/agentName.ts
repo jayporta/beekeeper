@@ -1,7 +1,5 @@
 import type { AgentMetaStatusDto } from '../../../../../shared/ipc/agentDto'
-
-/** How many characters of an agent id name an agent whose meta says nothing else. */
-const SHORT_ID_LENGTH = 8
+import { shortId } from '@renderer/features/sessions/sessionLabel'
 
 function nonBlank(text: string | undefined): string | undefined {
   return text !== undefined && text.trim() !== '' ? text : undefined
@@ -16,12 +14,7 @@ function nonBlank(text: string | undefined): string | undefined {
  * @returns The name. Transcript-derived: render as plain text.
  */
 export function agentName(meta: AgentMetaStatusDto, agentId: string): string {
-  if (meta.status !== 'ok') return agentId.slice(0, SHORT_ID_LENGTH)
+  if (meta.status !== 'ok') return shortId(agentId)
   const { name, description, agentType } = meta.meta
-  return (
-    nonBlank(name) ??
-    nonBlank(description) ??
-    nonBlank(agentType) ??
-    agentId.slice(0, SHORT_ID_LENGTH)
-  )
+  return nonBlank(name) ?? nonBlank(description) ?? nonBlank(agentType) ?? shortId(agentId)
 }

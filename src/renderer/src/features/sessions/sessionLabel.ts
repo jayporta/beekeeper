@@ -9,9 +9,14 @@ export interface SessionLabel {
   readonly idHint: string | null
 }
 
-/** The first characters of a session id, enough to tell sessions apart at a glance. */
-function shortId(item: SessionListItemDto): string {
-  return item.sessionId.slice(0, 8)
+/**
+ * The first characters of a session or agent id, enough to tell them apart at a glance.
+ *
+ * @param id - The full id.
+ * @returns The short id.
+ */
+export function shortId(id: string): string {
+  return id.slice(0, 8)
 }
 
 /**
@@ -24,7 +29,7 @@ function shortId(item: SessionListItemDto): string {
  * @returns The label.
  */
 export function sessionLabel(item: SessionListItemDto, t: SessionsT): SessionLabel {
-  if (!item.summary.ok) return { text: t('label.unreadable'), idHint: shortId(item) }
+  if (!item.summary.ok) return { text: t('label.unreadable'), idHint: shortId(item.sessionId) }
 
   const { role, title } = item.summary.value
   if (role.kind === 'agent') {
@@ -32,10 +37,10 @@ export function sessionLabel(item: SessionListItemDto, t: SessionsT): SessionLab
     if (agentName !== null && agentType !== null) {
       return { text: t('agentName', { name: agentName, type: agentType }), idHint: null }
     }
-    return { text: agentName ?? agentType ?? shortId(item), idHint: null }
+    return { text: agentName ?? agentType ?? shortId(item.sessionId), idHint: null }
   }
 
   return title === null
-    ? { text: t('label.untitled'), idHint: shortId(item) }
+    ? { text: t('label.untitled'), idHint: shortId(item.sessionId) }
     : { text: title, idHint: null }
 }
