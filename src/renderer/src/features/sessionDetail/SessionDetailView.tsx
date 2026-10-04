@@ -13,7 +13,10 @@ import styles from './SessionDetailView.module.css'
  * session or project, neither of which the projects gate lets this view reach.
  * It also renders nothing once the project in effect changes to another one it
  * did not open under, as when the project's folder is gone and another project
- * takes over, so the session of the old project never shows under the new one.
+ * takes over, so the old project's session doesn't stay on screen under the new
+ * one. A view that remounts while no project is listed has no project to
+ * compare against, so it can render once under the next one before navigation
+ * resets.
  * It relies on `useResetNavigationOnProjectChange`, which follows the same
  * `isProjectChange` rule, to return navigation to the sessions list: without
  * it the view would stay blank.

@@ -5,7 +5,7 @@
  * of an old project behind, such as returning navigation to the sessions list,
  * follows this one rule.
  *
- * @param baseline - The folder name the view started under, or `null` before any project loaded.
+ * @param baseline - The earlier folder name to compare against, or `null` before any project loaded.
  * @param current - The folder name in effect now, or `null` while projects are unavailable.
  * @returns `true` when both are known and differ.
  */
