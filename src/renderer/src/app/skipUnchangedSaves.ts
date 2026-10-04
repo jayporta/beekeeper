@@ -2,15 +2,18 @@ import type { PersistedClient, Persister } from '@tanstack/react-query-persist-c
 
 /**
  * Summarizes which persisted queries a client holds and the state each is
- * in. The client's own `timestamp` is left out: it changes on every save, so
- * it would make every client look new.
+ * in. The update counts change with every new result, even one stamped with
+ * the same time as the last. The client's own `timestamp` is left out: it
+ * changes on every save, so it would make every client look new.
  */
 function fingerprintOf(client: PersistedClient): string {
   return JSON.stringify(
     client.clientState.queries.map(({ queryHash, state }) => [
       queryHash,
       state.dataUpdatedAt,
+      state.dataUpdateCount,
       state.errorUpdatedAt,
+      state.errorUpdateCount,
       state.status
     ])
   )

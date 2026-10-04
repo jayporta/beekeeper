@@ -75,6 +75,19 @@ describe('skipUnchangedSaves', () => {
     expect(inner.persistClient).toHaveBeenCalledTimes(2)
   })
 
+  it('saves again when a persisted query gets new data stamped with the same update time', async () => {
+    const inner = spyPersister()
+    const persister = skipUnchangedSaves(inner)
+    const client = clientWithSessions()
+    await persister.persistClient(snapshot(client))
+    const updatedAt = client.getQueryState(['sessions', '-p'])?.dataUpdatedAt
+
+    client.setQueryData(['sessions', '-p'], ['a', 'b'], { updatedAt })
+    await persister.persistClient(snapshot(client))
+
+    expect(inner.persistClient).toHaveBeenCalledTimes(2)
+  })
+
   it('saves again when a persisted query is added', async () => {
     const inner = spyPersister()
     const persister = skipUnchangedSaves(inner)
