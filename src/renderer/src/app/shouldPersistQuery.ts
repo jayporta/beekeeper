@@ -3,9 +3,10 @@ import { PERSIST_MAX_AGE_MS } from './persistMaxAge'
 
 /**
  * The first query-key element of every query whose result is persisted to
- * IndexedDB: the two lists that let the app open with its last results.
+ * IndexedDB: the two lists and each folder's totals, which let the app open
+ * with its last results, sidebar figures included.
  */
-export const PERSISTED_QUERY_ROOTS: readonly unknown[] = ['projects', 'sessions']
+export const PERSISTED_QUERY_ROOTS: readonly unknown[] = ['projects', 'sessions', 'projectTotals']
 
 /**
  * Whether data fetched at `updatedAt` is no older than {@link PERSIST_MAX_AGE_MS}.
@@ -19,7 +20,7 @@ function isWithinMaxAge(updatedAt: number): boolean {
 
 /**
  * Decides whether a query's result is saved to the persisted cache: a query
- * whose key starts with `projects` or `sessions`, that holds data, and whose
+ * whose key starts with `projects`, `sessions`, or `projectTotals`, that holds data, and whose
  * data was fetched within {@link PERSIST_MAX_AGE_MS}, and not in the future. Its status doesn't
  * matter: a failed background refetch sets the status to error but keeps the
  * last good data, which should stay cached. The persister's own
