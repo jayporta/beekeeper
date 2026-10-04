@@ -5,8 +5,8 @@ import type { AgentGraphNode } from './agentGraphNode'
 import { sessionFacts } from './sessionFacts'
 
 /**
- * Builds the node for a teammate's own session. Its subagents are not part of
- * the node: they join the graph once the teammate's session is loaded.
+ * Builds the node for a teammate's own session, with no children: its
+ * subagents are not part of the node.
  *
  * @param row - The teammate's row in the sessions list.
  * @param leadRef - The lead's session, to tell a teammate in another folder.
