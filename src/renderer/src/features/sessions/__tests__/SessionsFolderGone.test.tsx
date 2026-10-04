@@ -298,3 +298,63 @@ describe('a list that was loaded before its folder went missing', () => {
     })
   })
 })
+
+describe('a gone folder that comes back', () => {
+  /**
+   * Shows ALPHA's "folder not found" error, with the refreshed project list still
+   * naming it, then lets its sessions load on the next try. Returns what a test
+   * needs to retry and to reorder the project list.
+   */
+  async function renderGoneThenBack(): Promise<{
+    client: ReturnType<typeof createTestQueryClient>
+    retry: () => Promise<void>
+    listBetaFirst: () => void
+  }> {
+    useSelectedProjectStore.setState({ selectedDirName: ALPHA })
+    const client = createTestQueryClient()
+    let back = false
+    let listed = [testProject(ALPHA), testProject(BETA)]
+    installBeekeeperApi({
+      listProjects: () => projects(...listed),
+      listSessions: (dirName) =>
+        dirName === ALPHA && !back ? notFound() : loaded([alphaSession, betaSession])
+    })
+    render(<App />, { wrapper: createQueryWrapper(client) })
+    await screen.findByRole('button', { name: 'Retry' })
+    return {
+      client,
+      retry: async () => {
+        back = true
+        await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
+      },
+      listBetaFirst: () => {
+        listed = [testProject(BETA), testProject(ALPHA)]
+      }
+    }
+  }
+
+  it('selects the folder again and drops the record once Retry loads its sessions', async () => {
+    const { retry } = await renderGoneThenBack()
+
+    await retry()
+
+    await waitFor(() => {
+      expect(useSelectedProjectStore.getState()).toMatchObject({
+        selectedDirName: ALPHA,
+        goneDirName: null
+      })
+    })
+  })
+
+  it('does not say the folder is gone when a later list puts another project first', async () => {
+    const { client, retry, listBetaFirst } = await renderGoneThenBack()
+    await retry()
+    await screen.findByRole('heading', { level: 2, name: 'Alpha work' })
+
+    listBetaFirst()
+    await refetchAndSettle(client, ['projects'])
+
+    expect(goneNotice()).toBeNull()
+    expect(await screen.findByRole('heading', { level: 1, name: ALPHA })).toBeTruthy()
+  })
+})

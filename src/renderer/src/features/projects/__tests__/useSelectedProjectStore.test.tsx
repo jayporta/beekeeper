@@ -1,5 +1,5 @@
 import { waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { idbStorage } from '@renderer/storage/idbStorage'
 import { resetProjects } from '../testProjectsReset'
 import {
@@ -10,7 +10,13 @@ import {
 const ALPHA = '-Users-a-alpha'
 const BETA = '-Users-a-beta'
 
-afterEach(resetProjects)
+afterEach(async () => {
+  vi.restoreAllMocks()
+  await resetProjects()
+})
+
+/** Lets a store change reach the storage write it starts. */
+const afterWrite = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 20))
 
 /** What the store has written to IndexedDB, parsed, or `null` when nothing is there. */
 async function storedState(): Promise<unknown> {
@@ -53,6 +59,17 @@ describe('select', () => {
 })
 
 describe('clearGoneFolder', () => {
+  it('writes nothing to storage when no folder is recorded as gone', async () => {
+    useSelectedProjectStore.setState({ selectedDirName: BETA, goneDirName: null })
+    await afterWrite()
+    const write = vi.spyOn(idbStorage, 'setItem')
+
+    useSelectedProjectStore.getState().clearGoneFolder()
+    await afterWrite()
+
+    expect(write).not.toHaveBeenCalled()
+  })
+
   it('forgets the missing folder and keeps the selection', () => {
     useSelectedProjectStore.setState({ selectedDirName: BETA, goneDirName: ALPHA })
 
@@ -62,5 +79,33 @@ describe('clearGoneFolder', () => {
       selectedDirName: BETA,
       goneDirName: null
     })
+  })
+})
+
+describe('restoreFolder', () => {
+  it('brings back the selection of a folder that was recorded as gone', () => {
+    useSelectedProjectStore.setState({ selectedDirName: null, goneDirName: ALPHA })
+
+    useSelectedProjectStore.getState().restoreFolder(ALPHA)
+
+    expect(useSelectedProjectStore.getState()).toMatchObject({
+      selectedDirName: ALPHA,
+      goneDirName: null
+    })
+  })
+
+  it('changes nothing, and writes nothing, for a folder that was not recorded as gone', async () => {
+    useSelectedProjectStore.setState({ selectedDirName: BETA, goneDirName: ALPHA })
+    await afterWrite()
+    const write = vi.spyOn(idbStorage, 'setItem')
+
+    useSelectedProjectStore.getState().restoreFolder(BETA)
+    await afterWrite()
+
+    expect(useSelectedProjectStore.getState()).toMatchObject({
+      selectedDirName: BETA,
+      goneDirName: ALPHA
+    })
+    expect(write).not.toHaveBeenCalled()
   })
 })

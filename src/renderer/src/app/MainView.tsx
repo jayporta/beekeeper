@@ -18,7 +18,9 @@ import { useResetNavigationOnProjectChange } from './useResetNavigationOnProject
  * store names, inside a gate that explains why there are no projects when
  * there are none. A live region beside the gate announces when the selected
  * project's folder is gone, and a stored selection the project list no longer
- * names counts as gone. It also returns navigation to the sessions list when
+ * names counts as gone. The region is the first child in every branch, so it
+ * stays the same element when the first-run screen closes and its text is
+ * announced. It also returns navigation to the sessions list when
  * the project in effect changes.
  *
  * @example
@@ -29,7 +31,14 @@ export function MainView(): React.JSX.Element {
   const view = useNavigationStore((state) => state.view)
   useResetNavigationOnProjectChange()
   useForgetUnlistedSelection()
-  if (showFirstRun) return <FirstRunScreen />
+  if (showFirstRun) {
+    return (
+      <>
+        <FolderGoneStatus />
+        <FirstRunScreen />
+      </>
+    )
+  }
 
   return (
     <>

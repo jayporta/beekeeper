@@ -116,6 +116,46 @@ describe('useForgetUnlistedSelection', () => {
     expect(gone()).toBeNull()
   })
 
+  it('keeps the selection when the refresh after a restored list fails', async () => {
+    useSelectedProjectStore.setState({ selectedDirName: ALPHA })
+    installBeekeeperApi({
+      listProjects: () => Promise.resolve({ ok: false, error: { code: 'unreadable' } })
+    })
+    const client = createTestQueryClient()
+    client.setQueryData(['projects'], [testProject(BETA)], {
+      updatedAt: Date.now() - LISTS_STALE_TIME_MS - 1
+    })
+
+    render(<Harness />, { wrapper: createQueryWrapper(client) })
+    await settle()
+
+    expect(client.getQueryState(['projects'])?.status).toBe('error')
+    expect(stored()).toBe(ALPHA)
+    expect(gone()).toBeNull()
+  })
+
+  it('keeps the selection when the persisted cache restores a list after the hook mounted', async () => {
+    useSelectedProjectStore.setState({ selectedDirName: ALPHA })
+    const refetch = deferred()
+    installBeekeeperApi({ listProjects: () => refetch.promise })
+    const client = createTestQueryClient()
+    render(<Harness />, { wrapper: createQueryWrapper(client) })
+
+    act(() => {
+      client.setQueryData(['projects'], [testProject(BETA)], {
+        updatedAt: Date.now() - LISTS_STALE_TIME_MS - 1
+      })
+    })
+    await settle()
+
+    expect(stored()).toBe(ALPHA)
+
+    refetch.settle([testProject(BETA)])
+    await waitFor(() => {
+      expect(stored()).toBeNull()
+    })
+  })
+
   it('does nothing while the first-run screen shows, and acts once it is dismissed', async () => {
     useFirstRunStore.setState({ dismissed: false })
     useSelectedProjectStore.setState({ selectedDirName: ALPHA })
