@@ -17,6 +17,7 @@ const CONTROL_GROUNDS = ['--color-bg', '--color-surface']
 const PAIRS: readonly (readonly [string, string, number])[] = [
   ...TEXT_TOKENS.flatMap((fg) => TEXT_GROUNDS.map((bg) => [fg, bg, 4.5] as const)),
   ['--color-bg', '--color-accent-strong', 4.5],
+  ...['--color-diff-add', '--color-diff-remove'].map((fg) => [fg, '--color-surface', 4.5] as const),
   ...CONTROL_GROUNDS.map((bg) => ['--color-border-strong', bg, 3] as const),
   ...[...CONTROL_GROUNDS, '--color-accent-200'].map((bg) => ['--focus-ring-color', bg, 3] as const)
 ]

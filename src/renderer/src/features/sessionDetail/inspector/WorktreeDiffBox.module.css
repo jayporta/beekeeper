@@ -47,3 +47,17 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* A button that reads as a link: underlined, in the accent text color, and still a full-size target. */
+.open {
+  align-self: flex-start;
+  min-height: var(--size-target-min);
+  padding: 0;
+  color: var(--color-accent-strong);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}

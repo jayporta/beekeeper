@@ -6,6 +6,7 @@ import type { IpcResult } from '../../../../../shared/ipc/ipcResult'
 import type { SessionDetailDto } from '../../../../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
 import type { WorktreeDiffsDto } from '../../../../../shared/ipc/worktreeDiffDto'
+import type { WorktreePatchDto } from '../../../../../shared/ipc/worktreePatchDto'
 import { testRow } from '@renderer/features/sessions/testSessionRows'
 import { installBeekeeperApi, type TestBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { createQueryWrapper, createTestQueryClient } from '@renderer/testQueryWrapper'
@@ -62,6 +63,10 @@ interface InspectorSceneOptions {
   readonly client?: QueryClient
   /** When the lead's detail was cached, in epoch milliseconds. Defaults to now. */
   readonly detailUpdatedAt?: number
+  /** What `getWorktreePatch` answers, by agent id. Others answer with a patch of no files. */
+  readonly patches?: Readonly<
+    Record<string, IpcResult<WorktreePatchDto> | Promise<IpcResult<WorktreePatchDto>>>
+  >
   /** What `getWorktreeDiffs` answers, by session id. Others answer with no worktree agents. */
   readonly diffs?: Readonly<
     Record<string, IpcResult<WorktreeDiffsDto> | Promise<IpcResult<WorktreeDiffsDto>>>
@@ -85,7 +90,8 @@ export function renderInspectorScene(
     sessions = {},
     diffs = {},
     client = createTestQueryClient(),
-    detailUpdatedAt = Date.now()
+    detailUpdatedAt = Date.now(),
+    patches = {}
   } = options
   const api = installBeekeeperApi({
     getSession: (_folder, sessionId) =>
@@ -97,6 +103,13 @@ export function renderInspectorScene(
     getWorktreeDiffs: (_folder, sessionId) =>
       Promise.resolve(
         diffs[sessionId] ?? { ok: true, value: { git: 'ok', agents: [], sharedWorktree: null } }
+      ),
+    getWorktreePatch: (_folder, _sessionId, agentId) =>
+      Promise.resolve(
+        patches[agentId] ?? {
+          ok: true,
+          value: { kind: 'ready', uncommitted: 'included', files: [], truncatedTotal: false }
+        }
       )
   })
   // The view only shows the inspector once the lead's detail has loaded, so it is already cached.

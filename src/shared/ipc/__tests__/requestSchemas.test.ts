@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  MAX_AGENT_ID_LENGTH,
   MAX_PROJECT_DIR_NAME_LENGTH,
+  agentIdSchema,
   getSessionRequestSchema,
+  getWorktreePatchRequestSchema,
   listSessionsRequestSchema
 } from '../requestSchemas'
 
@@ -71,5 +74,52 @@ describe('getSessionRequestSchema', () => {
       sessionId: SESSION_ID
     })
     expect(parsed.success).toBe(false)
+  })
+})
+
+describe('agentIdSchema', () => {
+  it.each([
+    'a1',
+    'a1b2c3d4e5f6a7b8c',
+    'task-é 1',
+    'x.y',
+    '.hidden',
+    'a'.repeat(MAX_AGENT_ID_LENGTH)
+  ])('accepts %j, which a subagent filename can hold', (agentId) => {
+    expect(agentIdSchema.safeParse(agentId).success).toBe(true)
+  })
+
+  it.each([
+    ['dot-dot', '..'],
+    ['dot', '.'],
+    ['forward slash', 'a/b'],
+    ['backslash', 'a\\b'],
+    ['NUL', 'a\0b'],
+    ['empty', ''],
+    ['overlong', 'a'.repeat(MAX_AGENT_ID_LENGTH + 1)]
+  ])('rejects an id with %s', (_label, agentId) => {
+    expect(agentIdSchema.safeParse(agentId).success).toBe(false)
+  })
+
+  it('leaves room for the filename around it', () => {
+    expect(MAX_AGENT_ID_LENGTH + 'agent-'.length + '.jsonl'.length).toBe(255)
+  })
+})
+
+describe('getWorktreePatchRequestSchema', () => {
+  const valid = { projectDirName: 'proj', sessionId: SESSION_ID, agentId: 'a1' }
+
+  it('accepts a project, a session, and an agent', () => {
+    expect(getWorktreePatchRequestSchema.safeParse(valid).success).toBe(true)
+  })
+
+  it.each([
+    ['no agent id', { projectDirName: 'proj', sessionId: SESSION_ID }],
+    ['a path as the agent id', { ...valid, agentId: '../a1' }],
+    ['an extra field', { ...valid, path: '/tmp' }],
+    ['a bad session id', { ...valid, sessionId: 'nope' }],
+    ['a path as the project', { ...valid, projectDirName: '../x' }]
+  ])('rejects %s', (_label, payload) => {
+    expect(getWorktreePatchRequestSchema.safeParse(payload).success).toBe(false)
   })
 })

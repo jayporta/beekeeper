@@ -13,6 +13,30 @@ export const DIFF_ARGS: readonly string[] = [
 ]
 
 /**
+ * Flags a patch read passes: the changed files as NUL-separated raw records,
+ * then the unified patch, uncolored, with three lines of context and fixed
+ * path prefixes. They carry the same no-hook and rename flags as
+ * {@link DIFF_ARGS}. The prefix, color, context, and submodule flags pin what a
+ * repository's own config could otherwise change in the text: the submodule
+ * one keeps a changed submodule to its two recorded commits, so no submodule
+ * history or contents are read.
+ */
+export const PATCH_ARGS: readonly string[] = [
+  '--raw',
+  '-z',
+  '--patch',
+  '--no-color',
+  '--unified=3',
+  '--no-ext-diff',
+  '--no-textconv',
+  '--find-renames',
+  '--ignore-submodules=dirty',
+  '--submodule=short',
+  '--src-prefix=a/',
+  '--dst-prefix=b/'
+]
+
+/**
  * Flags `ls-files` passes to list untracked paths outside ignore rules, one
  * NUL-separated entry per file or directory.
  */
@@ -24,7 +48,7 @@ export const UNTRACKED_ARGS: readonly string[] = [
   '-z'
 ]
 
-const DIFF_FLAGS: ReadonlySet<string> = new Set([...DIFF_ARGS, '--'])
+const DIFF_FLAGS: ReadonlySet<string> = new Set([...DIFF_ARGS, ...PATCH_ARGS, '--'])
 const UNTRACKED_FLAGS: ReadonlySet<string> = new Set([...UNTRACKED_ARGS, '--'])
 
 /**

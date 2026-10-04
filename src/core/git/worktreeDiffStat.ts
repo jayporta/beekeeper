@@ -50,6 +50,28 @@ export interface WorktreeDiffStat {
   readonly untracked: readonly string[]
 }
 
+/**
+ * Which git read produces a diff, and where: `diff` of two commits from the
+ * main repository, or `diff-index` of the merge base against a worktree's
+ * working tree.
+ */
+export interface DiffSource {
+  /** `diff-index` for a working tree (it never refreshes the index), `diff` for two commits. */
+  readonly command: 'diff' | 'diff-index'
+  /** The directory git runs in. */
+  readonly dir: string
+  /** The revisions to compare: the merge base, then the agent commit for `diff`. */
+  readonly revisions: readonly string[]
+}
+
+/** What {@link resolveWorktreeDiff} decided. */
+export interface ResolvedWorktreeDiff {
+  /** The changed files, by the decision's own numstat. */
+  readonly stat: WorktreeDiffStat
+  /** The git read that shows the same changes in another format. */
+  readonly source: DiffSource
+}
+
 /** Why {@link worktreeDiffStat} could not produce a result. */
 export type WorktreeDiffStatError =
   ResolveBranchError | 'no-common-ancestor' | 'malformed-numstat' | GitRunError
@@ -91,12 +113,8 @@ async function listUntracked(
   return ok(paths.filter((path) => path.length > 0))
 }
 
-interface DiffFilesOptions {
-  /** `diff-index` for a working tree (it never refreshes the index), `diff` for two commits. */
-  readonly command: 'diff' | 'diff-index'
+interface DiffFilesOptions extends DiffSource {
   readonly git: GitBinary
-  readonly dir: string
-  readonly revisions: readonly string[]
 }
 
 /** The changed files of one diff. */
@@ -164,7 +182,8 @@ async function diffWorkingTree(
 }
 
 /**
- * Summarizes what an agent's branch changed since it diverged from its base.
+ * Decides what an agent's branch changed since it diverged from its base, and
+ * which git read shows it.
  *
  * @remarks
  * Diffs against the merge base of the base and agent commits. When the
@@ -177,12 +196,16 @@ async function diffWorkingTree(
  * `uncommitted` says why.
  * Renames are detected. Everything is read-only.
  *
+ * Another reading of the same changes, such as a patch, must use the returned
+ * `source`, so it shows exactly the changes the summary counted and takes the
+ * same precautions about filters and worktrees.
+ *
  * @param options - The repository, base commit, agent branch, and optional worktree.
- * @returns The changed files, untracked files, and how uncommitted work was handled, or why the diff could not be computed. A relative or empty directory is `invalid-path`.
+ * @returns The summary and its source, or why the diff could not be computed. A relative or empty directory is `invalid-path`.
  */
-export async function worktreeDiffStat(
+export async function resolveWorktreeDiff(
   options: WorktreeDiffStatOptions
-): Promise<Result<WorktreeDiffStat, WorktreeDiffStatError>> {
+): Promise<Result<ResolvedWorktreeDiff, WorktreeDiffStatError>> {
   const { git, repoDir, worktreeDir, agentBranch } = options
   const baseSha = parseCommitSha(options.baseSha)
   if (baseSha === undefined) return err('invalid-ref')
@@ -212,7 +235,12 @@ export async function worktreeDiffStat(
   if (worktreeDir !== undefined && status === 'included') {
     const working = await diffWorkingTree({ git, worktreeDir, mergeSha: merge.value })
     if (!working.ok) return err(working.error)
-    if (working.value !== 'skipped-filters') return ok(working.value)
+    if (working.value !== 'skipped-filters') {
+      return ok({
+        stat: working.value,
+        source: { command: 'diff-index', dir: worktreeDir, revisions: [merge.value] }
+      })
+    }
     status = 'skipped-filters'
   }
 
@@ -223,6 +251,23 @@ export async function worktreeDiffStat(
     revisions: [merge.value, agent]
   })
   return files.ok
-    ? ok({ files: files.value.files, untracked: [], uncommitted: status })
+    ? ok({
+        stat: { files: files.value.files, untracked: [], uncommitted: status },
+        source: { command: 'diff', dir: repoDir, revisions: [merge.value, agent] }
+      })
     : err(files.error)
+}
+
+/**
+ * Summarizes what an agent's branch changed since it diverged from its base.
+ * See {@link resolveWorktreeDiff} for how the changes are chosen.
+ *
+ * @param options - The repository, base commit, agent branch, and optional worktree.
+ * @returns The changed files, untracked files, and how uncommitted work was handled, or why the diff could not be computed. A relative or empty directory is `invalid-path`.
+ */
+export async function worktreeDiffStat(
+  options: WorktreeDiffStatOptions
+): Promise<Result<WorktreeDiffStat, WorktreeDiffStatError>> {
+  const resolved = await resolveWorktreeDiff(options)
+  return resolved.ok ? ok(resolved.value.stat) : err(resolved.error)
 }

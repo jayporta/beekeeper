@@ -4,7 +4,8 @@ import { resolveBranch, type ResolveBranchError } from '../../core/git/resolveBr
 import {
   worktreeDiffStat,
   type WorktreeDiffStat,
-  type WorktreeDiffStatError
+  type WorktreeDiffStatError,
+  type WorktreeDiffStatOptions
 } from '../../core/git/worktreeDiffStat'
 import type { AgentTreeNode } from '../../core/session/agentTree'
 import type { SessionScan } from '../../core/session/scanSession'
@@ -30,15 +31,18 @@ export const MAX_WORKTREE_AGENTS_PER_REQUEST = 64
 export type WorktreeDiffCode =
   WorktreeDiffStatError | ConfineRepoError | 'no-base' | 'too-many-agents'
 
-/** One worktree agent's diff, or the reason it couldn't be computed. */
-export interface AgentWorktreeDiff {
-  /** The agent the diff belongs to. */
+/** One worktree agent's result of reading its changes, or the reason it couldn't be read. */
+export interface AgentWorktreeResult<T> {
+  /** The agent the result belongs to. */
   readonly agentId: AgentId
   /** Whether the base branch was inferred from the transcript rather than read from the spawn record. */
   readonly inferredBase: boolean
   /** What the agent's branch changed, or why that is unknown. */
-  readonly result: Result<WorktreeDiffStat, WorktreeDiffCode>
+  readonly result: Result<T, WorktreeDiffCode>
 }
+
+/** One worktree agent's diff, or the reason it couldn't be computed. */
+export type AgentWorktreeDiff = AgentWorktreeResult<WorktreeDiffStat>
 
 /** Options for {@link sessionWorktreeDiffs}. */
 export interface SessionWorktreeDiffsOptions {
@@ -52,6 +56,19 @@ export interface SessionWorktreeDiffsOptions {
   readonly scheduler: ScanScheduler
   /** Resolves a branch to a commit. Defaults to {@link resolveBranch}. */
   readonly resolve?: typeof resolveBranch
+}
+
+/** Options for {@link readWorktreeAgents}. */
+export interface ReadWorktreeAgentsOptions<T> extends SessionWorktreeDiffsOptions {
+  /** Reads one agent's changes once its repository, base, and worktree are confined and resolved. */
+  readonly read: (options: WorktreeDiffStatOptions) => Promise<Result<T, WorktreeDiffStatError>>
+  /**
+   * Names the kind of read in the scheduler key, so reads of different kinds
+   * for the same agent never share a task.
+   */
+  readonly kind: string
+  /** Reads only this agent, when it names a worktree branch. Without it, every worktree agent. */
+  readonly agentId?: AgentId
 }
 
 interface WorktreeAgent {
@@ -79,7 +96,8 @@ function collectWorktreeAgents(node: AgentTreeNode, found: WorktreeAgent[] = [])
 }
 
 /**
- * Computes what each worktree agent of a session changed.
+ * Reads what each worktree agent of a session changed, with the read of the
+ * caller's choosing.
  *
  * @remarks
  * Each agent's whole pipeline (confining its spawn repository to the project,
@@ -92,14 +110,16 @@ function collectWorktreeAgents(node: AgentTreeNode, found: WorktreeAgent[] = [])
  * {@link MAX_WORKTREE_AGENTS_PER_REQUEST} agents in tree order are diffed;
  * the rest are listed with `too-many-agents` and run no git.
  *
- * @param options - The git binary, the scan, the project name, and the scheduler.
- * @returns One entry per agent whose meta names a worktree branch, in tree order.
+ * @param options - The git binary, the scan, the project name, the scheduler, the read, and optionally one agent.
+ * @returns One entry per agent whose meta names a worktree branch (or just the named one, or none when it names no worktree branch), in tree order.
  */
-export async function sessionWorktreeDiffs(
-  options: SessionWorktreeDiffsOptions
-): Promise<AgentWorktreeDiff[]> {
-  const { git, scan, projectDirName, scheduler, resolve = resolveBranch } = options
-  const agents = collectWorktreeAgents(scan.tree)
+export async function readWorktreeAgents<T>(
+  options: ReadWorktreeAgentsOptions<T>
+): Promise<AgentWorktreeResult<T>[]> {
+  const { git, scan, projectDirName, scheduler, resolve = resolveBranch, read, kind } = options
+  const agents = collectWorktreeAgents(scan.tree).filter(
+    (agent) => options.agentId === undefined || agent.agentId === options.agentId
+  )
   if (agents.length === 0) return []
   const confiner = createRepoConfiner({ git, projectDirName, firstCwd: scan.leadFirstCwd })
   const bases = new Map<string, Promise<Result<CommitSha, ResolveBranchError>>>()
@@ -119,9 +139,7 @@ export async function sessionWorktreeDiffs(
   const inferredBaseOf = (agent: WorktreeAgent): boolean =>
     scan.spawnContexts.get(agent.agentId)?.inferred ?? false
 
-  async function computeDiff(
-    input: DiffInput
-  ): Promise<Result<WorktreeDiffStat, WorktreeDiffCode>> {
+  async function computeDiff(input: DiffInput): Promise<Result<T, WorktreeDiffCode>> {
     const { agent, baseBranch, spawnCwd } = input
     const repo = await confiner.repo(spawnCwd)
     if (!repo.ok) return err(repo.error)
@@ -130,7 +148,7 @@ export async function sessionWorktreeDiffs(
     const worktree =
       agent.worktreePath === undefined ? ok(undefined) : await confiner.worktree(agent.worktreePath)
     if (!worktree.ok) return err(worktree.error)
-    return worktreeDiffStat({
+    return read({
       git,
       repoDir: repo.value,
       baseSha: base.value,
@@ -139,7 +157,7 @@ export async function sessionWorktreeDiffs(
     })
   }
 
-  async function diffAgent(agent: WorktreeAgent): Promise<AgentWorktreeDiff> {
+  async function diffAgent(agent: WorktreeAgent): Promise<AgentWorktreeResult<T>> {
     const context = scan.spawnContexts.get(agent.agentId)
     const inferredBase = inferredBaseOf(agent)
     if (context?.baseBranch === undefined) {
@@ -154,13 +172,13 @@ export async function sessionWorktreeDiffs(
       agent.branch,
       agent.worktreePath ?? null
     ])
-    const result = await scheduler.run(`worktree-diff:${key}`, () =>
+    const result = await scheduler.run(`${kind}:${key}`, () =>
       computeDiff({ agent, baseBranch, spawnCwd: cwd })
     )
     return { agentId: agent.agentId, inferredBase, result }
   }
 
-  function refuseAgent(agent: WorktreeAgent): AgentWorktreeDiff {
+  function refuseAgent(agent: WorktreeAgent): AgentWorktreeResult<T> {
     return {
       agentId: agent.agentId,
       inferredBase: inferredBaseOf(agent),
@@ -173,4 +191,19 @@ export async function sessionWorktreeDiffs(
       index < MAX_WORKTREE_AGENTS_PER_REQUEST ? diffAgent(agent) : refuseAgent(agent)
     )
   )
+}
+
+/**
+ * Computes what each worktree agent of a session changed.
+ *
+ * @remarks
+ * See {@link readWorktreeAgents}, which this is the numstat read of.
+ *
+ * @param options - The git binary, the scan, the project name, and the scheduler.
+ * @returns One entry per agent whose meta names a worktree branch, in tree order.
+ */
+export function sessionWorktreeDiffs(
+  options: SessionWorktreeDiffsOptions
+): Promise<AgentWorktreeDiff[]> {
+  return readWorktreeAgents({ ...options, read: worktreeDiffStat, kind: 'worktree-diff' })
 }

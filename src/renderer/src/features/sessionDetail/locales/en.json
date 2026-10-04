@@ -145,6 +145,16 @@
       "subagentsNotLoaded": "Some teammates' subagents aren't loaded, so the total may be low.",
       "belowIncomplete": "Some agents below have partial or unrecorded totals, so the total may be low.",
       "other": "Some data for this agent couldn't be read."
+    },
+    "patch": {
+      "open": "Open diff",
+      "close": "Close",
+      "heading": "Diff",
+      "loading": "Loading the diff",
+      "empty": "No changes to show.",
+      "fileTruncated": "Patch truncated",
+      "totalTruncated": "Patch truncated: the diff is too large, so only its first part is shown.",
+      "renamedFrom": "renamed from {{path}}"
     }
   }
 }

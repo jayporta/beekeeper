@@ -4,7 +4,8 @@ export const IPC_CHANNELS = {
   listSessions: 'beekeeper:list-sessions',
   getSession: 'beekeeper:get-session',
   getWorktreeDiffs: 'beekeeper:get-worktree-diffs',
-  getProjectTotals: 'beekeeper:get-project-totals'
+  getProjectTotals: 'beekeeper:get-project-totals',
+  getWorktreePatch: 'beekeeper:get-worktree-patch'
 } as const
 
 /** One of the channel names in {@link IPC_CHANNELS}. */
