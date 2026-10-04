@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { TOTALS_WINDOWS } from './projectTotalsDto'
 
 /** The longest project folder name a request may carry. */
 export const MAX_PROJECT_DIR_NAME_LENGTH = 255
@@ -29,8 +30,17 @@ export const getSessionRequestSchema = z.strictObject({
   sessionId: sessionIdSchema
 })
 
+/** The payload of a `getProjectTotals` call. */
+export const getProjectTotalsRequestSchema = z.strictObject({
+  projectDirName: projectDirNameSchema,
+  window: z.enum(TOTALS_WINDOWS)
+})
+
 /** A validated `listSessions` payload. */
 export type ListSessionsRequest = z.infer<typeof listSessionsRequestSchema>
 
 /** A validated `getSession` payload. */
 export type GetSessionRequest = z.infer<typeof getSessionRequestSchema>
+
+/** A validated `getProjectTotals` payload. */
+export type GetProjectTotalsRequest = z.infer<typeof getProjectTotalsRequestSchema>

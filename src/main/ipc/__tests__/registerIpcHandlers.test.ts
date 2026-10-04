@@ -44,7 +44,7 @@ function register(): Map<string, Listener> {
 }
 
 describe('registerIpcHandlers', () => {
-  it('registers exactly the four channels', () => {
+  it('registers exactly the channels the contract names', () => {
     expect([...register().keys()].sort()).toEqual(Object.values(IPC_CHANNELS).sort())
   })
 

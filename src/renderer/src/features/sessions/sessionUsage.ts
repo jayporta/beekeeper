@@ -1,4 +1,5 @@
 import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
+import { resolveSessionUsage } from '../../../../shared/usage/resolveSessionUsage'
 
 /** One usage figure pair a card shows. */
 export interface UsageFigures {
@@ -65,12 +66,11 @@ function sessionFigures(
   item: SessionListItemDto,
   recorded: Pick<UsageFigures, 'tokens' | 'usd'>
 ): UsageFigures {
-  const transcriptTokens = item.summary.ok ? item.summary.value.transcriptTokens : null
-  const fallback = recorded.tokens === null && transcriptTokens !== null
-  return {
-    tokens: fallback ? transcriptTokens : recorded.tokens,
-    usd: recorded.usd,
-    tokensPartial: fallback && (item.subagentCount === null || item.subagentCount > 0),
-    usdPartial: false
-  }
+  const resolved = resolveSessionUsage({
+    recordedTokens: recorded.tokens,
+    recordedUsd: recorded.usd,
+    transcriptTokens: item.summary.ok ? item.summary.value.transcriptTokens : null,
+    subagentCount: item.subagentCount
+  })
+  return { ...resolved, usdPartial: false }
 }

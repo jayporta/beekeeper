@@ -49,7 +49,8 @@ export function installBeekeeperApi(overrides: Partial<BeekeeperApi> = {}): Test
     ),
     listSessions: vi.fn(overrides.listSessions ?? unstubbed('listSessions')),
     getSession: vi.fn(overrides.getSession ?? unstubbed('getSession')),
-    getWorktreeDiffs: vi.fn(overrides.getWorktreeDiffs ?? unstubbed('getWorktreeDiffs'))
+    getWorktreeDiffs: vi.fn(overrides.getWorktreeDiffs ?? unstubbed('getWorktreeDiffs')),
+    getProjectTotals: vi.fn(overrides.getProjectTotals ?? unstubbed('getProjectTotals'))
   }
   window.beekeeper = api
   return api

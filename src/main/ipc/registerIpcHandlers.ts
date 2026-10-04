@@ -1,5 +1,6 @@
 import { IPC_CHANNELS, type IpcChannel } from '../../shared/ipc/channels'
 import type { IpcResult } from '../../shared/ipc/ipcResult'
+import { getProjectTotalsHandler } from './getProjectTotalsHandler'
 import { getSessionHandler } from './getSessionHandler'
 import { getWorktreeDiffsHandler } from './getWorktreeDiffsHandler'
 import { guardIpc } from './guardIpc'
@@ -28,7 +29,7 @@ export interface RegisterIpcHandlersOptions {
 }
 
 /**
- * Registers the four IPC handlers. Call it once, after the app is ready and
+ * Registers the IPC handlers. Call it once, after the app is ready and
  * before any window is created, since registering a channel twice throws.
  * @param options - `ipcMain`, the sender check, and the handlers' dependencies.
  */
@@ -38,7 +39,8 @@ export function registerIpcHandlers(options: RegisterIpcHandlersOptions): void {
     [IPC_CHANNELS.listProjects]: () => listProjectsHandler(deps),
     [IPC_CHANNELS.listSessions]: (payload) => listSessionsHandler(deps, payload),
     [IPC_CHANNELS.getSession]: (payload) => getSessionHandler(deps, payload),
-    [IPC_CHANNELS.getWorktreeDiffs]: (payload) => getWorktreeDiffsHandler(deps, payload)
+    [IPC_CHANNELS.getWorktreeDiffs]: (payload) => getWorktreeDiffsHandler(deps, payload),
+    [IPC_CHANNELS.getProjectTotals]: (payload) => getProjectTotalsHandler(deps, payload)
   }
   for (const channel of Object.values(IPC_CHANNELS)) {
     ipcMain.handle(channel, guardIpc({ isTrusted, handle: handlers[channel] }))
