@@ -214,8 +214,8 @@ describe('SessionDetailView states', () => {
   it('says it is loading while the detail loads', async () => {
     openSession(testRef(1, DIR), { detail: new Promise(() => undefined) })
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Loading session' })).toBeTruthy()
-    expect(screen.getByRole('status')).toBeTruthy()
+    const heading = await screen.findByRole('heading', { level: 1, name: 'Loading session' })
+    expect(heading.closest('[role="status"]')).not.toBeNull()
   })
 
   it('offers a way back to the sessions list when the session is gone', async () => {
