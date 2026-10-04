@@ -4,11 +4,11 @@ import { testGraphNode } from '../testGraphNode'
 
 const a1 = testGraphNode('a1')
 const a2 = testGraphNode('a2')
-const a = testGraphNode('a', [a1, a2])
+const a = testGraphNode('a', { children: [a1, a2] })
 const b = testGraphNode('b')
 const c1 = testGraphNode('c1')
-const c = testGraphNode('c', [c1])
-const lead = testGraphNode('lead', [a, b, c])
+const c = testGraphNode('c', { children: [c1] })
+const lead = testGraphNode('lead', { children: [a, b, c] })
 
 describe('graphNeighbor', () => {
   it.each([
@@ -96,7 +96,7 @@ describe('graphNeighbor', () => {
 
   it('walks a chain thousands deep without recursing', () => {
     let tail = testGraphNode('n0')
-    for (let i = 1; i < 5000; i += 1) tail = testGraphNode(`n${i}`, [tail])
+    for (let i = 1; i < 5000; i += 1) tail = testGraphNode(`n${i}`, { children: [tail] })
 
     expect(graphNeighbor(tail, 'n4999', 'last')).toBe('n0')
   })

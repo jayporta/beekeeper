@@ -54,11 +54,11 @@ describe('expansionOf', () => {
 
 describe('graftTeammates', () => {
   const grafted = testGraphNode('sub:x:w1')
-  const mateA = testGraphNode('mate:a', [], { kind: 'teammate', partial: false })
-  const mateB = testGraphNode('mate:b', [], { kind: 'teammate', partial: false })
+  const mateA = testGraphNode('mate:a', { kind: 'teammate', partial: false })
+  const mateB = testGraphNode('mate:b', { kind: 'teammate', partial: false })
   const subagent = testGraphNode('sub:y:a1')
   const root: RootAgentGraphNode = {
-    ...testGraphNode('lead', [subagent, mateA, mateB], { kind: 'lead' }),
+    ...testGraphNode('lead', { children: [subagent, mateA, mateB], kind: 'lead' }),
     key: 'lead',
     missingTeammates: 2,
     teamListsTruncated: true
@@ -87,7 +87,7 @@ describe('graftTeammates', () => {
   it('keeps a teammate partial that was already partial', () => {
     const partialRoot: RootAgentGraphNode = {
       ...root,
-      children: [testGraphNode('mate:a', [], { kind: 'teammate', partial: true })]
+      children: [testGraphNode('mate:a', { kind: 'teammate', partial: true })]
     }
 
     const result = graftTeammates(

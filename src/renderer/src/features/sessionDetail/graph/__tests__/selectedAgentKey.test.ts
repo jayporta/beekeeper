@@ -7,13 +7,13 @@ import { testGraphNode } from '../testGraphNode'
 const OWNER = testRef(1)
 const MATE = testRef(2, '-other')
 
-const subagent = testGraphNode('sub:a1', [], {
+const subagent = testGraphNode('sub:a1', {
   selection: { kind: 'subagent', ownerRef: OWNER, agentId: 'a1' }
 })
-const sameIdElsewhere = testGraphNode('sub:a1-elsewhere', [], {
+const sameIdElsewhere = testGraphNode('sub:a1-elsewhere', {
   selection: { kind: 'subagent', ownerRef: MATE, agentId: 'a1' }
 })
-const teammate = testGraphNode('mate:2', [], { selection: { kind: 'teammate', ref: MATE } })
+const teammate = testGraphNode('mate:2', { selection: { kind: 'teammate', ref: MATE } })
 const NODES: readonly AgentGraphNode[] = [
   testGraphNode('lead'),
   subagent,

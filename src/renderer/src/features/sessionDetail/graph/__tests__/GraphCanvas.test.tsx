@@ -55,7 +55,7 @@ describe('GraphCanvas', () => {
     expect(names).toEqual([
       'Lead, lead, 1.5K tokens, claude-opus-5',
       'scout, subagent, 40 tokens, Explore, claude-haiku-5',
-      'reader, subagent, 0 tokens, Explore',
+      'reader, subagent, tokens not recorded, Explore',
       'writer (code), teammate, 2.5K tokens, code, claude-sonnet-5, stopped',
       'tester (code), teammate, 900 tokens, in -Users-a-other'
     ])

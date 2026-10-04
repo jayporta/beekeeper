@@ -3,28 +3,28 @@ import { testGraphNode } from '../testGraphNode'
 import { testGraphT } from '../testGraphT'
 import { nodeAccessibleName, nodeDetail } from '../nodeFacts'
 
-const nameOf = (overrides: Parameters<typeof testGraphNode>[2], loading = false): string =>
-  nodeAccessibleName(testGraphNode('lead', [], { name: 'Lead', kind: 'lead', ...overrides }), {
+const nameOf = (overrides: Parameters<typeof testGraphNode>[1], loading = false): string =>
+  nodeAccessibleName(testGraphNode('lead', { name: 'Lead', kind: 'lead', ...overrides }), {
     t: testGraphT,
     loading
   })
 
 describe('nodeDetail', () => {
   it('is the type and the model', () => {
-    const node = testGraphNode('a', [], { agentType: 'Explore', model: 'claude-haiku-5' })
+    const node = testGraphNode('a', { agentType: 'Explore', model: 'claude-haiku-5' })
 
     expect(nodeDetail(node, testGraphT)).toEqual(['Explore', 'claude-haiku-5'])
   })
 
   it('leaves out a type or model that is unknown', () => {
-    expect(nodeDetail(testGraphNode('a', [], { model: 'claude-haiku-5' }), testGraphT)).toEqual([
+    expect(nodeDetail(testGraphNode('a', { model: 'claude-haiku-5' }), testGraphT)).toEqual([
       'claude-haiku-5'
     ])
     expect(nodeDetail(testGraphNode('a'), testGraphT)).toEqual([])
   })
 
   it('is the folder, not the type and model, for a teammate in another folder', () => {
-    const node = testGraphNode('a', [], { agentType: 'code', model: 'm', folder: '-Users-a-other' })
+    const node = testGraphNode('a', { agentType: 'code', model: 'm', folder: '-Users-a-other' })
 
     expect(nodeDetail(node, testGraphT)).toEqual(['in -Users-a-other'])
   })

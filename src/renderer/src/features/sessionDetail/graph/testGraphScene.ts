@@ -33,13 +33,13 @@ const lead = testSession(1, {
 const writer = testSession(2, {
   role: testAgentRole('writer', 'code'),
   model: 'claude-sonnet-5',
-  totalTokens: 2500,
+  transcriptTokens: 2500,
   team: testTeammateTeam(SCENE_SESSION, true)
 })
 const tester = testSession(3, {
   projectDirName: SCENE_OTHER_FOLDER,
   role: testAgentRole('tester', 'code'),
-  totalTokens: 900,
+  transcriptTokens: 900,
   team: testTeammateTeam(SCENE_SESSION)
 })
 
