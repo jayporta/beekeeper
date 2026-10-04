@@ -8,6 +8,7 @@ import { SessionPlaceholder } from '@renderer/features/navigation/SessionPlaceho
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { FolderGoneStatus } from '@renderer/features/projects/FolderGoneStatus'
 import { ProjectsGate } from '@renderer/features/projects/ProjectsGate'
+import { useForgetUnlistedSelection } from '@renderer/features/projects/state/useForgetUnlistedSelection'
 import { SessionsView } from '@renderer/features/sessions/SessionsView'
 import { useResetNavigationOnProjectChange } from './useResetNavigationOnProjectChange'
 
@@ -16,8 +17,9 @@ import { useResetNavigationOnProjectChange } from './useResetNavigationOnProject
  * (or while it is reopened from About), otherwise the view the navigation
  * store names, inside a gate that explains why there are no projects when
  * there are none. A live region beside the gate announces when the selected
- * project's folder is gone. It also returns navigation to the sessions list
- * when the project in effect changes.
+ * project's folder is gone, and a stored selection the project list no longer
+ * names counts as gone. It also returns navigation to the sessions list when
+ * the project in effect changes.
  *
  * @example
  * <main><MainView /></main>
@@ -26,6 +28,7 @@ export function MainView(): React.JSX.Element {
   const showFirstRun = useFirstRunStore(selectIsFirstRunShowing)
   const view = useNavigationStore((state) => state.view)
   useResetNavigationOnProjectChange()
+  useForgetUnlistedSelection()
   if (showFirstRun) return <FirstRunScreen />
 
   return (

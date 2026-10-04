@@ -9,7 +9,10 @@ import { useSelectedProjectStore } from '../state/useSelectedProjectStore'
 
 const ALPHA = '-Users-a-alpha'
 const BETA = '-Users-a-beta'
-const GONE_TEXT = "That project's folder no longer exists."
+const WORKTREE = '-Users-a-alpha-wt'
+
+/** The sentence that names a folder that no longer exists. */
+const folderGone = (folder: string): string => `The folder ${folder} no longer exists.`
 
 afterEach(async () => {
   useNavigationStore.getState().reset()
@@ -56,12 +59,12 @@ describe('FolderGoneStatus', () => {
     const region = await renderLoaded()
 
     await waitFor(() => {
-      expect(region.textContent).toBe(`${GONE_TEXT} Showing Beta app.`)
+      expect(region.textContent).toBe(`${folderGone(ALPHA)} Showing Beta app.`)
     })
   })
 
   it('names a parent project by the title the heading shows when the gone folder was a worktree', async () => {
-    useSelectedProjectStore.setState({ goneDirName: '-Users-a-alpha-wt' })
+    useSelectedProjectStore.setState({ goneDirName: WORKTREE })
     listing(
       { ...testProject(ALPHA), label: 'Alpha app' },
       testProject('-Users-a-other-wt', { worktreeOf: ALPHA, worktreeName: 'other-wt' })
@@ -70,7 +73,7 @@ describe('FolderGoneStatus', () => {
     const region = await renderLoaded()
 
     await waitFor(() => {
-      expect(region.textContent).toBe(`${GONE_TEXT} Showing Alpha app.`)
+      expect(region.textContent).toBe(`${folderGone(WORKTREE)} Showing Alpha app.`)
     })
   })
 
@@ -81,7 +84,7 @@ describe('FolderGoneStatus', () => {
     const region = await renderLoaded()
 
     await waitFor(() => {
-      expect(region.textContent).toBe(GONE_TEXT)
+      expect(region.textContent).toBe(folderGone(ALPHA))
     })
   })
 
@@ -106,29 +109,39 @@ describe('FolderGoneStatus', () => {
     expect(region.textContent).toBe('')
   })
 
-  it('treats a stored selection that dropped off the project list as a gone folder', async () => {
-    useSelectedProjectStore.setState({ selectedDirName: '-Users-a-gone' })
-    listing({ ...testProject(ALPHA), label: 'Alpha app' })
+  it('names only the folder on the overview, which no project fallback changes', async () => {
+    useNavigationStore.setState({ view: 'overview' })
+    useSelectedProjectStore.setState({ goneDirName: ALPHA })
+    listing(testProject(BETA))
 
     const region = await renderLoaded()
 
     await waitFor(() => {
-      expect(region.textContent).toBe(`${GONE_TEXT} Showing Alpha app.`)
+      expect(region.textContent).toBe(folderGone(ALPHA))
     })
-    expect(useSelectedProjectStore.getState().selectedDirName).toBeNull()
   })
 
-  it('does not treat a stored selection that is still listed as gone', async () => {
-    useSelectedProjectStore.setState({ selectedDirName: BETA })
-    listing(testProject(ALPHA), testProject(BETA))
-
+  it('names a second gone folder, so the change is announced again', async () => {
+    useSelectedProjectStore.setState({ goneDirName: ALPHA })
+    listing(testProject(BETA))
     const region = await renderLoaded()
-
-    expect(region.textContent).toBe('')
-    expect(useSelectedProjectStore.getState()).toMatchObject({
-      selectedDirName: BETA,
-      goneDirName: null
+    await waitFor(() => {
+      expect(region.textContent).toContain(folderGone(ALPHA))
     })
+
+    act(() => {
+      useSelectedProjectStore.setState({ goneDirName: WORKTREE })
+    })
+
+    expect(region.textContent).toBe(`${folderGone(WORKTREE)} Showing ${BETA}.`)
+  })
+
+  it('is shown to sighted users, not hidden for assistive technology only', () => {
+    installBeekeeperApi({ listProjects: () => new Promise(() => undefined) })
+
+    render(<FolderGoneStatus />, { wrapper: createQueryWrapper() })
+
+    expect(screen.getByRole('status').classList.contains('visuallyHidden')).toBe(false)
   })
 
   it('clears its text when the person navigates', async () => {
@@ -136,7 +149,7 @@ describe('FolderGoneStatus', () => {
     listing(testProject(BETA))
     const region = await renderLoaded()
     await waitFor(() => {
-      expect(region.textContent).toContain(GONE_TEXT)
+      expect(region.textContent).toContain(folderGone(ALPHA))
     })
 
     act(() => {
@@ -153,13 +166,13 @@ describe('FolderGoneStatus', () => {
     listing(testProject(BETA))
     const region = await renderLoaded()
     await waitFor(() => {
-      expect(region.textContent).toContain(GONE_TEXT)
+      expect(region.textContent).toContain(folderGone(ALPHA))
     })
 
     act(() => {
       useNavigationStore.getState().reset()
     })
 
-    expect(region.textContent).toContain(GONE_TEXT)
+    expect(region.textContent).toContain(folderGone(ALPHA))
   })
 })

@@ -10,6 +10,8 @@ interface SessionsBodyProps {
   readonly data: readonly SessionListItemDto[] | undefined
   /** What the last load threw, or `null` when it didn't fail. Once there is data, only a `not-found` error is used. */
   readonly error: unknown
+  /** When the last load failed, in milliseconds. It changes with each failed load, so a repeated `not-found` mounts a new alert. */
+  readonly errorUpdatedAt: number
   /** Loads the list again. */
   readonly onRetry: () => void
   /** Whether any session matches the search. */
@@ -22,18 +24,20 @@ interface SessionsBodyProps {
  * What the sessions view shows for one folder: a loading, error or empty
  * state, or the list or a no-match message. Loaded data wins over a failed
  * background refresh, so a cached list stays on screen, except when the folder
- * is gone (`not-found`): its cached list is stale, so the error shows. Each state has its own
- * key, so an alert mounts fresh instead of reusing the loading element, and
- * screen readers announce it.
+ * is gone (`not-found`): its cached list is stale, so its own alert shows. Each
+ * state has its own key, so an alert mounts fresh instead of reusing the
+ * loading element, and screen readers announce it. The `not-found` key also
+ * changes with each failed load, so a repeat after Retry is announced again.
  *
  * @example
- * <SessionsBody data={data} error={null} onRetry={retry} hasMatches>
+ * <SessionsBody data={data} error={null} errorUpdatedAt={0} onRetry={retry} hasMatches>
  *   <SessionCardList rows={rows} labelledBy={headingId} selectedDirName="-Users-me-repo" query="" />
  * </SessionsBody>
  */
 export function SessionsBody({
   data,
   error,
+  errorUpdatedAt,
   onRetry,
   hasMatches,
   children
@@ -42,7 +46,21 @@ export function SessionsBody({
 
   const code = IpcCallError.codeOf(error)
 
-  if (data === undefined || code === 'not-found') {
+  if (code === 'not-found') {
+    return (
+      <StatusMessage
+        key={`not-found-${errorUpdatedAt}`}
+        heading={t('notFound.heading')}
+        headingLevel={2}
+        role="alert"
+        body={t('notFound.body')}
+      >
+        <RetryButton onRetry={onRetry} />
+      </StatusMessage>
+    )
+  }
+
+  if (data === undefined) {
     if (error === null) {
       return <StatusMessage key="loading" heading={t('loading')} headingLevel={2} role="status" />
     }

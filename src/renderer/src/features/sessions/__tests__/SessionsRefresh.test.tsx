@@ -176,7 +176,7 @@ describe('refreshing the lists on window focus', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: DIR }).getAttribute('aria-current')).toBe('page')
     })
-    expect(screen.getByText(`That project's folder no longer exists. Showing ${DIR}.`)).toBeTruthy()
+    expect(screen.getByText(`The folder ${OTHER} no longer exists. Showing ${DIR}.`)).toBeTruthy()
   })
 })
 

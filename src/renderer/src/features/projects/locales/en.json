@@ -16,7 +16,7 @@
   },
   "error": "Beekeeper couldn't load your projects.",
   "folderGone": {
-    "showing": "That project's folder no longer exists. Showing {{project}}.",
-    "none": "That project's folder no longer exists."
+    "showing": "The folder {{folder}} no longer exists. Showing {{project}}.",
+    "gone": "The folder {{folder}} no longer exists."
   }
 }

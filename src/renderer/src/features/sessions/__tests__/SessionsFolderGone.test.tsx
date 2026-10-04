@@ -22,7 +22,11 @@ import { testSession } from '../testSessionFixtures'
 
 const ALPHA = '-Users-a-alpha'
 const BETA = '-Users-a-beta'
-const GONE_TEXT = "That project's folder no longer exists."
+const GAMMA = '-Users-a-gamma'
+const DELETED = '-Users-a-deleted'
+
+/** The sentence that names a folder that no longer exists. */
+const folderGone = (folder: string): string => `The folder ${folder} no longer exists.`
 
 type SessionsResult = IpcResult<readonly SessionListItemDto[]>
 type ProjectsResult = IpcResult<readonly ProjectDto[]>
@@ -37,12 +41,15 @@ const loaded = (value: readonly SessionListItemDto[]): Promise<SessionsResult> =
 const projects = (...list: ProjectDto[]): Promise<ProjectsResult> =>
   Promise.resolve({ ok: true, value: list })
 
-/** A `listProjects` stub: its first call lists ALPHA and BETA, and every later call answers `refreshed`. */
-function listThenRefresh(refreshed: () => Promise<ProjectsResult>): () => Promise<ProjectsResult> {
+/** A `listProjects` stub: its first call lists `first`, and every later call answers `refreshed`. */
+function listThenRefresh(
+  refreshed: () => Promise<ProjectsResult>,
+  first: readonly ProjectDto[] = [testProject(ALPHA), testProject(BETA)]
+): () => Promise<ProjectsResult> {
   let calls = 0
   return () => {
     calls += 1
-    return calls === 1 ? projects(testProject(ALPHA), testProject(BETA)) : refreshed()
+    return calls === 1 ? projects(...first) : refreshed()
   }
 }
 
@@ -57,7 +64,7 @@ beforeEach(() => {
 afterEach(resetPersistedState)
 
 /** The announcement text, or `null` when the app has said nothing about a gone folder. */
-const goneNotice = (): HTMLElement | null => screen.queryByText(new RegExp(GONE_TEXT))
+const goneNotice = (): HTMLElement | null => screen.queryByText(/^The folder .* no longer exists\./)
 
 describe('a selected project whose folder is gone', () => {
   it('announces the project that took over and shows its sessions', async () => {
@@ -69,22 +76,26 @@ describe('a selected project whose folder is gone', () => {
 
     renderApp()
 
-    expect(await screen.findByText(`${GONE_TEXT} Showing ${BETA}.`)).toBeTruthy()
+    expect(await screen.findByText(`${folderGone(ALPHA)} Showing ${BETA}.`)).toBeTruthy()
     expect(await screen.findByRole('heading', { level: 1, name: BETA })).toBeTruthy()
     expect(await screen.findByRole('heading', { level: 2, name: 'Beta work' })).toBeTruthy()
   })
 
-  it('clears the announcement when another project is chosen in the sidebar', async () => {
+  it('clears the announcement when a different project is chosen in the sidebar', async () => {
     useSelectedProjectStore.setState({ selectedDirName: ALPHA })
     installBeekeeperApi({
-      listProjects: listThenRefresh(withoutAlpha),
+      listProjects: listThenRefresh(
+        () => projects(testProject(BETA), testProject(GAMMA)),
+        [testProject(ALPHA), testProject(BETA), testProject(GAMMA)]
+      ),
       listSessions: (dirName) => (dirName === ALPHA ? notFound() : loaded([betaSession]))
     })
     renderApp()
-    await screen.findByText(`${GONE_TEXT} Showing ${BETA}.`)
+    await screen.findByText(`${folderGone(ALPHA)} Showing ${BETA}.`)
 
-    await userEvent.click(screen.getByRole('button', { name: BETA }))
+    await userEvent.click(screen.getByRole('button', { name: GAMMA }))
 
+    expect(await screen.findByRole('heading', { level: 1, name: GAMMA })).toBeTruthy()
     await waitFor(() => {
       expect(goneNotice()).toBeNull()
     })
@@ -103,7 +114,7 @@ describe('a selected project whose folder is gone', () => {
 
     renderApp()
 
-    expect(await screen.findByText(GONE_TEXT)).toBeTruthy()
+    expect(await screen.findByText(folderGone(ALPHA))).toBeTruthy()
     expect(await screen.findByRole('heading', { name: 'No sessions found' })).toBeTruthy()
   })
 
@@ -120,14 +131,14 @@ describe('a selected project whose folder is gone', () => {
 
     await refetchAndSettle(client, ['projects'])
 
-    expect(await screen.findByText(`${GONE_TEXT} Showing ${BETA}.`)).toBeTruthy()
+    expect(await screen.findByText(`${folderGone(ALPHA)} Showing ${BETA}.`)).toBeTruthy()
     expect(await screen.findByRole('heading', { level: 2, name: 'Beta work' })).toBeTruthy()
   })
 
-  it('announces once, naming the project that took over, when the stored folder was deleted while the app was closed', async () => {
+  it('announces a folder deleted while the app was closed, then forgets it so the next start is silent', async () => {
     await idbStorage.setItem(
       'selected-project',
-      JSON.stringify({ state: { selectedDirName: '-Users-a-deleted' }, version: 0 })
+      JSON.stringify({ state: { selectedDirName: DELETED }, version: 0 })
     )
     installBeekeeperApi({
       listProjects: () => projects(testProject(ALPHA), testProject(BETA)),
@@ -136,8 +147,7 @@ describe('a selected project whose folder is gone', () => {
 
     renderApp()
 
-    expect(await screen.findByText(`${GONE_TEXT} Showing ${ALPHA}.`)).toBeTruthy()
-    expect(screen.getAllByText(new RegExp(GONE_TEXT))).toHaveLength(1)
+    expect(await screen.findByText(`${folderGone(DELETED)} Showing ${ALPHA}.`)).toBeTruthy()
     await waitFor(async () => {
       const stored = await idbStorage.getItem('selected-project')
       expect(JSON.parse(stored ?? '{}')).toMatchObject({ state: { selectedDirName: null } })
@@ -236,6 +246,37 @@ describe('a list that was loaded before its folder went missing', () => {
     const alert = await screen.findByRole('alert')
     expect(within(alert).getByRole('button', { name: 'Retry' })).toBeTruthy()
     expect(screen.queryByText('Alpha work')).toBeNull()
+  })
+
+  it('says the project folder was not found, in its own alert with Retry', async () => {
+    installBeekeeperApi({ listSessions: notFound })
+
+    render(<SessionsContent dirName={ALPHA} headingId="h" />, { wrapper: createQueryWrapper() })
+
+    const alert = await screen.findByRole('alert')
+    expect(within(alert).getByRole('heading', { name: 'Project folder not found' })).toBeTruthy()
+    expect(
+      within(alert).getByText("This project's folder no longer exists in ~/.claude/projects.")
+    ).toBeTruthy()
+    expect(within(alert).getByRole('button', { name: 'Retry' })).toBeTruthy()
+  })
+
+  it('mounts a fresh alert when Retry finds the folder gone again while a list is still cached', async () => {
+    const api = installBeekeeperApi({ listSessions: notFound })
+    const client = createTestQueryClient()
+    client.setQueryData(['sessions', ALPHA], [alphaSession], { updatedAt: staleUpdatedAt })
+    render(<SessionsContent dirName={ALPHA} headingId="h" />, {
+      wrapper: createQueryWrapper(client)
+    })
+    const first = await screen.findByRole('alert')
+
+    await userEvent.click(within(first).getByRole('button', { name: 'Retry' }))
+
+    await waitFor(() => {
+      expect(api.listSessions).toHaveBeenCalledTimes(2)
+      expect(screen.getByRole('alert')).not.toBe(first)
+    })
+    expect(first.isConnected).toBe(false)
   })
 
   it('forgets the folder again on each later refetch that finds it gone', async () => {
