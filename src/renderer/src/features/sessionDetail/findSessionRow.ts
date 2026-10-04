@@ -10,7 +10,7 @@ import type { SessionRow } from '@renderer/features/sessions/sessionRow'
  * @param ref - The session to find.
  * @returns The row, or `null` when the folder's list doesn't hold the session.
  */
-export function findRootRow(rows: readonly SessionRow[], ref: SessionRefDto): SessionRow | null {
+export function findSessionRow(rows: readonly SessionRow[], ref: SessionRefDto): SessionRow | null {
   const key = sessionKey(ref)
   for (const row of rows) {
     if (row.key === key) return row

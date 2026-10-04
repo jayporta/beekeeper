@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
-import { agentCountLabel } from '../agentCountLabel'
+import { agentCountLabel, hasAgents } from '../agentCountLabel'
 import { testLeadTeam, testRef, testSession, testTeammateTeam } from '../testSessionFixtures'
 import { testSessionsT } from '../testSessionsT'
 
@@ -60,5 +60,23 @@ describe('agentCountLabel', () => {
 
   it('is null for a session whose summary could not be read', () => {
     expect(labelOf(withSubagents(testSession(1, { unreadable: true }), 2))).toBeNull()
+  })
+})
+
+describe('hasAgents', () => {
+  it('is true for a lead with teammates', () => {
+    expect(hasAgents(leadOf(1))).toBe(true)
+  })
+
+  it('is true for a session with subagents', () => {
+    expect(hasAgents(withSubagents(testSession(1), 2))).toBe(true)
+  })
+
+  it('is false for a session with neither', () => {
+    expect(hasAgents(testSession(1))).toBe(false)
+  })
+
+  it('is false when the subagent count is unknown and there are no teammates', () => {
+    expect(hasAgents(withSubagents(testSession(1), null))).toBe(false)
   })
 })

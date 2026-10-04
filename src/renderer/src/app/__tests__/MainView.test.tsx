@@ -42,7 +42,7 @@ describe('MainView', () => {
     useNavigationStore.getState().showSession(ref)
     renderApp()
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Untitled session' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Session' })).toBeTruthy()
     expect(screen.getByRole('navigation', { name: 'Breadcrumb' })).toBeTruthy()
   })
 
@@ -99,7 +99,7 @@ describe('MainView', () => {
     })
     useNavigationStore.getState().showSession(ref)
     renderApp()
-    await screen.findByRole('heading', { level: 1, name: 'Untitled session' })
+    await screen.findByRole('heading', { level: 1, name: 'Session' })
 
     act(() => {
       useSelectedProjectStore.getState().select('-Users-a-two')

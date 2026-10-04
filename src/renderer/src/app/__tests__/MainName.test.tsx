@@ -42,7 +42,7 @@ describe('the main landmark name', () => {
     act(() => {
       useNavigationStore.getState().showSession(ref)
     })
-    expect(await screen.findByRole('main', { name: 'Untitled session' })).toBeTruthy()
+    expect(await screen.findByRole('main', { name: 'Session' })).toBeTruthy()
   })
 
   it('is the first-run heading on the first-run screen', async () => {

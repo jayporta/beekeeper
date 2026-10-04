@@ -1,9 +1,11 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { act } from 'react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { IpcResult } from '../../../../../shared/ipc/ipcResult'
 import type { SessionDetailDto } from '../../../../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
+import { LIVE_COPY_CLEAR_MS } from '@renderer/components/liveCopyClearMs'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import {
@@ -46,6 +48,7 @@ beforeEach(() => {
 })
 
 afterEach(async () => {
+  vi.useRealTimers()
   useNavigationStore.getState().reset()
   await resetPersistedState()
 })
@@ -99,10 +102,11 @@ describe('SessionDetailView header', () => {
     expect(screen.getByText('00000005')).toBeTruthy()
   })
 
-  it('renders from the detail alone, titled by the short id, when the session is not listed', async () => {
+  it('renders from the detail alone, with a neutral name and the short id, when the session is not listed', async () => {
     openSession(testRef(9, DIR))
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Untitled session' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Session' })).toBeTruthy()
+    expect(screen.queryByText('Untitled session')).toBeNull()
     expect(screen.getByText('00000009')).toBeTruthy()
   })
 
@@ -117,7 +121,33 @@ describe('SessionDetailView header', () => {
     await screen.findByRole('heading', { level: 1, name: 'Partial' })
 
     expect(screen.getByText(/Some transcript lines couldn't be read/)).toBeTruthy()
-    expect(screen.getByText('partial, see the note below the list')).toBeTruthy()
+    expect(screen.getByText('partial, see the note below')).toBeTruthy()
+    expect(screen.queryByText('partial, see the note below the list')).toBeNull()
+  })
+
+  it('words a missing teammate without pointing at a list the page does not have', async () => {
+    const team = testLeadTeam([testRef(2, DIR)], testUsage({ missingTeammates: 1 }))
+    const partial = testSession(1, { projectDirName: DIR, title: 'Partial', totalTokens: 5, team })
+    openSession(testRef(1, DIR), { sessions: [partial] })
+    await screen.findByRole('heading', { level: 1, name: 'Partial' })
+
+    expect(screen.getByText(/Some teammates the lead spawned weren't found/)).toBeTruthy()
+    expect(screen.queryByText(/aren't in this list/)).toBeNull()
+  })
+
+  it('says nothing is partial for a teammate chip’s transcript total, which the page does not show', async () => {
+    const chipPartial = testSession(2, {
+      projectDirName: DIR,
+      role: testAgentRole('writer', 'code'),
+      team: testTeammateTeam(testRef(1, DIR)),
+      transcriptTokens: 400,
+      subagentCount: 1
+    })
+    openSession(testRef(1, DIR), { sessions: [lead, chipPartial] })
+    await screen.findByRole('heading', { level: 1, name: 'Refactor parser' })
+
+    expect(screen.queryByText(/Partial:/)).toBeNull()
+    expect(screen.queryByText(/partial, see the note/)).toBeNull()
   })
 
   it('names the teammate, not its lead, when the session is a teammate’s own', async () => {
@@ -127,9 +157,26 @@ describe('SessionDetailView header', () => {
   })
 })
 
+describe('SessionDetailView moving to another session', () => {
+  it('announces the next session’s load even after the last one’s announcement has cleared', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    openSession(testRef(2, DIR))
+    await screen.findByText('writer (code) loaded')
+    act(() => {
+      vi.advanceTimersByTime(LIVE_COPY_CLEAR_MS)
+    })
+    expect(screen.queryByText('writer (code) loaded')).toBeNull()
+
+    await userEvent.click(within(await breadcrumb()).getByRole('button', { name: 'Lead session' }))
+
+    expect(await screen.findByText('Refactor parser loaded')).toBeTruthy()
+  })
+})
+
 describe('SessionDetailView breadcrumb', () => {
   it('runs from the project through Sessions to the session, which is the current page', async () => {
     openSession(testRef(1, DIR))
+    await screen.findByRole('heading', { level: 1, name: 'Refactor parser' })
 
     const trail = within(await breadcrumb())
 
@@ -141,10 +188,10 @@ describe('SessionDetailView breadcrumb', () => {
     expect(trail.getByText('Refactor parser').getAttribute('aria-current')).toBe('page')
   })
 
-  it.each([DIR, 'Sessions'])('goes back to the sessions list from %s', async (name) => {
+  it('goes back to the sessions list from Sessions', async () => {
     openSession(testRef(1, DIR))
 
-    await userEvent.click(within(await breadcrumb()).getByRole('button', { name }))
+    await userEvent.click(within(await breadcrumb()).getByRole('button', { name: 'Sessions' }))
 
     expect(useNavigationStore.getState()).toMatchObject({
       view: 'sessions',
@@ -152,8 +199,18 @@ describe('SessionDetailView breadcrumb', () => {
     })
   })
 
+  it('shows the project as plain text, since Sessions is the step that goes to its list', async () => {
+    openSession(testRef(1, DIR))
+
+    const trail = within(await breadcrumb())
+
+    expect(trail.getByText(DIR)).toBeTruthy()
+    expect(trail.queryByRole('button', { name: DIR })).toBeNull()
+  })
+
   it('links a teammate’s own session back to its lead', async () => {
     openSession(testRef(2, DIR))
+    await screen.findByRole('heading', { level: 1, name: 'writer (code)' })
 
     await userEvent.click(within(await breadcrumb()).getByRole('button', { name: 'Lead session' }))
 
@@ -166,6 +223,7 @@ describe('SessionDetailView breadcrumb', () => {
 
   it('has no lead link on a lead’s own session', async () => {
     openSession(testRef(1, DIR))
+    await screen.findByRole('heading', { level: 1, name: 'Refactor parser' })
 
     expect(within(await breadcrumb()).queryByRole('button', { name: 'Lead session' })).toBeNull()
   })
@@ -203,7 +261,7 @@ describe('SessionDetailView without a selected project', () => {
 describe('SessionDetailView in another folder', () => {
   it('reads only the selected project’s list for a session that lives in another folder', async () => {
     const api = openSession(testRef(1, OTHER))
-    await screen.findByRole('heading', { level: 1, name: 'Untitled session' })
+    await screen.findByRole('heading', { level: 1, name: 'Session' })
 
     expect(api.listSessions).toHaveBeenCalled()
     expect(api.listSessions.mock.calls.every(([folder]) => folder === DIR)).toBe(true)
@@ -249,6 +307,34 @@ describe('SessionDetailView states', () => {
       await screen.findByRole('heading', { level: 1, name: 'Something went wrong' })
     ).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy()
+  })
+
+  it.each([
+    ['loading', { detail: new Promise<IpcResult<SessionDetailDto>>(() => undefined) }],
+    ['a missing session', { detail: { ok: false, error: { code: 'not-found' } } }],
+    ['an unreadable session', { detail: { ok: false, error: { code: 'unreadable' } } }],
+    ['any other failure', { detail: { ok: false, error: { code: 'invalid-request' } } }]
+  ] as const)(
+    'keeps the breadcrumb, with a way back to Sessions, while %s',
+    async (_state, options) => {
+      openSession(testRef(1, DIR), options)
+
+      const trail = within(await breadcrumb())
+      await userEvent.click(trail.getByRole('button', { name: 'Sessions' }))
+
+      expect(useNavigationStore.getState()).toMatchObject({
+        view: 'sessions',
+        selectedSessionRef: null
+      })
+    }
+  )
+
+  it('names the session in the breadcrumb of a failure, by the list’s title', async () => {
+    openSession(testRef(1, DIR), { detail: { ok: false, error: { code: 'unreadable' } } })
+
+    const trail = within(await breadcrumb())
+
+    expect((await trail.findByText('Refactor parser')).getAttribute('aria-current')).toBe('page')
   })
 
   it('announces a failure as an alert', async () => {

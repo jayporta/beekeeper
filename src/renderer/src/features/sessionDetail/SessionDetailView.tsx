@@ -1,11 +1,13 @@
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
+import { sessionKey } from '@renderer/features/sessions/sessionKey'
 import { useSelectedProjectDirName } from '@renderer/features/projects/state/useSelectedProjectDirName'
 import { SessionDetailContent } from './SessionDetailContent'
 import styles from './SessionDetailView.module.css'
 
 /**
  * The single-session view: the session the navigation store names, read with
- * the selected project's sessions list. It renders nothing without a selected
+ * the selected project's sessions list. Each session mounts its own content, so
+ * nothing carries over from the one before. It renders nothing without a selected
  * session or project, neither of which the projects gate lets this view reach.
  *
  * @example
@@ -18,7 +20,11 @@ export function SessionDetailView(): React.JSX.Element | null {
 
   return (
     <div className={styles.view}>
-      <SessionDetailContent sessionRef={sessionRef} dirName={dirName} />
+      <SessionDetailContent
+        key={sessionKey(sessionRef)}
+        sessionRef={sessionRef}
+        dirName={dirName}
+      />
     </div>
   )
 }

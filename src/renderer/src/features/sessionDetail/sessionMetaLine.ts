@@ -1,4 +1,4 @@
-import { agentCountLabel } from '@renderer/features/sessions/agentCountLabel'
+import { agentCountLabel, hasAgents } from '@renderer/features/sessions/agentCountLabel'
 import { cardFigures } from '@renderer/features/sessions/cardFigures'
 import { formatDuration } from '@renderer/features/sessions/formatDuration'
 import { formatLastActive } from '@renderer/features/sessions/formatLastActive'
@@ -37,7 +37,6 @@ export function sessionMetaLine(row: SessionRow, t: SessionsT): readonly string[
   const { item } = row
   const activity = item.summary.ok ? item.summary.value.activity : null
   const teamName = teamNameOf(row)
-  const agents = agentCountLabel(item, t)
   const { figures } = cardFigures(item)
   const usd = formatUsd(figures?.usd ?? null, t)
 
@@ -45,7 +44,7 @@ export function sessionMetaLine(row: SessionRow, t: SessionsT): readonly string[
     formatLastActive(activity?.earliestMs ?? null, t),
     formatDuration(activity, t),
     teamName === null ? null : t('notes.team', { name: teamName }),
-    agents === t('agents.none') ? null : agents,
+    hasAgents(item) ? agentCountLabel(item, t) : null,
     formatTokens(figures?.tokens ?? null, t),
     usd === null ? null : t('apiCost', { value: usd })
   ].filter((part) => part !== null)

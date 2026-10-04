@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { partialReasons, type PartialReason } from '../partialReasons'
+import { figureReasons, partialReasons, type PartialReason } from '../partialReasons'
 import type { SessionRow } from '../sessionRow'
 import {
   testAgentRole,
@@ -172,6 +172,25 @@ describe('partialReasons', () => {
     const usage = testUsage({ missingTeammates: 1, sessionsWithoutCost: 1 })
 
     expect(reasons(teamCard(usage, { skippedLines: 1 }))).toEqual([
+      'missingTeammates',
+      'unreadableLines',
+      'unrecordedUsage'
+    ])
+  })
+})
+
+describe('figureReasons', () => {
+  it('leaves out the subagents a teammate’s chip excludes, since the detail shows no chips', () => {
+    const card = teamCard(testUsage(), { transcriptTokens: 400, subagentCount: 1 })
+
+    expect([...figureReasons(card)]).toEqual([])
+    expect([...partialReasons(card)]).toEqual(['subagentsExcluded'])
+  })
+
+  it('collects the reasons of the session’s own figures', () => {
+    const usage = testUsage({ missingTeammates: 1, sessionsWithoutCost: 1 })
+
+    expect([...figureReasons(teamCard(usage, { skippedLines: 1 }))].sort()).toEqual([
       'missingTeammates',
       'unreadableLines',
       'unrecordedUsage'
