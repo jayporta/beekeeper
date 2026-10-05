@@ -2,7 +2,10 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { IpcResult } from '../../../../../../shared/ipc/ipcResult'
-import type { WorktreeDiffsDto } from '../../../../../../shared/ipc/worktreeDiffDto'
+import type {
+  UncommittedStatusDto,
+  WorktreeDiffsDto
+} from '../../../../../../shared/ipc/worktreeDiffDto'
 import type {
   WorktreePatchDto,
   WorktreePatchFileDto
@@ -429,5 +432,41 @@ describe('the patch text', () => {
       expect(dialog().getAllByRole('heading', { level: 3 })).toHaveLength(2)
     })
     expect(error).not.toHaveBeenCalled()
+  })
+})
+
+describe('uncommitted work', () => {
+  const withUncommitted = (uncommitted: UncommittedStatusDto): IpcResult<WorktreePatchDto> => ({
+    ok: true,
+    value: { kind: 'ready', uncommitted, files: [file()], truncatedTotal: false }
+  })
+
+  it('says uncommitted work is left out when the agent’s worktree folder is not available', async () => {
+    await openDiff({ a1: withUncommitted('no-worktree') })
+
+    expect(
+      await dialog().findByText(
+        "Uncommitted changes aren't included: this agent's worktree folder isn't available."
+      )
+    ).toBeTruthy()
+  })
+
+  it('says uncommitted work is left out when a git filter would have to run', async () => {
+    await openDiff({ a1: withUncommitted('skipped-filters') })
+
+    expect(await dialog().findByText(/this repository uses git filters/)).toBeTruthy()
+  })
+
+  it('says uncommitted work is left out when the folder is not the agent’s worktree', async () => {
+    await openDiff({ a1: withUncommitted('worktree-mismatch') })
+
+    expect(await dialog().findByText(/that folder isn't this agent's worktree/)).toBeTruthy()
+  })
+
+  it('has no note when uncommitted work is included', async () => {
+    await openDiff({ a1: withUncommitted('included') })
+
+    await dialog().findByRole('heading', { level: 3 })
+    expect(dialog().queryByText(/Uncommitted changes/)).toBeNull()
   })
 })

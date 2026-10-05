@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
 import { diffFailureKey } from '../inspector/diffFailureKey'
+import { uncommittedNoteKey } from '../inspector/uncommittedNoteKey'
 import { PatchFileView } from './PatchFileView'
 import styles from './WorktreePatchBody.module.css'
 import { useWorktreePatch } from './useWorktreePatch'
@@ -16,7 +17,8 @@ interface WorktreePatchBodyProps {
 /**
  * What the patch view shows once it is open: the patch loading, why it can't
  * be shown (git is missing or too old, git failed, or the call failed), or the
- * agent's changed files. A diff over the size cap says so, as a note.
+ * agent's changed files. A diff over the size cap says so, as a note, and so
+ * does one that leaves out uncommitted work.
  *
  * One status region stays mounted throughout and holds the outcome, so a
  * screen reader hears that the patch loaded or failed while focus stays on the
@@ -34,6 +36,7 @@ export function WorktreePatchBody({
   const { data, isError } = useWorktreePatch(sessionRef, agentId)
 
   const files = data?.kind === 'ready' ? data.files : []
+  const noteKey = data?.kind === 'ready' ? uncommittedNoteKey(data.uncommitted) : null
 
   function outcome(): string {
     if (data === undefined) {
@@ -57,6 +60,7 @@ export function WorktreePatchBody({
       <p role="status" className={files.length > 0 ? 'visuallyHidden' : styles.note}>
         {outcome()}
       </p>
+      {noteKey !== null && <p className={styles.note}>{t(`inspector.worktree.${noteKey}`)}</p>}
       {files.map((file) => (
         <PatchFileView key={`${file.path}\0${file.oldPath ?? ''}`} file={file} />
       ))}
