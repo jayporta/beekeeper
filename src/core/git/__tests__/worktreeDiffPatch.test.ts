@@ -1,4 +1,4 @@
-import { chmod, access } from 'node:fs/promises'
+import { chmod, access, rm, symlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { PATCH_ARGS } from '../gitAllowlist'
@@ -80,6 +80,22 @@ describe('worktreeDiffPatch committed work', () => {
     const [file] = result.ok ? result.value.files : []
     expect(file).toMatchObject({ path: 'new-name.txt', oldPath: 'old-name.txt' })
     expect(file?.patch.toString()).toContain('rename from old-name.txt\nrename to new-name.txt')
+  })
+
+  it('shows a file turned into a symlink once, with its deletion and its addition', async (context) => {
+    const git = testGit.requireGit(context)
+    const repo = await testGit.baseRepo(git)
+    await commitOnAgent(repo, async () => {
+      await rm(join(repo.dir, 'keep.txt'))
+      await symlink('old-name.txt', join(repo.dir, 'keep.txt'))
+    })
+
+    const result = await worktreeDiffPatch(options(git, repo))
+
+    expect(result.ok && result.value.files.map((file) => file.path)).toEqual(['keep.txt'])
+    const patch = result.ok ? (result.value.files[0]?.patch.toString() ?? '') : ''
+    expect(patch).toContain('deleted file mode 100644')
+    expect(patch).toContain('new file mode 120000')
   })
 
   it('says a binary file differs, without its bytes', async (context) => {

@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { WorktreePatchFileDto } from '../../../../../shared/ipc/worktreePatchDto'
 import styles from './PatchFileView.module.css'
@@ -20,6 +21,7 @@ interface PatchFileViewProps {
  */
 export function PatchFileView({ file }: PatchFileViewProps): React.JSX.Element {
   const { t } = useTranslation('sessionDetail')
+  const runs = useMemo(() => patchRuns(file.patch), [file.patch])
 
   return (
     <section className={styles.file}>
@@ -33,7 +35,7 @@ export function PatchFileView({ file }: PatchFileViewProps): React.JSX.Element {
       )}
       {file.patch !== '' && (
         <pre className={styles.patch}>
-          {patchRuns(file.patch).map((run, index) => (
+          {runs.map((run, index) => (
             <span key={index} className={styles.run} data-kind={run.kind}>
               {run.text}
             </span>

@@ -17,6 +17,8 @@ export type ParseDiffPatchError = 'malformed-numstat'
 interface RawEntry {
   readonly path: Buffer
   readonly oldPath: Buffer | undefined
+  /** Whether git reported a type change (status `T`), such as a file turned into a symlink. */
+  readonly typeChange: boolean
 }
 
 const COLON = 0x3a
@@ -61,10 +63,10 @@ function parseRaw(
     if (status === 'R' || status === 'C') {
       const second = readField(stdout, first.next)
       if (second === undefined || second.value.length === 0) return err('malformed-numstat')
-      entries.push({ oldPath: first.value, path: second.value })
+      entries.push({ oldPath: first.value, path: second.value, typeChange: false })
       pos = second.next
     } else {
-      entries.push({ oldPath: undefined, path: first.value })
+      entries.push({ oldPath: undefined, path: first.value, typeChange: status === 'T' })
       pos = first.next
     }
   }
@@ -135,7 +137,10 @@ function blockStarts(patch: Buffer): number[] {
  * space-ambiguous header. Each block is matched to the next raw entry whose
  * `diff --git` line it carries. An entry with no block is left out, as for a
  * file git changed by stat only, or an unmerged path. A block that matches no
- * remaining entry means the two sections disagree, which is an error.
+ * remaining entry means the two sections disagree, which is an error. A type
+ * change (a file turned into a symlink, or back) is the one entry git writes
+ * two blocks for, a deletion and an addition under the same header, and both
+ * go into that file's one patch.
  *
  * @param stdout - git's output for `--raw -z --patch` with fixed `a/` and `b/` prefixes.
  * @returns The files that have a patch, in git's order.
@@ -150,11 +155,23 @@ export function parseDiffPatch(stdout: Buffer): Result<PatchFile[], ParseDiffPat
   const starts = blockStarts(patch)
   const files: PatchFile[] = []
   let next = 0
+  let awaitingSecondBlock: RawEntry | undefined
 
   for (const [index, start] of starts.entries()) {
     const block = patch.subarray(start, starts[index + 1] ?? patch.length)
     const lineEnd = block.indexOf(NEWLINE)
     const header = block.subarray(0, lineEnd === -1 ? block.length : lineEnd).toString('latin1')
+    const last = files.at(-1)
+    if (
+      awaitingSecondBlock !== undefined &&
+      last !== undefined &&
+      expectedHeaders(awaitingSecondBlock).has(header)
+    ) {
+      files[files.length - 1] = { ...last, patch: Buffer.concat([last.patch, block]) }
+      awaitingSecondBlock = undefined
+      continue
+    }
+    awaitingSecondBlock = undefined
     let entry = entries[next]
     while (entry !== undefined && !expectedHeaders(entry).has(header)) {
       next += 1
@@ -166,6 +183,7 @@ export function parseDiffPatch(stdout: Buffer): Result<PatchFile[], ParseDiffPat
       ...(entry.oldPath === undefined ? {} : { oldPath: entry.oldPath.toString('utf-8') }),
       patch: block
     })
+    if (entry.typeChange) awaitingSecondBlock = entry
     next += 1
   }
   return ok(files)

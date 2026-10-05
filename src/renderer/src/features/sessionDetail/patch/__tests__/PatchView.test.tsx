@@ -235,6 +235,87 @@ describe('the patch dialog', () => {
   })
 })
 
+describe('announcing the outcome', () => {
+  function deferredPatch(): {
+    promise: Promise<IpcResult<WorktreePatchDto>>
+    resolve: (result: IpcResult<WorktreePatchDto>) => void
+  } {
+    let resolve: (result: IpcResult<WorktreePatchDto>) => void = () => undefined
+    const promise = new Promise<IpcResult<WorktreePatchDto>>((done) => {
+      resolve = done
+    })
+    return { promise, resolve }
+  }
+
+  it('keeps one status region from loading to loaded, with a hidden summary and no patch text in it', async () => {
+    const pending = deferredPatch()
+    await openDiff({ a1: pending.promise })
+    const status = await dialog().findByRole('status')
+    expect(status.textContent).toBe('Loading the diff')
+
+    pending.resolve(ready([file(), file({ path: 'src/b.ts' })]))
+
+    await waitFor(() => {
+      expect(status.textContent).toBe('Diff loaded: 2 files')
+    })
+    expect(dialog().getByRole('status')).toBe(status)
+    expect(status.classList.contains('visuallyHidden')).toBe(true)
+    expect(status.querySelector('pre')).toBeNull()
+    expect(dialog().getAllByRole('heading', { level: 3 })).toHaveLength(2)
+  })
+
+  it('counts a single file in the singular', async () => {
+    const pending = deferredPatch()
+    await openDiff({ a1: pending.promise })
+    const status = await dialog().findByRole('status')
+
+    pending.resolve(ready([file()]))
+
+    await waitFor(() => {
+      expect(status.textContent).toBe('Diff loaded: 1 file')
+    })
+  })
+
+  it('keeps one status region from loading to a failure, and shows the failure in it', async () => {
+    const pending = deferredPatch()
+    await openDiff({ a1: pending.promise })
+    const status = await dialog().findByRole('status')
+
+    pending.resolve({ ok: false, error: { code: 'unreadable' } })
+
+    await waitFor(() => {
+      expect(status.textContent).toBe("beekeeper couldn't load the diff.")
+    })
+    expect(dialog().getByRole('status')).toBe(status)
+    expect(status.classList.contains('visuallyHidden')).toBe(false)
+  })
+
+  it.each([
+    [
+      { kind: 'unavailable', git: 'git-not-found' },
+      "Git isn't installed, so the diff isn't available."
+    ],
+    [{ kind: 'failed', code: 'git-failed' }, "The diff couldn't be computed."]
+  ] as const)(
+    'puts why a patch is unavailable or failed in the status region (%j)',
+    async (value, note) => {
+      await openDiff({ a1: { ok: true, value } })
+
+      await waitFor(() => {
+        expect(dialog().getByRole('status').textContent).toBe(note)
+      })
+    }
+  )
+
+  it('puts the empty note in the status region for a patch of no files', async () => {
+    await openDiff({ a1: ready([]) })
+
+    await waitFor(() => {
+      expect(dialog().getByRole('status').textContent).toBe('No changes to show.')
+    })
+  })
+})
+
 describe('the patch text', () => {
   it('shows each file by its path, with its patch as text in a pre', async () => {
     await openDiff({

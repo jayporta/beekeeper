@@ -36,13 +36,23 @@ export interface PatchLimits {
 
 const DEFAULT_LIMITS: PatchLimits = { perFile: MAX_FILE_PATCH_BYTES, total: MAX_TOTAL_PATCH_BYTES }
 
-/** Decodes a patch cut to `limit` bytes at a whole line, or when it has none, at a whole character. */
-function cutText(patch: Buffer, limit: number): string {
+/** How many bytes at the end of `bytes` start a UTF-8 character that the bytes cut short. */
+function incompleteTail(bytes: Buffer): number {
+  for (let at = bytes.length - 1; at >= Math.max(0, bytes.length - 3); at -= 1) {
+    const byte = bytes[at] ?? 0
+    if ((byte & 0xc0) === 0x80) continue
+    const width = byte >= 0xf0 ? 4 : byte >= 0xe0 ? 3 : byte >= 0xc0 ? 2 : 1
+    return bytes.length - at < width ? bytes.length - at : 0
+  }
+  return 0
+}
+
+/** Cuts a patch to at most `limit` bytes at a whole line, or when it has none, at a whole character. */
+function cutBytes(patch: Buffer, limit: number): Buffer {
   const head = patch.subarray(0, limit)
   const lastLine = head.lastIndexOf(0x0a)
-  if (lastLine !== -1) return head.subarray(0, lastLine + 1).toString('utf-8')
-  const text = head.toString('utf-8')
-  return text.endsWith('�') ? text.slice(0, -1) : text
+  if (lastLine !== -1) return head.subarray(0, lastLine + 1)
+  return head.subarray(0, head.length - incompleteTail(head))
 }
 
 /**
@@ -62,7 +72,7 @@ export function capPatches(
   let remaining = limits.total
   let truncatedTotal = false
   const capped = files.map((file): CappedPatchFile => {
-    const allowed = Math.min(limits.perFile, remaining)
+    const allowed = Math.max(0, Math.min(limits.perFile, remaining))
     const base = {
       path: file.path,
       ...(file.oldPath === undefined ? {} : { oldPath: file.oldPath })
@@ -72,9 +82,9 @@ export function capPatches(
       return { ...base, patch: file.patch.toString('utf-8'), truncated: false }
     }
     if (remaining < limits.perFile) truncatedTotal = true
-    const patch = cutText(file.patch, allowed)
-    remaining -= Buffer.byteLength(patch)
-    return { ...base, patch, truncated: true }
+    const kept = cutBytes(file.patch, allowed)
+    remaining -= kept.length
+    return { ...base, patch: kept.toString('utf-8'), truncated: true }
   })
   return { files: capped, truncatedTotal }
 }

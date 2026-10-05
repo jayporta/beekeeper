@@ -142,6 +142,19 @@ describe('capPatches', () => {
     expect(result.files[1]?.patch).toHaveLength(31)
   })
 
+  it('counts the raw bytes a cut file kept against the total, even when they are not valid UTF-8', () => {
+    // Each 0xe9 byte decodes to a three-byte replacement character, so a
+    // string's size would overstate the 30 bytes the file kept.
+    const latin1 = Buffer.concat(
+      Array.from({ length: 10 }, () => Buffer.from([0x2b, ...Array(8).fill(0xe9), 0x0a]))
+    )
+
+    const { files } = capPatches([file('a', latin1), file('b', latin1)], { perFile: 30, total: 30 })
+
+    expect(files[0]).toMatchObject({ truncated: true })
+    expect(files[1]).toMatchObject({ patch: '', truncated: true })
+  })
+
   it('uses roughly 200 KB per file and 2 MB in all by default', () => {
     const one = capPatches([file('a', 'x\n'.repeat(500_000))])
     const many = capPatches(

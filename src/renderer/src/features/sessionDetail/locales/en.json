@@ -151,6 +151,8 @@
       "close": "Close",
       "heading": "Diff",
       "loading": "Loading the diff",
+      "loaded_one": "Diff loaded: {{count, integer}} file",
+      "loaded_other": "Diff loaded: {{count, integer}} files",
       "empty": "No changes to show.",
       "fileTruncated": "Patch truncated",
       "totalTruncated": "Patch truncated: the diff is too large, so only its first part is shown.",

@@ -188,6 +188,46 @@ describe('parseDiffPatch', () => {
     expect(result).toEqual({ ok: false, error: 'malformed-numstat' })
   })
 
+  describe('a type change between a file and a symlink', () => {
+    // git prints a deletion and an addition under the same header.
+    const removed =
+      'diff --git a/x b/x\ndeleted file mode 100644\nindex ce01362..0000000\n--- a/x\n+++ /dev/null\n@@ -1 +0,0 @@\n-hello\n'
+    const added =
+      'diff --git a/x b/x\nnew file mode 120000\nindex 0000000..1de5659\n--- /dev/null\n+++ b/x\n@@ -0,0 +1 @@\n+target\n\\ No newline at end of file\n'
+
+    it('joins both blocks into the one patch of that file', () => {
+      const result = parseDiffPatch(output([{ status: 'T', path: 'x' }], removed + added))
+
+      expect(result).toEqual({
+        ok: true,
+        value: [{ path: 'x', patch: Buffer.from(removed + added) }]
+      })
+    })
+
+    it('keeps the files around it separate', () => {
+      const entries = ['a.txt', 'x', 'b.txt'].map((path) => ({
+        status: path === 'x' ? 'T' : 'M',
+        path
+      }))
+
+      const result = parseDiffPatch(
+        output(entries, modified('a.txt') + removed + added + modified('b.txt'))
+      )
+
+      expect(result.ok && result.value.map((file) => [file.path, file.patch.toString()])).toEqual([
+        ['a.txt', modified('a.txt')],
+        ['x', removed + added],
+        ['b.txt', modified('b.txt')]
+      ])
+    })
+
+    it('refuses a third block under the same header', () => {
+      const result = parseDiffPatch(output([{ status: 'T', path: 'x' }], removed + added + added))
+
+      expect(result).toEqual({ ok: false, error: 'malformed-numstat' })
+    })
+  })
+
   it('refuses patches in a different order than the file list', () => {
     const entries = ['a.txt', 'b.txt'].map((path) => ({ status: 'M', path }))
 

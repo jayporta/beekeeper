@@ -9,9 +9,12 @@ export interface PatchRun {
   readonly text: string
 }
 
-function kindOf(line: string): PatchRunKind {
-  if (line.startsWith('+')) return 'add'
-  if (line.startsWith('-')) return 'remove'
+const PLUS = 0x2b
+const MINUS = 0x2d
+
+function kindOf(firstChar: number): PatchRunKind {
+  if (firstChar === PLUS) return 'add'
+  if (firstChar === MINUS) return 'remove'
   return 'other'
 }
 
@@ -34,7 +37,7 @@ export function patchRuns(patch: string): readonly PatchRun[] {
   while (at < patch.length) {
     const end = patch.indexOf('\n', at)
     const next = end === -1 ? patch.length : end + 1
-    const lineKind = kindOf(patch.slice(at, next))
+    const lineKind = kindOf(patch.charCodeAt(at))
     if (kind !== undefined && lineKind !== kind) {
       runs.push({ kind, text: patch.slice(start, at) })
       start = at
