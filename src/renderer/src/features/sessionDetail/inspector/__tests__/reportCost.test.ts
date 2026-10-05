@@ -39,6 +39,13 @@ describe('reportCost', () => {
     ).toEqual({ usd: null, partial: true })
   })
 
+  it('has no cost, without being partial, when a free cost comes from a transcript with unreadable lines', () => {
+    expect(reportCost({ ...reportOf({ kind: 'free' }), skippedLines: 2 })).toEqual({
+      usd: null,
+      partial: false
+    })
+  })
+
   it('has no cost, and is partial, when every group is unpriced', () => {
     expect(reportCost(reportOf({ kind: 'unpriced', reason: 'unknown-speed' }))).toEqual({
       usd: null,
