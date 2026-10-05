@@ -440,6 +440,8 @@ describe('WorktreeDiffBox when no diff applies', () => {
 })
 
 describe('WorktreeDiffBox for a teammate in a session of its own', () => {
+  // The hidden live copy repeats the note until it clears, so these queries skip status regions.
+  const VISIBLE_ONLY = '[role="status"], script, style'
   const shared = (git: WorktreeDiffsDto['git'] = 'ok'): IpcResult<WorktreeDiffsDto> => ({
     ok: true,
     value: { git, agents: [], sharedWorktree: { lead: SCENE_SESSION, agentId: 'a1f3c9e2d4abc' } }
@@ -450,7 +452,11 @@ describe('WorktreeDiffBox for a teammate in a session of its own', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /^writer/ }))
 
-    expect(await inspector().findByText(/Shares the worktree of subagent a1f3c9e2 /)).toBeTruthy()
+    expect(
+      await inspector().findByText(/Shares the worktree of subagent a1f3c9e2 /, {
+        ignore: VISIBLE_ONLY
+      })
+    ).toBeTruthy()
     expect(inspector().getByRole('heading', { level: 3, name: 'Worktree diff' })).toBeTruthy()
   })
 
@@ -459,7 +465,9 @@ describe('WorktreeDiffBox for a teammate in a session of its own', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /^writer/ }))
 
-    expect(await inspector().findByText(/Shares the worktree of subagent/)).toBeTruthy()
+    expect(
+      await inspector().findByText(/Shares the worktree of subagent/, { ignore: VISIBLE_ONLY })
+    ).toBeTruthy()
   })
 
   it('opens the lead’s session with that subagent selected from the button', async () => {
