@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { useFocusOrAnnounce } from '@renderer/components/useFocusOrAnnounce'
+import { useFocusOrAnnounce } from './useFocusOrAnnounce'
 
 /** The announcement source of a status region. */
 interface Announcement {

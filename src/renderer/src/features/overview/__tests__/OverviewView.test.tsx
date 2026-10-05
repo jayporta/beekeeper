@@ -78,6 +78,45 @@ function renderOverview(
 
 const main = (): HTMLElement => screen.getByRole('main')
 
+/** A reply held back until `release` is called. */
+function gate(): { reply: Promise<TotalsReply>; release: (reply: TotalsReply) => void } {
+  let release: (reply: TotalsReply) => void = () => undefined
+  const reply = new Promise<TotalsReply>((resolve) => {
+    release = resolve
+  })
+  return { reply, release }
+}
+
+/** Every folder's totals, with one count of `field` on `dirName`'s. */
+function withPartial(
+  field: keyof ProjectTotalsDto['partial'],
+  dirName = BETA
+): (folder: string) => Promise<TotalsReply> {
+  return (folder) =>
+    Promise.resolve(
+      ok({
+        ...TOTALS[folder],
+        partial: { ...testTotals().partial, [field]: folder === dirName ? 1 : 0 }
+      })
+    )
+}
+
+/** The strip of totals and the note beside it, found by the strip's name. */
+function stripArea(name: string): HTMLElement {
+  const area = within(main()).getByRole('list', { name }).parentElement
+  if (area === null) throw new Error('The strip has no wrapper')
+  return area
+}
+
+/** The overview's own status region, which is mounted before it has anything to say. */
+function statusRegion(): HTMLElement {
+  const view = screen
+    .getByRole('heading', { level: 1, name: 'All projects' })
+    .closest('header')?.parentElement
+  if (view === null || view === undefined) throw new Error('The overview has no view around it')
+  return within(view).getByRole('status')
+}
+
 /** The card of the project named `name`, once it is on screen. */
 async function findCard(name: string): Promise<HTMLElement> {
   const button = await within(main()).findByRole('button', { name })
@@ -144,20 +183,50 @@ describe('OverviewView cards', () => {
     expect(alpha.getByText('1 worktree')).toBeTruthy()
   })
 
-  it('describes a card by its full folder name, without adding it to the name', async () => {
+  it('describes a card by its figures, then its full folder name, without adding them to the name', async () => {
     renderOverview()
 
     expect(
-      await within(main()).findByRole('button', { name: 'acme-web', description: ALPHA })
+      await within(main()).findByRole('button', {
+        name: 'acme-web',
+        description: new RegExp(
+          `^1\\.5M tokens.*\\$12\\.50 at API prices.*4 sessions.*9 agents.*${share(100)}.*${ALPHA}$`
+        )
+      })
     ).toBeTruthy()
+  })
+
+  it('also describes a card by the footnote when its figures may be low', async () => {
+    renderOverview({ totals: withPartial('unreadable') })
+    await totalsLoaded()
+
+    expect(
+      await within(main()).findByRole('button', {
+        name: 'beta-app',
+        description: /-Users-a-beta.*¹ Partial: Some sessions couldn't be read\./
+      })
+    ).toBeTruthy()
+  })
+
+  it('leaves the footnote out of the description of a card whose figures are complete', async () => {
+    renderOverview({ totals: withPartial('unreadable') })
+    await totalsLoaded()
+
+    const alpha = within(main()).getByRole('button', { name: 'acme-web' })
+
+    expect(alpha.getAttribute('aria-describedby')?.split(' ')).toHaveLength(2)
   })
 
   it('keeps the folder name out of view, for screen readers only', async () => {
     renderOverview()
+    await totalsLoaded()
 
-    const button = await within(main()).findByRole('button', { name: 'acme-web' })
-    const description = document.getElementById(button.getAttribute('aria-describedby') ?? '')
-    expect(description?.classList.contains('visuallyHidden')).toBe(true)
+    const button = within(main()).getByRole('button', { name: 'acme-web' })
+    const described = (button.getAttribute('aria-describedby') ?? '')
+      .split(' ')
+      .map((id) => document.getElementById(id))
+    const folder = described.find((element) => element?.textContent === ALPHA)
+    expect(folder?.classList.contains('visuallyHidden')).toBe(true)
   })
 
   it('shows no worktree count for a project without worktrees', async () => {
@@ -223,7 +292,9 @@ describe('OverviewView cards', () => {
     await totalsLoaded()
 
     expect(
-      within(await findCard('acme-web')).getByText(/^Latest: <b>Fix login<\/b> · Jan 1[45], 2026/)
+      within(await findCard('acme-web')).getByText(
+        /^Latest: \u2068<b>Fix login<\/b>\u2069 · Jan 1[45], 2026/
+      )
     ).toBeTruthy()
     expect(
       within(await findCard('beta-app')).getByText(/^Latest: untitled session · Jan 1[34], 2026/)
@@ -304,6 +375,50 @@ describe('OverviewView partial totals', () => {
 
     expect(beta.getByText('2 sessions').textContent).toContain('¹')
     expect(beta.getByText('2 agents').textContent).toContain('¹')
+  })
+
+  it("marks a card's cost but not its tokens or counts when only the cost may be low", async () => {
+    renderOverview({ totals: withPartial('withoutCost') })
+    await totalsLoaded()
+
+    const beta = within(await findCard('beta-app'))
+
+    expect(beta.getByText('$4.00 at API prices').textContent).toContain('¹')
+    expect(beta.getByText('500K tokens').textContent).not.toContain('¹')
+    expect(beta.getByText('2 sessions').textContent).not.toContain('¹')
+    expect(beta.getByText('2 agents').textContent).not.toContain('¹')
+  })
+
+  it('marks every figure of a card when only a session has no timestamps', async () => {
+    renderOverview({ totals: withPartial('undated') })
+    await totalsLoaded()
+
+    const beta = within(await findCard('beta-app'))
+
+    expect(beta.getByText('500K tokens').textContent).toContain('¹')
+    expect(beta.getByText('$4.00 at API prices').textContent).toContain('¹')
+    expect(beta.getByText('2 sessions').textContent).toContain('¹')
+    expect(beta.getByText('2 agents').textContent).toContain('¹')
+  })
+
+  it("marks the strip's cost but not its tokens when only the cost may be low", async () => {
+    renderOverview({ totals: withPartial('withoutCost') })
+    await totalsLoaded()
+
+    const strip = within(within(main()).getByRole('list', { name: 'Totals, last 7 days' }))
+
+    expect(strip.getByText('$16.50 at API prices').textContent).toContain('¹')
+    expect(strip.getByText('2M').textContent).not.toContain('¹')
+  })
+
+  it("marks the strip's tokens but not its cost when only the tokens may be low", async () => {
+    renderOverview({ totals: withPartial('lowTokens') })
+    await totalsLoaded()
+
+    const strip = within(within(main()).getByRole('list', { name: 'Totals, last 7 days' }))
+
+    expect(strip.getByText('2M').textContent).toContain('¹')
+    expect(strip.getByText('$16.50 at API prices').textContent).not.toContain('¹')
   })
 
   it('gives no footnote when every figure is complete', async () => {
@@ -390,13 +505,10 @@ describe('OverviewView window', () => {
   })
 
   it("keeps the cards' figures on screen, not loading, until the new window's arrive", async () => {
-    let release: (reply: TotalsReply) => void = () => undefined
-    const thirtyDays = new Promise<TotalsReply>((resolve) => {
-      release = resolve
-    })
+    const thirtyDays = gate()
     renderOverview({
       totals: (dirName, window) =>
-        window === '30d' && dirName === BETA ? thirtyDays : normal(dirName)
+        window === '30d' && dirName === BETA ? thirtyDays.reply : normal(dirName)
     })
     await totalsLoaded()
 
@@ -405,9 +517,177 @@ describe('OverviewView window', () => {
     expect(within(await findCard('beta-app')).getByText('500K tokens')).toBeTruthy()
     expect(within(main()).queryByText('Loading')).toBeNull()
     act(() => {
-      release(ok({ tokens: 900_000 }))
+      thirtyDays.release(ok({ tokens: 900_000 }))
     })
     expect(await within(await findCard('beta-app')).findByText('900K tokens')).toBeTruthy()
+  })
+})
+
+describe('OverviewView while a window loads', () => {
+  /** Renders the overview on 7 days, then switches to 30 days with beta-app's totals held back. */
+  async function holdThirtyDays(): Promise<(reply: TotalsReply) => void> {
+    const thirtyDays = gate()
+    renderOverview({
+      totals: (dirName, window) =>
+        window === '30d' && dirName === BETA ? thirtyDays.reply : normal(dirName)
+    })
+    await totalsLoaded()
+    await userEvent.click(within(main()).getByRole('radio', { name: '30 days' }))
+    return thirtyDays.release
+  }
+
+  it("names the strip as updating until the new window's figures arrive", async () => {
+    const release = await holdThirtyDays()
+
+    expect(within(stripArea('Totals, last 30 days, updating')).getByText('Updating')).toBeTruthy()
+    act(() => {
+      release(ok({ tokens: 900_000 }))
+    })
+    await within(main()).findByRole('list', { name: 'Totals, last 30 days' })
+    expect(within(stripArea('Totals, last 30 days')).queryByText('Updating')).toBeNull()
+  })
+
+  it('tells assistive technology which cards still show the other window', async () => {
+    const release = await holdThirtyDays()
+
+    expect(within(await findCard('beta-app')).getByText('Updating')).toBeTruthy()
+    expect(within(await findCard('acme-web')).queryByText('Updating')).toBeNull()
+    act(() => {
+      release(ok({ tokens: 900_000 }))
+    })
+    await waitFor(() => {
+      expect(within(main()).queryByText('Updating')).toBeNull()
+    })
+  })
+
+  it('marks the cards busy until the new window has arrived', async () => {
+    const release = await holdThirtyDays()
+    const cards = (await findCard('beta-app')).closest('ul')
+
+    expect(cards?.getAttribute('aria-busy')).toBe('true')
+    act(() => {
+      release(ok({ tokens: 900_000 }))
+    })
+    await waitFor(() => {
+      expect(cards?.getAttribute('aria-busy')).toBe('false')
+    })
+  })
+
+  it('marks the cards busy while the first totals load', async () => {
+    renderOverview({ totals: never })
+
+    expect((await findCard('beta-app')).closest('ul')?.getAttribute('aria-busy')).toBe('true')
+  })
+
+  it("holds the empty message back until the new window's totals arrive", async () => {
+    renderOverview({
+      totals: (_dirName, window) => (window === '30d' ? never() : Promise.resolve(ok({})))
+    })
+    expect(await within(main()).findByText('No activity in this window')).toBeTruthy()
+
+    await userEvent.click(within(main()).getByRole('radio', { name: '30 days' }))
+
+    expect(within(main()).queryByText('No activity in this window')).toBeNull()
+  })
+})
+
+describe('OverviewView announcements', () => {
+  it('stays quiet while folders arrive, then says once that the totals are in', async () => {
+    const beta = gate()
+    renderOverview({ totals: (dirName) => (dirName === BETA ? beta.reply : normal(dirName)) })
+    await within(main()).findByText('1.5M tokens')
+    const region = statusRegion()
+
+    expect(region.textContent).toBe('')
+    act(() => {
+      beta.release(ok(TOTALS[BETA] ?? {}))
+    })
+
+    await waitFor(() => {
+      expect(region.textContent).toBe('Totals for the last 7 days updated')
+    })
+  })
+
+  it("says the new window's totals are in only once they have all arrived", async () => {
+    const thirtyDays = gate()
+    renderOverview({
+      totals: (dirName, window) =>
+        window === '30d' && dirName === BETA ? thirtyDays.reply : normal(dirName)
+    })
+    await totalsLoaded()
+    const region = statusRegion()
+    await waitFor(() => {
+      expect(region.textContent).toBe('Totals for the last 7 days updated')
+    })
+
+    await userEvent.click(within(main()).getByRole('radio', { name: '30 days' }))
+    expect(region.textContent).not.toContain('30 days')
+    act(() => {
+      thirtyDays.release(ok({ tokens: 900_000 }))
+    })
+
+    await waitFor(() => {
+      expect(region.textContent).toBe('Totals for the last 30 days updated')
+    })
+  })
+
+  it('says the new window is in when its figures were already cached', async () => {
+    renderOverview()
+    await totalsLoaded()
+    await userEvent.click(within(main()).getByRole('radio', { name: '30 days' }))
+    await waitFor(() => {
+      expect(statusRegion().textContent).toBe('Totals for the last 30 days updated')
+    })
+
+    await userEvent.click(within(main()).getByRole('radio', { name: '7 days' }))
+
+    await waitFor(() => {
+      expect(statusRegion().textContent).toBe('Totals for the last 7 days updated')
+    })
+  })
+
+  it('says there is no activity when the window comes back empty', async () => {
+    renderOverview({ totals: () => Promise.resolve(ok({})) })
+    await within(main()).findByText('No activity in this window')
+
+    await waitFor(() => {
+      expect(statusRegion().textContent).toContain('No activity in this window')
+    })
+    expect(statusRegion().textContent).not.toContain('updated')
+  })
+
+  it('says nothing when the overview opens with its totals already in', async () => {
+    renderOverview()
+    await totalsLoaded()
+    act(() => {
+      useNavigationStore.getState().showSessions()
+    })
+    act(() => {
+      useNavigationStore.getState().showOverview()
+    })
+    await totalsLoaded()
+
+    expect(statusRegion().textContent).toBe('')
+  })
+})
+
+describe('OverviewView empty window', () => {
+  it('offers 30 days to look further back from the 7 day window', async () => {
+    renderOverview({ totals: () => Promise.resolve(ok({})) })
+
+    expect(
+      await within(main()).findByText(
+        'No agent ran in the last 7 days. Choose 30 days to look further back.'
+      )
+    ).toBeTruthy()
+  })
+
+  it('does not offer 30 days when the 30 day window is the one that is empty', async () => {
+    useTotalsWindowStore.setState({ window: '30d' })
+    renderOverview({ totals: () => Promise.resolve(ok({})) })
+
+    expect(await within(main()).findByText('No agent ran in the last 30 days.')).toBeTruthy()
+    expect(main().textContent).not.toContain('Choose 30 days')
   })
 })
 
@@ -471,6 +751,17 @@ describe('sidebar figures', () => {
     })
 
     expect(row.textContent).toContain('500K¹')
+  })
+
+  it('leaves a row unmarked when only its cost may be low, since the row shows tokens', async () => {
+    renderOverview({ totals: withPartial('withoutCost') })
+    await totalsLoaded()
+
+    const row = await within(await findSidebar()).findByRole('button', {
+      name: 'beta-app 500K tokens, last 7 days'
+    })
+
+    expect(row.textContent).not.toContain('¹')
   })
 
   it('follows the window', async () => {

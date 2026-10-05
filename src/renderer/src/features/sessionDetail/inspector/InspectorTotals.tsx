@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { EmptyCell } from '@renderer/features/sessions/EmptyCell'
 import { formatTokens } from '@renderer/features/sessions/formatTokens'
-import { formatUsd } from '@renderer/features/sessions/formatUsd'
+import { formatUsd } from '@renderer/i18n/formatUsd'
 import { InspectorMarker } from './InspectorMarker'
 import styles from './InspectorTotals.module.css'
 import type { ReportCost } from './reportCost'

@@ -107,6 +107,11 @@
   font-weight: var(--font-weight-semibold);
 }
 
+/* The figures belong to the other window until this window's arrive. */
+.card[data-updating='true'] .stats {
+  color: var(--color-text-muted);
+}
+
 .track {
   block-size: var(--space-1-5);
   background: var(--color-accent-100);
@@ -115,4 +120,10 @@
 .fill {
   block-size: 100%;
   background: var(--color-accent);
+
+  /* Forced colors drop backgrounds, so the fill keeps a solid system color. */
+  @media (forced-colors: active) {
+    background: CanvasText;
+    forced-color-adjust: none;
+  }
 }

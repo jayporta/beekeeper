@@ -25,8 +25,6 @@
     "hoursMinutes": "{{hours, integer}}h {{minutes, integer}}m"
   },
   "lastActive": "{{value, shortDateTime}}",
-  "usd": "{{value, usd}}",
-  "usdUnderCent": "<{{value, usd}}",
   "tokens_one": "{{count, compactInteger}} token",
   "tokens_other": "{{count, compactInteger}} tokens",
   "apiCost": "{{value}} at API prices",
@@ -74,7 +72,6 @@
     "body": "Sessions appear here after you run Claude Code in this folder."
   },
   "teamTotal": "team total",
-  "partialMarker": "¹",
   "partialNote": "partial, see the note below the list",
   "metaSeparator": "·",
   "agentStrip": {

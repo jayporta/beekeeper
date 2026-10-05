@@ -3,9 +3,9 @@ import { cardFigures } from '@renderer/features/sessions/cardFigures'
 import { formatDuration } from '@renderer/features/sessions/formatDuration'
 import { formatLastActive } from '@renderer/features/sessions/formatLastActive'
 import { formatTokens } from '@renderer/features/sessions/formatTokens'
-import { formatUsd } from '@renderer/features/sessions/formatUsd'
 import type { SessionRow } from '@renderer/features/sessions/sessionRow'
 import type { SessionsT } from '@renderer/features/sessions/sessionsT'
+import { formatUsd } from '@renderer/i18n/formatUsd'
 
 /** The team a session belongs to, by name: its own, or for a lead, its first teammate that names one. */
 function teamNameOf(row: SessionRow): string | null {

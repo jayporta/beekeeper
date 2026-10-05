@@ -11,6 +11,7 @@ import { ProjectCard } from './ProjectCard'
 import { overviewTotals, projectTotalsOf } from './projectTotalsOf'
 import { shareOfLargest } from './shareOfLargest'
 import { totalsStatus } from './sumTotals'
+import { TotalsAnnouncement } from './TotalsAnnouncement'
 import { TotalsStrip } from './TotalsStrip'
 import { useProjectTotals } from './useProjectTotals'
 
@@ -19,7 +20,10 @@ import { useProjectTotals } from './useProjectTotals'
  * across every project, a card for each project, and a note on any figure
  * that may be low. Each project loads on its own, so a card fills in as its
  * totals arrive and a project that can't be read doesn't hold up the rest.
- * With nothing in the window it says so, above cards that show zero.
+ * With nothing in the window it says so, above cards that show zero. While a
+ * window's totals load, or show the other window's until they arrive, the cards
+ * are marked busy and the empty message waits. A status region announces once
+ * when the window's totals have all arrived.
  *
  * @example
  * <main><OverviewView /></main>
@@ -41,8 +45,9 @@ export function OverviewView(): React.JSX.Element {
     ...cards.map(({ totals }) => (totalsStatus(totals) === 'ready' ? totals.tokens : 0))
   )
   const { folders } = overall
+  const settled = folders.loading === 0 && !overall.refreshing
   const idle =
-    folders.loading === 0 &&
+    settled &&
     folders.failed === 0 &&
     overall.tokens === 0 &&
     overall.sessions === 0 &&
@@ -51,15 +56,16 @@ export function OverviewView(): React.JSX.Element {
   return (
     <div className={styles.view}>
       <OverviewHeader />
+      <TotalsAnnouncement range={range} settled={settled} empty={idle} />
       {groups.length > 0 && <TotalsStrip totals={overall} range={range} />}
       {idle && (
         <StatusMessage
           headingLevel={2}
           heading={t('empty.heading')}
-          body={t('empty.body', { range: t(`range.${range}`) })}
+          body={t(`empty.body.${range}`, { range: t(`range.${range}`) })}
         />
       )}
-      <ul className={styles.cards}>
+      <ul className={styles.cards} aria-busy={!settled}>
         {cards.map(({ group, totals }) => (
           <ProjectCard
             key={group.project.dirName}

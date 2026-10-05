@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useId, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { overviewTotals, projectTotalsOf } from '@renderer/features/overview/projectTotalsOf'
@@ -35,13 +35,19 @@ export function ProjectList(): React.JSX.Element | null {
   const showSessions = useNavigationStore((state) => state.showSessions)
   const labelId = useId()
 
+  const groups = useMemo(() => groupProjects(data ?? []), [data])
+  const rows = useMemo(
+    () => groups.map((group) => ({ group, totals: projectTotalsOf(group, byFolder) })),
+    [groups, byFolder]
+  )
+  const overall = useMemo(() => overviewTotals(groups, byFolder), [groups, byFolder])
+
   if (data === undefined || !hasProjectsToShow(data)) return null
 
   const choose = (dirName: string): void => {
     select(dirName)
     showSessions()
   }
-  const groups = groupProjects(data)
   const isCurrent = (dirName: string): boolean => !isOverview && dirName === selected
 
   return (
@@ -52,11 +58,11 @@ export function ProjectList(): React.JSX.Element | null {
       <ul className={styles.rows}>
         <ProjectRow
           label={t('list.all')}
-          meta={<SidebarTotal totals={overviewTotals(groups, byFolder)} />}
+          meta={<SidebarTotal totals={overall} />}
           current={isOverview}
           onSelect={showOverview}
         />
-        {groups.flatMap((group) => {
+        {rows.flatMap(({ group, totals }) => {
           const { project, worktrees } = group
           const isActiveGroup =
             !isOverview &&
@@ -66,7 +72,7 @@ export function ProjectList(): React.JSX.Element | null {
               key={project.dirName}
               label={projectTitle(project)}
               detail={project.dirName}
-              meta={<SidebarTotal totals={projectTotalsOf(group, byFolder)} />}
+              meta={<SidebarTotal totals={totals} />}
               current={isCurrent(project.dirName)}
               onSelect={() => {
                 choose(project.dirName)

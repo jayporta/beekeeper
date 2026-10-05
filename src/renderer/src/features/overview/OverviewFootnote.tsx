@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import styles from './OverviewFootnote.module.css'
+import { OVERVIEW_FOOTNOTE_ID } from './overviewFootnoteId'
 import type { PartialReason } from './partialReasons'
 
 /** Props for {@link OverviewFootnote}. */
@@ -20,7 +21,7 @@ export function OverviewFootnote({ reasons }: OverviewFootnoteProps): React.JSX.
   if (reasons.length === 0) return null
 
   return (
-    <p className={styles.footnote}>
+    <p id={OVERVIEW_FOOTNOTE_ID} className={styles.footnote}>
       {t('footnote.label')} {reasons.map((reason) => t(`footnote.${reason}`)).join(' ')}{' '}
       {t('footnote.mayBeLow')}
     </p>

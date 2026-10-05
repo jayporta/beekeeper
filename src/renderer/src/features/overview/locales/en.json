@@ -14,7 +14,8 @@
     "label": "Totals, {{range}}",
     "tokens": "tokens",
     "sessions": "sessions",
-    "agents": "agents, incl. teammates and subagents"
+    "agents": "agents, incl. teammates and subagents",
+    "labelUpdating": "Totals, {{range}}, updating"
   },
   "figure": {
     "integer": "{{value, integer}}",
@@ -22,8 +23,6 @@
   },
   "tokens_one": "{{count, compactInteger}} token",
   "tokens_other": "{{count, compactInteger}} tokens",
-  "usd": "{{value, usd}}",
-  "usdUnderCent": "<{{value, usd}}",
   "apiCost": "{{value}} at API prices",
   "placeholder": {
     "loadingMark": "…",
@@ -33,7 +32,14 @@
   },
   "empty": {
     "heading": "No activity in this window",
-    "body": "No agent ran in the {{range}}. Choose 30 days to look further back."
+    "body": {
+      "7d": "No agent ran in the {{range}}. Choose 30 days to look further back.",
+      "30d": "No agent ran in the {{range}}."
+    }
+  },
+  "announce": {
+    "updated": "Totals for the {{range}} updated",
+    "empty": "{{heading}}. {{body}}"
   },
   "card": {
     "worktrees_one": "{{count, integer}} worktree",
@@ -46,7 +52,6 @@
     "latest": "Latest: {{title}} · {{when, shortDateTime}}",
     "latestUntitled": "Latest: untitled session · {{when, shortDateTime}}",
     "noLatest": "No sessions in this window",
-    "loading": "Loading totals",
     "error": "Couldn't load this project's totals."
   },
   "sidebar": {
@@ -54,7 +59,6 @@
     "tokens_other": "{{count, compactInteger}} tokens, {{range}}",
     "partial": "partial"
   },
-  "partialMarker": "¹",
   "partialNote": "partial, see the note below",
   "footnote": {
     "label": "¹ Partial:",
@@ -66,5 +70,6 @@
     "lowTokens": "Some sessions have unreadable lines or leave out their subagents' tokens.",
     "undated": "Some sessions have no timestamps, so they count by when their file was last written.",
     "mayBeLow": "A total may be low."
-  }
+  },
+  "updating": "Updating"
 }

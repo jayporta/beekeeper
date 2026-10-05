@@ -8,5 +8,8 @@
     "reload": "Reload"
   },
   "localOnly": "Local only · read-only",
-  "skipToMain": "Skip to main content"
+  "skipToMain": "Skip to main content",
+  "usd": "{{value, usd}}",
+  "usdUnderCent": "<{{value, usd}}",
+  "partialMarker": "¹"
 }

@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { MAIN_HEADING_ID } from '@renderer/components/mainHeading'
+import { PartialMarker } from '@renderer/components/PartialMarker'
 import { PartialFootnote } from '@renderer/features/sessions/PartialFootnote'
-import { PartialMarker } from '@renderer/features/sessions/PartialMarker'
 import { figureReasons, type PartialReason } from '@renderer/features/sessions/partialReasons'
 import { SeparatedText } from '@renderer/features/sessions/SeparatedText'
 import type { SessionLabel } from '@renderer/features/sessions/sessionLabel'

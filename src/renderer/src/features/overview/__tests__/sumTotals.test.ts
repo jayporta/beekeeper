@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { FolderTotalsState } from '../folderTotalsState'
-import { areCountsPartial, isPartial, sumTotals, totalsStatus } from '../sumTotals'
+import { sumTotals, totalsStatus } from '../sumTotals'
 import { readyTotals, testTotals } from '../testTotals'
 
 const loading: FolderTotalsState = { status: 'loading' }
@@ -117,55 +117,5 @@ describe('totalsStatus', () => {
 
   it('is ready, with zero totals, for no folders at all', () => {
     expect(totalsStatus(sumTotals([]))).toBe('ready')
-  })
-})
-
-describe('isPartial', () => {
-  it('is false for complete totals, zero or not', () => {
-    expect(isPartial(sumTotals([readyTotals({ tokens: 5 }), readyTotals()]))).toBe(false)
-  })
-
-  it.each([
-    ['a folder loading', [readyTotals(), loading]],
-    ['a folder that failed', [readyTotals(), failed]],
-    [
-      'a session with no tokens',
-      [readyTotals({ partial: { ...testTotals().partial, withoutTokens: 1 } })]
-    ],
-    [
-      'a session with no cost',
-      [readyTotals({ partial: { ...testTotals().partial, withoutCost: 1 } })]
-    ],
-    [
-      'an unreadable session',
-      [readyTotals({ partial: { ...testTotals().partial, unreadable: 1 } })]
-    ],
-    [
-      'tokens that may be low',
-      [readyTotals({ partial: { ...testTotals().partial, lowTokens: 1 } })]
-    ],
-    ['an undated session', [readyTotals({ partial: { ...testTotals().partial, undated: 1 } })]]
-  ] as const)('is true for %s', (_label, states) => {
-    expect(isPartial(sumTotals(states))).toBe(true)
-  })
-})
-
-describe('areCountsPartial', () => {
-  it('is false for complete totals, and for sessions that only miss tokens or cost', () => {
-    const gaps = { ...testTotals().partial, withoutTokens: 2, withoutCost: 2, lowTokens: 2 }
-
-    expect(areCountsPartial(sumTotals([readyTotals({ partial: gaps })]))).toBe(false)
-  })
-
-  it.each([
-    ['a folder loading', [readyTotals(), loading]],
-    ['a folder that failed', [readyTotals(), failed]],
-    [
-      'an unreadable session',
-      [readyTotals({ partial: { ...testTotals().partial, unreadable: 1 } })]
-    ],
-    ['an undated session', [readyTotals({ partial: { ...testTotals().partial, undated: 1 } })]]
-  ] as const)('is true for %s', (_label, states) => {
-    expect(areCountsPartial(sumTotals(states))).toBe(true)
   })
 })

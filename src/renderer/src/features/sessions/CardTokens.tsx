@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next'
+import { PartialMarker } from '@renderer/components/PartialMarker'
+import { formatUsd } from '@renderer/i18n/formatUsd'
 import { EmptyCell } from './EmptyCell'
 import styles from './CardTokens.module.css'
 import { formatTokens } from './formatTokens'
-import { formatUsd } from './formatUsd'
-import { PartialMarker } from './PartialMarker'
 import type { UsageFigures } from './sessionUsage'
 
 /** Props for {@link CardTokens}. */
@@ -45,7 +45,7 @@ export function CardTokens({ figures, teamTotal, partial }: CardTokensProps): Re
     <div className={styles.tokens}>
       <p className={styles.figure}>
         {tokens ?? <EmptyCell spokenText={t('emptyCell.tokensNotRecorded')} />}
-        {partial && <PartialMarker />}
+        {partial && <PartialMarker note={t('partialNote')} />}
       </p>
       {teamTotal && <p className={styles.sub}>{t('teamTotal')}</p>}
       <p className={styles.sub}>

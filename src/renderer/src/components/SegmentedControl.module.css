@@ -26,6 +26,17 @@
     color: var(--color-bg);
     font-weight: var(--font-weight-semibold);
     background: var(--color-accent-strong);
+
+    /* Forced colors drop the fill, so the chosen segment keeps a solid system color. */
+    @media (forced-colors: active) {
+      color: HighlightText;
+      background: Highlight;
+      forced-color-adjust: none;
+
+      &:has(:focus-visible) {
+        outline-color: CanvasText;
+      }
+    }
   }
 
   /* The radio is visually hidden, so its segment shows the focus ring. */
