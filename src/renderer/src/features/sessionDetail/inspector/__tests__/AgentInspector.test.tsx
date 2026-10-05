@@ -6,7 +6,7 @@ import { testRef, testSession } from '@renderer/features/sessions/testSessionFix
 import { testDetail, testMeta, testNode, testReport } from '../../testSessionDetail'
 import { LISTS_STALE_TIME_MS } from '@renderer/app/listsStaleTime'
 import { createTestQueryClient } from '@renderer/testQueryWrapper'
-import { SCENE_SESSION } from '../../graph/testGraphScene'
+import { SCENE_ITEMS, SCENE_SESSION } from '../../graph/testGraphScene'
 import { LEAD_REPORT, inspector, pricedGroup, renderInspectorScene } from '../testInspectorScene'
 
 afterEach(() => {
@@ -364,15 +364,49 @@ describe('AgentInspector for a teammate', () => {
     ).toBeTruthy()
   })
 
+  /** The scene's sessions, with the writer reporting it has a subagent. */
+  const itemsWithWriterSubagent = SCENE_ITEMS.map((item) =>
+    item.sessionId === WRITER.sessionId ? { ...item, subagentCount: 1 } : item
+  )
+  // Every agent below has a report, so only the writer's missing subagents can make the total low.
+  const leadWithReports = testDetail({
+    lead: LEAD_REPORT,
+    children: [testNode('a1', { meta: testMeta({ name: 'scout' }) })],
+    reports: { a1: testReport({ tokenGroups: [pricedGroup({ output: 40 })] }) }
+  })
+  const sceneWithWriterSubagent = {
+    detail: leadWithReports,
+    items: itemsWithWriterSubagent,
+    sessions: { [WRITER.sessionId]: { ok: true, value: writerDetail } as const }
+  }
+
   it('adds an open teammate’s subagents to the lead’s rollup', async () => {
-    renderInspectorScene({ sessions: { [WRITER.sessionId]: { ok: true, value: writerDetail } } })
-    expect(inspector().getByText('5K tokens incl. 4 below')).toBeTruthy()
+    renderInspectorScene(sceneWithWriterSubagent)
+    expect(inspector().getByText(/tokens incl\. 3 below/)).toBeTruthy()
 
     await select(/^writer/)
     await inspector().findByText('Teammate · own session')
     await select(/^Lead/)
 
-    expect(inspector().getByText('5.1K tokens incl. 5 below')).toBeTruthy()
+    expect(inspector().getByText(/tokens incl\. 4 below/)).toBeTruthy()
+  })
+
+  it('marks the lead’s total and explains it while a teammate’s subagents are not loaded', () => {
+    renderInspectorScene(sceneWithWriterSubagent)
+
+    expect(inspector().getByText(/tokens incl\. 3 below/).textContent).toContain('¹')
+    expect(inspector().getByText(/subagents aren.t loaded yet/)).toBeTruthy()
+  })
+
+  it('drops the mark and the explanation once the teammate’s subagents are loaded', async () => {
+    renderInspectorScene(sceneWithWriterSubagent)
+
+    await select(/^writer/)
+    await inspector().findByText('Teammate · own session')
+    await select(/^Lead/)
+
+    expect(inspector().getByText(/tokens incl\. 4 below/).textContent).not.toContain('¹')
+    expect(inspector().queryByText(/subagents aren.t loaded yet/)).toBeNull()
   })
 
   it('still flags a stopped teammate whose session could not be read', async () => {

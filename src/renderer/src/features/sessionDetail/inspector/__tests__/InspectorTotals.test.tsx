@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { InspectorTotals } from '../InspectorTotals'
 
 const cost = { usd: 1, partial: false }
-const noBelow = { tokens: 0, below: 0, incomplete: false }
+const noBelow = { tokens: 0, below: 0, incomplete: false, subagentsNotLoaded: false }
 
 describe('InspectorTotals with the agent’s own tokens not recorded', () => {
   it('says the tokens were not recorded instead of showing a figure', () => {
@@ -26,13 +26,27 @@ describe('InspectorTotals with the agent’s own tokens not recorded', () => {
       <InspectorTotals
         tokens={null}
         cost={cost}
-        rollup={{ tokens: 3000, below: 2, incomplete: false }}
+        rollup={{ tokens: 3000, below: 2, incomplete: false, subagentsNotLoaded: false }}
         unreadableLines={false}
         subagentsUnreadable={false}
       />
     )
 
     expect(screen.getByText(/3K tokens incl\. 2 below/).textContent).toContain('¹')
+  })
+
+  it('marks the total with the agents below when their subagents are not loaded', () => {
+    render(
+      <InspectorTotals
+        tokens={1000}
+        cost={cost}
+        rollup={{ tokens: 500, below: 1, incomplete: false, subagentsNotLoaded: true }}
+        unreadableLines={false}
+        subagentsUnreadable={false}
+      />
+    )
+
+    expect(screen.getByText(/1.5K tokens incl\. 1 below/).textContent).toContain('¹')
   })
 
   it('does not mark the note when there are no agents below', () => {
@@ -56,7 +70,7 @@ describe('InspectorTotals with the agent’s own tokens recorded', () => {
       <InspectorTotals
         tokens={1000}
         cost={cost}
-        rollup={{ tokens: 500, below: 1, incomplete: false }}
+        rollup={{ tokens: 500, below: 1, incomplete: false, subagentsNotLoaded: false }}
         unreadableLines={false}
         subagentsUnreadable={false}
       />
@@ -87,7 +101,7 @@ describe('InspectorTotals marks', () => {
       <InspectorTotals
         tokens={1000}
         cost={cost}
-        rollup={{ tokens: 500, below: 1, incomplete: false }}
+        rollup={{ tokens: 500, below: 1, incomplete: false, subagentsNotLoaded: false }}
         unreadableLines
         subagentsUnreadable={false}
       />

@@ -97,6 +97,31 @@ describe('graftTeammates', () => {
     expect(result.children[2]?.children).toEqual([])
   })
 
+  it('clears the mark that a teammate’s subagents are not loaded once they are', () => {
+    const unloaded: RootAgentGraphNode = {
+      ...root,
+      children: [testGraphNode('mate:a', { kind: 'teammate', subagentsNotLoaded: true })]
+    }
+
+    const result = graftTeammates(
+      unloaded,
+      new Map([['mate:a', { status: 'ready', children: [], partial: false } as const]])
+    )
+
+    expect(result.children[0]?.subagentsNotLoaded).toBe(false)
+  })
+
+  it('keeps the mark that subagents are not loaded when the teammate’s load failed', () => {
+    const unloaded: RootAgentGraphNode = {
+      ...root,
+      children: [testGraphNode('mate:a', { kind: 'teammate', subagentsNotLoaded: true })]
+    }
+
+    const result = graftTeammates(unloaded, new Map([['mate:a', { status: 'error' } as const]]))
+
+    expect(result.children[0]?.subagentsNotLoaded).toBe(true)
+  })
+
   it('marks a teammate partial when its subagents were only partly read', () => {
     const result = graft([['mate:a', { status: 'ready', children: [], partial: true }]])
 

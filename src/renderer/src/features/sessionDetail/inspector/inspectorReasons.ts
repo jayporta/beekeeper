@@ -10,6 +10,7 @@ export type InspectorReason =
   | 'incompleteFiles'
   | 'unrecordedTokens'
   | 'subagentsUnreadable'
+  | 'subagentsNotLoaded'
   | 'belowIncomplete'
   | 'other'
 
@@ -47,6 +48,7 @@ export function inspectorReasons({
   if (report.fileListIncomplete) reasons.add('incompleteFiles')
   if (rollup.below > 0 && reportTokens(report) === null) reasons.add('unrecordedTokens')
   if (subagentsUnreadable) reasons.add('subagentsUnreadable')
+  if (rollup.subagentsNotLoaded) reasons.add('subagentsNotLoaded')
   if (rollup.incomplete) reasons.add('belowIncomplete')
   if (partial && reasons.size === 0) reasons.add('other')
   return reasons

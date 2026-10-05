@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { testReport } from '../../testSessionDetail'
+import { testReport, testTokenGroup } from '../../testSessionDetail'
 import { inspectorReasons } from '../inspectorReasons'
 
 const complete = { usd: 1, partial: false }
-const noBelow = { tokens: 0, below: 0, incomplete: false }
+const noBelow = { tokens: 0, below: 0, incomplete: false, subagentsNotLoaded: false }
 
 describe('inspectorReasons', () => {
   it('is empty for a complete report', () => {
@@ -66,11 +66,23 @@ describe('inspectorReasons', () => {
     expect([...reasons]).toEqual(['belowIncomplete'])
   })
 
+  it('names teammates whose subagents are not loaded yet', () => {
+    const reasons = inspectorReasons({
+      report: testReport({ tokenGroups: [testTokenGroup({ input: 1 })] }),
+      cost: complete,
+      rollup: { tokens: 10, below: 1, incomplete: false, subagentsNotLoaded: true },
+      partial: false,
+      subagentsUnreadable: false
+    })
+
+    expect([...reasons]).toEqual(['subagentsNotLoaded'])
+  })
+
   it('names unrecorded own tokens when agents below are added to them', () => {
     const reasons = inspectorReasons({
       report: testReport({ tokenGroups: [] }),
       cost: complete,
-      rollup: { tokens: 10, below: 1, incomplete: false },
+      rollup: { tokens: 10, below: 1, incomplete: false, subagentsNotLoaded: false },
       partial: false,
       subagentsUnreadable: false
     })

@@ -10,6 +10,7 @@ const REASON_ORDER = [
   'incompleteFiles',
   'unrecordedTokens',
   'subagentsUnreadable',
+  'subagentsNotLoaded',
   'belowIncomplete',
   'other'
 ] as const satisfies readonly InspectorReason[]

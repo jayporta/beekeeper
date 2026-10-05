@@ -26,9 +26,10 @@ interface InspectorTotalsProps {
  * with the agents below it (or that there are none), then its cost at API
  * prices. Tokens come first and cost follows. A figure that may be low carries
  * a "¹". The total with the agents below carries one when it may leave tokens
- * out: the agent's own were left out or may be low, or an agent below is
- * partial. When the subagents couldn't be read the note says so instead of
- * saying there are none, and carries one too.
+ * out: the agent's own were left out or may be low, an agent below is
+ * partial, or a teammate below has subagents that aren't loaded. When the
+ * subagents couldn't be read the note says so instead of saying there are
+ * none, and carries one too.
  *
  * @example
  * <InspectorTotals tokens={1200} cost={{ usd: 0.4, partial: false }} rollup={rollup} unreadableLines={false} subagentsUnreadable={false} />
@@ -48,7 +49,8 @@ export function InspectorTotals({
   const noCostText = tSessions('emptyCell.costNotRecorded')
   const noteMayBeLow =
     subagentsUnreadable ||
-    (rollup.below > 0 && (rollup.incomplete || tokens === null || unreadableLines))
+    (rollup.below > 0 &&
+      (rollup.incomplete || rollup.subagentsNotLoaded || tokens === null || unreadableLines))
   const noAgentsBelow = subagentsUnreadable
     ? t('inspector.belowUnreadable')
     : t('inspector.noneBelow')

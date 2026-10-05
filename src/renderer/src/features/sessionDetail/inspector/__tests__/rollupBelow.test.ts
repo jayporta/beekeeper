@@ -22,7 +22,8 @@ describe('rollupBelow', () => {
     expect(rollupBelow(testGraphNode('a', tokens(5)))).toEqual({
       tokens: 0,
       below: 0,
-      incomplete: false
+      incomplete: false,
+      subagentsNotLoaded: false
     })
   })
 
@@ -34,7 +35,12 @@ describe('rollupBelow', () => {
       ]
     })
 
-    expect(rollupBelow(root)).toEqual({ tokens: 111, below: 3, incomplete: false })
+    expect(rollupBelow(root)).toEqual({
+      tokens: 111,
+      below: 3,
+      incomplete: false,
+      subagentsNotLoaded: false
+    })
   })
 
   it('does not count the node’s own tokens', () => {
@@ -49,13 +55,23 @@ describe('rollupBelow', () => {
   it('is incomplete when an agent below has no tokens recorded', () => {
     const root = testGraphNode('lead', { children: [testGraphNode('a', tokens(null))] })
 
-    expect(rollupBelow(root)).toEqual({ tokens: 0, below: 1, incomplete: true })
+    expect(rollupBelow(root)).toEqual({
+      tokens: 0,
+      below: 1,
+      incomplete: true,
+      subagentsNotLoaded: false
+    })
   })
 
   it('is incomplete when an agent below is partial', () => {
     const root = testGraphNode('lead', { children: [testGraphNode('a', tokens(5, true))] })
 
-    expect(rollupBelow(root)).toEqual({ tokens: 5, below: 1, incomplete: true })
+    expect(rollupBelow(root)).toEqual({
+      tokens: 5,
+      below: 1,
+      incomplete: true,
+      subagentsNotLoaded: false
+    })
   })
 
   it('adds the subagents under a teammate to its tokens, since its total is its own transcript only', () => {
@@ -67,7 +83,12 @@ describe('rollupBelow', () => {
       ]
     })
 
-    expect(rollupBelow(root)).toEqual({ tokens: 1000, below: 3, incomplete: false })
+    expect(rollupBelow(root)).toEqual({
+      tokens: 1000,
+      below: 3,
+      incomplete: false,
+      subagentsNotLoaded: false
+    })
   })
 
   it('is incomplete when an agent under a teammate has no tokens recorded', () => {
@@ -75,7 +96,47 @@ describe('rollupBelow', () => {
       children: [teammate(500, [testGraphNode('w1', tokens(null))])]
     })
 
-    expect(rollupBelow(root)).toEqual({ tokens: 500, below: 2, incomplete: true })
+    expect(rollupBelow(root)).toEqual({
+      tokens: 500,
+      below: 2,
+      incomplete: true,
+      subagentsNotLoaded: false
+    })
+  })
+
+  it('flags that subagents are not loaded when a teammate below has some it does not hold', () => {
+    const root = testGraphNode('lead', {
+      children: [testGraphNode('mate:x', { ...tokens(500), subagentsNotLoaded: true })]
+    })
+
+    expect(rollupBelow(root)).toMatchObject({ below: 1, subagentsNotLoaded: true })
+  })
+
+  it('flags it for an unloaded teammate nested deeper', () => {
+    const root = testGraphNode('lead', {
+      children: [
+        testGraphNode('a', { children: [testGraphNode('mate:x', { subagentsNotLoaded: true })] })
+      ]
+    })
+
+    expect(rollupBelow(root).subagentsNotLoaded).toBe(true)
+  })
+
+  it('does not flag it for the node’s own mark, since only the agents below add to its total', () => {
+    const root = testGraphNode('mate:x', {
+      subagentsNotLoaded: true,
+      children: [testGraphNode('w1', tokens(5))]
+    })
+
+    expect(rollupBelow(root).subagentsNotLoaded).toBe(false)
+  })
+
+  it('does not flag it when every agent below has its subagents loaded', () => {
+    const root = testGraphNode('lead', {
+      children: [teammate(500, [testGraphNode('w1', tokens(5))])]
+    })
+
+    expect(rollupBelow(root).subagentsNotLoaded).toBe(false)
   })
 
   it('sums a chain thousands deep without recursing', () => {
@@ -84,6 +145,11 @@ describe('rollupBelow', () => {
       tail = testGraphNode(`n${i}`, { ...tokens(1), children: [tail] })
     }
 
-    expect(rollupBelow(tail)).toEqual({ tokens: 4999, below: 4999, incomplete: false })
+    expect(rollupBelow(tail)).toEqual({
+      tokens: 4999,
+      below: 4999,
+      incomplete: false,
+      subagentsNotLoaded: false
+    })
   })
 })

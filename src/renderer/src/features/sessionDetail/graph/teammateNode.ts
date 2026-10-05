@@ -24,6 +24,7 @@ export function teammateNode(row: SessionRow, leadRef: SessionRefDto): AgentGrap
     tokens: facts.tokens,
     partial: facts.partial,
     stopped: facts.stopped,
+    subagentsNotLoaded: item.subagentCount !== 0,
     folder: item.projectDirName === leadRef.projectDirName ? null : item.projectDirName,
     selection: {
       kind: 'teammate',

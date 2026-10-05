@@ -142,6 +142,7 @@
       "incompleteFiles": "The file list may be missing files.",
       "unrecordedTokens": "This agent's own tokens weren't recorded, so the total with the agents below may be low.",
       "subagentsUnreadable": "beekeeper couldn't read this session's subagents, so agents below may be missing and the total may be low.",
+      "subagentsNotLoaded": "Some teammates' subagents aren't loaded yet, so the total may be low.",
       "belowIncomplete": "Some agents below have partial or unrecorded totals, so the total may be low.",
       "other": "Some data for this agent couldn't be read."
     }
