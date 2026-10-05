@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { IpcErrorCode, IpcResult } from '../../../../../shared/ipc/ipcResult'
@@ -54,11 +54,15 @@ describe('ProjectsGate states', () => {
 
   it('mounts the denied alert fresh rather than turning the loading message into it', async () => {
     let resolve: (value: IpcResult<readonly ProjectDto[]>) => void = () => undefined
-    installBeekeeperApi({ listProjects: () => new Promise((r) => (resolve = r)) })
+    const api = installBeekeeperApi({ listProjects: () => new Promise((r) => (resolve = r)) })
     renderApp()
     const loading = (await screen.findByRole('heading', { name: 'Loading projects' })).closest(
       '[role="status"]'
     )
+    // The loading message can render before the query's effect makes the call.
+    await waitFor(() => {
+      expect(api.listProjects).toHaveBeenCalledOnce()
+    })
 
     resolve({ ok: false, error: { code: 'unreadable' } })
     const alert = await screen.findByRole('alert')
