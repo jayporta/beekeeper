@@ -23,7 +23,8 @@ interface WorktreePatchBodyProps {
  * One status region stays mounted throughout and holds the outcome, so a
  * screen reader hears that the patch loaded or failed while focus stays on the
  * dialog's Close button. It is visible text for a note, and a visually hidden
- * summary once files show, so the patch text itself is never announced.
+ * summary once files show, so the patch text itself is never announced. The
+ * uncommitted-work note is announced with it and stays visible.
  *
  * @example
  * <WorktreePatchBody sessionRef={ref} agentId="a1" />
@@ -57,10 +58,13 @@ export function WorktreePatchBody({
 
   return (
     <div className={styles.body}>
-      <p role="status" className={files.length > 0 ? 'visuallyHidden' : styles.note}>
-        {outcome()}
-      </p>
-      {noteKey !== null && <p className={styles.note}>{t(`inspector.worktree.${noteKey}`)}</p>}
+      <div
+        role="status"
+        className={files.length > 0 && noteKey === null ? 'visuallyHidden' : styles.status}
+      >
+        <p className={files.length > 0 ? 'visuallyHidden' : styles.note}>{outcome()}</p>
+        {noteKey !== null && <p className={styles.note}>{t(`inspector.worktree.${noteKey}`)}</p>}
+      </div>
       {files.map((file) => (
         <PatchFileView key={`${file.path}\0${file.oldPath ?? ''}`} file={file} />
       ))}

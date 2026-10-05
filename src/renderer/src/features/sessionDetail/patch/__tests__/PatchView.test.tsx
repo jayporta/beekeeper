@@ -451,6 +451,21 @@ describe('uncommitted work', () => {
     ).toBeTruthy()
   })
 
+  it('announces the note with the loaded summary, and keeps the note visible', async () => {
+    await openDiff({ a1: withUncommitted('no-worktree') })
+
+    const status = dialog().getByRole('status')
+    await waitFor(() => {
+      expect(status.textContent).toContain('Diff loaded: 1 file')
+    })
+    const note = within(status).getByText(/Uncommitted changes aren't included/)
+    expect(status.classList.contains('visuallyHidden')).toBe(false)
+    expect(note.classList.contains('visuallyHidden')).toBe(false)
+    expect(
+      within(status).getByText('Diff loaded: 1 file').classList.contains('visuallyHidden')
+    ).toBe(true)
+  })
+
   it('says uncommitted work is left out when a git filter would have to run', async () => {
     await openDiff({ a1: withUncommitted('skipped-filters') })
 
