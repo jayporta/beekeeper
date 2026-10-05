@@ -2,12 +2,12 @@ import { err, ok, type Result } from '../shared/result'
 import { PATCH_ARGS } from './gitAllowlist'
 import { parseDiffPatch, type PatchFile } from './parseDiffPatch'
 import { runGit } from './runGit'
-import {
-  resolveWorktreeDiff,
-  type UncommittedStatus,
-  type WorktreeDiffStatError,
-  type WorktreeDiffStatOptions
-} from './worktreeDiffStat'
+import { resolveWorktreeDiff } from './resolveWorktreeDiff'
+import type {
+  UncommittedStatus,
+  WorktreeDiffStatError,
+  WorktreeDiffStatOptions
+} from './worktreeDiffTypes'
 
 /** What an agent's branch changed since it diverged from its base, as patches. */
 export interface WorktreeDiffPatch {
