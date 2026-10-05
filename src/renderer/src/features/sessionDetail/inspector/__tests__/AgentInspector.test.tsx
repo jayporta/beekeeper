@@ -388,14 +388,14 @@ describe('AgentInspector for a teammate', () => {
     await inspector().findByText('Teammate · own session')
     await select(/^Lead/)
 
-    expect(inspector().getByText(/tokens incl\. 4 below/)).toBeTruthy()
+    expect(inspector().getByText('5.1K tokens incl. 4 below')).toBeTruthy()
   })
 
   it('marks the lead’s total and explains it while a teammate’s subagents are not loaded', () => {
     renderInspectorScene(sceneWithWriterSubagent)
 
     expect(inspector().getByText(/tokens incl\. 3 below/).textContent).toContain('¹')
-    expect(inspector().getByText(/subagents aren.t loaded yet/)).toBeTruthy()
+    expect(inspector().getByText(/subagents aren.t loaded/)).toBeTruthy()
   })
 
   it('drops the mark and the explanation once the teammate’s subagents are loaded', async () => {
@@ -406,7 +406,7 @@ describe('AgentInspector for a teammate', () => {
     await select(/^Lead/)
 
     expect(inspector().getByText(/tokens incl\. 4 below/).textContent).not.toContain('¹')
-    expect(inspector().queryByText(/subagents aren.t loaded yet/)).toBeNull()
+    expect(inspector().queryByText(/subagents aren.t loaded/)).toBeNull()
   })
 
   it('still flags a stopped teammate whose session could not be read', async () => {

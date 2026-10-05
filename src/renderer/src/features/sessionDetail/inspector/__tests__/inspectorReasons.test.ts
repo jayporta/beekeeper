@@ -66,7 +66,7 @@ describe('inspectorReasons', () => {
     expect([...reasons]).toEqual(['belowIncomplete'])
   })
 
-  it('names teammates whose subagents are not loaded yet', () => {
+  it('names teammates whose subagents are not loaded', () => {
     const reasons = inspectorReasons({
       report: testReport({ tokenGroups: [testTokenGroup({ input: 1 })] }),
       cost: complete,

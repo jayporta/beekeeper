@@ -135,7 +135,7 @@ describe('SessionDetailView header', () => {
     expect(screen.queryByText(/aren't in this list/)).toBeNull()
   })
 
-  it('explains that a teammate chip’s subagents are not in the total yet, but says nothing else is partial', async () => {
+  it('explains that a teammate chip’s subagents are not in the total, but says nothing else is partial', async () => {
     const chipPartial = testSession(2, {
       projectDirName: DIR,
       role: testAgentRole('writer', 'code'),
@@ -152,7 +152,8 @@ describe('SessionDetailView header', () => {
     })
     await screen.findByRole('heading', { level: 1, name: 'Refactor parser' })
 
-    expect(screen.getByText(/subagents aren.t loaded yet/)).toBeTruthy()
+    expect(screen.getByText(/subagents aren.t loaded/)).toBeTruthy()
+    expect(screen.queryByText(/leave out its subagents/)).toBeNull()
     expect(screen.queryByText(/transcript lines couldn't be read/)).toBeNull()
   })
 
