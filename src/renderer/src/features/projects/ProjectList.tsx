@@ -2,6 +2,8 @@ import { useId, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { overviewTotals, projectTotalsOf } from '@renderer/features/overview/projectTotalsOf'
+import { showsMayBeLow } from '@renderer/features/overview/showsMayBeLow'
+import { SidebarMayBeLowNote } from '@renderer/features/overview/SidebarMayBeLowNote'
 import { SidebarTotal } from '@renderer/features/overview/SidebarTotal'
 import { useProjectTotals } from '@renderer/features/overview/useProjectTotals'
 import { groupProjects } from './groupProjects'
@@ -94,6 +96,8 @@ export function ProjectList(): React.JSX.Element | null {
           ]
         })}
       </ul>
+      {/* The whole's total is low whenever a project's is, so it decides for every row. */}
+      {showsMayBeLow(overall) && <SidebarMayBeLowNote />}
     </nav>
   )
 }

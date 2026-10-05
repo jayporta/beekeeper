@@ -795,6 +795,22 @@ describe('sidebar figures', () => {
     expect(row.textContent).not.toContain('¹')
   })
 
+  it('explains the ~ under the list while a figure carries it', async () => {
+    renderOverview({ totals: withPartial('withoutTokens') })
+    await totalsLoaded()
+
+    expect(await within(await findSidebar()).findByText('~ Total may be low')).toBeTruthy()
+  })
+
+  it('shows no ~ note when every figure is complete', async () => {
+    renderOverview()
+    await totalsLoaded()
+    const sidebar = within(await findSidebar())
+    await sidebar.findByRole('button', { name: 'beta-app 500K tokens, last 7 days' })
+
+    expect(sidebar.queryByText('~ Total may be low')).toBeNull()
+  })
+
   it('leaves a row unmarked when only its cost may be low, since the row shows tokens', async () => {
     renderOverview({ totals: withPartial('withoutCost') })
     await totalsLoaded()

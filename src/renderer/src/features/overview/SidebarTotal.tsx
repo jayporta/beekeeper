@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { isPartialFor } from './partialReasons'
+import { showsMayBeLow } from './showsMayBeLow'
 import { totalsStatus, type AggregateTotals } from './sumTotals'
 import { useTotalsWindowStore } from './state/useTotalsWindowStore'
 
@@ -26,7 +26,7 @@ export function SidebarTotal({ totals }: SidebarTotalProps): React.JSX.Element |
   const { t } = useTranslation('overview')
   const range = useTotalsWindowStore((state) => state.window)
   if (totalsStatus(totals) !== 'ready') return null
-  const partial = isPartialFor(totals, 'tokens')
+  const partial = showsMayBeLow(totals)
   const figure = totals.refreshing
     ? t('sidebar.tokensUpdating', { count: totals.tokens })
     : t('sidebar.tokens', { count: totals.tokens, range: t(`range.${range}`) })

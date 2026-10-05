@@ -61,7 +61,8 @@
     "tokensUpdating_other": "{{count, compactInteger}} tokens, updating",
     "updatingMarker": "…",
     "mayBeLowMarker": "~",
-    "mayBeLow": "{{figure}}, may be low"
+    "mayBeLow": "{{figure}}, may be low",
+    "mayBeLowNote": "{{marker}} Total may be low"
   },
   "partialNote": "partial, see the note below",
   "footnote": {
