@@ -1,8 +1,10 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { shortId } from '@renderer/features/sessions/sessionLabel'
 import { useWorktreeDiffs } from '../useWorktreeDiffs'
+import { diffsOlderThanDetail } from './diffsOlderThanDetail'
 import { WorktreeDiffResult } from './WorktreeDiffResult'
 import styles from './WorktreeDiffBox.module.css'
 
@@ -34,7 +36,13 @@ export function WorktreeDiffBox({
 }: WorktreeDiffBoxProps): React.JSX.Element | null {
   const { t } = useTranslation('sessionDetail')
   const showSession = useNavigationStore((state) => state.showSession)
-  const { data: diffs, isError } = useWorktreeDiffs(sessionRef, true)
+  const queryClient = useQueryClient()
+  // Selecting another agent mounts a new reader. It runs git again only when the session
+  // detail was refreshed after these diffs were loaded, so they follow the detail's freshness.
+  const { data: diffs, isError } = useWorktreeDiffs(sessionRef, {
+    enabled: true,
+    refetchOnMount: diffsOlderThanDetail(queryClient, sessionRef)
+  })
   const shared = diffs?.sharedWorktree ?? null
 
   if (agentId === null && shared === null) return null

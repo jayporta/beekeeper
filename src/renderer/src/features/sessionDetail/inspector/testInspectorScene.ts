@@ -1,3 +1,4 @@
+import type { QueryClient } from '@tanstack/react-query'
 import { render, screen, within } from '@testing-library/react'
 import { createElement } from 'react'
 import type { AgentReportDto, PriceDto } from '../../../../../shared/ipc/agentDto'
@@ -57,6 +58,10 @@ interface InspectorSceneOptions {
   readonly sessions?: Readonly<
     Record<string, IpcResult<SessionDetailDto> | Promise<IpcResult<SessionDetailDto>>>
   >
+  /** The query client the view uses, for a test that seeds its cache first. A fresh one when omitted. */
+  readonly client?: QueryClient
+  /** When the lead's detail was cached, in epoch milliseconds. Defaults to now. */
+  readonly detailUpdatedAt?: number
   /** What `getWorktreeDiffs` answers, by session id. Others answer with no worktree agents. */
   readonly diffs?: Readonly<
     Record<string, IpcResult<WorktreeDiffsDto> | Promise<IpcResult<WorktreeDiffsDto>>>
@@ -69,12 +74,19 @@ interface InspectorSceneOptions {
  * worktree diffs it loads stubbed.
  *
  * @param options - What to show instead of the defaults.
- * @returns The render result and the stubbed API.
+ * @returns The render result, the stubbed API, and the query client.
  */
 export function renderInspectorScene(
   options: InspectorSceneOptions = {}
-): ReturnType<typeof render> & { readonly api: TestBeekeeperApi } {
-  const { detail = LEAD_DETAIL, items = SCENE_ITEMS, sessions = {}, diffs = {} } = options
+): ReturnType<typeof render> & { readonly api: TestBeekeeperApi; readonly client: QueryClient } {
+  const {
+    detail = LEAD_DETAIL,
+    items = SCENE_ITEMS,
+    sessions = {},
+    diffs = {},
+    client = createTestQueryClient(),
+    detailUpdatedAt = Date.now()
+  } = options
   const api = installBeekeeperApi({
     getSession: (_folder, sessionId) =>
       Promise.resolve(
@@ -88,8 +100,9 @@ export function renderInspectorScene(
       )
   })
   // The view only shows the inspector once the lead's detail has loaded, so it is already cached.
-  const client = createTestQueryClient()
-  client.setQueryData(['session', SCENE_SESSION.projectDirName, SCENE_SESSION.sessionId], detail)
+  client.setQueryData(['session', SCENE_SESSION.projectDirName, SCENE_SESSION.sessionId], detail, {
+    updatedAt: detailUpdatedAt
+  })
   const rendered = render(
     createElement(SessionDetailBody, {
       detail,
@@ -98,7 +111,7 @@ export function renderInspectorScene(
     }),
     { wrapper: createQueryWrapper(client) }
   )
-  return Object.assign(rendered, { api })
+  return Object.assign(rendered, { api, client })
 }
 
 /** Queries inside the inspector region. */

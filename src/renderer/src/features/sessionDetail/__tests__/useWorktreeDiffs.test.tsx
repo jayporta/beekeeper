@@ -5,6 +5,7 @@ import type { WorktreeDiffsDto } from '../../../../../shared/ipc/worktreeDiffDto
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { createQueryWrapper, createTestQueryClient } from '@renderer/testQueryWrapper'
+import { LISTS_STALE_TIME_MS } from '@renderer/app/listsStaleTime'
 import { useWorktreeDiffs } from '../useWorktreeDiffs'
 
 const REF: SessionRefDto = {
@@ -19,7 +20,7 @@ describe('useWorktreeDiffs', () => {
       getWorktreeDiffs: () => Promise.resolve({ ok: true, value: DIFFS })
     })
 
-    const { result } = renderHook(() => useWorktreeDiffs(REF, true), {
+    const { result } = renderHook(() => useWorktreeDiffs(REF, { enabled: true }), {
       wrapper: createQueryWrapper()
     })
 
@@ -34,7 +35,7 @@ describe('useWorktreeDiffs', () => {
       getWorktreeDiffs: () => Promise.resolve({ ok: true, value: DIFFS })
     })
 
-    const { result } = renderHook(() => useWorktreeDiffs(REF, false), {
+    const { result } = renderHook(() => useWorktreeDiffs(REF, { enabled: false }), {
       wrapper: createQueryWrapper()
     })
     await new Promise((resolve) => setTimeout(resolve, 0))
@@ -49,7 +50,7 @@ describe('useWorktreeDiffs', () => {
     })
     const wrapper = createQueryWrapper(createTestQueryClient())
 
-    const { result, rerender } = renderHook(({ enabled }) => useWorktreeDiffs(REF, enabled), {
+    const { result, rerender } = renderHook(({ enabled }) => useWorktreeDiffs(REF, { enabled }), {
       wrapper,
       initialProps: { enabled: false }
     })
@@ -66,7 +67,7 @@ describe('useWorktreeDiffs', () => {
       getWorktreeDiffs: () => Promise.resolve({ ok: false, error: { code: 'unreadable' } })
     })
 
-    const { result } = renderHook(() => useWorktreeDiffs(REF, true), {
+    const { result } = renderHook(() => useWorktreeDiffs(REF, { enabled: true }), {
       wrapper: createQueryWrapper()
     })
 
@@ -75,6 +76,63 @@ describe('useWorktreeDiffs', () => {
     })
     expect(result.current.error).toBeInstanceOf(IpcCallError)
     expect(IpcCallError.codeOf(result.current.error)).toBe('unreadable')
+  })
+
+  describe('with cached diffs past their stale time', () => {
+    const seedStale = (client: ReturnType<typeof createTestQueryClient>): void => {
+      client.setQueryData(['worktreeDiffs', REF.projectDirName, REF.sessionId], DIFFS, {
+        updatedAt: Date.now() - 2 * LISTS_STALE_TIME_MS
+      })
+    }
+
+    it('refetches when a new reader mounts', async () => {
+      const api = installBeekeeperApi({
+        getWorktreeDiffs: () => Promise.resolve({ ok: true, value: DIFFS })
+      })
+      const client = createTestQueryClient()
+      seedStale(client)
+
+      renderHook(() => useWorktreeDiffs(REF, { enabled: true }), {
+        wrapper: createQueryWrapper(client)
+      })
+
+      await waitFor(() => {
+        expect(api.getWorktreeDiffs).toHaveBeenCalledTimes(1)
+      })
+    })
+
+    it('does not refetch when a new reader opts out of refetching on mount', async () => {
+      const api = installBeekeeperApi({
+        getWorktreeDiffs: () => Promise.resolve({ ok: true, value: DIFFS })
+      })
+      const client = createTestQueryClient()
+      seedStale(client)
+
+      const { result } = renderHook(
+        () => useWorktreeDiffs(REF, { enabled: true, refetchOnMount: false }),
+        { wrapper: createQueryWrapper(client) }
+      )
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      expect(result.current.isSuccess).toBe(true)
+      expect(api.getWorktreeDiffs).not.toHaveBeenCalled()
+    })
+  })
+
+  it('still loads diffs that are not cached when the reader opts out of refetching on mount', async () => {
+    const api = installBeekeeperApi({
+      getWorktreeDiffs: () => Promise.resolve({ ok: true, value: DIFFS })
+    })
+
+    const { result } = renderHook(
+      () => useWorktreeDiffs(REF, { enabled: true, refetchOnMount: false }),
+      { wrapper: createQueryWrapper() }
+    )
+
+    await waitFor(() => {
+      expect(result.current.data).toEqual(DIFFS)
+    })
+    expect(api.getWorktreeDiffs).toHaveBeenCalledTimes(1)
   })
 
   it.each([
@@ -86,8 +144,8 @@ describe('useWorktreeDiffs', () => {
     })
     const wrapper = createQueryWrapper()
 
-    const first = renderHook(() => useWorktreeDiffs(REF, true), { wrapper })
-    const second = renderHook(() => useWorktreeDiffs(other, true), { wrapper })
+    const first = renderHook(() => useWorktreeDiffs(REF, { enabled: true }), { wrapper })
+    const second = renderHook(() => useWorktreeDiffs(other, { enabled: true }), { wrapper })
     await waitFor(() => {
       expect(first.result.current.isSuccess && second.result.current.isSuccess).toBe(true)
     })

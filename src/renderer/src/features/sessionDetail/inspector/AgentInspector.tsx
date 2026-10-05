@@ -31,7 +31,8 @@ interface AgentInspectorProps {
 export function AgentInspector({ node, sessionRef }: AgentInspectorProps): React.JSX.Element {
   const { t } = useTranslation('sessionDetail')
   const target = inspectionTarget(node, sessionRef)
-  const { data, isError } = useSessionDetail(target.ownerRef)
+  // The view and the graph's teammate expansions keep this entry fresh; a click must not re-parse it.
+  const { data, isError } = useSessionDetail(target.ownerRef, { refetchOnMount: false })
   const inspection = inspectionOf(target, { data, isError })
 
   return (

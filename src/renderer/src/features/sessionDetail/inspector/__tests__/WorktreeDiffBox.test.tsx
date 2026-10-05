@@ -7,8 +7,10 @@ import type {
   WorktreeDiffCodeDto,
   WorktreeDiffsDto
 } from '../../../../../../shared/ipc/worktreeDiffDto'
+import { LISTS_STALE_TIME_MS } from '@renderer/app/listsStaleTime'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { testRef } from '@renderer/features/sessions/testSessionFixtures'
+import { createTestQueryClient } from '@renderer/testQueryWrapper'
 import { SCENE_OTHER_FOLDER, SCENE_SESSION } from '../../graph/testGraphScene'
 import { testDetail, testMeta, testNode, testReport } from '../../testSessionDetail'
 import { LEAD_REPORT, inspector, renderInspectorScene } from '../testInspectorScene'
@@ -181,6 +183,61 @@ describe('WorktreeDiffBox for a subagent on a worktree branch', () => {
 
     expect(inspector().queryByRole('button')).toBeNull()
     expect(inspector().queryByRole('link')).toBeNull()
+  })
+})
+
+describe('WorktreeDiffBox refresh', () => {
+  const DIFFS_KEY = ['worktreeDiffs', SCENE_SESSION.projectDirName, SCENE_SESSION.sessionId]
+  const DETAIL_KEY = ['session', SCENE_SESSION.projectDirName, SCENE_SESSION.sessionId]
+  const COUNTS = '+3 −1 across 1 file'
+  const cachedDiffs = okDiff([{ path: 'a.ts', added: 3, deleted: 1 }])
+  const cachedValue = cachedDiffs.ok ? cachedDiffs.value : undefined
+  const STALE = 2 * LISTS_STALE_TIME_MS
+
+  /** Renders the scene with the detail and the diffs cached, both past their stale time. */
+  const openCached = (diffsAgo: number): ReturnType<typeof renderInspectorScene> => {
+    const client = createTestQueryClient()
+    client.setQueryData(DIFFS_KEY, cachedValue, { updatedAt: Date.now() - diffsAgo })
+    return renderInspectorScene({
+      detail: worktreeDetail,
+      client,
+      detailUpdatedAt: Date.now() - 3 * LISTS_STALE_TIME_MS,
+      diffs: { [SCENE_SESSION.sessionId]: okDiff([{ path: 'new.ts', added: 9, deleted: 9 }]) }
+    })
+  }
+
+  it('loads the diffs when none are cached', async () => {
+    const { api } = renderInspectorScene({
+      detail: worktreeDetail,
+      diffs: { [SCENE_SESSION.sessionId]: cachedDiffs }
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: /^scout/ }))
+
+    expect(await inspector().findByText(COUNTS)).toBeTruthy()
+    expect(api.getWorktreeDiffs).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not run git again when the cached diffs are newer than the cached detail', async () => {
+    const { api } = openCached(STALE)
+
+    await userEvent.click(screen.getByRole('button', { name: /^scout/ }))
+
+    expect(await inspector().findByText(COUNTS)).toBeTruthy()
+    expect(api.getWorktreeDiffs).not.toHaveBeenCalled()
+  })
+
+  it('runs git again when the detail was refreshed after the diffs were cached', async () => {
+    const { api, client } = openCached(STALE)
+    await userEvent.click(screen.getByRole('button', { name: /^scout/ }))
+    await inspector().findByText(COUNTS)
+    await userEvent.click(screen.getByRole('button', { name: /^reader/ }))
+
+    client.setQueryData(DETAIL_KEY, worktreeDetail, { updatedAt: Date.now() })
+    await userEvent.click(screen.getByRole('button', { name: /^scout/ }))
+
+    expect(await inspector().findByText('+9 −9 across 1 file')).toBeTruthy()
+    expect(api.getWorktreeDiffs).toHaveBeenCalledTimes(1)
   })
 })
 
