@@ -133,6 +133,15 @@ describe('WorktreeDiffBox for a subagent on a worktree branch', () => {
     expect(await inspector().findByText("beekeeper couldn't load the diff.")).toBeTruthy()
   })
 
+  it('announces a failed diff load in the status region that said it was loading', async () => {
+    await open({
+      diffs: { [SCENE_SESSION.sessionId]: { ok: false, error: { code: 'unreadable' } } }
+    })
+
+    const note = await inspector().findByText("beekeeper couldn't load the diff.")
+    expect(note.getAttribute('role')).toBe('status')
+  })
+
   it.each([
     ['git-not-found', "Git isn't installed, so the diff isn't available."],
     ['git-too-old', 'This version of git is too old to show the diff. Update git to see it.']

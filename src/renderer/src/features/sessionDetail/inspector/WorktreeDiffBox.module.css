@@ -28,3 +28,16 @@
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
 }
+
+.show {
+  align-self: flex-start;
+  min-height: var(--size-target-min);
+  padding: 0;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  background: none;
+  border: none;
+  text-decoration: underline;
+  cursor: pointer;
+}

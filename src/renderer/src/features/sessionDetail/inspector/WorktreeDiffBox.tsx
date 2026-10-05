@@ -56,7 +56,7 @@ export function WorktreeDiffBox({
         </p>
       )}
       {agentId !== null && diffs === undefined && (
-        <p className={styles.note} role={isError ? undefined : 'status'}>
+        <p className={styles.note} role="status">
           {isError ? t('inspector.worktree.loadFailed') : t('inspector.worktree.loading')}
         </p>
       )}
@@ -73,6 +73,7 @@ export function WorktreeDiffBox({
           </p>
           <button
             type="button"
+            className={styles.show}
             onClick={() => {
               showSession(shared.lead, {
                 kind: 'subagent',
