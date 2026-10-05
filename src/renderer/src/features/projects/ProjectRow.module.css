@@ -37,10 +37,9 @@
 }
 
 .label {
+  /* Long labels wrap rather than truncate, so the whole name stays visible. */
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 
   /* The arrow is decoration: the empty alternative text keeps it out of the accessible name. */
   .nested &::before {

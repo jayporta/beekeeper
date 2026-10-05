@@ -24,8 +24,8 @@ interface ProjectRowProps {
 }
 
 /**
- * One row of the sidebar's project list: a button whose label stays on a
- * single line that ends in an ellipsis when it is too long.
+ * One row of the sidebar's project list: a button whose label wraps onto
+ * more lines when it is too long, beside an optional note.
  *
  * @example
  * <ProjectRow label="acme-web" detail={dirName} current onSelect={() => select(dirName)} />
