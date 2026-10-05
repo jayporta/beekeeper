@@ -405,14 +405,15 @@ describe('the patch text', () => {
     expect(screen.getByRole('dialog').querySelector('pre')).toBeNull()
   })
 
-  it('notes a diff the total cap cut', async () => {
+  it('notes a diff the total cap cut, in the status region so it is announced', async () => {
     await openDiff({ a1: ready([file({ truncated: true })], true) })
 
-    expect(
-      await dialog().findByText(
-        'Patch truncated: the diff is too large, so only its first part is shown.'
-      )
-    ).toBeTruthy()
+    const note = await dialog().findByText(
+      'Patch truncated: the diff is too large, so only its first part is shown.'
+    )
+    const status = dialog().getByRole('status')
+    expect(status.contains(note)).toBe(true)
+    expect(status.classList.contains('visuallyHidden')).toBe(false)
   })
 
   it('has no truncation note for a patch that fits', async () => {

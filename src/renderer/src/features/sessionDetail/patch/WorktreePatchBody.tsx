@@ -24,7 +24,8 @@ interface WorktreePatchBodyProps {
  * screen reader hears that the patch loaded or failed while focus stays on the
  * dialog's Close button. It is visible text for a note, and a visually hidden
  * summary once files show, so the patch text itself is never announced. The
- * uncommitted-work note is announced with it and stays visible.
+ * notes on uncommitted work and the size cap are announced with it and stay
+ * visible.
  *
  * @example
  * <WorktreePatchBody sessionRef={ref} agentId="a1" />
@@ -38,6 +39,8 @@ export function WorktreePatchBody({
 
   const files = data?.kind === 'ready' ? data.files : []
   const noteKey = data?.kind === 'ready' ? uncommittedNoteKey(data.uncommitted) : null
+  const truncatedTotal = data?.kind === 'ready' && data.truncatedTotal
+  const hasNote = noteKey !== null || truncatedTotal
 
   function outcome(): string {
     if (data === undefined) {
@@ -60,17 +63,15 @@ export function WorktreePatchBody({
     <div className={styles.body}>
       <div
         role="status"
-        className={files.length > 0 && noteKey === null ? 'visuallyHidden' : styles.status}
+        className={files.length > 0 && !hasNote ? 'visuallyHidden' : styles.status}
       >
         <p className={files.length > 0 ? 'visuallyHidden' : styles.note}>{outcome()}</p>
         {noteKey !== null && <p className={styles.note}>{t(`inspector.worktree.${noteKey}`)}</p>}
+        {truncatedTotal && <p className={styles.note}>{t('inspector.patch.totalTruncated')}</p>}
       </div>
       {files.map((file) => (
         <PatchFileView key={`${file.path}\0${file.oldPath ?? ''}`} file={file} />
       ))}
-      {data?.kind === 'ready' && data.truncatedTotal && (
-        <p className={styles.note}>{t('inspector.patch.totalTruncated')}</p>
-      )}
     </div>
   )
 }
