@@ -135,12 +135,16 @@ describe('SessionsView search announcements while a list loads', () => {
   it('keeps one live region mounted while loading, so a match count is announced when it loads', async () => {
     useSessionsViewStore.setState({ query: 'code' })
     let resolve: (value: IpcResult<readonly SessionListItemDto[]>) => void = () => undefined
-    installBeekeeperApi({
+    const api = installBeekeeperApi({
       listProjects: () => Promise.resolve({ ok: true, value: [testProject(DIR)] }),
       listSessions: () => new Promise((r) => (resolve = r))
     })
     renderApp()
     await screen.findByRole('heading', { name: 'Loading sessions' })
+    // The loading message can render before the query's effect makes the call.
+    await waitFor(() => {
+      expect(api.listSessions).toHaveBeenCalledOnce()
+    })
     const region = searchStatus()
 
     expect(region?.textContent).toBe('')
