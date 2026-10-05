@@ -22,7 +22,7 @@ export interface WorktreeDiffPatch {
  * its base.
  *
  * @remarks
- * It makes the same choices as {@link worktreeDiffStat} (the merge base, the
+ * It uses the choices {@link resolveWorktreeDiff} makes (the merge base, the
  * worktree's working tree or the branch's committed tip, and the checks that
  * make it skip a working tree it can't read safely), then runs one git diff
  * over that whole range with {@link PATCH_ARGS}: no external diff program, no
