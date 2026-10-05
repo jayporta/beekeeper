@@ -4,6 +4,9 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { testRef, testSession } from '@renderer/features/sessions/testSessionFixtures'
 import { testDetail, testMeta, testNode, testReport } from '../../testSessionDetail'
+import { LISTS_STALE_TIME_MS } from '@renderer/app/listsStaleTime'
+import { createTestQueryClient } from '@renderer/testQueryWrapper'
+import { SCENE_SESSION } from '../../graph/testGraphScene'
 import { LEAD_REPORT, inspector, pricedGroup, renderInspectorScene } from '../testInspectorScene'
 
 afterEach(() => {
@@ -398,6 +401,27 @@ describe('AgentInspector for a teammate', () => {
     await waitFor(() => {
       expect(inspector().getByText('Teammate · own session')).toBeTruthy()
     })
+  })
+
+  it('does not re-parse the lead when the selection comes back to it from a teammate', async () => {
+    const stale = Date.now() - 3 * LISTS_STALE_TIME_MS
+    const client = createTestQueryClient()
+    client.setQueryData(['session', WRITER.projectDirName, WRITER.sessionId], writerDetail, {
+      updatedAt: stale
+    })
+    const { api } = renderInspectorScene({
+      client,
+      detailUpdatedAt: stale,
+      sessions: { [WRITER.sessionId]: { ok: true, value: writerDetail } }
+    })
+
+    await select(/^writer/)
+    await inspector().findByText('Teammate · own session')
+    await select(/^Lead/)
+
+    expect(await inspector().findByText('Lead session')).toBeTruthy()
+    const leadCalls = api.getSession.mock.calls.filter(([, id]) => id === SCENE_SESSION.sessionId)
+    expect(leadCalls).toHaveLength(0)
   })
 
   it('shows the lead again, with no error, for a selection that is not in the graph', () => {

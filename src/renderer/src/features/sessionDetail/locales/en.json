@@ -128,7 +128,7 @@
         "failed": "The diff couldn't be computed."
       },
       "shared": "Shares the worktree of subagent {{agent}} in the lead session, so its changes are part of that diff.",
-      "showShared": "Show that subagent"
+      "showShared": "Show subagent {{agent}}"
     },
     "flags": {
       "stopped": "Stopped",

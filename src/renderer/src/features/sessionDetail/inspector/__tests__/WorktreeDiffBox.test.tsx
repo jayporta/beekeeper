@@ -9,6 +9,7 @@ import type {
 } from '../../../../../../shared/ipc/worktreeDiffDto'
 import { LISTS_STALE_TIME_MS } from '@renderer/app/listsStaleTime'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
+import { shortId } from '@renderer/features/sessions/sessionLabel'
 import { testRef } from '@renderer/features/sessions/testSessionFixtures'
 import { createTestQueryClient } from '@renderer/testQueryWrapper'
 import { SCENE_OTHER_FOLDER, SCENE_SESSION } from '../../graph/testGraphScene'
@@ -139,7 +140,7 @@ describe('WorktreeDiffBox for a subagent on a worktree branch', () => {
     })
 
     const note = await inspector().findByText("beekeeper couldn't load the diff.")
-    expect(note.getAttribute('role')).toBe('status')
+    expect(note.closest('[role="status"]')).not.toBeNull()
   })
 
   it.each([
@@ -250,6 +251,108 @@ describe('WorktreeDiffBox refresh', () => {
   })
 })
 
+describe('WorktreeDiffBox for a subagent of a teammate’s session', () => {
+  const drafterDetail = testDetail({
+    lead: testReport(),
+    children: [
+      testNode('w1', { meta: testMeta({ name: 'drafter', worktreeBranch: 'feature/w' }) })
+    ],
+    reports: { w1: testReport() }
+  })
+  const writerDiffs = (
+    sharedWorktree: WorktreeDiffsDto['sharedWorktree']
+  ): IpcResult<WorktreeDiffsDto> => ({
+    ok: true,
+    value: {
+      git: 'ok',
+      sharedWorktree,
+      agents: [
+        {
+          agentId: 'w1',
+          inferredBase: false,
+          result: {
+            ok: true,
+            diff: {
+              uncommitted: 'included',
+              files: [{ path: 'w.ts', added: 1, deleted: 0 }],
+              untracked: []
+            }
+          }
+        }
+      ]
+    }
+  })
+  const openDrafter = async (diffs: IpcResult<WorktreeDiffsDto>): Promise<void> => {
+    renderInspectorScene({
+      sessions: { [WRITER.sessionId]: { ok: true, value: drafterDetail } },
+      diffs: { [WRITER.sessionId]: diffs }
+    })
+    await userEvent.click(screen.getByRole('button', { name: /^writer/ }))
+    await userEvent.click(await screen.findByRole('button', { name: /^drafter/ }))
+  }
+
+  it('shows its own diff, and not the teammate’s shared worktree, in a session that has one', async () => {
+    await openDrafter(writerDiffs({ lead: SCENE_SESSION, agentId: 'a1f3c9e2d4abc' }))
+
+    expect(await inspector().findByText('+1 −0 across 1 file')).toBeTruthy()
+    expect(inspector().queryByText(/Shares the worktree/)).toBeNull()
+    expect(inspector().queryByRole('button', { name: /^Show subagent/ })).toBeNull()
+  })
+
+  it('does not run git again for the lead’s diffs when the selection comes back to its subagent', async () => {
+    const client = createTestQueryClient()
+    client.setQueryData(
+      ['worktreeDiffs', SCENE_SESSION.projectDirName, SCENE_SESSION.sessionId],
+      { git: 'ok', agents: [], sharedWorktree: null } satisfies WorktreeDiffsDto,
+      { updatedAt: Date.now() - 2 * LISTS_STALE_TIME_MS }
+    )
+    const { api } = renderInspectorScene({
+      detail: worktreeDetail,
+      client,
+      detailUpdatedAt: Date.now() - 3 * LISTS_STALE_TIME_MS,
+      sessions: { [WRITER.sessionId]: { ok: true, value: drafterDetail } },
+      diffs: { [WRITER.sessionId]: writerDiffs(null) }
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: /^writer/ }))
+    await userEvent.click(await screen.findByRole('button', { name: /^drafter/ }))
+    await inspector().findByText('+1 −0 across 1 file')
+    await userEvent.click(screen.getByRole('button', { name: /^scout/ }))
+    await inspector().findByText('feature/x')
+
+    const leadCalls = api.getWorktreeDiffs.mock.calls.filter(
+      ([, id]) => id === SCENE_SESSION.sessionId
+    )
+    expect(leadCalls).toHaveLength(0)
+  })
+})
+
+describe('WorktreeDiffBox status region', () => {
+  it('announces the summary in the same status region that said it was loading', async () => {
+    let finish: (result: IpcResult<WorktreeDiffsDto>) => void = () => undefined
+    const pending = new Promise<IpcResult<WorktreeDiffsDto>>((resolve) => {
+      finish = resolve
+    })
+    await open({ diffs: { [SCENE_SESSION.sessionId]: pending } })
+    const status = (await inspector().findByText('Loading the diff')).closest('[role="status"]')
+    expect(status).not.toBeNull()
+
+    finish(okDiff([{ path: 'a.ts', added: 3, deleted: 1 }]))
+
+    await waitFor(() => {
+      expect(status?.textContent).toContain('+3 −1 across 1 file')
+    })
+    expect(status?.isConnected).toBe(true)
+  })
+
+  it('keeps the branch line outside the status region', async () => {
+    await open({ diffs: { [SCENE_SESSION.sessionId]: okDiff([]) } })
+    await inspector().findByText('+0 −0 across 0 files')
+
+    expect(inspector().getByText('feature/x').closest('[role="status"]')).toBeNull()
+  })
+})
+
 describe('WorktreeDiffBox when no diff applies', () => {
   it('is not shown, and git is not asked, for a subagent with no worktree branch', async () => {
     const { api } = renderInspectorScene({ detail: worktreeDetail })
@@ -308,7 +411,9 @@ describe('WorktreeDiffBox for a teammate in a session of its own', () => {
     renderInspectorScene({ diffs: { [WRITER.sessionId]: shared() } })
     await userEvent.click(screen.getByRole('button', { name: /^writer/ }))
 
-    await userEvent.click(await inspector().findByRole('button', { name: 'Show that subagent' }))
+    await userEvent.click(
+      await inspector().findByRole('button', { name: `Show subagent ${shortId('a1f3c9e2d4abc')}` })
+    )
 
     expect(useNavigationStore.getState()).toMatchObject({
       view: 'session',

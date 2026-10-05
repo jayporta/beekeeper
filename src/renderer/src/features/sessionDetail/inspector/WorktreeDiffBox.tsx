@@ -43,7 +43,8 @@ export function WorktreeDiffBox({
     enabled: true,
     refetchOnMount: diffsOlderThanDetail(queryClient, sessionRef)
   })
-  const shared = diffs?.sharedWorktree ?? null
+  // The shared worktree belongs to a teammate session's own agent, not to its subagents.
+  const shared = agentId === null ? (diffs?.sharedWorktree ?? null) : null
 
   if (agentId === null && shared === null) return null
 
@@ -55,16 +56,19 @@ export function WorktreeDiffBox({
           <bdi>{branch}</bdi>
         </p>
       )}
-      {agentId !== null && diffs === undefined && (
-        <p className={styles.note} role="status">
-          {isError ? t('inspector.worktree.loadFailed') : t('inspector.worktree.loading')}
-        </p>
-      )}
-      {agentId !== null && diffs !== undefined && (
-        <WorktreeDiffResult
-          diffs={diffs}
-          entry={diffs.agents.find((agent) => agent.agentId === agentId)}
-        />
+      {agentId !== null && (
+        <div role="status" className={styles.result}>
+          {diffs === undefined ? (
+            <p className={styles.note}>
+              {isError ? t('inspector.worktree.loadFailed') : t('inspector.worktree.loading')}
+            </p>
+          ) : (
+            <WorktreeDiffResult
+              diffs={diffs}
+              entry={diffs.agents.find((agent) => agent.agentId === agentId)}
+            />
+          )}
+        </div>
       )}
       {shared !== null && (
         <>
@@ -82,7 +86,7 @@ export function WorktreeDiffBox({
               })
             }}
           >
-            {t('inspector.worktree.showShared')}
+            {t('inspector.worktree.showShared', { agent: shortId(shared.agentId) })}
           </button>
         </>
       )}
