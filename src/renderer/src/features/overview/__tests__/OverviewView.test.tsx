@@ -775,7 +775,7 @@ describe('sidebar figures', () => {
     expect(within(await findSidebar()).getByRole('button', { name: 'beta-app' })).toBeTruthy()
   })
 
-  it('marks a row whose total may be low', async () => {
+  it('marks a row whose total may be low with its own sign and words, since the footnote is only on the overview', async () => {
     renderOverview({
       totals: (dirName) =>
         Promise.resolve(
@@ -788,10 +788,11 @@ describe('sidebar figures', () => {
     await totalsLoaded()
 
     const row = await within(await findSidebar()).findByRole('button', {
-      name: 'beta-app 500K tokens, last 7 days partial'
+      name: 'beta-app 500K tokens, last 7 days, may be low'
     })
 
-    expect(row.textContent).toContain('500K¹')
+    expect(row.textContent).toContain('~500K')
+    expect(row.textContent).not.toContain('¹')
   })
 
   it('leaves a row unmarked when only its cost may be low, since the row shows tokens', async () => {
@@ -802,7 +803,7 @@ describe('sidebar figures', () => {
       name: 'beta-app 500K tokens, last 7 days'
     })
 
-    expect(row.textContent).not.toContain('¹')
+    expect(row.textContent).not.toContain('~')
   })
 
   it("doesn't mark a row's tokens because subagents went uncounted", async () => {
@@ -813,7 +814,7 @@ describe('sidebar figures', () => {
       name: 'beta-app 500K tokens, last 7 days'
     })
 
-    expect(row.textContent).not.toContain('¹')
+    expect(row.textContent).not.toContain('~')
   })
 
   it('follows the window', async () => {

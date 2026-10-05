@@ -60,7 +60,8 @@
     "tokensUpdating_one": "{{count, compactInteger}} token, updating",
     "tokensUpdating_other": "{{count, compactInteger}} tokens, updating",
     "updatingMarker": "…",
-    "partial": "partial"
+    "mayBeLowMarker": "~",
+    "mayBeLow": "{{figure}}, may be low"
   },
   "partialNote": "partial, see the note below",
   "footnote": {
