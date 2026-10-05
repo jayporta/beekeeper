@@ -6,9 +6,8 @@ interface ProjectRowProps {
   /** The row's text. It may come from a transcript, so it renders as plain text. */
   readonly label: string
   /**
-   * A fuller name, such as the folder name, shown on a second line while the
-   * row is hovered or keyboard-focused and read as the row's description. It
-   * tells apart rows whose labels match.
+   * A fuller name, such as the folder name, read by screen readers as the
+   * row's description and never shown. It tells apart rows whose labels match.
    */
   readonly detail?: string
   /** A muted note on the right, such as `worktree`. */
@@ -25,8 +24,8 @@ interface ProjectRowProps {
 }
 
 /**
- * One row of the sidebar's project list: a button whose label stays on a
- * single line that ends in an ellipsis when it is too long.
+ * One row of the sidebar's project list: a button whose label wraps onto
+ * more lines when it is too long, beside an optional note.
  *
  * @example
  * <ProjectRow label="acme-web" detail={dirName} current onSelect={() => select(dirName)} />
@@ -57,9 +56,9 @@ export function ProjectRow({
             <span className={styles.meta}>{meta}</span>
           </>
         )}
-        {/* Hidden from the name; aria-describedby still exposes it as the description. */}
+        {/* Hidden from view and the name; aria-describedby still exposes it as the description. */}
         {detail !== undefined && (
-          <span id={detailId} className={styles.detail} aria-hidden="true">
+          <span id={detailId} className="visuallyHidden" aria-hidden="true">
             {detail}
           </span>
         )}

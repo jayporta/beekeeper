@@ -63,6 +63,14 @@ describe('ProjectList', () => {
     expect(within(nav).getByRole('button', { name: 'acme-web', description: ALPHA })).toBeTruthy()
   })
 
+  it('keeps the folder name out of view, for screen readers only', async () => {
+    const nav = await renderLoaded()
+
+    const row = within(nav).getByRole('button', { name: 'acme-web' })
+    const description = document.getElementById(row.getAttribute('aria-describedby') ?? '')
+    expect(description?.classList.contains('visuallyHidden')).toBe(true)
+  })
+
   it('uses no title tooltip, which keyboard users cannot reach', async () => {
     const nav = await renderLoaded()
 
