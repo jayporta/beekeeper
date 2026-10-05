@@ -353,6 +353,61 @@ describe('WorktreeDiffBox status region', () => {
   })
 })
 
+describe('WorktreeDiffBox shared worktree announcement', () => {
+  const SHARED_NOTE =
+    'Shares the worktree of subagent a1f3c9e2 in the lead session, so its changes are part of that diff.'
+  const sharedValue: WorktreeDiffsDto = {
+    git: 'ok',
+    agents: [],
+    sharedWorktree: { lead: SCENE_SESSION, agentId: 'a1f3c9e2d4abc' }
+  }
+  const writerStatus = async (): Promise<HTMLElement> => {
+    await userEvent.click(screen.getByRole('button', { name: /^writer/ }))
+    await inspector().findByText('Teammate · own session')
+    return inspector().getByRole('status')
+  }
+
+  it('says the shared worktree note once it arrives for a teammate, which had no box before', async () => {
+    let finish: (result: IpcResult<WorktreeDiffsDto>) => void = () => undefined
+    const pending = new Promise<IpcResult<WorktreeDiffsDto>>((resolve) => {
+      finish = resolve
+    })
+    renderInspectorScene({ diffs: { [WRITER.sessionId]: pending } })
+    const status = await writerStatus()
+    expect(status.textContent).toBe('')
+
+    finish({ ok: true, value: sharedValue })
+
+    await waitFor(() => {
+      expect(status.textContent).toBe(SHARED_NOTE)
+    })
+  })
+
+  it('says nothing when the diffs were cached before the inspector opened', async () => {
+    const client = createTestQueryClient()
+    client.setQueryData(['worktreeDiffs', WRITER.projectDirName, WRITER.sessionId], sharedValue)
+    renderInspectorScene({ client })
+
+    const status = await writerStatus()
+    await inspector().findByText(SHARED_NOTE, { selector: 'p:not([role="status"])' })
+
+    expect(status.textContent).toBe('')
+  })
+
+  it('says nothing for a teammate that shares no worktree', async () => {
+    const { client } = renderInspectorScene()
+
+    const status = await writerStatus()
+    await waitFor(() => {
+      expect(
+        client.getQueryState(['worktreeDiffs', WRITER.projectDirName, WRITER.sessionId])?.status
+      ).toBe('success')
+    })
+
+    expect(status.textContent).toBe('')
+  })
+})
+
 describe('WorktreeDiffBox when no diff applies', () => {
   it('is not shown, and git is not asked, for a subagent with no worktree branch', async () => {
     const { api } = renderInspectorScene({ detail: worktreeDetail })

@@ -5,6 +5,7 @@ import { useNavigationStore } from '@renderer/features/navigation/state/useNavig
 import { shortId } from '@renderer/features/sessions/sessionLabel'
 import { useWorktreeDiffs } from '../useWorktreeDiffs'
 import { diffsOlderThanDetail } from './diffsOlderThanDetail'
+import { useAnnounceSharedWorktree } from './useAnnounceSharedWorktree'
 import { WorktreeDiffResult } from './WorktreeDiffResult'
 import styles from './WorktreeDiffBox.module.css'
 
@@ -45,51 +46,61 @@ export function WorktreeDiffBox({
   })
   // The shared worktree belongs to a teammate session's own agent, not to its subagents.
   const shared = agentId === null ? (diffs?.sharedWorktree ?? null) : null
+  const sharedNote =
+    shared === null ? null : t('inspector.worktree.shared', { agent: shortId(shared.agentId) })
+  const announcement = useAnnounceSharedWorktree(sharedNote)
 
-  if (agentId === null && shared === null) return null
+  // The status region stays mounted, even while there is no box, so the note's arrival is announced.
+  const status = agentId === null && (
+    <p role="status" className="visuallyHidden">
+      {announcement}
+    </p>
+  )
+  if (agentId === null && shared === null) return <>{status}</>
 
   return (
-    <section className={styles.box}>
-      <h3 className={styles.label}>{t('inspector.worktree.label')}</h3>
-      {branch !== null && (
-        <p className={styles.branch}>
-          <bdi>{branch}</bdi>
-        </p>
-      )}
-      {agentId !== null && (
-        <div role="status" className={styles.result}>
-          {diffs === undefined ? (
-            <p className={styles.note}>
-              {isError ? t('inspector.worktree.loadFailed') : t('inspector.worktree.loading')}
-            </p>
-          ) : (
-            <WorktreeDiffResult
-              diffs={diffs}
-              entry={diffs.agents.find((agent) => agent.agentId === agentId)}
-            />
-          )}
-        </div>
-      )}
-      {shared !== null && (
-        <>
-          <p className={styles.note}>
-            {t('inspector.worktree.shared', { agent: shortId(shared.agentId) })}
+    <>
+      {status}
+      <section className={styles.box}>
+        <h3 className={styles.label}>{t('inspector.worktree.label')}</h3>
+        {branch !== null && (
+          <p className={styles.branch}>
+            <bdi>{branch}</bdi>
           </p>
-          <button
-            type="button"
-            className={styles.show}
-            onClick={() => {
-              showSession(shared.lead, {
-                kind: 'subagent',
-                ownerRef: shared.lead,
-                agentId: shared.agentId
-              })
-            }}
-          >
-            {t('inspector.worktree.showShared', { agent: shortId(shared.agentId) })}
-          </button>
-        </>
-      )}
-    </section>
+        )}
+        {agentId !== null && (
+          <div role="status" className={styles.result}>
+            {diffs === undefined ? (
+              <p className={styles.note}>
+                {isError ? t('inspector.worktree.loadFailed') : t('inspector.worktree.loading')}
+              </p>
+            ) : (
+              <WorktreeDiffResult
+                diffs={diffs}
+                entry={diffs.agents.find((agent) => agent.agentId === agentId)}
+              />
+            )}
+          </div>
+        )}
+        {shared !== null && (
+          <>
+            <p className={styles.note}>{sharedNote}</p>
+            <button
+              type="button"
+              className={styles.show}
+              onClick={() => {
+                showSession(shared.lead, {
+                  kind: 'subagent',
+                  ownerRef: shared.lead,
+                  agentId: shared.agentId
+                })
+              }}
+            >
+              {t('inspector.worktree.showShared', { agent: shortId(shared.agentId) })}
+            </button>
+          </>
+        )}
+      </section>
+    </>
   )
 }
