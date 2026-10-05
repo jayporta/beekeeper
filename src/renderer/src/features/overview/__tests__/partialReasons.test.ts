@@ -69,7 +69,7 @@ describe('isPartialFor', () => {
     [
       'a session whose subagents folder could not be read',
       [partialOf({ uncountedSubagents: 1 })],
-      ['tokens', 'agents']
+      ['agents']
     ]
   ] as const)('marks %s on the figures it affects', (_label, states, figures) => {
     expect(markedFigures(states)).toEqual(figures)

@@ -40,7 +40,7 @@ export interface PartialCounts {
    * session counts once.
    */
   readonly lowTokens: number
-  /** Sessions whose subagents folder couldn't be read, so their subagents are missing from the agent count and their tokens. */
+  /** Sessions whose subagents folder couldn't be read, so their subagents are missing from the agent count. */
   readonly uncountedSubagents: number
   /** Sessions with no timestamps, counted by when their file was last written. */
   readonly undated: number

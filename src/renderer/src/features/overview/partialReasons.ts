@@ -29,8 +29,10 @@ const ALL_FIGURES = [
  * The figures each reason leaves low. A folder missing from the sum, an
  * unreadable session, and a session that is dated by its file's write time
  * (so may belong outside the window) touch every figure. A session whose
- * subagents folder couldn't be read touches the agent count and the tokens.
- * The rest touch the one figure they name.
+ * subagents folder couldn't be read touches only the agent count: a recorded
+ * token total already includes its subagents, and the transcript fallback
+ * that doesn't is counted as `lowTokens`. The rest touch the one figure they
+ * name.
  */
 const FIGURES_AFFECTED: Readonly<Record<PartialReason, readonly PartialFigure[]>> = {
   loading: ALL_FIGURES,
@@ -39,7 +41,7 @@ const FIGURES_AFFECTED: Readonly<Record<PartialReason, readonly PartialFigure[]>
   withoutTokens: ['tokens'],
   withoutCost: ['cost'],
   lowTokens: ['tokens'],
-  uncountedSubagents: ['tokens', 'agents'],
+  uncountedSubagents: ['agents'],
   undated: ALL_FIGURES
 }
 
