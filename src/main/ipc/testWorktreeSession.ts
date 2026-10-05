@@ -63,7 +63,7 @@ export function registerWorktreeSessions(): WorktreeSessions {
   })
   return {
     create: async ({ projectDirName, cwd, agents, git }) => {
-      const home = await mkdtemp(join(tmpdir(), 'beekeeper-patch-'))
+      const home = await mkdtemp(join(tmpdir(), 'beekeeper-worktree-'))
       homes.push(home)
       const sessionDir = join(home, '.claude', 'projects', projectDirName)
       const subagents = join(sessionDir, TEST_SESSION_ID, 'subagents')

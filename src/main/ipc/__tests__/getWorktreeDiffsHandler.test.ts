@@ -1,19 +1,14 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { registerTestGit } from '../../../core/git/testGitRepo'
 import { err, ok } from '../../../core/shared/result'
-import { buildJsonlText } from '../../../core/transcript/testFixtures'
-import { buildSpawnRecord } from '../../../core/session/testSpawnFixtures'
 import { encodeProjectDir } from '../../git/confineRepo'
 import { addAgentWorktree, projectWorktreesDir } from '../../git/testWorktreeScan'
-import { createIpcDeps } from '../createIpcDeps'
 import { getSessionHandler } from '../getSessionHandler'
 import { getWorktreeDiffsHandler } from '../getWorktreeDiffsHandler'
 import { guardIpc } from '../guardIpc'
 import type { IpcDeps } from '../ipcDeps'
 import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
+import { registerWorktreeSessions } from '../testWorktreeSession'
 
 const ctx = registerIpcTestTree()
 const gitContext = registerTestGit()
@@ -95,42 +90,20 @@ describe('getWorktreeDiffsHandler', () => {
 })
 
 describe('getWorktreeDiffsHandler on a real repository', () => {
-  let home: string | undefined
-
-  afterEach(async () => {
-    if (home !== undefined) await rm(home, { recursive: true, force: true })
-    home = undefined
-  })
+  const sessions = registerWorktreeSessions()
 
   it('diffs a worktree agent whose spawn repo is the project folder', async (context) => {
     const git = gitContext.requireGit(context)
     const repo = await gitContext.baseRepo(git)
     const path = await addAgentWorktree({ repo, name: 'wt1', parent: projectWorktreesDir(repo) })
-    const projectDirName = encodeProjectDir(repo.dir)
-    home = await mkdtemp(join(tmpdir(), 'beekeeper-diffs-'))
-    const sessionDir = join(home, '.claude', 'projects', projectDirName)
-    const subagents = join(sessionDir, TEST_SESSION_ID, 'subagents')
-    await mkdir(subagents, { recursive: true })
-    await writeFile(
-      join(sessionDir, `${TEST_SESSION_ID}.jsonl`),
-      buildJsonlText([buildSpawnRecord({ toolUseIds: ['toolu_a'], cwd: repo.dir })])
-    )
-    await writeFile(join(subagents, 'agent-a.jsonl'), buildJsonlText([]))
-    await writeFile(
-      join(subagents, 'agent-a.meta.json'),
-      JSON.stringify({
-        agentType: 'x',
-        toolUseId: 'toolu_a',
-        worktreeBranch: 'wt1',
-        worktreePath: path
-      })
-    )
-    const deps = { ...createIpcDeps(home), git: () => Promise.resolve(ok(git)) }
-
-    const result = await getWorktreeDiffsHandler(deps, {
-      projectDirName,
-      sessionId: TEST_SESSION_ID
+    const { deps, request: sessionRequest } = await sessions.create({
+      projectDirName: encodeProjectDir(repo.dir),
+      cwd: repo.dir,
+      agents: [{ agentId: 'a', worktreeBranch: 'wt1', worktreePath: path }],
+      git
     })
+
+    const result = await getWorktreeDiffsHandler(deps, sessionRequest)
 
     expect(result).toMatchObject({
       ok: true,
