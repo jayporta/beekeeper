@@ -68,5 +68,83 @@
   "partial": {
     "note": "partial, see the note below",
     "missingTeammates": "Some teammates the lead spawned weren't found, so a team total may be low."
+  },
+  "inspector": {
+    "label": "Agent inspector",
+    "kicker": {
+      "lead": "Lead session",
+      "teammate": "Teammate · own session",
+      "teammateInSession": "Teammate · in the lead's session",
+      "subagent": "Subagent · {{type}}",
+      "subagentUntyped": "Subagent"
+    },
+    "messages_one": "{{count, integer}} message",
+    "messages_other": "{{count, integer}} messages",
+    "loading": "Loading this agent",
+    "unreadable": "beekeeper couldn't read this agent's transcript.",
+    "rollup": "{{tokens}} incl. {{count, integer}} below",
+    "noneBelow": "No agents below",
+    "belowUnreadable": "Agents below couldn't be read",
+    "tokensHeading": "Tokens · {{total}}",
+    "tokenClass": {
+      "input": "Input",
+      "output": "Output",
+      "cacheRead": "Cache read",
+      "cacheWrite": "Cache write"
+    },
+    "tokenValue": "{{count, compactInteger}}",
+    "filesHeading": "Files touched · {{count, integer}}",
+    "touchCount": "×{{count, integer}}",
+    "touchCountSpoken_one": "touched {{count, integer}} time",
+    "touchCountSpoken_other": "touched {{count, integer}} times",
+    "readOnly": "Read-only agent. No edits recorded.",
+    "noEditsRecorded": "No edits recorded.",
+    "operation": {
+      "edit": "edit",
+      "create": "create",
+      "update": "update",
+      "delete": "delete",
+      "change": "change"
+    },
+    "worktree": {
+      "label": "Worktree diff",
+      "summary_one": "+{{added, integer}} −{{deleted, integer}} across {{count, integer}} file",
+      "summary_other": "+{{added, integer}} −{{deleted, integer}} across {{count, integer}} files",
+      "untracked_one": "· {{count, integer}} untracked",
+      "untracked_other": "· {{count, integer}} untracked",
+      "uncommittedFilters": "Uncommitted changes aren't included: this repository uses git filters, which beekeeper doesn't run.",
+      "uncommittedMismatch": "Uncommitted changes aren't included: that folder isn't this agent's worktree of the repository.",
+      "uncommittedNoWorktree": "Uncommitted changes aren't included: this agent's worktree folder isn't available.",
+      "loading": "Loading the diff",
+      "loadFailed": "beekeeper couldn't load the diff.",
+      "gitNotFound": "Git isn't installed, so the diff isn't available.",
+      "gitTooOld": "This version of git is too old to show the diff. Update git to see it.",
+      "failure": {
+        "branchMissing": "The branch no longer exists.",
+        "repoMissing": "The repository can't be found.",
+        "tooLarge": "The diff is too large to show.",
+        "timeout": "Git took too long to produce the diff.",
+        "tooMany": "This session has too many worktree agents to diff them all.",
+        "noBase": "There's no base branch to compare with.",
+        "failed": "The diff couldn't be computed."
+      },
+      "shared": "Shares the worktree of subagent {{agent}} in the lead session, so its changes are part of that diff.",
+      "showShared": "Show subagent {{agent}}"
+    },
+    "flags": {
+      "stopped": "Stopped",
+      "partial": "Partial transcript"
+    },
+    "footnote": {
+      "label": "¹ Partial:",
+      "unreadableLines": "Some transcript lines couldn't be read, so these totals may be low.",
+      "unpricedTokens": "Some tokens have no known price, so the cost may be low.",
+      "incompleteFiles": "The file list may be missing files.",
+      "unrecordedTokens": "This agent's own tokens weren't recorded, so the total with the agents below may be low.",
+      "subagentsUnreadable": "beekeeper couldn't read this session's subagents, so agents below may be missing and the total may be low.",
+      "subagentsNotLoaded": "Some teammates' subagents aren't loaded, so the total may be low.",
+      "belowIncomplete": "Some agents below have partial or unrecorded totals, so the total may be low.",
+      "other": "Some data for this agent couldn't be read."
+    }
   }
 }

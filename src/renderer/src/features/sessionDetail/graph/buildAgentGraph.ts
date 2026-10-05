@@ -49,6 +49,7 @@ export function buildAgentGraph(input: BuildAgentGraphInput): RootAgentGraphNode
     tokens: reportTokens(detail.lead),
     partial: isPartialReport(detail.lead) || !detail.subagents.ok,
     stopped: facts.stopped,
+    subagentsNotLoaded: false,
     folder: null,
     selection: null,
     children: [...buildSubagentNodes(detail, ref), ...teammates],

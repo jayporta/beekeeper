@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import type { SessionRefDto } from '../../../../shared/ipc/sessionRefDto'
-import { GraphCanvas } from './graph/GraphCanvas'
+import { SessionDetailBody } from './SessionDetailBody'
 import { SessionDetailBreadcrumb } from './SessionDetailBreadcrumb'
 import { sessionDetailLabel } from './sessionDetailLabel'
 import { SessionDetailHeader } from './SessionDetailHeader'
@@ -18,13 +18,13 @@ interface SessionDetailContentProps {
 }
 
 /**
- * One session's detail: the breadcrumb, then its header and agent graph once
- * its detail has loaded, otherwise the loading or failure message. Loaded data
- * wins over a failed background refresh, so a session on screen stays on
- * screen. A session reported not found waits for the folder's list to settle
- * first, since the folder itself may be gone. A load that was on screen is
- * announced once, by a status region that is always mounted and empty until
- * then.
+ * One session's detail: the breadcrumb, then its header, agent graph, and
+ * inspector once its detail has loaded, otherwise the loading or failure
+ * message. Loaded data wins over a failed background refresh, so a session on
+ * screen stays on screen. A session reported not found waits for the folder's
+ * list to settle first, since the folder itself may be gone. A load that was on
+ * screen is announced once, by a status region that is always mounted and
+ * empty until then.
  *
  * @example
  * <SessionDetailContent sessionRef={ref} dirName="-Users-me-repo" />
@@ -56,7 +56,7 @@ export function SessionDetailContent({
       ) : (
         <>
           <SessionDetailHeader label={label} row={row} />
-          <GraphCanvas detail={data} sessionRef={sessionRef} row={row} />
+          <SessionDetailBody detail={data} sessionRef={sessionRef} row={row} />
         </>
       )}
       <p role="status" className="visuallyHidden">

@@ -20,7 +20,7 @@ import { installBeekeeperApi, type TestBeekeeperApi } from '@renderer/testBeekee
 import { createQueryWrapper } from '@renderer/testQueryWrapper'
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
 import { SessionDetailView } from '../SessionDetailView'
-import { testDetail } from '../testSessionDetail'
+import { testDetail, testReport, testTokenGroup } from '../testSessionDetail'
 
 const DIR = '-Users-a-repo'
 const OTHER = '-Users-a-other'
@@ -135,7 +135,7 @@ describe('SessionDetailView header', () => {
     expect(screen.queryByText(/aren't in this list/)).toBeNull()
   })
 
-  it('says nothing is partial for a teammate chip’s transcript total, which the page does not show', async () => {
+  it('explains that a teammate chip’s subagents are not in the total, but says nothing else is partial', async () => {
     const chipPartial = testSession(2, {
       projectDirName: DIR,
       role: testAgentRole('writer', 'code'),
@@ -143,11 +143,18 @@ describe('SessionDetailView header', () => {
       transcriptTokens: 400,
       subagentCount: 1
     })
-    openSession(testRef(1, DIR), { sessions: [lead, chipPartial] })
+    const recorded = testDetail({
+      lead: testReport({ tokenGroups: [testTokenGroup({ input: 10 })] })
+    })
+    openSession(testRef(1, DIR), {
+      sessions: [lead, chipPartial],
+      detail: { ok: true, value: recorded }
+    })
     await screen.findByRole('heading', { level: 1, name: 'Refactor parser' })
 
-    expect(screen.queryByText(/Partial:/)).toBeNull()
-    expect(screen.queryByText(/partial, see the note/)).toBeNull()
+    expect(screen.getByText(/subagents aren.t loaded/)).toBeTruthy()
+    expect(screen.queryByText(/leave out its subagents/)).toBeNull()
+    expect(screen.queryByText(/transcript lines couldn't be read/)).toBeNull()
   })
 
   it('names the teammate, not its lead, when the session is a teammate’s own', async () => {

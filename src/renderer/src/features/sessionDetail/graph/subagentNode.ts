@@ -54,6 +54,7 @@ export function subagentNode(input: SubagentNodeInput): AgentGraphNode {
     tokens: report === null ? null : reportTokens(report),
     partial: report === null || isPartialReport(report),
     stopped: details?.stoppedByUser === true,
+    subagentsNotLoaded: false,
     folder: null,
     selection: { kind: 'subagent', ownerRef, agentId },
     children

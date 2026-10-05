@@ -105,6 +105,13 @@
   --size-graph-max-height: 70vh;
   /* The scroll space the graph keeps below it, so its last row can scroll clear of the zoom controls: their height and their inset. */
   --size-graph-controls-clearance: calc(var(--size-target-min) + var(--space-3));
+  /* The inspector: a 330px column, with token rows of an 80px label, a bar, and a 48px value, under a 6px bar. */
+  --size-inspector: 20.625rem;
+  --size-inspector-label: 5rem;
+  --size-inspector-value: 3rem;
+  --size-bar: 0.375rem;
+  /* The inspector's headline figure: 34px. */
+  --font-size-inspector-figure: 2.125rem;
 
   --radius-none: 0;
   --radius-sm: 2px;

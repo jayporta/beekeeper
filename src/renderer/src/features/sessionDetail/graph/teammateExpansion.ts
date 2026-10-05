@@ -54,9 +54,10 @@ export function expansionOf(
 
 /**
  * Hangs each expanded teammate's subagents under its node. A teammate whose
- * load failed is marked partial, and one still loading is left as it was. The
- * root comes back as is when no expansion changes a node, such as when nothing
- * is expanded or every expanded teammate is still loading, so a memoized layout
+ * load failed is marked partial, and one still loading is left as it was. A
+ * loaded teammate no longer has subagents missing from the graph. The root
+ * comes back as is when no expansion changes a node, such as when nothing is
+ * expanded or every expanded teammate is still loading, so a memoized layout
  * of it stays valid.
  *
  * @param root - The graph, with its teammates' nodes childless.
@@ -74,7 +75,12 @@ export function graftTeammates(
     if (expansion.status === 'error' && child.partial) return child
     changed = true
     if (expansion.status === 'error') return { ...child, partial: true }
-    return { ...child, children: expansion.children, partial: child.partial || expansion.partial }
+    return {
+      ...child,
+      children: expansion.children,
+      partial: child.partial || expansion.partial,
+      subagentsNotLoaded: false
+    }
   })
   return changed ? { ...root, children } : root
 }

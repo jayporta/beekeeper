@@ -33,6 +33,8 @@ export interface AgentGraphNode {
   readonly partial: boolean
   /** Whether the agent was stopped. */
   readonly stopped: boolean
+  /** Whether the agent may have subagents the graph doesn't hold yet: a teammate whose subagents haven't been loaded and whose session has subagents or an unknown number of them. */
+  readonly subagentsNotLoaded: boolean
   /** The folder of a teammate whose session lives in another folder than the lead's, otherwise `null`. Transcript-derived. */
   readonly folder: string | null
   /** The selection that picks this node, or `null` for the root. */
