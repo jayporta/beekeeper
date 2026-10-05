@@ -547,6 +547,20 @@ describe('OverviewView while a window loads', () => {
     expect(within(stripArea('Totals, last 30 days')).queryByText('Updating')).toBeNull()
   })
 
+  it("names a sidebar figure as updating, not as the new window's, until it arrives", async () => {
+    const release = await holdThirtyDays()
+    const sidebar = within(await findSidebar())
+
+    const row = sidebar.getByRole('button', { name: 'beta-app 500K tokens, updating' })
+    expect(row.textContent).toContain('500K…')
+    act(() => {
+      release(ok({ tokens: 900_000 }))
+    })
+    expect(
+      await sidebar.findByRole('button', { name: 'beta-app 900K tokens, last 30 days' })
+    ).toBeTruthy()
+  })
+
   it('tells assistive technology which cards still show the other window', async () => {
     const release = await holdThirtyDays()
 

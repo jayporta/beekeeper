@@ -15,6 +15,8 @@ interface SidebarTotalProps {
  * loaded, and carries a "¹" when the tokens may be low, which a session with no
  * recorded cost doesn't cause. Assistive technology
  * hears the full phrase with the window, such as "12.4M tokens, last 7 days".
+ * While the other window's figure stands in, it carries a "…" and is named as
+ * updating rather than with the chosen window.
  *
  * @example
  * <ProjectRow label="acme-web" meta={<SidebarTotal totals={totals} />} />
@@ -29,10 +31,13 @@ export function SidebarTotal({ totals }: SidebarTotalProps): React.JSX.Element |
     <>
       <span aria-hidden="true">
         {t('figure.compact', { value: totals.tokens })}
+        {totals.refreshing && t('sidebar.updatingMarker')}
         {partial && t('partialMarker', { ns: 'common' })}
       </span>
       <span className="visuallyHidden">
-        {t('sidebar.tokens', { count: totals.tokens, range: t(`range.${range}`) })}
+        {totals.refreshing
+          ? t('sidebar.tokensUpdating', { count: totals.tokens })
+          : t('sidebar.tokens', { count: totals.tokens, range: t(`range.${range}`) })}
         {partial && <> {t('sidebar.partial')}</>}
       </span>
     </>

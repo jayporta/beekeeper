@@ -57,6 +57,9 @@
   "sidebar": {
     "tokens_one": "{{count, compactInteger}} token, {{range}}",
     "tokens_other": "{{count, compactInteger}} tokens, {{range}}",
+    "tokensUpdating_one": "{{count, compactInteger}} token, updating",
+    "tokensUpdating_other": "{{count, compactInteger}} tokens, updating",
+    "updatingMarker": "…",
     "partial": "partial"
   },
   "partialNote": "partial, see the note below",
