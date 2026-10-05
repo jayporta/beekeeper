@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import type { ProjectGroup } from '@renderer/features/projects/groupProjects'
@@ -20,8 +21,8 @@ interface ProjectCardProps {
 }
 
 /**
- * One project on the overview: its folder name and worktree count, its name,
- * its tokens, cost, sessions and agents for the window, a bar of its tokens
+ * One project on the overview: its name and worktree count, its tokens, cost,
+ * sessions and agents for the window, a bar of its tokens
  * against the busiest project's, and its latest session. The name is a button
  * that stretches over the card, so the whole card selects the project and
  * opens its sessions. While the project's totals load, or when they can't be
@@ -38,27 +39,32 @@ export function ProjectCard({ group, totals, share }: ProjectCardProps): React.J
   const status = totalsStatus(totals)
   const countsPartial = areCountsPartial(totals)
   const { latest } = totals
+  const folderId = useId()
 
   return (
     <li className={styles.card}>
-      <div className={styles.kickerRow}>
-        <bdi className={styles.path}>{project.dirName}</bdi>
+      <div className={styles.titleRow}>
+        <h2 className={styles.name}>
+          <button
+            type="button"
+            className={styles.open}
+            aria-describedby={folderId}
+            onClick={() => {
+              select(project.dirName)
+              showSessions()
+            }}
+          >
+            {projectTitle(project)}
+          </button>
+        </h2>
         {worktrees.length > 0 && (
           <span className={styles.muted}>{t('card.worktrees', { count: worktrees.length })}</span>
         )}
       </div>
-      <h2 className={styles.name}>
-        <button
-          type="button"
-          className={styles.open}
-          onClick={() => {
-            select(project.dirName)
-            showSessions()
-          }}
-        >
-          {projectTitle(project)}
-        </button>
-      </h2>
+      {/* Hidden from view and the name; aria-describedby still exposes it, so same-named cards differ. */}
+      <span id={folderId} className="visuallyHidden" aria-hidden="true">
+        {project.dirName}
+      </span>
       {status === 'ready' && (
         <p className={styles.stats}>
           <span className={styles.tokens}>

@@ -142,7 +142,22 @@ describe('OverviewView cards', () => {
     expect(alpha.getByText('4 sessions')).toBeTruthy()
     expect(alpha.getByText('9 agents')).toBeTruthy()
     expect(alpha.getByText('1 worktree')).toBeTruthy()
-    expect(alpha.getByText(ALPHA)).toBeTruthy()
+  })
+
+  it('describes a card by its full folder name, without adding it to the name', async () => {
+    renderOverview()
+
+    expect(
+      await within(main()).findByRole('button', { name: 'acme-web', description: ALPHA })
+    ).toBeTruthy()
+  })
+
+  it('keeps the folder name out of view, for screen readers only', async () => {
+    renderOverview()
+
+    const button = await within(main()).findByRole('button', { name: 'acme-web' })
+    const description = document.getElementById(button.getAttribute('aria-describedby') ?? '')
+    expect(description?.classList.contains('visuallyHidden')).toBe(true)
   })
 
   it('shows no worktree count for a project without worktrees', async () => {

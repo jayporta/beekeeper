@@ -51,21 +51,12 @@
   }
 }
 
-.kickerRow {
+.titleRow {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-2);
-}
-
-.path {
-  min-width: 0;
-  color: var(--color-accent-strong);
-  font-size: var(--font-size-2xs);
-  letter-spacing: var(--letter-spacing-caps);
-  overflow-wrap: anywhere;
-  text-transform: uppercase;
 }
 
 .muted {
