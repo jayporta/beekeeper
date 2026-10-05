@@ -7,7 +7,7 @@ import { registerTestGit, type TestRepo } from '../../../core/git/testGitRepo'
 import { createScanScheduler, type ScanScheduler } from '../../ipc/scanScheduler'
 import { encodeProjectDir } from '../confineRepo'
 import { sessionWorktreeDiffs } from '../sessionWorktreeDiffs'
-import { registerGitSpies } from '../testGitSpy'
+import { registerGitSpies } from '../../../core/git/testGitSpy'
 import {
   addAgentWorktree,
   projectWorktreesDir,

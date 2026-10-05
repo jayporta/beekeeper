@@ -9,12 +9,14 @@ import {
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach } from 'vitest'
-import { toGitBinary, type GitBinary } from '../../core/git/gitBinary'
+import { toGitBinary, type GitBinary } from './gitBinary'
 
 /** Options for {@link GitSpies.create}. */
 export interface GitSpyOptions {
   /** When set, a run whose arguments contain this text is killed by a signal, which reads as `spawn-failed`. */
   readonly failOn?: string
+  /** When set, a run whose arguments contain this text exits with code 3 without running git. */
+  readonly exitOn?: string
 }
 
 /** A git executable that records each run in order, beside marks a test adds. */
@@ -57,9 +59,11 @@ export function registerGitSpies(): GitSpies {
         options.failOn === undefined
           ? ''
           : `case "$*" in *'${options.failOn}'*) kill -9 $$;; esac\n`
+      const exitRule =
+        options.exitOn === undefined ? '' : `case "$*" in *'${options.exitOn}'*) exit 3;; esac\n`
       writeFileSync(
         script,
-        `#!/bin/sh\necho "git $*" >> '${log}'\n${killRule}exec '${real}' "$@"\n`
+        `#!/bin/sh\necho "git $*" >> '${log}'\n${killRule}${exitRule}exec '${real}' "$@"\n`
       )
       chmodSync(script, 0o755)
       return {

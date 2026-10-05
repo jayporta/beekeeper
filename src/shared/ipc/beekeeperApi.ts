@@ -4,6 +4,7 @@ import type { ProjectTotalsDto, TotalsWindowDto } from './projectTotalsDto'
 import type { SessionDetailDto } from './sessionDetailDto'
 import type { SessionListItemDto } from './sessionListDto'
 import type { WorktreeDiffsDto } from './worktreeDiffDto'
+import type { WorktreePatchDto } from './worktreePatchDto'
 
 /** The one API the preload script exposes to the renderer as `window.beekeeper`. */
 export interface BeekeeperApi {
@@ -46,4 +47,17 @@ export interface BeekeeperApi {
     projectDirName: string,
     window: TotalsWindowDto
   ): Promise<IpcResult<ProjectTotalsDto>>
+
+  /**
+   * Reads the patch of what one worktree agent changed, from git. Read-only.
+   * @param projectDirName - A folder name from {@link BeekeeperApi.listProjects}.
+   * @param sessionId - A session id from {@link BeekeeperApi.listSessions}.
+   * @param agentId - The id of a subagent in that session whose meta names a worktree branch.
+   * @returns The patches, or why git can't give them, or `not-found` when the project, session, or agent is gone or names no worktree branch.
+   */
+  getWorktreePatch(
+    projectDirName: string,
+    sessionId: string,
+    agentId: string
+  ): Promise<IpcResult<WorktreePatchDto>>
 }

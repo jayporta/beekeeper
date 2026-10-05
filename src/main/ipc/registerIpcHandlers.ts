@@ -3,6 +3,7 @@ import type { IpcResult } from '../../shared/ipc/ipcResult'
 import { getProjectTotalsHandler } from './getProjectTotalsHandler'
 import { getSessionHandler } from './getSessionHandler'
 import { getWorktreeDiffsHandler } from './getWorktreeDiffsHandler'
+import { getWorktreePatchHandler } from './getWorktreePatchHandler'
 import { guardIpc } from './guardIpc'
 import type { IpcDeps } from './ipcDeps'
 import { listProjectsHandler } from './listProjectsHandler'
@@ -40,7 +41,8 @@ export function registerIpcHandlers(options: RegisterIpcHandlersOptions): void {
     [IPC_CHANNELS.listSessions]: (payload) => listSessionsHandler(deps, payload),
     [IPC_CHANNELS.getSession]: (payload) => getSessionHandler(deps, payload),
     [IPC_CHANNELS.getWorktreeDiffs]: (payload) => getWorktreeDiffsHandler(deps, payload),
-    [IPC_CHANNELS.getProjectTotals]: (payload) => getProjectTotalsHandler(deps, payload)
+    [IPC_CHANNELS.getProjectTotals]: (payload) => getProjectTotalsHandler(deps, payload),
+    [IPC_CHANNELS.getWorktreePatch]: (payload) => getWorktreePatchHandler(deps, payload)
   }
   for (const channel of Object.values(IPC_CHANNELS)) {
     ipcMain.handle(channel, guardIpc({ isTrusted, handle: handlers[channel] }))

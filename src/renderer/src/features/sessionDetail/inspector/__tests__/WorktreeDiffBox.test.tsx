@@ -190,7 +190,7 @@ describe('WorktreeDiffBox for a subagent on a worktree branch', () => {
     expect(await inspector().findByText("The diff couldn't be computed.")).toBeTruthy()
   })
 
-  it('has no link to open the diff yet', async () => {
+  it('has nothing to open when the agent changed no files', async () => {
     await open({ diffs: { [SCENE_SESSION.sessionId]: okDiff([]) } })
     await inspector().findByText('+0 −0 across 0 files')
 

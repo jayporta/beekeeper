@@ -100,6 +100,9 @@
   --size-graph-grid: 1.25rem;
   --color-graph-dot: color-mix(in srgb, var(--color-text) 14%, transparent);
   --opacity-graph-edge: 0.55;
+  /* Added and removed lines in a patch. They pass 4.5:1 on the surface, and the + or - itself marks each line as well. */
+  --color-diff-add: #1f6b36;
+  --color-diff-remove: #a12a2a;
   /* The graph's viewport grows with the graph, between these. */
   --size-graph-min-height: 10rem;
   --size-graph-max-height: 70vh;
@@ -141,5 +144,7 @@
     --color-accent-800: #d6ebff;
     --color-accent-900: #eef6ff;
     --color-accent-strong: #8fb3d9;
+    --color-diff-add: #7ed491;
+    --color-diff-remove: #f09a9a;
   }
 }

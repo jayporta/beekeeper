@@ -5,6 +5,7 @@ import type {
 } from '../../../../../shared/ipc/worktreeDiffDto'
 import { diffFailureKey } from './diffFailureKey'
 import { summarizeNumstat } from './summarizeNumstat'
+import { uncommittedNoteKey } from './uncommittedNoteKey'
 import styles from './WorktreeDiffBox.module.css'
 
 /** Props for {@link WorktreeDiffResult}. */
@@ -47,6 +48,7 @@ export function WorktreeDiffResult({ diffs, entry }: WorktreeDiffResultProps): R
 
   const { uncommitted, untracked } = entry.result.diff
   const { added, deleted, files } = summarizeNumstat(entry.result.diff.files)
+  const noteKey = uncommittedNoteKey(uncommitted)
   return (
     <>
       <p className={styles.summary}>
@@ -55,15 +57,7 @@ export function WorktreeDiffResult({ diffs, entry }: WorktreeDiffResultProps): R
           <> {t('inspector.worktree.untracked', { count: untracked.length })}</>
         )}
       </p>
-      {uncommitted === 'skipped-filters' && (
-        <p className={styles.note}>{t('inspector.worktree.uncommittedFilters')}</p>
-      )}
-      {uncommitted === 'no-worktree' && (
-        <p className={styles.note}>{t('inspector.worktree.uncommittedNoWorktree')}</p>
-      )}
-      {uncommitted === 'worktree-mismatch' && (
-        <p className={styles.note}>{t('inspector.worktree.uncommittedMismatch')}</p>
-      )}
+      {noteKey !== null && <p className={styles.note}>{t(`inspector.worktree.${noteKey}`)}</p>}
     </>
   )
 }
