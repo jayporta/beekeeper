@@ -23,6 +23,9 @@ afterEach(() => {
 const WRITER = testRef(2)
 const TESTER = testRef(3, SCENE_OTHER_FOLDER)
 
+/** The hidden live copy repeats the shared note until it clears, so queries for the visible note skip status regions. */
+const VISIBLE_ONLY = '[role="status"], script, style'
+
 /** A lead with a subagent `scout` on a worktree branch, and one, `reader`, on none. */
 const worktreeDetail = testDetail({
   lead: LEAD_REPORT,
@@ -389,7 +392,7 @@ describe('WorktreeDiffBox shared worktree announcement', () => {
     renderInspectorScene({ client })
 
     const status = await writerStatus()
-    await inspector().findByText(SHARED_NOTE, { selector: 'p:not([role="status"])' })
+    await inspector().findByText(SHARED_NOTE, { ignore: VISIBLE_ONLY })
 
     expect(status.textContent).toBe('')
   })
@@ -440,8 +443,6 @@ describe('WorktreeDiffBox when no diff applies', () => {
 })
 
 describe('WorktreeDiffBox for a teammate in a session of its own', () => {
-  // The hidden live copy repeats the note until it clears, so these queries skip status regions.
-  const VISIBLE_ONLY = '[role="status"], script, style'
   const shared = (git: WorktreeDiffsDto['git'] = 'ok'): IpcResult<WorktreeDiffsDto> => ({
     ok: true,
     value: { git, agents: [], sharedWorktree: { lead: SCENE_SESSION, agentId: 'a1f3c9e2d4abc' } }
