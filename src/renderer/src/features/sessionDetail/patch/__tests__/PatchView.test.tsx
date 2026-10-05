@@ -264,6 +264,24 @@ describe('announcing the outcome', () => {
     expect(dialog().getAllByRole('heading', { level: 3 })).toHaveLength(2)
   })
 
+  it('loads the patch again when the dialog is reopened, so the status region announces the load again', async () => {
+    await openDiff({ a1: ready([file()]) })
+    await dialog().findByRole('heading', { level: 3, name: 'src/a.ts' })
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }))
+    const pending = deferredPatch()
+    openedApi?.getWorktreePatch.mockReturnValueOnce(pending.promise)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Open diff' }))
+
+    expect(dialog().getByRole('status').textContent).toBe('Loading the diff')
+    expect(dialog().queryByRole('heading', { level: 3 })).toBeNull()
+    pending.resolve(ready([file(), file({ path: 'src/b.ts' })]))
+    await waitFor(() => {
+      expect(dialog().getByRole('status').textContent).toBe('Diff loaded: 2 files')
+    })
+    expect(openedApi?.getWorktreePatch).toHaveBeenCalledTimes(2)
+  })
+
   it('counts a single file in the singular', async () => {
     const pending = deferredPatch()
     await openDiff({ a1: pending.promise })

@@ -6,7 +6,8 @@ import { unwrapIpcResult } from '@renderer/ipc/unwrapIpcResult'
 /**
  * Loads the patch of what one worktree agent changed. It runs git and can be
  * large, so only the open patch view calls it, and the result is neither
- * persisted nor treated as fresh for later: opening the diff again loads it again.
+ * persisted nor kept: it is dropped when the patch view closes, so opening the
+ * diff again loads it again, from the loading state.
  *
  * @param ref - The session that holds the subagent.
  * @param agentId - The subagent whose patch to load.
@@ -21,6 +22,7 @@ export function useWorktreePatch(
     queryFn: async () =>
       unwrapIpcResult(
         await window.beekeeper.getWorktreePatch(ref.projectDirName, ref.sessionId, agentId)
-      )
+      ),
+    gcTime: 0
   })
 }
