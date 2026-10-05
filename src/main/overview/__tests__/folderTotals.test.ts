@@ -47,7 +47,14 @@ describe('folderTotals', () => {
       sessions: 0,
       agents: 0,
       latest: null,
-      partial: { withoutTokens: 0, withoutCost: 0, unreadable: 0, lowTokens: 0, undated: 0 }
+      partial: {
+        withoutTokens: 0,
+        withoutCost: 0,
+        unreadable: 0,
+        lowTokens: 0,
+        uncountedSubagents: 0,
+        undated: 0
+      }
     })
   })
 
@@ -259,10 +266,6 @@ describe('folderTotals tokens that are missing or partial', () => {
     expect(totals([skipped]).partial.lowTokens).toBe(1)
   })
 
-  it('marks a session whose subagents folder could not be read as low', () => {
-    expect(totals([session('a', { subagentCount: null })]).partial.lowTokens).toBe(1)
-  })
-
   it('counts a session once as low, however many reasons it has', () => {
     const many = session('m', {
       subagentCount: null,
@@ -270,6 +273,34 @@ describe('folderTotals tokens that are missing or partial', () => {
     })
 
     expect(totals([many]).partial.lowTokens).toBe(1)
+  })
+
+  it('counts a session whose subagents folder could not be read as having uncounted subagents', () => {
+    expect(totals([session('a', { subagentCount: null })]).partial.uncountedSubagents).toBe(1)
+  })
+
+  it('does not call a recorded total low because its subagents folder could not be read', () => {
+    expect(totals([session('a', { subagentCount: null })]).partial.lowTokens).toBe(0)
+  })
+
+  it('counts a session once as having uncounted subagents, and still counts the session itself as an agent', () => {
+    const result = totals([
+      session('a', { subagentCount: null }),
+      session('b', { subagentCount: 3 })
+    ])
+
+    expect(result.partial.uncountedSubagents).toBe(1)
+    expect(result.agents).toBe(1 + 4)
+  })
+
+  it.each([0, 2])('does not count a session with %s subagents counted as uncounted', (count) => {
+    expect(totals([session('a', { subagentCount: count })]).partial.uncountedSubagents).toBe(0)
+  })
+
+  it('leaves an unreadable summary to the unreadable count, not the uncounted subagents', () => {
+    const result = totals([{ ...unreadable('u'), subagentCount: null }])
+
+    expect(result.partial).toMatchObject({ unreadable: 1, uncountedSubagents: 0 })
   })
 })
 

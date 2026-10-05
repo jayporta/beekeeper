@@ -36,10 +36,12 @@ export interface PartialCounts {
   readonly unreadable: number
   /**
    * Sessions whose tokens may be low: some transcript lines couldn't be read,
-   * the subagents folder couldn't be read, or the figure is the transcript's
-   * own and leaves its subagents out. Each session counts once.
+   * or the figure is the transcript's own and leaves its subagents out. Each
+   * session counts once.
    */
   readonly lowTokens: number
+  /** Sessions whose subagents folder couldn't be read, so their subagents are missing from the agent count and their tokens. */
+  readonly uncountedSubagents: number
   /** Sessions with no timestamps, counted by when their file was last written. */
   readonly undated: number
 }
@@ -93,7 +95,14 @@ export function folderTotals(options: FolderTotalsOptions): FolderTotals {
   let sessions = 0
   let agents = 0
   let latest: LatestSession | null = null
-  const partial = { withoutTokens: 0, withoutCost: 0, unreadable: 0, lowTokens: 0, undated: 0 }
+  const partial = {
+    withoutTokens: 0,
+    withoutCost: 0,
+    unreadable: 0,
+    lowTokens: 0,
+    uncountedSubagents: 0,
+    undated: 0
+  }
 
   for (const session of options.sessions) {
     const { mtimeMs, summary } = session
@@ -121,9 +130,8 @@ export function folderTotals(options: FolderTotalsOptions): FolderTotals {
     else tokens += resolved.tokens
     if (resolved.usd === null) partial.withoutCost += 1
     else usd += resolved.usd
-    if (summary.skippedLines > 0 || session.subagentCount === null || resolved.tokensPartial) {
-      partial.lowTokens += 1
-    }
+    if (summary.skippedLines > 0 || resolved.tokensPartial) partial.lowTokens += 1
+    if (session.subagentCount === null) partial.uncountedSubagents += 1
 
     if (summary.role.kind !== 'lead') continue
     sessions += 1

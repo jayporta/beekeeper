@@ -30,7 +30,8 @@ export function TotalsStrip({ totals, range }: TotalsStripProps): React.JSX.Elem
   const status = totalsStatus(totals)
   const tokensPartial = isPartialFor(totals, 'tokens')
   const costPartial = isPartialFor(totals, 'cost')
-  const countsPartial = isPartialFor(totals, 'counts')
+  const sessionsPartial = isPartialFor(totals, 'sessions')
+  const agentsPartial = isPartialFor(totals, 'agents')
   const { refreshing } = totals
   const partialNote = t('partialNote')
   const rangeName = t(`range.${range}`)
@@ -69,13 +70,13 @@ export function TotalsStrip({ totals, range }: TotalsStripProps): React.JSX.Elem
         </li>
         <li className={styles.cell}>
           <p className={styles.figure}>
-            {figure(t('figure.integer', { value: totals.sessions }), countsPartial)}
+            {figure(t('figure.integer', { value: totals.sessions }), sessionsPartial)}
           </p>
           <p className={styles.label}>{t('totals.sessions')}</p>
         </li>
         <li className={styles.cell}>
           <p className={styles.figure}>
-            {figure(t('figure.integer', { value: totals.agents }), countsPartial)}
+            {figure(t('figure.integer', { value: totals.agents }), agentsPartial)}
           </p>
           <p className={styles.label}>{t('totals.agents')}</p>
         </li>

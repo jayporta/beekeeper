@@ -38,7 +38,8 @@ describe('sumTotals', () => {
       withoutCost: 2 * n,
       unreadable: 3 * n,
       lowTokens: 4 * n,
-      undated: 5 * n
+      uncountedSubagents: 5 * n,
+      undated: 6 * n
     })
 
     const result = sumTotals([

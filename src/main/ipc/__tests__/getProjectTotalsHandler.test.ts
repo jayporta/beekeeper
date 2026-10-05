@@ -193,9 +193,43 @@ describe('getProjectTotalsHandler totals', () => {
 
     expect(value(await totalsOf(ctx.deps))).toMatchObject({
       tokens: 15,
-      partial: { withoutTokens: 0, withoutCost: 1, unreadable: 0, lowTokens: 1, undated: 0 }
+      partial: {
+        withoutTokens: 0,
+        withoutCost: 1,
+        unreadable: 0,
+        lowTokens: 1,
+        uncountedSubagents: 0,
+        undated: 0
+      }
     })
   })
+
+  it.skipIf(process.getuid?.() === 0)(
+    'sends a session whose subagents folder cannot be read as uncounted subagents, not as low tokens',
+    async () => {
+      await removeTreeSession()
+      await writeSession({ n: 1, activeMs: NOW - HOUR })
+      const subagents = join(
+        ctx.tree.home,
+        '.claude',
+        'projects',
+        TEST_PROJECT,
+        idOf(1),
+        'subagents'
+      )
+      await mkdir(subagents, { recursive: true })
+      try {
+        await chmod(subagents, 0o000)
+
+        expect(value(await totalsOf(ctx.deps))).toMatchObject({
+          agents: 1,
+          partial: { lowTokens: 0, uncountedSubagents: 1 }
+        })
+      } finally {
+        await chmod(subagents, 0o755)
+      }
+    }
+  )
 
   it('counts a session from the 30 day window that the 7 day window leaves out', async () => {
     await removeTreeSession()
@@ -214,7 +248,14 @@ describe('getProjectTotalsHandler totals', () => {
       sessions: 0,
       agents: 0,
       latest: null,
-      partial: { withoutTokens: 0, withoutCost: 0, unreadable: 0, lowTokens: 0, undated: 0 }
+      partial: {
+        withoutTokens: 0,
+        withoutCost: 0,
+        unreadable: 0,
+        lowTokens: 0,
+        uncountedSubagents: 0,
+        undated: 0
+      }
     })
   })
 
@@ -231,6 +272,14 @@ describe('getProjectTotalsHandler totals', () => {
       'sessions',
       'tokens',
       'usd'
+    ])
+    expect(Object.keys(totals.partial).sort()).toEqual([
+      'lowTokens',
+      'uncountedSubagents',
+      'undated',
+      'unreadable',
+      'withoutCost',
+      'withoutTokens'
     ])
     expect(Object.keys(totals.latest ?? {}).sort()).toEqual(['latestMs', 'sessionId', 'title'])
   })

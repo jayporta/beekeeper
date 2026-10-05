@@ -9,7 +9,14 @@ export function testTotals(overrides: Partial<ProjectTotalsDto> = {}): ProjectTo
     sessions: 0,
     agents: 0,
     latest: null,
-    partial: { withoutTokens: 0, withoutCost: 0, unreadable: 0, lowTokens: 0, undated: 0 },
+    partial: {
+      withoutTokens: 0,
+      withoutCost: 0,
+      unreadable: 0,
+      lowTokens: 0,
+      uncountedSubagents: 0,
+      undated: 0
+    },
     ...overrides
   }
 }

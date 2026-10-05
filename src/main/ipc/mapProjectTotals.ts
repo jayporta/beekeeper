@@ -23,6 +23,7 @@ export function mapProjectTotals(totals: FolderTotals): ProjectTotalsDto {
       withoutCost: partial.withoutCost,
       unreadable: partial.unreadable,
       lowTokens: partial.lowTokens,
+      uncountedSubagents: partial.uncountedSubagents,
       undated: partial.undated
     }
   }

@@ -49,7 +49,8 @@ export function ProjectCard({ group, totals, share }: ProjectCardProps): React.J
   const status = totalsStatus(totals)
   const tokensPartial = isPartialFor(totals, 'tokens')
   const costPartial = isPartialFor(totals, 'cost')
-  const countsPartial = isPartialFor(totals, 'counts')
+  const sessionsPartial = isPartialFor(totals, 'sessions')
+  const agentsPartial = isPartialFor(totals, 'agents')
   const { latest, refreshing } = totals
   const partialNote = t('partialNote')
   const id = useId()
@@ -97,11 +98,11 @@ export function ProjectCard({ group, totals, share }: ProjectCardProps): React.J
           </span>
           <span>
             {t('card.sessions', { count: totals.sessions })}
-            {countsPartial && <PartialMarker note={partialNote} />}
+            {sessionsPartial && <PartialMarker note={partialNote} />}
           </span>
           <span>
             {t('card.agents', { count: totals.agents })}
-            {countsPartial && <PartialMarker note={partialNote} />}
+            {agentsPartial && <PartialMarker note={partialNote} />}
           </span>
           <span className="visuallyHidden">
             {t('card.share', { value: Math.round(share * 100) })}

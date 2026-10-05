@@ -30,6 +30,7 @@ const NO_PARTIAL: ProjectTotalsPartialDto = {
   withoutCost: 0,
   unreadable: 0,
   lowTokens: 0,
+  uncountedSubagents: 0,
   undated: 0
 }
 
@@ -51,6 +52,7 @@ function addPartial(
     withoutCost: a.withoutCost + b.withoutCost,
     unreadable: a.unreadable + b.unreadable,
     lowTokens: a.lowTokens + b.lowTokens,
+    uncountedSubagents: a.uncountedSubagents + b.uncountedSubagents,
     undated: a.undated + b.undated
   }
 }

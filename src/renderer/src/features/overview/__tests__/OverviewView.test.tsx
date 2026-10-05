@@ -421,6 +421,33 @@ describe('OverviewView partial totals', () => {
     expect(strip.getByText('$16.50 at API prices').textContent).not.toContain('¹')
   })
 
+  it("marks a card's tokens and agents but not its cost or sessions when subagents went uncounted", async () => {
+    renderOverview({ totals: withPartial('uncountedSubagents') })
+    await totalsLoaded()
+
+    const beta = within(await findCard('beta-app'))
+
+    expect(beta.getByText('500K tokens').textContent).toContain('¹')
+    expect(beta.getByText('2 agents').textContent).toContain('¹')
+    expect(beta.getByText('2 sessions').textContent).not.toContain('¹')
+    expect(beta.getByText('$4.00 at API prices').textContent).not.toContain('¹')
+  })
+
+  it("marks the strip's tokens and agents but not its cost or sessions when subagents went uncounted", async () => {
+    renderOverview({ totals: withPartial('uncountedSubagents') })
+    await totalsLoaded()
+
+    const strip = within(within(main()).getByRole('list', { name: 'Totals, last 7 days' }))
+
+    expect(strip.getByText('2M').textContent).toContain('¹')
+    expect(strip.getByText('11').textContent).toContain('¹')
+    expect(strip.getByText('6').textContent).not.toContain('¹')
+    expect(strip.getByText('$16.50 at API prices').textContent).not.toContain('¹')
+    expect(main().textContent).toContain(
+      "¹ Partial: Some sessions have a subagents folder that couldn't be read, so their subagents are missing from the agent and token totals."
+    )
+  })
+
   it('gives no footnote when every figure is complete', async () => {
     renderOverview()
     await totalsLoaded()
@@ -776,6 +803,17 @@ describe('sidebar figures', () => {
     })
 
     expect(row.textContent).not.toContain('¹')
+  })
+
+  it('marks a row whose tokens may be low because subagents went uncounted', async () => {
+    renderOverview({ totals: withPartial('uncountedSubagents') })
+    await totalsLoaded()
+
+    const row = await within(await findSidebar()).findByRole('button', {
+      name: 'beta-app 500K tokens, last 7 days partial'
+    })
+
+    expect(row.textContent).toContain('500K¹')
   })
 
   it('follows the window', async () => {

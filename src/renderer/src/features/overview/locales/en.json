@@ -71,6 +71,7 @@
     "withoutTokens": "Some sessions recorded no tokens.",
     "withoutCost": "Some sessions recorded no cost.",
     "lowTokens": "Some sessions have unreadable lines or leave out their subagents' tokens.",
+    "uncountedSubagents": "Some sessions have a subagents folder that couldn't be read, so their subagents are missing from the agent and token totals.",
     "undated": "Some sessions have no timestamps, so they count by when their file was last written.",
     "mayBeLow": "A total may be low."
   },

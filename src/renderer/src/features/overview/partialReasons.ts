@@ -8,6 +8,7 @@ export const PARTIAL_REASONS = [
   'withoutTokens',
   'withoutCost',
   'lowTokens',
+  'uncountedSubagents',
   'undated'
 ] as const
 
@@ -15,15 +16,21 @@ export const PARTIAL_REASONS = [
 export type PartialReason = (typeof PARTIAL_REASONS)[number]
 
 /** A figure on the overview that a partial sum can leave low. */
-export type PartialFigure = 'tokens' | 'cost' | 'counts'
+export type PartialFigure = 'tokens' | 'cost' | 'sessions' | 'agents'
 
-const ALL_FIGURES = ['tokens', 'cost', 'counts'] as const satisfies readonly PartialFigure[]
+const ALL_FIGURES = [
+  'tokens',
+  'cost',
+  'sessions',
+  'agents'
+] as const satisfies readonly PartialFigure[]
 
 /**
  * The figures each reason leaves low. A folder missing from the sum, an
  * unreadable session, and a session that is dated by its file's write time
- * (so may belong outside the window) touch every figure. The rest touch the
- * one figure they name.
+ * (so may belong outside the window) touch every figure. A session whose
+ * subagents folder couldn't be read touches the agent count and the tokens.
+ * The rest touch the one figure they name.
  */
 const FIGURES_AFFECTED: Readonly<Record<PartialReason, readonly PartialFigure[]>> = {
   loading: ALL_FIGURES,
@@ -32,6 +39,7 @@ const FIGURES_AFFECTED: Readonly<Record<PartialReason, readonly PartialFigure[]>
   withoutTokens: ['tokens'],
   withoutCost: ['cost'],
   lowTokens: ['tokens'],
+  uncountedSubagents: ['tokens', 'agents'],
   undated: ALL_FIGURES
 }
 
@@ -50,6 +58,7 @@ export function partialReasonsOf(totals: AggregateTotals): readonly PartialReaso
     withoutTokens: partial.withoutTokens > 0,
     withoutCost: partial.withoutCost > 0,
     lowTokens: partial.lowTokens > 0,
+    uncountedSubagents: partial.uncountedSubagents > 0,
     undated: partial.undated > 0
   }
   return PARTIAL_REASONS.filter((reason) => applies[reason])
