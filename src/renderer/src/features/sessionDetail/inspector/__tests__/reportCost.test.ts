@@ -33,6 +33,12 @@ describe('reportCost', () => {
     ).toEqual({ usd: 1, partial: true })
   })
 
+  it('has no cost, and is partial, when the priced part is free and a group has no known price', () => {
+    expect(
+      reportCost(reportOf({ kind: 'free' }, { kind: 'unpriced', reason: 'unknown-model' }))
+    ).toEqual({ usd: null, partial: true })
+  })
+
   it('has no cost, and is partial, when every group is unpriced', () => {
     expect(reportCost(reportOf({ kind: 'unpriced', reason: 'unknown-speed' }))).toEqual({
       usd: null,

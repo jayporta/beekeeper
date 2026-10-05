@@ -58,6 +58,9 @@ export function WorktreeDiffResult({ diffs, entry }: WorktreeDiffResultProps): R
       {uncommitted === 'skipped-filters' && (
         <p className={styles.note}>{t('inspector.worktree.uncommittedFilters')}</p>
       )}
+      {uncommitted === 'no-worktree' && (
+        <p className={styles.note}>{t('inspector.worktree.uncommittedNoWorktree')}</p>
+      )}
       {uncommitted === 'worktree-mismatch' && (
         <p className={styles.note}>{t('inspector.worktree.uncommittedMismatch')}</p>
       )}

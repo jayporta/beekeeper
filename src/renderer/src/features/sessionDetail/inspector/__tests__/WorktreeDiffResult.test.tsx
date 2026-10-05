@@ -48,8 +48,14 @@ describe('WorktreeDiffResult uncommitted work', () => {
     expect(screen.getByText(/Uncommitted changes aren't included.*worktree/)).toBeTruthy()
   })
 
-  it.each(['included', 'no-worktree'] as const)('has no note when it is %s', (uncommitted) => {
-    render(<WorktreeDiffResult diffs={DIFFS} entry={entryOf(uncommitted)} />)
+  it('says uncommitted work is left out when the agent’s worktree folder was not found', () => {
+    render(<WorktreeDiffResult diffs={DIFFS} entry={entryOf('no-worktree')} />)
+
+    expect(screen.getByText(/Uncommitted changes aren't included.*wasn't found/)).toBeTruthy()
+  })
+
+  it('has no note when uncommitted work is included', () => {
+    render(<WorktreeDiffResult diffs={DIFFS} entry={entryOf('included')} />)
 
     expect(screen.queryByText(/Uncommitted changes/)).toBeNull()
   })

@@ -58,17 +58,7 @@ describe('rollupBelow', () => {
     expect(rollupBelow(root)).toEqual({ tokens: 5, below: 1, incomplete: true })
   })
 
-  it('counts a teammate’s recorded total once, not its subagents again', () => {
-    const root = testGraphNode('lead', {
-      children: [
-        teammate(500, [testGraphNode('w1', tokens(200)), testGraphNode('w2', tokens(100))])
-      ]
-    })
-
-    expect(rollupBelow(root)).toEqual({ tokens: 500, below: 3, incomplete: false })
-  })
-
-  it('leaves out the tokens of every depth under a teammate, not only its children', () => {
+  it('adds the subagents under a teammate to its tokens, since its total is its own transcript only', () => {
     const root = testGraphNode('lead', {
       children: [
         teammate(500, [
@@ -77,21 +67,15 @@ describe('rollupBelow', () => {
       ]
     })
 
-    expect(rollupBelow(root)).toEqual({ tokens: 500, below: 3, incomplete: false })
+    expect(rollupBelow(root)).toEqual({ tokens: 1000, below: 3, incomplete: false })
   })
 
-  it('does not let an incomplete agent under a teammate make the rollup incomplete', () => {
+  it('is incomplete when an agent under a teammate has no tokens recorded', () => {
     const root = testGraphNode('lead', {
-      children: [teammate(500, [testGraphNode('w1', tokens(null, true))])]
+      children: [teammate(500, [testGraphNode('w1', tokens(null))])]
     })
 
-    expect(rollupBelow(root).incomplete).toBe(false)
-  })
-
-  it('adds the subagents of a selected teammate to its own tokens, since the node itself is not covered', () => {
-    const selected = teammate(300, [testGraphNode('w1', tokens(40))])
-
-    expect(rollupBelow(selected)).toEqual({ tokens: 40, below: 1, incomplete: false })
+    expect(rollupBelow(root)).toEqual({ tokens: 500, below: 2, incomplete: true })
   })
 
   it('sums a chain thousands deep without recursing', () => {

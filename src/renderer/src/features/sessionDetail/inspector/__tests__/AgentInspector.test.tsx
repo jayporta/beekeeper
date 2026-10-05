@@ -364,7 +364,7 @@ describe('AgentInspector for a teammate', () => {
     ).toBeTruthy()
   })
 
-  it('counts a teammate’s recorded total once in the lead’s rollup, whether or not it is open', async () => {
+  it('adds an open teammate’s subagents to the lead’s rollup', async () => {
     renderInspectorScene({ sessions: { [WRITER.sessionId]: { ok: true, value: writerDetail } } })
     expect(inspector().getByText('5K tokens incl. 4 below')).toBeTruthy()
 
@@ -372,7 +372,7 @@ describe('AgentInspector for a teammate', () => {
     await inspector().findByText('Teammate · own session')
     await select(/^Lead/)
 
-    expect(inspector().getByText('5K tokens incl. 5 below')).toBeTruthy()
+    expect(inspector().getByText('5.1K tokens incl. 5 below')).toBeTruthy()
   })
 
   it('still flags a stopped teammate whose session could not be read', async () => {
