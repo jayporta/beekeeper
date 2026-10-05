@@ -34,7 +34,7 @@ export function WorktreeDiffBox({
   sessionRef,
   agentId,
   branch
-}: WorktreeDiffBoxProps): React.JSX.Element | null {
+}: WorktreeDiffBoxProps): React.JSX.Element {
   const { t } = useTranslation('sessionDetail')
   const showSession = useNavigationStore((state) => state.showSession)
   const queryClient = useQueryClient()
