@@ -12,6 +12,8 @@ export type Inspection =
       readonly report: AgentReportDto
       /** The worktree branch the agent's meta names, or `null`. */
       readonly worktreeBranch: string | null
+      /** Whether the session's subagents folder couldn't be read, so the agent's own agents below are missing. Only a session's own agent is affected. */
+      readonly subagentsUnreadable: boolean
     }
 
 /** Finds a subagent's node in an agent tree without recursing, so a deep tree can't overflow the stack. */
@@ -39,7 +41,14 @@ export function inspectionOf(
 ): Inspection {
   const { data } = query
   if (data === undefined) return { status: query.isError ? 'unreadable' : 'loading' }
-  if (target.agentId === null) return { status: 'ready', report: data.lead, worktreeBranch: null }
+  if (target.agentId === null) {
+    return {
+      status: 'ready',
+      report: data.lead,
+      worktreeBranch: null,
+      subagentsUnreadable: !data.subagents.ok
+    }
+  }
 
   const entry = data.subagents.ok
     ? data.subagents.value.find((subagent) => subagent.agentId === target.agentId)
@@ -50,6 +59,7 @@ export function inspectionOf(
   return {
     status: 'ready',
     report: entry.report.value,
-    worktreeBranch: meta?.status === 'ok' ? (meta.meta.worktreeBranch ?? null) : null
+    worktreeBranch: meta?.status === 'ok' ? (meta.meta.worktreeBranch ?? null) : null,
+    subagentsUnreadable: false
   }
 }

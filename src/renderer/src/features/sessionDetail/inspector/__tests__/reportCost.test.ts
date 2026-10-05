@@ -44,7 +44,7 @@ describe('reportCost', () => {
     expect(reportCost(reportOf({ kind: 'free' }))).toEqual({ usd: 0, partial: false })
   })
 
-  it('is nothing for an agent that used no tokens', () => {
-    expect(reportCost(testReport())).toEqual({ usd: 0, partial: false })
+  it('has no cost, and is not partial, for an agent that used no tokens', () => {
+    expect(reportCost(testReport())).toEqual({ usd: null, partial: false })
   })
 })

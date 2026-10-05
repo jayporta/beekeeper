@@ -33,11 +33,17 @@ interface InspectorBodyProps {
  * <InspectorBody node={node} target={target} inspection={inspection} />
  */
 export function InspectorBody({ node, target, inspection }: InspectorBodyProps): React.JSX.Element {
-  const { report, worktreeBranch } = inspection
+  const { report, worktreeBranch, subagentsUnreadable } = inspection
   const tokens = reportTokens(report)
   const cost = reportCost(report)
   const rollup = rollupBelow(node)
-  const reasons = inspectorReasons({ report, cost, rollup, partial: node.partial })
+  const reasons = inspectorReasons({
+    report,
+    cost,
+    rollup,
+    partial: node.partial,
+    subagentsUnreadable
+  })
 
   return (
     <>
@@ -46,6 +52,7 @@ export function InspectorBody({ node, target, inspection }: InspectorBodyProps):
         cost={cost}
         rollup={rollup}
         unreadableLines={report.skippedLines > 0}
+        subagentsUnreadable={subagentsUnreadable}
       />
       {tokens !== null && <TokenRows report={report} tokens={tokens} />}
       <FilesTouched report={report} />

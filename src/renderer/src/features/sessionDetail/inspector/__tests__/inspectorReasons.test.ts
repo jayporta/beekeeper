@@ -8,8 +8,13 @@ const noBelow = { tokens: 0, below: 0, incomplete: false }
 describe('inspectorReasons', () => {
   it('is empty for a complete report', () => {
     expect(
-      inspectorReasons({ report: testReport(), cost: complete, rollup: noBelow, partial: false })
-        .size
+      inspectorReasons({
+        report: testReport(),
+        cost: complete,
+        rollup: noBelow,
+        partial: false,
+        subagentsUnreadable: false
+      }).size
     ).toBe(0)
   })
 
@@ -18,7 +23,8 @@ describe('inspectorReasons', () => {
       report: testReport({ skippedLines: 2 }),
       cost: complete,
       rollup: noBelow,
-      partial: false
+      partial: false,
+      subagentsUnreadable: false
     })
 
     expect([...reasons]).toEqual(['unreadableLines'])
@@ -29,7 +35,8 @@ describe('inspectorReasons', () => {
       report: testReport(),
       cost: { usd: null, partial: true },
       rollup: noBelow,
-      partial: false
+      partial: false,
+      subagentsUnreadable: false
     })
 
     expect([...reasons]).toEqual(['unpricedTokens'])
@@ -40,7 +47,8 @@ describe('inspectorReasons', () => {
       report: testReport({ fileListIncomplete: true }),
       cost: complete,
       rollup: noBelow,
-      partial: false
+      partial: false,
+      subagentsUnreadable: false
     })
 
     expect([...reasons]).toEqual(['incompleteFiles'])
@@ -51,7 +59,8 @@ describe('inspectorReasons', () => {
       report: testReport(),
       cost: complete,
       rollup: { ...noBelow, incomplete: true },
-      partial: false
+      partial: false,
+      subagentsUnreadable: false
     })
 
     expect([...reasons]).toEqual(['belowIncomplete'])
@@ -62,7 +71,8 @@ describe('inspectorReasons', () => {
       report: testReport({ tokenGroups: [] }),
       cost: complete,
       rollup: { tokens: 10, below: 1, incomplete: false },
-      partial: false
+      partial: false,
+      subagentsUnreadable: false
     })
 
     expect([...reasons]).toEqual(['unrecordedTokens'])
@@ -73,10 +83,23 @@ describe('inspectorReasons', () => {
       report: testReport({ tokenGroups: [] }),
       cost: complete,
       rollup: noBelow,
-      partial: false
+      partial: false,
+      subagentsUnreadable: false
     })
 
     expect(reasons.size).toBe(0)
+  })
+
+  it('names an unreadable subagents folder, whatever else applies', () => {
+    const reasons = inspectorReasons({
+      report: testReport({ skippedLines: 1 }),
+      cost: complete,
+      rollup: noBelow,
+      partial: true,
+      subagentsUnreadable: true
+    })
+
+    expect([...reasons]).toEqual(['unreadableLines', 'subagentsUnreadable'])
   })
 
   it('names the other reason when the node is partial and no figure says why', () => {
@@ -84,7 +107,8 @@ describe('inspectorReasons', () => {
       report: testReport(),
       cost: complete,
       rollup: noBelow,
-      partial: true
+      partial: true,
+      subagentsUnreadable: false
     })
 
     expect([...reasons]).toEqual(['other'])
@@ -95,7 +119,8 @@ describe('inspectorReasons', () => {
       report: testReport({ skippedLines: 1 }),
       cost: complete,
       rollup: noBelow,
-      partial: true
+      partial: true,
+      subagentsUnreadable: false
     })
 
     expect([...reasons]).toEqual(['unreadableLines'])
@@ -106,7 +131,8 @@ describe('inspectorReasons', () => {
       report: testReport({ skippedLines: 1, fileListIncomplete: true }),
       cost: { usd: 1, partial: true },
       rollup: { ...noBelow, incomplete: true },
-      partial: false
+      partial: false,
+      subagentsUnreadable: false
     })
 
     expect(reasons.size).toBe(4)

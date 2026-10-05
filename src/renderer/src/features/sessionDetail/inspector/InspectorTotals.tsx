@@ -17,23 +17,28 @@ interface InspectorTotalsProps {
   readonly rollup: Rollup
   /** Whether the agent's transcript had lines that couldn't be read, so its own figures may be low. */
   readonly unreadableLines: boolean
+  /** Whether the session's subagents folder couldn't be read, so the agents below can't be counted. */
+  readonly subagentsUnreadable: boolean
 }
 
 /**
  * The agent's totals: its own tokens in large type, then what it adds up to
  * with the agents below it (or that there are none), then its cost at API
  * prices. Tokens come first and cost follows. A figure that may be low carries
- * a "¹", and so does a total with the agents below when the agent's own tokens
- * weren't recorded, since the total leaves them out.
+ * a "¹". The total with the agents below carries one when it may leave tokens
+ * out: the agent's own were left out or may be low, or an agent below is
+ * partial. When the subagents couldn't be read the note says so instead of
+ * saying there are none, and carries one too.
  *
  * @example
- * <InspectorTotals tokens={1200} cost={{ usd: 0.4, partial: false }} rollup={rollup} unreadableLines={false} />
+ * <InspectorTotals tokens={1200} cost={{ usd: 0.4, partial: false }} rollup={rollup} unreadableLines={false} subagentsUnreadable={false} />
  */
 export function InspectorTotals({
   tokens,
   cost,
   rollup,
-  unreadableLines
+  unreadableLines,
+  subagentsUnreadable
 }: InspectorTotalsProps): React.JSX.Element {
   const { t } = useTranslation('sessionDetail')
   const { t: tSessions } = useTranslation('sessions')
@@ -41,7 +46,12 @@ export function InspectorTotals({
   const costText = usd === null ? null : tSessions('apiCost', { value: usd })
   const noTokensText = tSessions('emptyCell.tokensNotRecorded')
   const noCostText = tSessions('emptyCell.costNotRecorded')
-  const ownTokensLeftOut = tokens === null && rollup.below > 0
+  const noteMayBeLow =
+    subagentsUnreadable ||
+    (rollup.below > 0 && (rollup.incomplete || tokens === null || unreadableLines))
+  const noAgentsBelow = subagentsUnreadable
+    ? t('inspector.belowUnreadable')
+    : t('inspector.noneBelow')
 
   return (
     <div className={styles.totals}>
@@ -51,12 +61,12 @@ export function InspectorTotals({
       </p>
       <p className={styles.note}>
         {rollup.below === 0
-          ? t('inspector.noneBelow')
+          ? noAgentsBelow
           : t('inspector.rollup', {
               tokens: formatTokens((tokens ?? 0) + rollup.tokens, tSessions),
               count: rollup.below
             })}
-        {(rollup.incomplete || ownTokensLeftOut) && <InspectorMarker />}
+        {noteMayBeLow && <InspectorMarker />}
       </p>
       <p className={styles.note}>
         {costText ?? <EmptyCell spokenText={noCostText} />}

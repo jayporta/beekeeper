@@ -84,6 +84,7 @@
     "unreadable": "beekeeper couldn't read this agent's transcript.",
     "rollup": "{{tokens}} incl. {{count, integer}} below",
     "noneBelow": "No agents below",
+    "belowUnreadable": "Agents below couldn't be read",
     "tokensHeading": "Tokens · {{total}}",
     "tokenClass": {
       "input": "Input",
@@ -93,6 +94,9 @@
     },
     "tokenValue": "{{count, compactInteger}}",
     "filesHeading": "Files touched · {{count, integer}}",
+    "touchCount": "×{{count, integer}}",
+    "touchCountSpoken_one": "touched {{count, integer}} time",
+    "touchCountSpoken_other": "touched {{count, integer}} times",
     "readOnly": "Read-only agent. No edits recorded.",
     "noEditsRecorded": "No edits recorded.",
     "operation": {
@@ -106,6 +110,10 @@
       "label": "Worktree diff",
       "summary_one": "+{{added, integer}} −{{deleted, integer}} across {{count, integer}} file",
       "summary_other": "+{{added, integer}} −{{deleted, integer}} across {{count, integer}} files",
+      "untracked_one": "· {{count, integer}} untracked",
+      "untracked_other": "· {{count, integer}} untracked",
+      "uncommittedFilters": "Uncommitted changes aren't included: this repository uses git filters, which beekeeper doesn't run.",
+      "uncommittedMismatch": "Uncommitted changes aren't included: that folder isn't this agent's worktree of the repository.",
       "loading": "Loading the diff",
       "loadFailed": "beekeeper couldn't load the diff.",
       "gitNotFound": "Git isn't installed, so the diff isn't available.",
@@ -132,6 +140,7 @@
       "unpricedTokens": "Some tokens have no known price, so the cost may be low.",
       "incompleteFiles": "The file list may be missing files.",
       "unrecordedTokens": "This agent's own tokens weren't recorded, so the total with the agents below may be low.",
+      "subagentsUnreadable": "beekeeper couldn't read this session's subagents, so agents below may be missing and the total may be low.",
       "belowIncomplete": "Some agents below have partial or unrecorded totals, so the total may be low.",
       "other": "Some data for this agent couldn't be read."
     }

@@ -7,6 +7,8 @@ describe('diffFailureKey', () => {
     ['repo-missing', 'repoMissing'],
     ['not-a-repo', 'repoMissing'],
     ['outside-project', 'repoMissing'],
+    ['invalid-path', 'repoMissing'],
+    ['invalid-ref', 'failed'],
     ['output-too-large', 'tooLarge'],
     ['timeout', 'timeout'],
     ['too-many-agents', 'tooMany'],

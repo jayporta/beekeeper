@@ -318,12 +318,14 @@ describe('WorktreeDiffBox for a teammate in a session of its own', () => {
   })
 
   it('shows no box for a teammate that shares no worktree', async () => {
-    const { api } = renderInspectorScene()
+    const { client } = renderInspectorScene()
 
     await userEvent.click(screen.getByRole('button', { name: /^writer/ }))
     await inspector().findByText('Teammate · own session')
     await waitFor(() => {
-      expect(api.getWorktreeDiffs).toHaveBeenCalled()
+      expect(
+        client.getQueryState(['worktreeDiffs', WRITER.projectDirName, WRITER.sessionId])?.status
+      ).toBe('success')
     })
 
     expect(inspector().queryByText('Worktree diff')).toBeNull()

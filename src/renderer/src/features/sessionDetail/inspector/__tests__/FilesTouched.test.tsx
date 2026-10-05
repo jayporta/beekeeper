@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { FileTouchDto } from '../../../../../../shared/ipc/agentDto'
 import { testDetail } from '../../testSessionDetail'
@@ -48,13 +48,35 @@ describe('FilesTouched', () => {
     expect(container.querySelector('img')).toBeNull()
   })
 
-  it('lists a file touched twice twice', () => {
+  it('lists a file touched many times once, with each operation once and how many touches', () => {
     withFiles([
+      { filePath: '/repo/x.ts', operation: 'edit', source: 'edit-write' },
       { filePath: '/repo/x.ts', operation: 'edit', source: 'edit-write' },
       { filePath: '/repo/x.ts', operation: 'delete', source: 'bash' }
     ])
 
-    expect(inspector().getAllByText('/repo/x.ts')).toHaveLength(2)
+    expect(inspector().getAllByText('/repo/x.ts')).toHaveLength(1)
+    const row = inspector().getByText('/repo/x.ts').closest('li')
+    expect(row?.textContent).toBe('/repo/x.tseditdelete×3touched 3 times')
+  })
+
+  it('counts the paths, not the touches, in the heading', () => {
+    withFiles([
+      { filePath: '/repo/x.ts', operation: 'edit', source: 'edit-write' },
+      { filePath: '/repo/x.ts', operation: 'edit', source: 'edit-write' },
+      { filePath: '/repo/y.ts', operation: 'edit', source: 'edit-write' }
+    ])
+
+    const heading = inspector().getByRole('heading', { level: 3, name: 'Files touched · 2' })
+    const section = heading.closest('section')
+    expect(section).not.toBeNull()
+    expect(within(section as HTMLElement).getAllByRole('listitem')).toHaveLength(2)
+  })
+
+  it('shows no count for a file touched once', () => {
+    withFiles([{ filePath: '/repo/x.ts', operation: 'edit', source: 'edit-write' }])
+
+    expect(inspector().queryByText(/×/)).toBeNull()
   })
 
   it('says a read-only agent edited nothing', () => {

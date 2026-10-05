@@ -17,8 +17,10 @@ interface WorktreeDiffResultProps {
 
 /**
  * What a loaded set of diffs says about one subagent: lines added and deleted
- * across its files, or a quiet note on why not: git isn't installed or is too
- * old, the diff couldn't be computed, or there is none for this agent.
+ * across its files and how many paths are untracked, with a quiet note when
+ * uncommitted work isn't included, or a quiet note on why there is no diff:
+ * git isn't installed or is too old, the diff couldn't be computed, or there
+ * is none for this agent.
  *
  * @example
  * <WorktreeDiffResult diffs={diffs} entry={entry} />
@@ -43,10 +45,22 @@ export function WorktreeDiffResult({ diffs, entry }: WorktreeDiffResultProps): R
     )
   }
 
+  const { uncommitted, untracked } = entry.result.diff
   const { added, deleted, files } = summarizeNumstat(entry.result.diff.files)
   return (
-    <p className={styles.summary}>
-      {t('inspector.worktree.summary', { added, deleted, count: files })}
-    </p>
+    <>
+      <p className={styles.summary}>
+        {t('inspector.worktree.summary', { added, deleted, count: files })}
+        {untracked.length > 0 && (
+          <> {t('inspector.worktree.untracked', { count: untracked.length })}</>
+        )}
+      </p>
+      {uncommitted === 'skipped-filters' && (
+        <p className={styles.note}>{t('inspector.worktree.uncommittedFilters')}</p>
+      )}
+      {uncommitted === 'worktree-mismatch' && (
+        <p className={styles.note}>{t('inspector.worktree.uncommittedMismatch')}</p>
+      )}
+    </>
   )
 }

@@ -27,7 +27,17 @@ describe('inspectionOf the owner’s own agent', () => {
     expect(inspectionOf(target, { data, isError: false })).toEqual({
       status: 'ready',
       report: lead,
-      worktreeBranch: null
+      worktreeBranch: null,
+      subagentsUnreadable: false
+    })
+  })
+
+  it('flags an unreadable subagents folder, which leaves the session with no agents below', () => {
+    const data = testDetail({ lead, reports: false })
+
+    expect(inspectionOf(target, { data, isError: false })).toMatchObject({
+      status: 'ready',
+      subagentsUnreadable: true
     })
   })
 
@@ -49,7 +59,8 @@ describe('inspectionOf a subagent', () => {
 
     expect(inspectionOf(target, { data, isError: false })).toMatchObject({
       status: 'ready',
-      report: sub
+      report: sub,
+      subagentsUnreadable: false
     })
   })
 

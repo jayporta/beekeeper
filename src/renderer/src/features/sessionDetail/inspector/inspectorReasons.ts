@@ -9,6 +9,7 @@ export type InspectorReason =
   | 'unpricedTokens'
   | 'incompleteFiles'
   | 'unrecordedTokens'
+  | 'subagentsUnreadable'
   | 'belowIncomplete'
   | 'other'
 
@@ -22,26 +23,30 @@ interface InspectorReasonsInput {
   readonly rollup: Rollup
   /** Whether the agent's graph node is marked partial, for a reason the figures above don't name. */
   readonly partial: boolean
+  /** Whether the session's subagents folder couldn't be read, so agents below may be missing. */
+  readonly subagentsUnreadable: boolean
 }
 
 /**
  * Works out why the inspector's figures may leave something out, so its
  * footnote can explain each "¹" on screen.
  *
- * @param input - The agent's report, cost, rollup, and partial mark.
+ * @param input - The agent's report, cost, rollup, partial mark, and whether its subagents were unreadable.
  * @returns The reasons, empty when every figure is whole.
  */
 export function inspectorReasons({
   report,
   cost,
   rollup,
-  partial
+  partial,
+  subagentsUnreadable
 }: InspectorReasonsInput): ReadonlySet<InspectorReason> {
   const reasons = new Set<InspectorReason>()
   if (report.skippedLines > 0) reasons.add('unreadableLines')
   if (cost.partial) reasons.add('unpricedTokens')
   if (report.fileListIncomplete) reasons.add('incompleteFiles')
   if (rollup.below > 0 && reportTokens(report) === null) reasons.add('unrecordedTokens')
+  if (subagentsUnreadable) reasons.add('subagentsUnreadable')
   if (rollup.incomplete) reasons.add('belowIncomplete')
   if (partial && reasons.size === 0) reasons.add('other')
   return reasons

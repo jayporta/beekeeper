@@ -43,6 +43,18 @@
   overflow-wrap: anywhere;
 }
 
+.tags {
+  display: flex;
+  flex: none;
+  gap: var(--space-1);
+  align-items: baseline;
+}
+
+.count {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2xs);
+}
+
 .tag {
   flex: none;
   padding: 0 var(--space-1-5);

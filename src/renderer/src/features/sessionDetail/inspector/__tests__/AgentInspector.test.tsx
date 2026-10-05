@@ -217,11 +217,39 @@ describe('AgentInspector for an agent with no tokens recorded', () => {
     expect(inspector().queryByRole('heading', { level: 3, name: /^Tokens/ })).toBeNull()
   })
 
+  it('says the cost was not recorded instead of showing $0.00', () => {
+    renderInspectorScene({ detail: noTokens, items: [testSession(1)] })
+
+    expect(inspector().getByText('cost not recorded')).toBeTruthy()
+    expect(inspector().queryByText(/at API prices/)).toBeNull()
+  })
+
   it('marks the total with the agents below and explains why it may be low', () => {
     renderInspectorScene({ detail: noTokens, items: [testSession(1)] })
 
     expect(inspector().getByText(/40 tokens incl\. 1 below/).textContent).toContain('¹')
     expect(inspector().getByText(/This agent's own tokens weren't recorded/)).toBeTruthy()
+  })
+})
+
+describe('AgentInspector when the subagents folder could not be read', () => {
+  const unreadable = testDetail({ lead: LEAD_REPORT, reports: false })
+
+  it('says the agents below could not be read, not that there are none', () => {
+    renderInspectorScene({ detail: unreadable, items: [testSession(1)] })
+
+    expect(inspector().getByText(/Agents below couldn't be read/).textContent).toContain('¹')
+    expect(inspector().queryByText('No agents below')).toBeNull()
+  })
+
+  it('explains the marker in the footnote, even beside another reason', () => {
+    const detail = testDetail({ lead: { ...LEAD_REPORT, skippedLines: 1 }, reports: false })
+    renderInspectorScene({ detail, items: [testSession(1)] })
+
+    const note = inspector().getByText(/^¹ Partial:/).textContent ?? ''
+
+    expect(note).toContain("Some transcript lines couldn't be read")
+    expect(note).toContain("couldn't read this session's subagents")
   })
 })
 
@@ -244,6 +272,7 @@ describe('AgentInspector for a subagent', () => {
 
     await select(/^Explore/)
 
+    expect(inspector().getByText("beekeeper couldn't read this agent's transcript.")).toBeTruthy()
     expect(inspector().queryByRole('alert')).toBeNull()
   })
 
