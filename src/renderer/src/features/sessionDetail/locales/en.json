@@ -114,7 +114,7 @@
       "untracked_other": "· {{count, integer}} untracked",
       "uncommittedFilters": "Uncommitted changes aren't included: this repository uses git filters, which beekeeper doesn't run.",
       "uncommittedMismatch": "Uncommitted changes aren't included: that folder isn't this agent's worktree of the repository.",
-      "uncommittedNoWorktree": "Uncommitted changes aren't included: this agent's worktree folder wasn't found.",
+      "uncommittedNoWorktree": "Uncommitted changes aren't included: this agent's worktree folder isn't available.",
       "loading": "Loading the diff",
       "loadFailed": "beekeeper couldn't load the diff.",
       "gitNotFound": "Git isn't installed, so the diff isn't available.",
