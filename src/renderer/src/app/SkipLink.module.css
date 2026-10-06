@@ -2,6 +2,8 @@
   position: absolute;
   inset-block-start: var(--space-2);
   inset-inline-start: var(--space-2);
+  /* Above the sticky sidebar, which comes later in the page and would paint over it. */
+  z-index: 1;
   padding: var(--space-2) var(--space-3);
   color: var(--color-bg);
   font-weight: var(--font-weight-semibold);
