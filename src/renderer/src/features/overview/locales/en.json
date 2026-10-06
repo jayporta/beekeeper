@@ -39,6 +39,7 @@
   },
   "announce": {
     "updated": "Totals for the {{range}} updated",
+    "failed": "Couldn't load the totals for the {{range}}",
     "empty": "{{heading}}. {{body}}"
   },
   "card": {

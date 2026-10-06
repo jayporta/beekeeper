@@ -13,6 +13,7 @@ import { shareOfLargest } from './shareOfLargest'
 import { totalsStatus } from './sumTotals'
 import { TotalsAnnouncement } from './TotalsAnnouncement'
 import { TotalsStrip } from './TotalsStrip'
+import type { TotalsOutcome } from './useTotalsAnnouncement'
 import { useProjectTotals } from './useProjectTotals'
 
 /**
@@ -20,10 +21,11 @@ import { useProjectTotals } from './useProjectTotals'
  * across every project, a card for each project, and a note on any figure
  * that may be low. Each project loads on its own, so a card fills in as its
  * totals arrive and a project that can't be read doesn't hold up the rest.
- * With nothing in the window it says so, above cards that show zero. While a
+ * With nothing in the window, and no session it couldn't read, it says so,
+ * above cards that show zero. While a
  * window's totals load, or show the other window's until they arrive, the cards
  * are marked busy and the empty message waits. A status region announces once
- * when the window's totals have all arrived.
+ * when the window's totals have all arrived, or that none could be loaded.
  *
  * @example
  * <main><OverviewView /></main>
@@ -49,14 +51,18 @@ export function OverviewView(): React.JSX.Element {
   const idle =
     settled &&
     folders.failed === 0 &&
+    overall.partial.unreadable === 0 &&
     overall.tokens === 0 &&
     overall.sessions === 0 &&
     overall.agents === 0
+  let outcome: TotalsOutcome = 'updated'
+  if (totalsStatus(overall) === 'error') outcome = 'failed'
+  else if (idle) outcome = 'empty'
 
   return (
     <div className={styles.view}>
       <OverviewHeader />
-      <TotalsAnnouncement range={range} settled={settled} empty={idle} />
+      <TotalsAnnouncement range={range} settled={settled} outcome={outcome} />
       {groups.length > 0 && <TotalsStrip totals={overall} range={range} />}
       {idle && (
         <StatusMessage

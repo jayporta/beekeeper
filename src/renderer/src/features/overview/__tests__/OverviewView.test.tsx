@@ -697,6 +697,14 @@ describe('OverviewView announcements', () => {
     expect(statusRegion().textContent).not.toContain('updated')
   })
 
+  it("says the totals couldn't be loaded when every project failed", async () => {
+    renderOverview({ totals: () => Promise.resolve(failed) })
+
+    await waitFor(() => {
+      expect(statusRegion().textContent).toBe("Couldn't load the totals for the last 7 days")
+    })
+  })
+
   it('says nothing when the overview opens with its totals already in', async () => {
     renderOverview()
     await totalsLoaded()
@@ -713,6 +721,18 @@ describe('OverviewView announcements', () => {
 })
 
 describe('OverviewView empty window', () => {
+  it("does not call the window empty when sessions in it couldn't be read", async () => {
+    renderOverview({
+      totals: () => Promise.resolve(ok({ partial: { ...testTotals().partial, unreadable: 1 } }))
+    })
+
+    await waitFor(() => {
+      expect(statusRegion().textContent).toBe('Totals for the last 7 days updated')
+    })
+    expect(main().textContent).toContain("Some sessions couldn't be read.")
+    expect(within(main()).queryByText('No activity in this window')).toBeNull()
+  })
+
   it('offers 30 days to look further back from the 7 day window', async () => {
     renderOverview({ totals: () => Promise.resolve(ok({})) })
 

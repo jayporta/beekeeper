@@ -1,5 +1,5 @@
 import type { TotalsWindowDto } from '../../../../shared/ipc/projectTotalsDto'
-import { useTotalsAnnouncement } from './useTotalsAnnouncement'
+import { useTotalsAnnouncement, type TotalsOutcome } from './useTotalsAnnouncement'
 
 /** Props for {@link TotalsAnnouncement}. */
 interface TotalsAnnouncementProps {
@@ -7,8 +7,8 @@ interface TotalsAnnouncementProps {
   readonly range: TotalsWindowDto
   /** Whether every folder's totals for the window have arrived. */
   readonly settled: boolean
-  /** Whether the window has no activity. */
-  readonly empty: boolean
+  /** What the totals came to: figures, no activity, or every project failed. */
+  readonly outcome: TotalsOutcome
 }
 
 /**
@@ -17,14 +17,14 @@ interface TotalsAnnouncementProps {
  * window's totals have arrived, so the region exists before its text changes.
  *
  * @example
- * <TotalsAnnouncement range="7d" settled empty={false} />
+ * <TotalsAnnouncement range="7d" settled outcome="updated" />
  */
 export function TotalsAnnouncement({
   range,
   settled,
-  empty
+  outcome
 }: TotalsAnnouncementProps): React.JSX.Element {
-  const message = useTotalsAnnouncement({ range, settled, empty })
+  const message = useTotalsAnnouncement({ range, settled, outcome })
 
   return (
     <p role="status" className="visuallyHidden">
