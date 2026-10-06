@@ -22,7 +22,7 @@ interface GraphViewportProps {
  * of the graph and half the view stays in view), zooms with the controls at its bottom right and
  * with Ctrl or Cmd and the wheel, and fits the whole graph to its size on
  * request. The graph is scaled with a CSS transform, and its box is sized to
- * match with empty room on every side, so scrollbars follow the zoom and the
+ * match with empty room on every side, so its scrolling range follows the zoom and the
  * graph can be panned past its edges. It is the graph's labelled region and a
  * tab stop ahead of the nodes, so the keyboard can scroll it without moving
  * among them.

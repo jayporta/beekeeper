@@ -28,9 +28,8 @@ interface GraphZoom {
 /**
  * The size Fit aims for: the viewport's client size less the space at the
  * bottom that the zoom controls cover (its bottom scroll padding). The
- * viewport's height doesn't follow the graph and the room around the graph
- * keeps both scrollbars present at every scale, so the client size is stable
- * as the graph is scaled.
+ * viewport has no scrollbars, so its client size is the area it shows, and
+ * its height doesn't follow the graph, so it is stable as the graph is scaled.
  */
 function fitTarget(viewport: HTMLElement): Size {
   const covered = Number.parseFloat(getComputedStyle(viewport).scrollPaddingBottom) || 0
@@ -57,8 +56,8 @@ export function useGraphZoom(viewportRef: RefObject<HTMLElement | null>, content
   const [scale, setScale] = useState(1)
   // The scale the latest change set, for handlers that outlive a render, so the wheel listener attaches once.
   const scaleRef = useRef(scale)
-  const view = useViewSize(viewportRef)
-  const seenScroll = useSeenScroll(viewportRef)
+  const { size: view, measured } = useViewSize(viewportRef)
+  const seenScroll = useSeenScroll(viewportRef, measured)
 
   const slackAt = useCallback(
     (at: number): Size => panSlack(view, { width: contentWidth * at, height: contentHeight * at }),

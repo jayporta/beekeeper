@@ -29,6 +29,8 @@
     var(--size-graph-max-height)
   );
   overflow: auto;
+  /* No scrollbars, so the border box the slack is measured from is the area the view shows. It still scrolls by drag, wheel, trackpad and keyboard. */
+  scrollbar-width: none;
   /*
    * Keeps a focused node clear of the zoom controls, which cover the bottom right corner and so
    * only reach into the bottom padding. Fit leaves the same room above them.

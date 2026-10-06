@@ -1,19 +1,28 @@
-import { useLayoutEffect, useState, type RefObject } from 'react'
+import { useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { flushSync } from 'react-dom'
 import type { Size } from './graphZoom'
 
 const NO_SIZE: Size = { width: 0, height: 0 }
 
+/** An element's measured size. */
+interface ViewSize {
+  /** The size, zero until the element has been measured. */
+  readonly size: Size
+  /** The size last measured, which is updated the moment the observer reports and so can be ahead of `size`. */
+  readonly measured: RefObject<Size>
+}
+
 /**
- * Measures an element's border box, so a scrollbar coming or going never
- * changes it. A change is committed before the browser paints, so the room
+ * Measures an element's border box, which is the area it shows when it has no
+ * scrollbars. A change is committed before the browser paints, so the room
  * laid out from it is in place when the caller adjusts the scroll offsets.
  *
  * @param viewportRef - The element to measure.
- * @returns Its size, zero until it has been measured.
+ * @returns Its size, and a ref to the size last measured.
  */
-export function useViewSize(viewportRef: RefObject<HTMLElement | null>): Size {
+export function useViewSize(viewportRef: RefObject<HTMLElement | null>): ViewSize {
   const [size, setSize] = useState(NO_SIZE)
+  const measured = useRef(NO_SIZE)
 
   // Layout effect, so the observer is watching before the first paint.
   useLayoutEffect(() => {
@@ -21,6 +30,7 @@ export function useViewSize(viewportRef: RefObject<HTMLElement | null>): Size {
     if (viewport === null) return
     const observer = new ResizeObserver(() => {
       const next = { width: viewport.offsetWidth, height: viewport.offsetHeight }
+      measured.current = next
       flushSync(() => {
         setSize((previous) =>
           previous.width === next.width && previous.height === next.height ? previous : next
@@ -33,5 +43,5 @@ export function useViewSize(viewportRef: RefObject<HTMLElement | null>): Size {
     }
   }, [viewportRef])
 
-  return size
+  return { size, measured }
 }

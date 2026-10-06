@@ -1,5 +1,5 @@
-import { createEvent, fireEvent, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { fireEvent, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { MAX_SCALE, MIN_SCALE, ZOOM_STEP } from '../graphZoom'
 import { graphNode, renderGraph } from '../testGraphScene'
@@ -334,12 +334,6 @@ describe('GraphCanvas wheel', () => {
 })
 
 describe('GraphCanvas pan', () => {
-  // A view with a size has a client area, which a press on its scrollbar falls outside of.
-  beforeEach(() => {
-    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1000)
-    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(1000)
-  })
-
   const down = (target: Element, x: number, y: number): void => {
     fireEvent.pointerDown(target, { clientX: x, clientY: y, button: 0, pointerId: 1 })
   }
@@ -377,42 +371,6 @@ describe('GraphCanvas pan', () => {
     move(viewport(), 100, 200)
 
     expect(viewport().scrollLeft).toBe(100)
-  })
-
-  /** Presses the view's background at an offset from its top left, as the browser reports it. */
-  const downAtOffset = (offsetX: number, offsetY: number): void => {
-    const press = createEvent.pointerDown(viewport(), {
-      clientX: 200,
-      clientY: 200,
-      button: 0,
-      pointerId: 1
-    })
-    Object.defineProperties(press, { offsetX: { value: offsetX }, offsetY: { value: offsetY } })
-    fireEvent(viewport(), press)
-  }
-
-  it.each([
-    ['vertical', 1005, 50],
-    ['horizontal', 50, 1005]
-  ])('does not pan from a press on the view’s %s scrollbar', (_bar, offsetX, offsetY) => {
-    renderGraph()
-    viewport().scrollLeft = 100
-    viewport().scrollTop = 100
-
-    downAtOffset(offsetX, offsetY)
-    move(viewport(), 100, 100)
-
-    expect([viewport().scrollLeft, viewport().scrollTop]).toEqual([100, 100])
-  })
-
-  it('still pans from a press just inside the view’s content area', () => {
-    renderGraph()
-    viewport().scrollLeft = 100
-
-    downAtOffset(999, 999)
-    move(viewport(), 170, 200)
-
-    expect(viewport().scrollLeft).toBe(130)
   })
 
   it('does not pan from any button but the primary', () => {
