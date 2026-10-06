@@ -45,6 +45,23 @@ export function sizeView({ width, height }: ViewBox): void {
   layOut()
 }
 
+/** Delivers the `scroll` events the model has held back. */
+let deliverScrollEvents: () => void = () => undefined
+
+/**
+ * Delivers the `scroll` events held back by {@link modelScrollClamp}'s
+ * `deferEvents`, as the browser does a frame after the offsets change.
+ */
+export function flushScrollEvents(): void {
+  deliverScrollEvents()
+}
+
+/** How {@link modelScrollClamp} behaves. */
+interface ScrollClampOptions {
+  /** Holds each `scroll` event back until {@link flushScrollEvents}, as the browser delivers it a frame after the offsets change. Defaults to firing it at once. */
+  readonly deferEvents?: boolean
+}
+
 /**
  * Makes the rendered view's scroll offsets behave as the browser's do: they
  * read back held within `0` and the sizer's size less the view's client size,
@@ -52,11 +69,27 @@ export function sizeView({ width, height }: ViewBox): void {
  * gives, and a resize by {@link sizeView} holds them at once. Setting an offset
  * or holding one by a resize fires `scroll`. Call it after rendering and
  * sizing, and before the first resize.
+ *
+ * @param options - Whether to deliver `scroll` events late.
  */
-export function modelScrollClamp(): void {
+export function modelScrollClamp({ deferEvents = false }: ScrollClampOptions = {}): void {
   const view = viewport()
   const content = sizer()
   const offsets = { left: 0, top: 0 }
+  let heldBack = false
+  const fireScroll = (): void => {
+    if (!deferEvents) {
+      view.dispatchEvent(new Event('scroll'))
+      return
+    }
+    // The browser delivers one `scroll` event per frame however many offsets changed.
+    heldBack = true
+  }
+  deliverScrollEvents = () => {
+    if (!heldBack) return
+    heldBack = false
+    view.dispatchEvent(new Event('scroll'))
+  }
   const reach = (key: 'left' | 'top'): number =>
     Math.max(
       0,
@@ -73,7 +106,7 @@ export function modelScrollClamp(): void {
     },
     set: (value: number) => {
       offsets[key] = value
-      view.dispatchEvent(new Event('scroll'))
+      fireScroll()
     }
   })
   Object.defineProperties(view, { scrollLeft: axis('left'), scrollTop: axis('top') })
@@ -81,7 +114,7 @@ export function modelScrollClamp(): void {
     const clamped = held('left') !== offsets.left || held('top') !== offsets.top
     offsets.left = held('left')
     offsets.top = held('top')
-    if (clamped) view.dispatchEvent(new Event('scroll'))
+    if (clamped) fireScroll()
   }
 }
 

@@ -55,7 +55,7 @@ function fitTarget(viewport: HTMLElement): Size {
 export function useGraphZoom(viewportRef: RefObject<HTMLElement | null>, content: Size): GraphZoom {
   const { width: contentWidth, height: contentHeight } = content
   const [scale, setScale] = useState(1)
-  // The scale the latest change set, for handlers that outlive a render, so the wheel listener attaches once.
+  // The scale the latest change set, for handlers that outlive a render: the wheel listener doesn't attach again on a zoom.
   const scaleRef = useRef(scale)
   const { size: view, measured } = useViewSize(viewportRef)
   const { seen, record } = useSeenScroll(viewportRef, measured)
@@ -70,19 +70,28 @@ export function useGraphZoom(viewportRef: RefObject<HTMLElement | null>, content
 
   // Keeps the graph where it is on screen when the room before it changes, other than by a zoom. The
   // browser clamps the live offsets while laying the change out, so the ones last seen are shifted,
-  // and the offsets written are recorded as seen, since their `scroll` event comes later.
+  // and the offsets written are recorded as seen, since their `scroll` event comes later. While the
+  // viewport's size has changed and not yet been measured, the room is computed against the old size
+  // and the shift would land in the new layout, so it waits for the measurement, which shifts by the
+  // whole change.
   useLayoutEffect(() => {
     const viewport = viewportRef.current
     const previous = accountedFor.current
-    accountedFor.current = { width: slack.width, height: slack.height }
     if (viewport === null || (previous.width === slack.width && previous.height === slack.height)) {
       return
     }
+    if (
+      viewport.clientWidth !== measured.current.width ||
+      viewport.clientHeight !== measured.current.height
+    ) {
+      return
+    }
+    accountedFor.current = { width: slack.width, height: slack.height }
     const { left, top } = seen.current
     viewport.scrollLeft = left + slack.width - previous.width
     viewport.scrollTop = top + slack.height - previous.height
     record()
-  }, [viewportRef, seen, record, slack.width, slack.height])
+  }, [viewportRef, measured, seen, record, slack.width, slack.height])
 
   // Applies a scale, whose room the caller sets the offsets for, so the shift above leaves it be.
   const applyScale = useCallback(

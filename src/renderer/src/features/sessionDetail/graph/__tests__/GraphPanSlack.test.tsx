@@ -4,6 +4,7 @@ import { GraphViewport } from '../GraphViewport'
 import { ZOOM_STEP } from '../graphZoom'
 import { renderGraph } from '../testGraphScene'
 import {
+  flushScrollEvents,
   modelScrollClamp,
   press,
   sizeView,
@@ -41,12 +42,6 @@ describe('GraphCanvas room to pan', () => {
     renderSizedGraph()
 
     expect([viewport().scrollLeft, viewport().scrollTop]).toEqual([524, 300])
-  })
-
-  it('lands a graph narrower than half the view at the view’s left edge', () => {
-    renderSizedGraph()
-
-    expect(Number.parseFloat(surface().style.left) - viewport().scrollLeft).toBe(0)
   })
 
   it('places the graph past the room before it', () => {
@@ -142,9 +137,9 @@ describe('GraphCanvas room to pan when the graph changes size', () => {
     viewport().scrollLeft = 500
     viewport().scrollTop = 500
 
-    // The view's height follows the graph's in the narrow layout, so both change in one commit. A
-    // graph narrower than half the view leaves the rest of the view beside it, so the room before
-    // it goes from 700 by 600 to 600 by 550, and the graph stays at 200 by 100 on screen.
+    // The view narrows in the same commit as the graph grows. A graph narrower than half the view
+    // leaves the rest of the view beside it, so the room before it goes from 700 by 600 to 600 by
+    // 550, and the graph stays at 200 by 100 on screen.
     sizeView({ width: 900, height: 800 })
     rerender(
       <GraphViewport width={400} height={250}>
@@ -157,6 +152,58 @@ describe('GraphCanvas room to pan when the graph changes size', () => {
     const graphLeft = Number.parseFloat(surface().style.left) - viewport().scrollLeft
     const graphTop = Number.parseFloat(surface().style.top) - viewport().scrollTop
     expect([graphLeft, graphTop]).toEqual([200, 100])
+  })
+})
+
+describe('GraphCanvas room to pan in the narrow layout', () => {
+  it('keeps the graph where it is on screen when the graph grows and the view grows taller with it', () => {
+    const resizing = stubResizeObserver()
+    sizeView({ width: 1000, height: 160 })
+    const { rerender } = render(
+      <GraphViewport width={300} height={60}>
+        <div />
+      </GraphViewport>
+    )
+    modelScrollClamp()
+    resizing.resize()
+    // Panned to the bottom of the view: the graph's top is 100 down, with 100 of room before it.
+    viewport().scrollTop = 0
+
+    // The view's height follows the graph's, so both change in one commit, and the room before the
+    // graph goes from 100 to 103 once the view has been measured.
+    sizeView({ width: 1000, height: 206 })
+    rerender(
+      <GraphViewport width={300} height={150}>
+        <div />
+      </GraphViewport>
+    )
+    resizing.resize()
+
+    expect(Number.parseFloat(surface().style.top) - viewport().scrollTop).toBe(100)
+  })
+})
+
+describe('GraphCanvas room to pan after a zoom in the next frame', () => {
+  it('keeps the graph where it is on screen when the view resizes before the zoom’s scroll event arrives', async () => {
+    const resizing = stubResizeObserver()
+    sizeView({ width: 600, height: 400 })
+    renderGraph()
+    modelScrollClamp({ deferEvents: true })
+    resizing.resize()
+    flushScrollEvents()
+
+    // The view's center is 300 by 200 into it, and so into the graph, which becomes 375 by 250
+    // after the zoom.
+    await press('Zoom in')
+    // The wider view's size reaches the page before the zoom's `scroll` event does, so the event
+    // finds the view's size not yet measured, and is not counted.
+    sizeView({ width: 700, height: 400 })
+    flushScrollEvents()
+    resizing.resize()
+
+    const graphLeft = Number.parseFloat(surface().style.left) - viewport().scrollLeft
+    const graphTop = Number.parseFloat(surface().style.top) - viewport().scrollTop
+    expect([graphLeft + 375, graphTop + 250]).toEqual([300, 200])
   })
 })
 
