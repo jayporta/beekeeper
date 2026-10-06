@@ -1,5 +1,8 @@
 import { resolve } from 'node:path'
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
+
+/** Claude Code's worktrees hold full checkouts of other branches, with their own tests. */
+const exclude = [...configDefaults.exclude, '.claude/worktrees/**']
 
 export default defineConfig({
   test: {
@@ -11,7 +14,8 @@ export default defineConfig({
         test: {
           name: 'node',
           environment: 'node',
-          include: ['src/**/*.test.ts', 'lint/**/*.test.ts']
+          include: ['src/**/*.test.ts', 'lint/**/*.test.ts'],
+          exclude
         }
       },
       {
@@ -23,6 +27,7 @@ export default defineConfig({
           name: 'jsdom',
           environment: 'jsdom',
           include: ['src/**/*.test.tsx'],
+          exclude,
           setupFiles: ['src/renderer/src/testSetup.ts']
         }
       }
