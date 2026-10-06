@@ -65,7 +65,7 @@ describe('GraphCanvas room to pan', () => {
     renderSizedGraph()
 
     fireEvent.pointerDown(viewport(), { clientX: 200, clientY: 200, button: 0, pointerId: 1 })
-    fireEvent.pointerMove(viewport(), { clientX: 500, clientY: 200, pointerId: 1 })
+    fireEvent.pointerMove(viewport(), { clientX: 500, clientY: 200, pointerId: 1, buttons: 1 })
 
     // The graph is now 300 pixels in from the view's left.
     expect(viewport().scrollLeft).toBe(224)
@@ -75,7 +75,7 @@ describe('GraphCanvas room to pan', () => {
     renderSizedGraph()
 
     fireEvent.pointerDown(viewport(), { clientX: 200, clientY: 200, button: 0, pointerId: 1 })
-    fireEvent.pointerMove(viewport(), { clientX: 2200, clientY: 200, pointerId: 1 })
+    fireEvent.pointerMove(viewport(), { clientX: 2200, clientY: 200, pointerId: 1, buttons: 1 })
 
     const graphRight = Number.parseFloat(surface().style.left) - viewport().scrollLeft + 476
     expect(graphRight).toBe(1000)

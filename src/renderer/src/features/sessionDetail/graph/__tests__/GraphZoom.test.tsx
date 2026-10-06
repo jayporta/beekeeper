@@ -346,7 +346,7 @@ describe('GraphCanvas pan', () => {
     fireEvent.pointerDown(target, { clientX: x, clientY: y, button: 0, pointerId: 1 })
   }
   const move = (target: Element, x: number, y: number): void => {
-    fireEvent.pointerMove(target, { clientX: x, clientY: y, pointerId: 1 })
+    fireEvent.pointerMove(target, { clientX: x, clientY: y, pointerId: 1, buttons: 1 })
   }
 
   it('scrolls the view by how far the background is dragged', () => {
@@ -444,6 +444,28 @@ describe('GraphCanvas pan', () => {
 
     down(viewport(), 200, 200)
     fireEvent.pointerCancel(viewport(), { pointerId: 1 })
+    move(viewport(), 100, 200)
+
+    expect(viewport().scrollLeft).toBe(100)
+  })
+
+  it('stops panning when the pointer moves with the button no longer held, though the release never arrived', () => {
+    renderGraph()
+    viewport().scrollLeft = 100
+
+    down(viewport(), 200, 200)
+    fireEvent.pointerMove(viewport(), { clientX: 100, clientY: 200, pointerId: 1, buttons: 0 })
+    move(viewport(), 50, 200)
+
+    expect(viewport().scrollLeft).toBe(100)
+  })
+
+  it('stops panning when the browser takes the pointer capture away', () => {
+    renderGraph()
+    viewport().scrollLeft = 100
+
+    down(viewport(), 200, 200)
+    fireEvent.lostPointerCapture(viewport(), { pointerId: 1 })
     move(viewport(), 100, 200)
 
     expect(viewport().scrollLeft).toBe(100)
