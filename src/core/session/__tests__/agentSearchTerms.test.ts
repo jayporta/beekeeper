@@ -200,7 +200,7 @@ describe('collectAgentTerms', () => {
     expect(collected.truncated).toBe(false)
   })
 
-  it('keeps every term when the code unit budget is exactly met', async () => {
+  it('truncates when the last term is one code unit over the budget', async () => {
     const full = (index: number): Record<string, unknown> => ({
       agentType: 't'.repeat(256),
       description: 'd'.repeat(256),
@@ -208,13 +208,13 @@ describe('collectAgentTerms', () => {
     })
     const subagents = subagentsWith([
       ...Array.from({ length: 5 }, (_unused, index) => full(index)),
-      { name: 'q'.repeat(255), agentType: 'z' }
+      { name: 'q'.repeat(256), agentType: 'z' }
     ])
 
     const collected = await collectAgentTerms(subagents)
 
-    expect(collected.terms).toHaveLength(6)
-    expect(collected.truncated).toBe(false)
+    expect(collected.terms).toHaveLength(5)
+    expect(collected.truncated).toBe(true)
   })
 
   it('keeps every term that fits when a cap is exactly met', async () => {

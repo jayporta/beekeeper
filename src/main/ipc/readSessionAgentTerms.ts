@@ -5,8 +5,9 @@ import type { IpcDeps } from './ipcDeps'
 
 /**
  * Reads the search terms of a session's subagents through the agent terms
- * cache, under the summaries scheduler. A session with no subagents, or whose
- * subagents couldn't be listed, has none and costs no scheduler turn.
+ * cache, under the summaries scheduler. A session whose transcript couldn't be
+ * read, with no subagents, or whose subagents couldn't be listed, has none and
+ * costs no scheduler turn.
  *
  * @param entry - The session, as discovery found it.
  * @param deps - The agent terms cache and the summaries scheduler.
@@ -16,7 +17,7 @@ export function readSessionAgentTerms(
   entry: SessionEntry,
   deps: Pick<IpcDeps, 'agentTerms' | 'summaries'>
 ): Promise<AgentTerms> {
-  if (!entry.subagents.ok || entry.subagents.value.length === 0) {
+  if (!entry.transcript.ok || !entry.subagents.ok || entry.subagents.value.length === 0) {
     return Promise.resolve(NO_AGENT_TERMS)
   }
   const subagents = entry.subagents.value

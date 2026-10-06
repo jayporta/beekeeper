@@ -57,10 +57,10 @@ function lengthOf(term: AgentSearchTerm): number {
 /**
  * Collects the search terms of a session's subagents from their meta files,
  * one file at a time. A subagent with no meta, or whose meta can't be read,
- * adds nothing, and only a transient failure makes the result incomplete. Terms are deduplicated on name, description and type. The
- * collection stops at the first distinct term that would pass
- * {@link MAX_AGENT_TERMS} terms or {@link MAX_AGENT_TERM_CODE_UNITS} code
- * units, and reports `truncated`.
+ * adds nothing, and only a transient failure makes the result incomplete.
+ * Terms are deduplicated on name, description and type. The collection stops
+ * at the first distinct term that would pass {@link MAX_AGENT_TERMS} terms or
+ * {@link MAX_AGENT_TERM_CODE_UNITS} code units, and reports `truncated`.
  *
  * @param subagents - The session's subagents, in agent id order.
  * @param readMeta - Resolves a meta path. Defaults to `resolveSubagentMeta`.
