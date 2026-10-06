@@ -34,6 +34,35 @@ export function blendOver(foreground: string, background: string, opacity: numbe
   return `#${mixed.map((channel) => channel.toString(16).padStart(2, '0')).join('')}`
 }
 
+/** Screen luminance for APCA: the sRGB coefficients on gamma-2.4 channels, with a soft clamp near black. */
+function apcaLuminance(hex: string): number {
+  const [red, green, blue] = channels(hex).map((channel) => (channel / 255) ** 2.4)
+  const luminance = 0.2126729 * (red ?? 0) + 0.7151522 * (green ?? 0) + 0.072175 * (blue ?? 0)
+  return luminance < 0.022 ? luminance + (0.022 - luminance) ** 1.414 : luminance
+}
+
+/**
+ * Computes the APCA-W3 (0.0.98G-4g) lightness contrast, Lc, of text on a background.
+ *
+ * @param text - A 6-digit hex color such as `#1d1f20`.
+ * @param background - A 6-digit hex color.
+ * @returns A signed Lc: positive for dark text on a light ground, negative for light text on a dark
+ *   ground, and 0 when the pair is too close to read. Compare its absolute value to a target.
+ * @throws {Error} When either color is not a 6-digit hex value.
+ */
+export function apcaContrast(text: string, background: string): number {
+  const textLuminance = apcaLuminance(text)
+  const backgroundLuminance = apcaLuminance(background)
+  if (Math.abs(backgroundLuminance - textLuminance) < 0.0005) return 0
+
+  if (backgroundLuminance > textLuminance) {
+    const contrast = (backgroundLuminance ** 0.56 - textLuminance ** 0.57) * 1.14
+    return contrast < 0.1 ? 0 : (contrast - 0.027) * 100
+  }
+  const contrast = (backgroundLuminance ** 0.65 - textLuminance ** 0.62) * 1.14
+  return contrast > -0.1 ? 0 : (contrast + 0.027) * 100
+}
+
 /**
  * Computes the WCAG 2.x contrast ratio between two opaque colors.
  *

@@ -32,7 +32,7 @@
 
   &[aria-current='page'] {
     font-weight: var(--font-weight-semibold);
-    background: var(--color-accent-200);
+    background: var(--color-selected);
   }
 }
 
