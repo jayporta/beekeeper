@@ -120,10 +120,10 @@
   /* Added and removed lines in a patch. They hold Lc 75 and 4.5:1 on the surface, and the + or - itself marks each line as well. */
   --color-diff-add: #1f6b36;
   --color-diff-remove: #a12a2a;
-  /* The graph's viewport grows with the graph, between these. In the fill layout it fills its pane instead, but never below the minimum. */
+  /* The graph's viewport is as tall as the full-size graph plus the controls' room, between these, and doesn't follow the zoom. In the fill layout it fills its pane instead, but never below the minimum. */
   --size-graph-min-height: 10rem;
   --size-graph-max-height: 70vh;
-  /* The scroll space the graph keeps below it, so its last row can scroll clear of the zoom controls: their height and their inset. */
+  /* The room the zoom controls cover at the bottom of the graph's viewport: their height and their inset. Focus scrolling and Fit keep the graph out of it. */
   --size-graph-controls-clearance: calc(var(--size-target-min) + var(--space-3));
   /* The inspector: a 330px column, with token rows of an 80px label, a bar, and a 48px value, under a 6px bar. */
   --size-inspector: 20.625rem;
