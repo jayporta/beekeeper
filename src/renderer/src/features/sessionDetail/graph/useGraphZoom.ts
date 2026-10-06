@@ -28,8 +28,9 @@ interface GraphZoom {
 /**
  * The size Fit aims for: the viewport's client size less the space at the
  * bottom that the zoom controls cover (its bottom scroll padding). The
- * viewport has no scrollbars, so its client size is the area it shows, and
- * its height doesn't follow the graph, so it is stable as the graph is scaled.
+ * viewport's client size is the area it shows, with its scrollbars' room left
+ * out. Its scrollbars are always present and its height doesn't follow the
+ * graph, so it is stable as the graph is scaled.
  */
 function fitTarget(viewport: HTMLElement): Size {
   const covered = Number.parseFloat(getComputedStyle(viewport).scrollPaddingBottom) || 0
@@ -57,7 +58,7 @@ export function useGraphZoom(viewportRef: RefObject<HTMLElement | null>, content
   // The scale the latest change set, for handlers that outlive a render, so the wheel listener attaches once.
   const scaleRef = useRef(scale)
   const { size: view, measured } = useViewSize(viewportRef)
-  const seenScroll = useSeenScroll(viewportRef, measured)
+  const { seen, record } = useSeenScroll(viewportRef, measured)
 
   const slackAt = useCallback(
     (at: number): Size => panSlack(view, { width: contentWidth * at, height: contentHeight * at }),
@@ -68,7 +69,8 @@ export function useGraphZoom(viewportRef: RefObject<HTMLElement | null>, content
   const accountedFor = useRef(slack)
 
   // Keeps the graph where it is on screen when the room before it changes, other than by a zoom. The
-  // browser clamps the live offsets while laying the change out, so the ones last seen are shifted.
+  // browser clamps the live offsets while laying the change out, so the ones last seen are shifted,
+  // and the offsets written are recorded as seen, since their `scroll` event comes later.
   useLayoutEffect(() => {
     const viewport = viewportRef.current
     const previous = accountedFor.current
@@ -76,10 +78,11 @@ export function useGraphZoom(viewportRef: RefObject<HTMLElement | null>, content
     if (viewport === null || (previous.width === slack.width && previous.height === slack.height)) {
       return
     }
-    const { left, top } = seenScroll.current
+    const { left, top } = seen.current
     viewport.scrollLeft = left + slack.width - previous.width
     viewport.scrollTop = top + slack.height - previous.height
-  }, [viewportRef, seenScroll, slack.width, slack.height])
+    record()
+  }, [viewportRef, seen, record, slack.width, slack.height])
 
   // Applies a scale, whose room the caller sets the offsets for, so the shift above leaves it be.
   const applyScale = useCallback(
@@ -119,8 +122,9 @@ export function useGraphZoom(viewportRef: RefObject<HTMLElement | null>, content
         after: after.height,
         ratio
       })
+      record()
     },
-    [viewportRef, slackAt, applyScale]
+    [viewportRef, slackAt, applyScale, record]
   )
 
   const zoomBy = useCallback(
@@ -153,7 +157,8 @@ export function useGraphZoom(viewportRef: RefObject<HTMLElement | null>, content
       content: contentHeight * next,
       room: target.height
     })
-  }, [viewportRef, contentWidth, contentHeight, slackAt, applyScale])
+    record()
+  }, [viewportRef, contentWidth, contentHeight, slackAt, applyScale, record])
 
   // A wheel listener has to be non-passive to cancel the browser's own page zoom.
   useEffect(() => {

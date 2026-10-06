@@ -1,5 +1,6 @@
-import { fireEvent } from '@testing-library/react'
+import { fireEvent, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { GraphViewport } from '../GraphViewport'
 import { ZOOM_STEP } from '../graphZoom'
 import { renderGraph } from '../testGraphScene'
 import {
@@ -124,6 +125,38 @@ describe('GraphCanvas room to pan', () => {
 
     // The room before the graph goes from 300 to 320.
     expect(viewport().scrollLeft).toBe(470)
+  })
+})
+
+describe('GraphCanvas room to pan when the graph changes size', () => {
+  it('keeps the graph where it is on screen when the graph and then the view change size', () => {
+    const resizing = stubResizeObserver()
+    sizeView({ width: 1000, height: 800 })
+    const { rerender } = render(
+      <GraphViewport width={300} height={200}>
+        <div />
+      </GraphViewport>
+    )
+    modelScrollClamp()
+    resizing.resize()
+    viewport().scrollLeft = 500
+    viewport().scrollTop = 500
+
+    // The view's height follows the graph's in the narrow layout, so both change in one commit. A
+    // graph narrower than half the view leaves the rest of the view beside it, so the room before
+    // it goes from 700 by 600 to 600 by 550, and the graph stays at 200 by 100 on screen.
+    sizeView({ width: 900, height: 800 })
+    rerender(
+      <GraphViewport width={400} height={250}>
+        <div />
+      </GraphViewport>
+    )
+    // The room before the graph goes from 600 to 500 wide, and the graph stays at 200 on screen.
+    resizing.resize()
+
+    const graphLeft = Number.parseFloat(surface().style.left) - viewport().scrollLeft
+    const graphTop = Number.parseFloat(surface().style.top) - viewport().scrollTop
+    expect([graphLeft, graphTop]).toEqual([200, 100])
   })
 })
 

@@ -1,16 +1,15 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
-import { graphNode } from './testGraphScene'
 
-/** The box the graph is scaled in: the node's parent. */
-export const surface = (): HTMLElement => graphNode(/^Lead/).parentElement as HTMLElement
+/** The element that scrolls and pans: the graph's labelled region. */
+export const viewport = (): HTMLElement => screen.getByRole('region', { name: 'Agent graph' })
 
-/** The box sized to the scaled graph and the room around it: the surface's parent. */
-export const sizer = (): HTMLElement => surface().parentElement as HTMLElement
+/** The box sized to the scaled graph and the room around it: the viewport's only child. */
+export const sizer = (): HTMLElement => viewport().firstElementChild as HTMLElement
 
-/** The element that scrolls and pans: the sizer's parent. */
-export const viewport = (): HTMLElement => sizer().parentElement as HTMLElement
+/** The box the graph is scaled in: the sizer's only child. */
+export const surface = (): HTMLElement => sizer().firstElementChild as HTMLElement
 
 /** The scale the surface is drawn at. */
 export const scale = (): number => Number(/scale\(([\d.]+)\)/.exec(surface().style.transform)?.[1])
@@ -32,17 +31,15 @@ export interface ViewBox {
 let layOut: () => void = () => undefined
 
 /**
- * Gives every element the size of a view with no borders,
- * since jsdom lays nothing out. Call it again to resize. If the scroll
- * clamping is modeled, the new size clamps the offsets against the content as
- * it is, as the browser does before any observer reports, and a clamp fires
- * `scroll`.
+ * Gives every element the client size of a view, since jsdom lays nothing
+ * out, as if the view's scrollbars took no room. Call it again to resize. If
+ * the scroll clamping is modeled, the new size clamps the offsets against the
+ * content as it is, as the browser does before any observer reports, and a
+ * clamp fires `scroll`.
  *
- * @param box - The border box and the client box, which are the same size.
+ * @param box - The client box.
  */
 export function sizeView({ width, height }: ViewBox): void {
-  vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(width)
-  vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(height)
   vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(width)
   vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(height)
   layOut()
@@ -98,9 +95,15 @@ const realComputedStyle = window.getComputedStyle.bind(window)
  */
 export function stubControlsClearance(pixels: number): void {
   const view = viewport()
-  vi.spyOn(window, 'getComputedStyle').mockImplementation((element, pseudo) =>
-    element === view
-      ? ({ scrollPaddingBottom: `${pixels}px` } as CSSStyleDeclaration)
-      : realComputedStyle(element, pseudo)
-  )
+  vi.spyOn(window, 'getComputedStyle').mockImplementation((element, pseudo) => {
+    const style = realComputedStyle(element, pseudo)
+    if (element !== view) return style
+    return new Proxy(style, {
+      get: (target, property) => {
+        if (property === 'scrollPaddingBottom') return `${pixels}px`
+        const value: unknown = Reflect.get(target, property)
+        return typeof value === 'function' ? value.bind(target) : value
+      }
+    })
+  })
 }

@@ -13,12 +13,13 @@ interface ViewSize {
 }
 
 /**
- * Measures an element's border box, which is the area it shows when it has no
- * scrollbars. A change is committed before the browser paints, so the room
+ * Measures the area an element shows: its client box, which leaves out the
+ * room its scrollbars take. The element's content box is observed, which
+ * changes whenever the client box does. A change is committed before the browser paints, so the room
  * laid out from it is in place when the caller adjusts the scroll offsets.
  *
  * @param viewportRef - The element to measure.
- * @returns Its size, and a ref to the size last measured.
+ * @returns Its client size, and a ref to the size last measured.
  */
 export function useViewSize(viewportRef: RefObject<HTMLElement | null>): ViewSize {
   const [size, setSize] = useState(NO_SIZE)
@@ -29,7 +30,7 @@ export function useViewSize(viewportRef: RefObject<HTMLElement | null>): ViewSiz
     const viewport = viewportRef.current
     if (viewport === null) return
     const observer = new ResizeObserver(() => {
-      const next = { width: viewport.offsetWidth, height: viewport.offsetHeight }
+      const next = { width: viewport.clientWidth, height: viewport.clientHeight }
       measured.current = next
       flushSync(() => {
         setSize((previous) =>
@@ -37,7 +38,7 @@ export function useViewSize(viewportRef: RefObject<HTMLElement | null>): ViewSiz
         )
       })
     })
-    observer.observe(viewport, { box: 'border-box' })
+    observer.observe(viewport)
     return () => {
       observer.disconnect()
     }
