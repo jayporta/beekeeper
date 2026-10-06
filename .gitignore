@@ -9,5 +9,5 @@ out
 /.remember
 
 # Personal Claude Code files, never shared
-.claude/settings.local.json
+**/.claude/settings.local.json
 CLAUDE.local.md
