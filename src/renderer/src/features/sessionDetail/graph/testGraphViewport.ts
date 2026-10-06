@@ -56,6 +56,12 @@ export function flushScrollEvents(): void {
   deliverScrollEvents()
 }
 
+/** Stops modeling the scroll clamping, so a later test's {@link sizeView} doesn't lay out a view that is gone. Call it after each test. */
+export function stopModelingScrollClamp(): void {
+  layOut = () => undefined
+  deliverScrollEvents = () => undefined
+}
+
 /** How {@link modelScrollClamp} behaves. */
 interface ScrollClampOptions {
   /** Holds each `scroll` event back until {@link flushScrollEvents}, as the browser delivers it a frame after the offsets change. Defaults to firing it at once. */

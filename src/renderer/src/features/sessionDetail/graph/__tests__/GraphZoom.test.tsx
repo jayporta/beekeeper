@@ -9,6 +9,7 @@ import {
   scale,
   sizeView,
   sizer,
+  stopModelingScrollClamp,
   stubControlsClearance,
   surface,
   viewport
@@ -18,6 +19,7 @@ import { stubResizeObserver } from '../testResizeObserver'
 afterEach(() => {
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
+  stopModelingScrollClamp()
   useNavigationStore.getState().reset()
 })
 

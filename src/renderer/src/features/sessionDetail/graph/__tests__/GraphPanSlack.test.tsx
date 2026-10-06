@@ -9,6 +9,7 @@ import {
   press,
   sizeView,
   sizer,
+  stopModelingScrollClamp,
   surface,
   viewport,
   type ViewBox
@@ -18,6 +19,7 @@ import { stubResizeObserver } from '../testResizeObserver'
 afterEach(() => {
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
+  stopModelingScrollClamp()
 })
 
 /**
@@ -50,7 +52,7 @@ describe('GraphCanvas room to pan', () => {
     expect([surface().style.left, surface().style.top]).toEqual(['524px', '300px'])
   })
 
-  it('makes room to pan past every edge of a graph bigger than half the view', () => {
+  it('makes room to pan past every edge, by the view less the part kept in view', () => {
     renderSizedGraph()
 
     expect([sizer().style.width, sizer().style.height]).toEqual([
