@@ -1,24 +1,27 @@
 import { createEvent, fireEvent, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { MAX_SCALE, MIN_SCALE, ZOOM_STEP } from '../graphZoom'
 import { graphNode, renderGraph } from '../testGraphScene'
+import {
+  modelScrollClamp,
+  press,
+  scale,
+  sizeView,
+  sizer,
+  stopModelingScrollClamp,
+  stubControlsClearance,
+  surface,
+  viewport
+} from '../testGraphViewport'
+import { stubResizeObserver } from '../testResizeObserver'
 
 afterEach(() => {
   vi.restoreAllMocks()
+  vi.unstubAllGlobals()
+  stopModelingScrollClamp()
   useNavigationStore.getState().reset()
 })
-
-/** The box the graph is scaled in: the node's parent. */
-const surface = (): HTMLElement => graphNode(/^Lead/).parentElement as HTMLElement
-/** The element that scrolls and pans: the surface's grandparent. */
-const viewport = (): HTMLElement => surface().parentElement?.parentElement as HTMLElement
-const scale = (): number => Number(/scale\(([\d.]+)\)/.exec(surface().style.transform)?.[1])
-
-const press = async (name: string): Promise<void> => {
-  await userEvent.click(screen.getByRole('button', { name }))
-}
 
 describe('GraphCanvas zoom controls', () => {
   it('has labelled zoom out, fit and zoom in buttons in a group', () => {
@@ -75,12 +78,13 @@ describe('GraphCanvas zoom controls', () => {
 
   it('sizes the scrollable area to the scaled graph', async () => {
     renderGraph()
-    const sizer = surface().parentElement as HTMLElement
-    const before = sizer.style.width
+    const before = sizer().style.width
 
     await press('Zoom in')
 
-    expect(Number.parseFloat(sizer.style.width)).toBeCloseTo(Number.parseFloat(before) * ZOOM_STEP)
+    expect(Number.parseFloat(sizer().style.width)).toBeCloseTo(
+      Number.parseFloat(before) * ZOOM_STEP
+    )
   })
 
   it('keeps the point at the center of the view where it was', async () => {
@@ -96,31 +100,60 @@ describe('GraphCanvas zoom controls', () => {
   })
 })
 
+describe('GraphCanvas zoom with room around the graph', () => {
+  it('keeps the point at the center of the view where it was', async () => {
+    const resizing = stubResizeObserver()
+    sizeView({ width: 200, height: 200 })
+    renderGraph()
+    modelScrollClamp()
+    resizing.resize()
+
+    await press('Zoom in')
+
+    // The room before the graph is 100 each way. The center is 100 into the view and so into the
+    // graph, which becomes 125 after the zoom.
+    expect(viewport().scrollLeft).toBeCloseTo(100 + 125 - 100)
+    expect(viewport().scrollTop).toBeCloseTo(100 + 125 - 100)
+  })
+
+  it('keeps the point under the pointer where it was when the wheel zooms', () => {
+    const resizing = stubResizeObserver()
+    sizeView({ width: 200, height: 200 })
+    renderGraph()
+    modelScrollClamp()
+    resizing.resize()
+    vi.spyOn(viewport(), 'getBoundingClientRect').mockReturnValue({ left: 50, top: 20 } as DOMRect)
+
+    fireEvent.wheel(viewport(), { deltaY: -10, ctrlKey: true, clientX: 150, clientY: 120 })
+
+    // The pointer is 100 into the view and so into the graph, which the zoom scales by the new scale.
+    expect(viewport().scrollLeft).toBeCloseTo(100 + 100 * scale() - 100)
+    expect(viewport().scrollTop).toBeCloseTo(100 + 100 * scale() - 100)
+  })
+
+  it('keeps the point under the pointer where it was when zooming grows a small graph past half the view', () => {
+    const resizing = stubResizeObserver()
+    sizeView({ width: 1000, height: 800 })
+    renderGraph()
+    modelScrollClamp()
+    resizing.resize()
+    vi.spyOn(viewport(), 'getBoundingClientRect').mockReturnValue({ left: 50, top: 20 } as DOMRect)
+
+    // The graph is 476 wide, less than half the 1000 view, so 524 of room comes before it. Zooming
+    // makes it wider than half, so 500 of room comes before it.
+    fireEvent.wheel(viewport(), { deltaY: -10, ctrlKey: true, clientX: 250, clientY: 120 })
+
+    // The pointer is 200 into the view and so into the graph, which the zoom scales by the new scale.
+    expect(viewport().scrollLeft).toBeCloseTo(500 + 200 * scale() - 200)
+  })
+})
+
 describe('GraphCanvas zoom out near the far edges', () => {
   it('keeps the center where it was although the browser clamps the offsets to the shrunken graph', async () => {
+    sizeView({ width: 200, height: 100 })
     renderGraph()
-    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(200)
-    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(100)
+    modelScrollClamp()
     await press('Zoom in')
-    // Stands in for the browser: an offset can't pass the end of the scaled graph.
-    const sizer = surface().parentElement as HTMLElement
-    const offsets = { left: 0, top: 0 }
-    Object.defineProperties(viewport(), {
-      scrollLeft: {
-        configurable: true,
-        get: () => Math.min(offsets.left, Math.max(0, Number.parseFloat(sizer.style.width) - 200)),
-        set: (value: number) => {
-          offsets.left = value
-        }
-      },
-      scrollTop: {
-        configurable: true,
-        get: () => Math.min(offsets.top, Math.max(0, Number.parseFloat(sizer.style.height) - 100)),
-        set: (value: number) => {
-          offsets.top = value
-        }
-      }
-    })
     viewport().scrollLeft = 300
     viewport().scrollTop = 300
 
@@ -132,145 +165,29 @@ describe('GraphCanvas zoom out near the far edges', () => {
 })
 
 describe('GraphCanvas fit', () => {
-  const realComputedStyle = window.getComputedStyle.bind(window)
-
-  /** What the view's size looks like, as {@link sizeViewport} stubs it. */
-  interface ViewSize {
-    /** The width without a scrollbar, inside any border. */
-    readonly width: number
-    /** The tallest the view grows, or `'none'` for a view that fills a pane of `height`. */
-    readonly maxHeight: number | 'none'
-    /** The height of the pane a view with no maximum fills, including its borders. */
-    readonly height?: number
-    /** The height a horizontal scrollbar takes from the client height, which the view only has while the graph is wider than it. */
-    readonly scrollbarHeight?: number
-    /** The room below the graph that the zoom controls cover. */
-    readonly clearance?: number
-    /** The width a vertical scrollbar takes, which the view only has while the graph is taller than it. */
-    readonly scrollbar?: number
-    /** The width of each side's border. */
-    readonly border?: number
-  }
-
-  /**
-   * Sizes the view the way the stylesheet does: it is `width` wide, grows with the scaled graph
-   * plus the room the zoom controls cover below it, and stops at `maxHeight`, or is `height` tall
-   * when it has no maximum. A vertical scrollbar narrows its client width while the graph is taller
-   * than it, and a horizontal one shortens its client height while the graph is wider than it.
-   * The scene's graph is 476 by 346 pixels.
-   */
-  const sizeViewport = ({
-    width,
-    maxHeight,
-    height = 0,
-    scrollbarHeight = 0,
-    clearance = 0,
-    scrollbar = 0,
-    border = 0
-  }: ViewSize): void => {
-    const view = viewport()
-    const contentHeight = (element: HTMLElement): number =>
-      Number.parseFloat((element.firstElementChild as HTMLElement | null)?.style.height ?? '0') +
-      clearance
-    const contentWidth = (element: HTMLElement): number =>
-      Number.parseFloat((element.firstElementChild as HTMLElement | null)?.style.width ?? '0')
-    const tallest = maxHeight === 'none' ? height : maxHeight
-    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(width + 2 * border)
-    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(height)
-    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function (
-      this: HTMLElement
-    ) {
-      return contentHeight(this) > tallest ? width - scrollbar : width
-    })
-    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(function (
-      this: HTMLElement
-    ) {
-      if (maxHeight === 'none') {
-        return height - 2 * border - (contentWidth(this) > width ? scrollbarHeight : 0)
-      }
-      return Math.min(maxHeight, contentHeight(this))
-    })
-    vi.spyOn(window, 'getComputedStyle').mockImplementation((element, pseudo) =>
-      element === view
-        ? ({
-            maxHeight: maxHeight === 'none' ? 'none' : `${maxHeight}px`,
-            scrollPaddingBottom: `${clearance}px`,
-            borderLeftWidth: `${border}px`,
-            borderRightWidth: `${border}px`,
-            borderTopWidth: `${border}px`,
-            borderBottomWidth: `${border}px`
-          } as CSSStyleDeclaration)
-        : realComputedStyle(element, pseudo)
-    )
-  }
-
   it('scales the whole graph into a view narrower than it', async () => {
+    sizeView({ width: 238, height: 1000 })
     renderGraph()
-    sizeViewport({ width: 238, maxHeight: 1000 })
 
     await press('Fit the graph to the view')
 
     expect(scale()).toBeCloseTo(0.5)
   })
 
-  it('scales by the height when the view can’t grow tall enough for the graph', async () => {
+  it('scales by the height less the room the zoom controls cover', async () => {
+    sizeView({ width: 1000, height: 273 })
     renderGraph()
-    sizeViewport({ width: 1000, maxHeight: 173 })
+    stubControlsClearance(100)
 
     await press('Fit the graph to the view')
 
     expect(scale()).toBeCloseTo(0.5)
   })
 
-  it('leaves the room the zoom controls cover below the graph', async () => {
+  it('gives the same scale however many times it is pressed', async () => {
+    sizeView({ width: 1000, height: 300 })
     renderGraph()
-    sizeViewport({ width: 1000, maxHeight: 273, clearance: 100 })
-
-    await press('Fit the graph to the view')
-
-    expect(scale()).toBeCloseTo(0.5)
-  })
-
-  it('leaves the room the zoom controls cover below the graph in a view that fills its pane', async () => {
-    renderGraph()
-    sizeViewport({ width: 1000, maxHeight: 'none', height: 273, clearance: 100 })
-
-    await press('Fit the graph to the view')
-
-    expect(scale()).toBeCloseTo(0.5)
-  })
-
-  it('measures a view that fills its pane without its horizontal scrollbar, which Fit itself removes', async () => {
-    renderGraph()
-    // At full size the graph is wider than the view, so a scrollbar shortens it; once fitted it isn't.
-    sizeViewport({
-      width: 470,
-      maxHeight: 'none',
-      height: 300,
-      clearance: 56,
-      scrollbarHeight: 15
-    })
-
-    await press('Fit the graph to the view')
-    const first = scale()
-    await press('Fit the graph to the view')
-
-    expect(first).toBeCloseTo((300 - 56) / 346)
-    expect(scale()).toBeCloseTo(first)
-  })
-
-  it('measures a view that fills its pane inside its borders', async () => {
-    renderGraph()
-    sizeViewport({ width: 1000, maxHeight: 'none', height: 300, clearance: 56, border: 5 })
-
-    await press('Fit the graph to the view')
-
-    expect(scale()).toBeCloseTo((300 - 10 - 56) / 346)
-  })
-
-  it('gives the same scale however many times it is pressed, although the view grows and shrinks with the graph', async () => {
-    renderGraph()
-    sizeViewport({ width: 1000, maxHeight: 300, clearance: 56 })
+    stubControlsClearance(56)
     await press('Zoom out')
     await press('Zoom out')
 
@@ -285,31 +202,9 @@ describe('GraphCanvas fit', () => {
     expect(scales[2]).toBeCloseTo(scales[0] ?? NaN)
   })
 
-  it('measures the view without its scrollbar, which Fit itself removes', async () => {
-    renderGraph()
-    // At full size the graph is just tall enough to need a scrollbar, and once fitted it isn't.
-    sizeViewport({ width: 470, maxHeight: 400, clearance: 56, scrollbar: 15 })
-
-    await press('Fit the graph to the view')
-    const first = scale()
-    await press('Fit the graph to the view')
-
-    expect(first).toBeCloseTo(470 / 476)
-    expect(scale()).toBeCloseTo(first)
-  })
-
-  it('measures the view inside its borders', async () => {
-    renderGraph()
-    sizeViewport({ width: 238, maxHeight: 1000, border: 5 })
-
-    await press('Fit the graph to the view')
-
-    expect(scale()).toBeCloseTo(0.5)
-  })
-
   it('does not magnify a graph that already fits', async () => {
+    sizeView({ width: 5000, height: 5000 })
     renderGraph()
-    sizeViewport({ width: 5000, maxHeight: 5000 })
     await press('Zoom in')
 
     await press('Fit the graph to the view')
@@ -317,27 +212,34 @@ describe('GraphCanvas fit', () => {
     expect(scale()).toBe(1)
   })
 
-  it('scrolls back to the top left', async () => {
+  it('centers the fitted graph in the room above the zoom controls, with the room it has at its new scale', async () => {
+    const resizing = stubResizeObserver()
+    sizeView({ width: 900, height: 400 })
     renderGraph()
-    sizeViewport({ width: 238, maxHeight: 1000 })
-    viewport().scrollLeft = 80
-    viewport().scrollTop = 60
+    modelScrollClamp()
+    stubControlsClearance(100)
+    resizing.resize()
 
     await press('Fit the graph to the view')
 
-    expect([viewport().scrollLeft, viewport().scrollTop]).toEqual([0, 0])
+    // The 300 pixel room above the controls fits the graph at 300 / 346, so it is narrower than
+    // half the 900 view and has more room beside it than it had at full size.
+    const fitted = { width: 476 * (300 / 346), height: 300 }
+    const graphLeft = Number.parseFloat(surface().style.left) - viewport().scrollLeft
+    const graphTop = Number.parseFloat(surface().style.top) - viewport().scrollTop
+    expect(graphLeft).toBeCloseTo((900 - fitted.width) / 2)
+    expect(graphTop).toBeCloseTo((300 - fitted.height) / 2)
   })
 
   it('leaves the scale and the scrollable area alone while the view has no size', async () => {
     renderGraph()
     await press('Zoom in')
-    const sizer = surface().parentElement as HTMLElement
-    const before = sizer.style.width
+    const before = sizer().style.width
 
     await press('Fit the graph to the view')
 
     expect(scale()).toBeCloseTo(ZOOM_STEP)
-    expect(sizer.style.width).toBe(before)
+    expect(sizer().style.width).toBe(before)
   })
 })
 
@@ -444,7 +346,7 @@ describe('GraphCanvas pan', () => {
     fireEvent.pointerDown(target, { clientX: x, clientY: y, button: 0, pointerId: 1 })
   }
   const move = (target: Element, x: number, y: number): void => {
-    fireEvent.pointerMove(target, { clientX: x, clientY: y, pointerId: 1 })
+    fireEvent.pointerMove(target, { clientX: x, clientY: y, pointerId: 1, buttons: 1 })
   }
 
   it('scrolls the view by how far the background is dragged', () => {
@@ -542,6 +444,28 @@ describe('GraphCanvas pan', () => {
 
     down(viewport(), 200, 200)
     fireEvent.pointerCancel(viewport(), { pointerId: 1 })
+    move(viewport(), 100, 200)
+
+    expect(viewport().scrollLeft).toBe(100)
+  })
+
+  it('stops panning when the pointer moves with the button no longer held, though the release never arrived', () => {
+    renderGraph()
+    viewport().scrollLeft = 100
+
+    down(viewport(), 200, 200)
+    fireEvent.pointerMove(viewport(), { clientX: 100, clientY: 200, pointerId: 1, buttons: 0 })
+    move(viewport(), 50, 200)
+
+    expect(viewport().scrollLeft).toBe(100)
+  })
+
+  it('stops panning when the browser takes the pointer capture away', () => {
+    renderGraph()
+    viewport().scrollLeft = 100
+
+    down(viewport(), 200, 200)
+    fireEvent.lostPointerCapture(viewport(), { pointerId: 1 })
     move(viewport(), 100, 200)
 
     expect(viewport().scrollLeft).toBe(100)

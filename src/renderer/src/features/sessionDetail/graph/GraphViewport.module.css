@@ -14,16 +14,28 @@
 }
 
 /*
- * The graph scrolls natively, so a keyboard user's focus brings a node into
- * view by itself. The dots are a local background: they scroll with the graph.
+ * The graph scrolls natively over a scroll area with room around it, so it pans past its edges and a
+ * keyboard user's focus still brings a node into view by itself. The dots are a local background: they
+ * scroll with the graph. Outside the fill layout the view is the full-size graph's height plus the room
+ * the zoom controls cover, within these limits, and doesn't follow the zoom. The limits also hold it if
+ * the graph's height is missing.
  */
 .viewport {
   min-height: var(--size-graph-min-height);
   max-height: var(--size-graph-max-height);
-  overflow: auto;
+  height: clamp(
+    var(--size-graph-min-height),
+    var(--graph-height) + var(--size-graph-controls-clearance),
+    var(--size-graph-max-height)
+  );
+  /*
+   * The room around the graph always overflows both ways, so the scrollbars are there from the first
+   * layout and never come or go, and overlay scrollbars take no room.
+   */
+  overflow: scroll;
   /*
    * Keeps a focused node clear of the zoom controls, which cover the bottom right corner and so
-   * only reach into the bottom padding. Fit leaves the same room below the graph.
+   * only reach into the bottom padding. Fit leaves the same room above them.
    */
   scroll-padding: var(--size-target-min);
   scroll-padding-bottom: var(--size-graph-controls-clearance);
@@ -38,21 +50,17 @@
     cursor: grabbing;
   }
 
-  /* Fills the pane instead of growing with the graph. */
+  /* Fills the pane instead of following the graph's height. */
   @media (width > 60rem) and (min-height: 30rem) {
     flex: 1;
+    height: auto;
     max-height: none;
   }
 }
 
-/*
- * Sized to the scaled graph, so the scroll area follows the zoom. The padding adds scroll space below
- * it, so the last row can scroll clear of the zoom controls laid over the bottom right corner.
- */
+/* Sized to the scaled graph and the room around it, so the scroll area follows the zoom. */
 .sizer {
   position: relative;
-  box-sizing: content-box;
-  padding-bottom: var(--size-graph-controls-clearance);
 }
 
 .surface {
