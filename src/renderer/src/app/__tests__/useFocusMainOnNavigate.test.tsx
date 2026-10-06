@@ -47,16 +47,6 @@ describe('useFocusMainOnNavigate', () => {
     expect(document.activeElement).toBe(screen.getByRole('main'))
   })
 
-  it.each(navigations)('scrolls main back to the top after %s', (_name, navigate) => {
-    render(<Harness />)
-    const main = screen.getByRole('main')
-    main.scrollTop = 120
-
-    act(navigate)
-
-    expect(main.scrollTop).toBe(0)
-  })
-
   it.each(navigations)('brings the top of main into view after %s', (_name, navigate) => {
     const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView')
     render(<Harness />)
@@ -71,18 +61,15 @@ describe('useFocusMainOnNavigate', () => {
   it('does not scroll main when navigation is reset', () => {
     const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView')
     render(<Harness />)
-    const main = screen.getByRole('main')
     act(() => {
       useNavigationStore.getState().showSession(ref)
     })
-    main.scrollTop = 120
     scrollIntoView.mockClear()
 
     act(() => {
       useNavigationStore.getState().reset()
     })
 
-    expect(main.scrollTop).toBe(120)
     expect(scrollIntoView).not.toHaveBeenCalled()
   })
 

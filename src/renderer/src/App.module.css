@@ -1,13 +1,12 @@
 /*
- * At desktop widths the shell fills the window and each area scrolls on its own.
- * The stacked layout below scrolls as one page, so zoomed content is never
+ * The page scrolls main. At desktop widths the sidebar stays in view and scrolls
+ * on its own. The stacked layout scrolls as one page, so zoomed content is never
  * trapped in a short scroller.
  */
 .shell {
   display: grid;
   grid-template-columns: var(--size-sidebar) 1fr;
-  grid-template-rows: minmax(0, 1fr);
-  height: 100vh;
+  min-height: 100vh;
 
   /*
    * Below this width the sidebar stacks above the main area, so content reflows
@@ -17,18 +16,23 @@
   @media (max-width: 40rem) {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;
-    height: auto;
-    min-height: 100vh;
   }
 }
 
 .sidebar {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
   padding: var(--space-4-5) var(--space-3-5);
   background: var(--color-surface);
   border-right: 1px solid var(--color-divider);
   overflow-y: auto;
+  overscroll-behavior-y: contain;
 
   @media (max-width: 40rem) {
+    position: static;
+    height: auto;
     border-right: none;
     border-bottom: 1px solid var(--color-divider);
     overflow-y: visible;
@@ -38,14 +42,9 @@
 .main {
   min-width: 0;
   padding: var(--space-6);
-  overflow-y: auto;
 
-  /* Main meets the window's edges, so the ring is drawn inside it. */
+  /* Main's top meets the window's edge after navigating, so the ring is drawn inside it. */
   &:focus-visible {
     outline-offset: calc(-1 * var(--focus-ring-width));
-  }
-
-  @media (max-width: 40rem) {
-    overflow-y: visible;
   }
 }
