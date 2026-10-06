@@ -5,9 +5,10 @@
  * same on every surface and `__tests__/tokensContrast.test.ts` can check it. Declare every color as
  * a hex value or a `var()` reference to one, since that test resolves them.
  *
- * Both schemes meet the same targets, on the ground, the surface, the selected ground, and the
- * hover tints over them: APCA Lc 90 for body text, Lc 75 for muted and accent text, and WCAG 2
- * 4.5:1 for text and 3:1 for a control's edge and the focus ring.
+ * Both schemes meet the same targets on the ground, the surface, the selected ground, and the hover
+ * tints over the ground and the surface: APCA Lc 90 for body text, Lc 75 for muted and accent text,
+ * and WCAG 2 4.5:1 for text and 3:1 for a control's edge and the focus ring. A hover tint over the
+ * selected ground falls short, so nothing selected takes one.
  */
 :root {
   color-scheme: light dark;
@@ -21,7 +22,7 @@
   /* The ground of the current project row, a selected graph node, and an inspector flag. */
   --color-selected: var(--color-accent-200);
 
-  /* Divider: text at 16% on ground. A decorative frame only, at about 1.4:1. */
+  /* Divider: text at about 16% on ground. A decorative frame only, at about 1.4:1. */
   --color-divider: #dbdbdb;
   --color-border: var(--color-divider);
   /* A control's edge. Passes 3:1 on ground and surface (WCAG 1.4.11). */
@@ -146,7 +147,7 @@
     /* Between accent 100 and 200, so the current project row still stands out from the surface. */
     --color-selected: #263b50;
 
-    --color-divider: #3a3b3d;
+    --color-divider: #3c3e40;
     --color-border-strong: #7a7d80;
 
     --color-accent: #8fb3d9;

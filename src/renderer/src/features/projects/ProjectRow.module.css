@@ -34,6 +34,15 @@
     font-weight: var(--font-weight-semibold);
     background: var(--color-selected);
   }
+
+  /* A bar on the current row's leading edge, since its tint is faint on the surface. A border, so forced colors keep it. */
+  &[aria-current='page']::before {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    border-inline-start: var(--border-width-strong) solid var(--color-accent-strong);
+    content: '';
+  }
 }
 
 .label {

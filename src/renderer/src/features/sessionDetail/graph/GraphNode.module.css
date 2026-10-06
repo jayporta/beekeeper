@@ -13,7 +13,7 @@
   border-radius: var(--radius-none);
   cursor: pointer;
 
-  /* The selected node's fill is already a tint, and the overlay on it would take the muted text below the contrast targets in dark mode. */
+  /* The selected node's fill is already a tint, and the overlay on it would take the muted text below the contrast targets. */
   &:not(.lead, .selected):hover {
     background-image: linear-gradient(var(--color-hover), var(--color-hover));
   }

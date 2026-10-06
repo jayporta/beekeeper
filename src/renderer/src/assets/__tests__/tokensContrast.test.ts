@@ -96,6 +96,14 @@ describe.each(Object.entries(schemes))('%s color scheme graph edges', (_scheme, 
   })
 })
 
+describe.each(Object.entries(schemes))('%s color scheme hover tint', (_scheme, tokens) => {
+  it('is text at --opacity-hover, the opacity the hover grounds are checked at', () => {
+    expect(token(tokens, '--color-hover')).toMatch(
+      /^color-mix\(\s*in srgb,\s*var\(--color-text\) calc\(var\(--opacity-hover\) \* 100%\),\s*transparent\s*\)$/
+    )
+  })
+})
+
 describe('blendOver', () => {
   it('is the foreground at full opacity and the background at none', () => {
     expect(blendOver('#102030', '#ffffff', 1)).toBe('#102030')
