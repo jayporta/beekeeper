@@ -18,7 +18,7 @@ const devServerUrl = (is.dev && process.env['ELECTRON_RENDERER_URL']) || undefin
 const devToolsEnabled = devServerUrl !== undefined
 const rendererRoot = join(__dirname, '../renderer')
 
-function createWindow(): void {
+function createWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -57,14 +57,14 @@ function createWindow(): void {
     console.error(`Beekeeper could not load its window (${describeError(error)}).`)
     app.exit(1)
   })
+  return mainWindow
 }
 
 function openAbout(): void {
   const windows = BrowserWindow.getAllWindows()
-  // On macOS the app stays running with no window. A new window's renderer
-  // hasn't subscribed yet, so an event sent now would be lost.
-  if (windows.length === 0) createWindow()
-  else sendOpenAbout(windows)
+  // On macOS the app stays running with no window. The new window is still
+  // loading, so `sendOpenAbout` holds the request until its page has loaded.
+  sendOpenAbout(windows.length === 0 ? [createWindow()] : windows)
 }
 
 // Must run before the app is ready.

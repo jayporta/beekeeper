@@ -64,11 +64,11 @@ function macAppMenu(onAbout: () => void): MenuItemConstructorOptions {
     submenu: [
       aboutItem(onAbout),
       { type: 'separator' },
-      { role: 'hide' },
+      { role: 'hide', label: 'Hide beekeeper' },
       { role: 'hideOthers' },
       { role: 'unhide' },
       { type: 'separator' },
-      { role: 'quit' }
+      { role: 'quit', label: 'Quit beekeeper' }
     ]
   }
 }

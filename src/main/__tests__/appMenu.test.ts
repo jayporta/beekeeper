@@ -121,6 +121,19 @@ describe('buildAppMenuTemplate', () => {
     expect(onAbout).toHaveBeenCalledTimes(1)
   })
 
+  it.each([
+    ['hide', 'Hide beekeeper'],
+    ['quit', 'Quit beekeeper']
+  ])(
+    'labels the macOS %s item explicitly, since its role would use the bundle name',
+    (role, label) => {
+      const appMenu = build('darwin')[0]
+      const items = Array.isArray(appMenu?.submenu) ? appMenu.submenu : []
+
+      expect(items.find((item) => item.role === role)?.label).toBe(label)
+    }
+  )
+
   it('has no built-in about role on macOS', () => {
     expect(rolesOf(build('darwin'))).not.toContain('about')
   })

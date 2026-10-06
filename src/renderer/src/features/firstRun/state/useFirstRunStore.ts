@@ -11,7 +11,7 @@ export const FIRST_RUN_STORAGE_KEY = 'first-run'
 interface FirstRunState {
   /** Whether the person has pressed "Got it". Persisted across launches. */
   readonly dismissed: boolean
-  /** Records that the person has seen the screen and closes it. */
+  /** Records that the person has seen the screen and closes it. Does nothing once dismissed. */
   dismiss: () => void
 }
 
@@ -34,9 +34,11 @@ export function selectIsFirstRunShowing(state: Pick<FirstRunState, 'dismissed'>)
  */
 export const useFirstRunStore = create<FirstRunState>()(
   persist<FirstRunState, [], [], { dismissed: boolean }>(
-    (set) => ({
+    (set, get) => ({
       dismissed: false,
       dismiss: () => {
+        // Every `set` writes to IndexedDB, so a repeat dismissal must not reach it.
+        if (get().dismissed) return
         set({ dismissed: true })
       }
     }),
