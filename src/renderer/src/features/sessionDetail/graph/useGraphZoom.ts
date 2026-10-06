@@ -26,20 +26,24 @@ interface GraphZoom {
  * is: Fit aims at that maximum instead. A viewport with no maximum fills its
  * pane, so its current height is the room. Either way the space below the graph
  * that the zoom controls cover (the viewport's bottom scroll padding) is left
- * out. The width is the one without a vertical scrollbar, which comes and goes
- * as the graph is scaled: the border-box width less the borders, not
- * `clientWidth`.
+ * out. The width and a filled pane's height are the ones without a scrollbar,
+ * which comes and goes as the graph is scaled: the border-box size less the
+ * borders, not `clientWidth` or `clientHeight`.
  */
 function fitTarget(viewport: HTMLElement): Size {
   const style = getComputedStyle(viewport)
   const maxHeight = Number.parseFloat(style.maxHeight)
   const covered = Number.parseFloat(style.scrollPaddingBottom) || 0
-  const borders =
+  const borderWidths =
     (Number.parseFloat(style.borderLeftWidth) || 0) +
     (Number.parseFloat(style.borderRightWidth) || 0)
+  const borderHeights =
+    (Number.parseFloat(style.borderTopWidth) || 0) +
+    (Number.parseFloat(style.borderBottomWidth) || 0)
   return {
-    width: viewport.offsetWidth - borders,
-    height: (Number.isFinite(maxHeight) ? maxHeight : viewport.clientHeight) - covered
+    width: viewport.offsetWidth - borderWidths,
+    height:
+      (Number.isFinite(maxHeight) ? maxHeight : viewport.offsetHeight - borderHeights) - covered
   }
 }
 
