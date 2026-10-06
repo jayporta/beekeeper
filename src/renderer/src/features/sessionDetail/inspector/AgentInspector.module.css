@@ -4,6 +4,16 @@
   gap: var(--space-4-5);
   padding: var(--space-6) var(--space-5-5);
   border-left: 1px solid var(--color-divider);
+
+  /*
+   * Scrolls on its own beside the graph, and doesn't pass the scroll on to the page at its ends.
+   * Positioned, so visually hidden text inside it is clipped to the pane instead of lengthening the page.
+   */
+  @media (width > 60rem) and (min-height: 30rem) {
+    position: relative;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+  }
 }
 
 .note {

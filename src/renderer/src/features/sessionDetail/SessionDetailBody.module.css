@@ -6,4 +6,11 @@
   @media (max-width: 60rem) {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  /* The panes fill the view's remaining height and each scrolls on its own. */
+  @media (width > 60rem) and (min-height: 30rem) {
+    flex: 1;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+  }
 }

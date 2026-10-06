@@ -126,6 +126,18 @@ describe('AgentInspector for the lead', () => {
   })
 })
 
+describe('AgentInspector scroll position', () => {
+  it('returns to the top when another agent is selected, since the region persists across selections', async () => {
+    renderInspectorScene()
+    const region = screen.getByRole('region', { name: 'Agent inspector' })
+    region.scrollTop = 120
+
+    await select(/^scout/)
+
+    expect(region.scrollTop).toBe(0)
+  })
+})
+
 describe('AgentInspector partial data', () => {
   it('flags a partial transcript and explains unreadable lines', () => {
     renderInspectorScene({

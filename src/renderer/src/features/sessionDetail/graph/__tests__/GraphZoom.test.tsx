@@ -138,8 +138,10 @@ describe('GraphCanvas fit', () => {
   interface ViewSize {
     /** The width without a scrollbar, inside any border. */
     readonly width: number
-    /** The tallest the view grows. */
-    readonly maxHeight: number
+    /** The tallest the view grows, or `'none'` for a view that fills a pane of `height`. */
+    readonly maxHeight: number | 'none'
+    /** The height of the pane a view with no maximum fills. */
+    readonly height?: number
     /** The room below the graph that the zoom controls cover. */
     readonly clearance?: number
     /** The width a vertical scrollbar takes, which the view only has while the graph is taller than it. */
@@ -150,12 +152,14 @@ describe('GraphCanvas fit', () => {
 
   /**
    * Sizes the view the way the stylesheet does: it is `width` wide, grows with the scaled graph
-   * plus the room the zoom controls cover below it, and stops at `maxHeight`. A scrollbar narrows
-   * its client width while the graph is taller than it. The scene's graph is 476 by 346 pixels.
+   * plus the room the zoom controls cover below it, and stops at `maxHeight`, or is `height` tall
+   * when it has no maximum. A scrollbar narrows its client width while the graph is taller than it.
+   * The scene's graph is 476 by 346 pixels.
    */
   const sizeViewport = ({
     width,
     maxHeight,
+    height = 0,
     clearance = 0,
     scrollbar = 0,
     border = 0
@@ -164,21 +168,22 @@ describe('GraphCanvas fit', () => {
     const contentHeight = (element: HTMLElement): number =>
       Number.parseFloat((element.firstElementChild as HTMLElement | null)?.style.height ?? '0') +
       clearance
+    const tallest = maxHeight === 'none' ? height : maxHeight
     vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(width + 2 * border)
     vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function (
       this: HTMLElement
     ) {
-      return contentHeight(this) > maxHeight ? width - scrollbar : width
+      return contentHeight(this) > tallest ? width - scrollbar : width
     })
     vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(function (
       this: HTMLElement
     ) {
-      return Math.min(maxHeight, contentHeight(this))
+      return maxHeight === 'none' ? height : Math.min(maxHeight, contentHeight(this))
     })
     vi.spyOn(window, 'getComputedStyle').mockImplementation((element, pseudo) =>
       element === view
         ? ({
-            maxHeight: `${maxHeight}px`,
+            maxHeight: maxHeight === 'none' ? 'none' : `${maxHeight}px`,
             scrollPaddingBottom: `${clearance}px`,
             borderLeftWidth: `${border}px`,
             borderRightWidth: `${border}px`
@@ -208,6 +213,15 @@ describe('GraphCanvas fit', () => {
   it('leaves the room the zoom controls cover below the graph', async () => {
     renderGraph()
     sizeViewport({ width: 1000, maxHeight: 273, clearance: 100 })
+
+    await press('Fit the graph to the view')
+
+    expect(scale()).toBeCloseTo(0.5)
+  })
+
+  it('leaves the room the zoom controls cover below the graph in a view that fills its pane', async () => {
+    renderGraph()
+    sizeViewport({ width: 1000, maxHeight: 'none', height: 273, clearance: 100 })
 
     await press('Fit the graph to the view')
 

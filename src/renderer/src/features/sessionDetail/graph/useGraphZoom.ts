@@ -23,11 +23,12 @@ interface GraphZoom {
 /**
  * The size Fit aims for. The viewport grows with the scaled graph up to its
  * maximum height, so its own height says nothing stable about the room there
- * is: Fit aims at that maximum instead, less the space below the graph that the
- * zoom controls cover (the viewport's bottom scroll padding). A viewport with
- * no maximum falls back to its current height. The width is the one without a
- * vertical scrollbar, which comes and goes as the graph is scaled: the
- * border-box width less the borders, not `clientWidth`.
+ * is: Fit aims at that maximum instead. A viewport with no maximum fills its
+ * pane, so its current height is the room. Either way the space below the graph
+ * that the zoom controls cover (the viewport's bottom scroll padding) is left
+ * out. The width is the one without a vertical scrollbar, which comes and goes
+ * as the graph is scaled: the border-box width less the borders, not
+ * `clientWidth`.
  */
 function fitTarget(viewport: HTMLElement): Size {
   const style = getComputedStyle(viewport)
@@ -38,7 +39,7 @@ function fitTarget(viewport: HTMLElement): Size {
     (Number.parseFloat(style.borderRightWidth) || 0)
   return {
     width: viewport.offsetWidth - borders,
-    height: Number.isFinite(maxHeight) ? maxHeight - covered : viewport.clientHeight
+    height: (Number.isFinite(maxHeight) ? maxHeight : viewport.clientHeight) - covered
   }
 }
 
@@ -47,7 +48,7 @@ function fitTarget(viewport: HTMLElement): Size {
  * Ctrl or Cmd with the wheel. The viewport scrolls natively, so a change keeps
  * the point under the pointer (or the viewport's center) where it was by
  * scrolling to match. A plain wheel turn is left alone, so it scrolls the
- * page as usual.
+ * enclosing pane or page as usual.
  *
  * @param viewportRef - The scrolling element the graph sits in.
  * @param content - The graph's size at scale 1.

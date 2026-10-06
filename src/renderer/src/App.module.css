@@ -1,6 +1,7 @@
 /*
- * The page scrolls main. At desktop widths the sidebar stays in view and scrolls
- * on its own. The stacked layout scrolls as one page, so zoomed content is never
+ * The page scrolls main, and a view may fill the window to scroll its panes on
+ * their own instead. At desktop widths the sidebar stays in view and scrolls on
+ * its own. The stacked layout scrolls as one page, so zoomed content is never
  * trapped in a short scroller.
  */
 .shell {
