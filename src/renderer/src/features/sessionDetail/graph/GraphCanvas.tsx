@@ -1,9 +1,7 @@
 import { useMemo } from 'react'
-import { useTranslation } from 'react-i18next'
 import { GraphEdges } from './GraphEdges'
 import styles from './GraphCanvas.module.css'
 import { GraphFootnote } from './GraphFootnote'
-import { GRAPH_HINT_ID } from './graphFootnoteId'
 import { GraphNode } from './GraphNode'
 import { GraphViewport } from './GraphViewport'
 import { parentNames } from './parentNames'
@@ -22,7 +20,8 @@ interface GraphCanvasProps {
  * as buttons on a dot grid, joined by elbow edges, left to right, in a window
  * that pans and zooms. Pressing a node selects it, and the lead is selected
  * until another is. Selecting a teammate opens its own session and adds its
- * subagents under it. Only the selected node is in the tab order, and the
+ * subagents under it. The window is a tab stop of its own, so the keyboard can
+ * scroll it. After it, only the selected node is in the tab order, and the
  * arrow keys, Home and End move focus among the nodes without selecting them,
  * so a person can look around without changing what is selected. Notes under
  * the graph say so, and explain a partial node and any teammates that weren't
@@ -33,7 +32,6 @@ interface GraphCanvasProps {
  * <GraphCanvas graph={graph} />
  */
 export function GraphCanvas({ graph }: GraphCanvasProps): React.JSX.Element {
-  const { t } = useTranslation('sessionDetail')
   const { root, layout, loading, expansions, selectedKey } = graph
 
   const parents = useMemo(() => parentNames(layout), [layout])
@@ -47,11 +45,7 @@ export function GraphCanvas({ graph }: GraphCanvasProps): React.JSX.Element {
   const moveFocus = useGraphKeyboard(root)
 
   return (
-    <section
-      aria-label={t('graph.label')}
-      aria-describedby={GRAPH_HINT_ID}
-      className={styles.canvas}
-    >
+    <div className={styles.canvas}>
       <GraphViewport width={layout.width} height={layout.height}>
         <GraphEdges edges={layout.edges} width={layout.width} height={layout.height} />
         {layout.nodes.map(({ node, x, y }) => (
@@ -75,6 +69,6 @@ export function GraphCanvas({ graph }: GraphCanvasProps): React.JSX.Element {
       <p role="status" className="visuallyHidden">
         {announcement}
       </p>
-    </section>
+    </div>
   )
 }

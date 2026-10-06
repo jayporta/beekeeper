@@ -20,6 +20,12 @@ export default defineConfig(
   eslintPluginReact.configs.flat['jsx-runtime'],
   eslintPluginJsxA11y.flatConfigs.strict,
   {
+    rules: {
+      // A scrollable region is a tab stop, so the keyboard can scroll it even when it holds no control.
+      'jsx-a11y/no-noninteractive-tabindex': ['error', { roles: ['region'] }]
+    }
+  },
+  {
     settings: {
       react: {
         version: 'detect'

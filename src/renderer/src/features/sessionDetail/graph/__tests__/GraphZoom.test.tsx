@@ -138,8 +138,12 @@ describe('GraphCanvas fit', () => {
   interface ViewSize {
     /** The width without a scrollbar, inside any border. */
     readonly width: number
-    /** The tallest the view grows. */
-    readonly maxHeight: number
+    /** The tallest the view grows, or `'none'` for a view that fills a pane of `height`. */
+    readonly maxHeight: number | 'none'
+    /** The height of the pane a view with no maximum fills, including its borders. */
+    readonly height?: number
+    /** The height a horizontal scrollbar takes from the client height, which the view only has while the graph is wider than it. */
+    readonly scrollbarHeight?: number
     /** The room below the graph that the zoom controls cover. */
     readonly clearance?: number
     /** The width a vertical scrollbar takes, which the view only has while the graph is taller than it. */
@@ -150,12 +154,16 @@ describe('GraphCanvas fit', () => {
 
   /**
    * Sizes the view the way the stylesheet does: it is `width` wide, grows with the scaled graph
-   * plus the room the zoom controls cover below it, and stops at `maxHeight`. A scrollbar narrows
-   * its client width while the graph is taller than it. The scene's graph is 476 by 346 pixels.
+   * plus the room the zoom controls cover below it, and stops at `maxHeight`, or is `height` tall
+   * when it has no maximum. A vertical scrollbar narrows its client width while the graph is taller
+   * than it, and a horizontal one shortens its client height while the graph is wider than it.
+   * The scene's graph is 476 by 346 pixels.
    */
   const sizeViewport = ({
     width,
     maxHeight,
+    height = 0,
+    scrollbarHeight = 0,
     clearance = 0,
     scrollbar = 0,
     border = 0
@@ -164,24 +172,33 @@ describe('GraphCanvas fit', () => {
     const contentHeight = (element: HTMLElement): number =>
       Number.parseFloat((element.firstElementChild as HTMLElement | null)?.style.height ?? '0') +
       clearance
+    const contentWidth = (element: HTMLElement): number =>
+      Number.parseFloat((element.firstElementChild as HTMLElement | null)?.style.width ?? '0')
+    const tallest = maxHeight === 'none' ? height : maxHeight
     vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(width + 2 * border)
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(height)
     vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function (
       this: HTMLElement
     ) {
-      return contentHeight(this) > maxHeight ? width - scrollbar : width
+      return contentHeight(this) > tallest ? width - scrollbar : width
     })
     vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(function (
       this: HTMLElement
     ) {
+      if (maxHeight === 'none') {
+        return height - 2 * border - (contentWidth(this) > width ? scrollbarHeight : 0)
+      }
       return Math.min(maxHeight, contentHeight(this))
     })
     vi.spyOn(window, 'getComputedStyle').mockImplementation((element, pseudo) =>
       element === view
         ? ({
-            maxHeight: `${maxHeight}px`,
+            maxHeight: maxHeight === 'none' ? 'none' : `${maxHeight}px`,
             scrollPaddingBottom: `${clearance}px`,
             borderLeftWidth: `${border}px`,
-            borderRightWidth: `${border}px`
+            borderRightWidth: `${border}px`,
+            borderTopWidth: `${border}px`,
+            borderBottomWidth: `${border}px`
           } as CSSStyleDeclaration)
         : realComputedStyle(element, pseudo)
     )
@@ -212,6 +229,43 @@ describe('GraphCanvas fit', () => {
     await press('Fit the graph to the view')
 
     expect(scale()).toBeCloseTo(0.5)
+  })
+
+  it('leaves the room the zoom controls cover below the graph in a view that fills its pane', async () => {
+    renderGraph()
+    sizeViewport({ width: 1000, maxHeight: 'none', height: 273, clearance: 100 })
+
+    await press('Fit the graph to the view')
+
+    expect(scale()).toBeCloseTo(0.5)
+  })
+
+  it('measures a view that fills its pane without its horizontal scrollbar, which Fit itself removes', async () => {
+    renderGraph()
+    // At full size the graph is wider than the view, so a scrollbar shortens it; once fitted it isn't.
+    sizeViewport({
+      width: 470,
+      maxHeight: 'none',
+      height: 300,
+      clearance: 56,
+      scrollbarHeight: 15
+    })
+
+    await press('Fit the graph to the view')
+    const first = scale()
+    await press('Fit the graph to the view')
+
+    expect(first).toBeCloseTo((300 - 56) / 346)
+    expect(scale()).toBeCloseTo(first)
+  })
+
+  it('measures a view that fills its pane inside its borders', async () => {
+    renderGraph()
+    sizeViewport({ width: 1000, maxHeight: 'none', height: 300, clearance: 56, border: 5 })
+
+    await press('Fit the graph to the view')
+
+    expect(scale()).toBeCloseTo((300 - 10 - 56) / 346)
   })
 
   it('gives the same scale however many times it is pressed, although the view grows and shrinks with the graph', async () => {

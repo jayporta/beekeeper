@@ -1,5 +1,14 @@
+/*
+ * At desktop sizes the view fills the window under main's padding, so its panes
+ * scroll on their own and the page doesn't. Below that, or in a short window,
+ * the page scrolls as one. A literal: custom properties can't be used in a media query.
+ */
 .view {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+
+  @media (width > 60rem) and (min-height: 30rem) {
+    height: calc(100vh - 2 * var(--space-main));
+  }
 }

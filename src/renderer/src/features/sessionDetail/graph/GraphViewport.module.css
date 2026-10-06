@@ -1,5 +1,16 @@
 .stage {
   position: relative;
+
+  /*
+   * A flex column that fills the pane, so the zoom controls stay at the pane's bottom corner.
+   * Its minimum is the graph's, not the whole graph's height, which would lengthen the page.
+   */
+  @media (width > 60rem) and (min-height: 30rem) {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: var(--size-graph-min-height);
+  }
 }
 
 /*
@@ -25,6 +36,12 @@
 
   &:active {
     cursor: grabbing;
+  }
+
+  /* Fills the pane instead of growing with the graph. */
+  @media (width > 60rem) and (min-height: 30rem) {
+    flex: 1;
+    max-height: none;
   }
 }
 

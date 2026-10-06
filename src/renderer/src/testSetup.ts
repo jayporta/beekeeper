@@ -24,3 +24,12 @@ HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
   this.removeAttribute('open')
   this.dispatchEvent(new Event('close'))
 }
+
+// jsdom has no matchMedia. This one matches nothing and never changes; a test that needs a match stubs it.
+window.matchMedia = (query: string) =>
+  ({
+    matches: false,
+    media: query,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined
+  }) as unknown as MediaQueryList

@@ -94,10 +94,8 @@ describe('GraphCanvas selection announcement', () => {
   })
 
   it('shares the graph’s one status region with the expansion announcements', () => {
-    renderGraph()
+    const { container } = renderGraph()
 
-    expect(
-      within(screen.getByRole('region', { name: 'Agent graph' })).getAllByRole('status')
-    ).toHaveLength(1)
+    expect(within(container).getAllByRole('status')).toHaveLength(1)
   })
 })
