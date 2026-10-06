@@ -199,6 +199,14 @@ describe('GraphCanvas teammates that were not found', () => {
     expect(screen.getByText(/hit their cap/)).toBeTruthy()
   })
 
+  it('describes the graph region with the note, so a screen reader meets it on entering', () => {
+    renderGraph(missing({ missingTeammates: 2 }), testDetail())
+
+    expect(
+      screen.getByRole('region', { name: 'Agent graph', description: /2 teammates not found/ })
+    ).toBeTruthy()
+  })
+
   it('says nothing when no teammate is missing', () => {
     renderGraph(missing({}), testDetail())
 

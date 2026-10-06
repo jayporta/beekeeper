@@ -1,6 +1,6 @@
 import { useRef, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
-import { GRAPH_HINT_ID } from './graphFootnoteId'
+import { GRAPH_NOTES_ID } from './graphFootnoteId'
 import styles from './GraphViewport.module.css'
 import { GraphZoomControls } from './GraphZoomControls'
 import { useGraphPan } from './useGraphPan'
@@ -46,7 +46,7 @@ export function GraphViewport({ width, height, children }: GraphViewportProps): 
         ref={viewportRef}
         role="region"
         aria-label={t('graph.label')}
-        aria-describedby={GRAPH_HINT_ID}
+        aria-describedby={GRAPH_NOTES_ID}
         tabIndex={0}
         className={styles.viewport}
         {...pan}
