@@ -22,7 +22,7 @@
 /*
  * Inverted like the lead mark, so a match shows by more than color: the text
  * is --color-bg on --color-accent-strong, a pair the contrast test holds to
- * 4.5:1 in both color schemes, and the muted note takes the same text color.
+ * 4.5:1 and Lc 75 in both color schemes, and the muted note takes the same text color.
  */
 .highlighted {
   color: var(--color-bg);

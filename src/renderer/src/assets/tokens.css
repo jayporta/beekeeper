@@ -4,27 +4,37 @@
  * Palette: Industry. Text and the divider carry no alpha: each is a solid color, so contrast is the
  * same on every surface and `__tests__/tokensContrast.test.ts` can check it. Declare every color as
  * a hex value or a `var()` reference to one, since that test resolves them.
+ *
+ * Both schemes meet the same targets on the ground, the surface, the selected ground, and the hover
+ * tints over the ground and the surface: APCA Lc 90 for body text, Lc 75 for muted and accent text,
+ * and WCAG 2 4.5:1 for text and 3:1 for a control's edge and the focus ring. A hover tint over the
+ * selected ground falls short, so nothing selected takes one.
  */
 :root {
   color-scheme: light dark;
 
   /* Ground, surface, and text. */
-  --color-bg: #f2f2f3;
-  --color-surface: #e9e9ea;
+  --color-bg: #ffffff;
+  --color-surface: #f4f4f5;
   --color-text: #1d1f20;
-  /* Text at about 70% on ground, as solid colors. Both pass 4.5:1 on ground, surface, and the active row. */
-  --color-text-muted: #5d5e5f;
-  --color-meta: #525455;
+  /* Secondary text, a solid color. Holds Lc 75 on every ground the test checks. */
+  --color-text-muted: #4e4e4f;
+  /* The ground of the current project row, a selected graph node, and an inspector flag. */
+  --color-selected: var(--color-accent-200);
 
-  /* Divider: text at 16% on ground. A decorative frame only, at about 1.4:1. */
-  --color-divider: #d0d0d1;
+  /* Divider: text at about 16% on ground. A decorative frame only, at about 1.4:1. */
+  --color-divider: #dbdbdb;
   --color-border: var(--color-divider);
   /* A control's edge. Passes 3:1 on ground and surface (WCAG 1.4.11). */
   --color-border-strong: #767879;
   --color-surface-header: var(--color-surface);
-  --color-surface-nested: #ececed;
-  /* The tint a row takes on hover. Text over transparent, so it works on any surface. */
-  --color-hover: color-mix(in srgb, var(--color-text) 6%, transparent);
+  /* The tint a row takes on hover: text at this opacity over transparent, so it works on any surface. The contrast test reads the opacity. */
+  --opacity-hover: 0.05;
+  --color-hover: color-mix(
+    in srgb,
+    var(--color-text) calc(var(--opacity-hover) * 100%),
+    transparent
+  );
   /* The blueprint "+" marks on a card's corners: text at 55%. Decorative. */
   --color-blueprint-mark: color-mix(in srgb, var(--color-text) 55%, transparent);
 
@@ -40,7 +50,7 @@
   --color-accent-800: #2c455d;
   --color-accent-900: #1d2d3d;
   /* The fill for anything that carries text, and the accent used as text. The plain accent is too light for either in light mode. */
-  --color-accent-strong: #416180;
+  --color-accent-strong: #36516b;
 
   --focus-ring-color: var(--color-accent-strong);
   --focus-ring-width: 2px;
@@ -107,7 +117,7 @@
   --size-graph-grid: 1.25rem;
   --color-graph-dot: color-mix(in srgb, var(--color-text) 14%, transparent);
   --opacity-graph-edge: 0.55;
-  /* Added and removed lines in a patch. They pass 4.5:1 on the surface, and the + or - itself marks each line as well. */
+  /* Added and removed lines in a patch. They hold Lc 75 and 4.5:1 on the surface, and the + or - itself marks each line as well. */
   --color-diff-add: #1f6b36;
   --color-diff-remove: #a12a2a;
   /* The graph's viewport grows with the graph, between these. In the fill layout it fills its pane instead, but never below the minimum. */
@@ -132,13 +142,13 @@
   :root {
     --color-bg: #17191b;
     --color-surface: #1f2225;
-    --color-text: #e4e5e8;
-    --color-text-muted: #aeb0b2;
-    --color-meta: #bbbcbf;
+    --color-text: #eff0f1;
+    --color-text-muted: #d7d8d9;
+    /* Between accent 100 and 200, so the current project row still stands out from the surface. */
+    --color-selected: #263b50;
 
     --color-divider: #3c3e40;
     --color-border-strong: #7a7d80;
-    --color-surface-nested: #1b1d1f;
 
     --color-accent: #8fb3d9;
     --color-accent-100: #1d2d3d;
@@ -150,8 +160,8 @@
     --color-accent-700: #b5d9fd;
     --color-accent-800: #d6ebff;
     --color-accent-900: #eef6ff;
-    --color-accent-strong: #8fb3d9;
-    --color-diff-add: #7ed491;
-    --color-diff-remove: #f09a9a;
+    --color-accent-strong: #c8daec;
+    --color-diff-add: #9cdeaa;
+    --color-diff-remove: #f6c3c3;
   }
 }
