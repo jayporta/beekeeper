@@ -9,6 +9,8 @@ interface ModalDialogProps {
   readonly onClose: () => void
   /** The id of the heading inside that names the dialog. */
   readonly labelledBy: string
+  /** A class that sizes the dialog by setting `--dialog-width`. The default width suits wide content. */
+  readonly className?: string
   /** What the dialog holds. It is rendered only while open. */
   readonly children: React.ReactNode
 }
@@ -28,6 +30,7 @@ export function ModalDialog({
   open,
   onClose,
   labelledBy,
+  className,
   children
 }: ModalDialogProps): React.JSX.Element {
   const ref = useRef<HTMLDialogElement>(null)
@@ -46,7 +49,7 @@ export function ModalDialog({
   return (
     <dialog
       ref={ref}
-      className={styles.dialog}
+      className={className === undefined ? styles.dialog : `${styles.dialog} ${className}`}
       aria-labelledby={labelledBy}
       onCancel={(event) => {
         // Escape closes through the parent, so its state and the dialog never disagree.

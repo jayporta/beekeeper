@@ -1,6 +1,6 @@
 .dialog {
   box-sizing: border-box;
-  width: min(60rem, calc(100vw - 2 * var(--space-4)));
+  width: min(var(--dialog-width, 60rem), calc(100vw - 2 * var(--space-4)));
   max-height: 85vh;
   padding: var(--space-5-5);
   color: var(--color-text);

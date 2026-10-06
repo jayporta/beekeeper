@@ -19,7 +19,7 @@ describe('SidebarContent', () => {
     await within(sidebar).findByRole('navigation', { name: 'Projects' })
 
     expect(within(sidebar).getByText('Beekeeper')).toBeTruthy()
-    expect(within(sidebar).getByRole('button', { name: 'About Beekeeper' })).toBeTruthy()
+    expect(within(sidebar).queryByRole('button', { name: /^About/ })).toBeNull()
     expect(within(sidebar).getByText('Local only · read-only')).toBeTruthy()
   })
 

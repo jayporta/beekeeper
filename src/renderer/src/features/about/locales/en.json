@@ -1,0 +1,6 @@
+{
+  "heading": "About beekeeper",
+  "description": "beekeeper reads the session files Claude Code writes under <code>~/.claude/projects</code> and shows what each agent did, changed, and cost.",
+  "promise": "It runs entirely on your computer. It makes no network requests, sends no telemetry, and never writes to <code>~/.claude</code> or to your repositories.",
+  "close": "Close"
+}
