@@ -773,10 +773,10 @@ describe('OverviewView announcements', () => {
       await new Promise((resolve) => setTimeout(resolve, 0))
     })
     expect(statusRegion().textContent).toBe('')
-    await act(async () => {
+    act(() => {
       refresh.release(ok({ tokens: 1, sessions: 1, agents: 1 }))
-      await new Promise((resolve) => setTimeout(resolve, 0))
     })
+    await within(await findCard('beta-app')).findByText('1 token')
 
     expect(statusRegion().textContent).toBe('')
   })
