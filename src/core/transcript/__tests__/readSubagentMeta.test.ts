@@ -68,6 +68,27 @@ async function mockNextOpenWithUnendingReads(): Promise<void> {
   })
 }
 
+/**
+ * Replaces the next `open` call with one whose `stat` reports the file's
+ * size and then overwrites it with `content`, as if the meta were written
+ * between {@link readSubagentMeta}'s size check and its read.
+ */
+async function mockNextOpenWithRewriteAfterStat(content: string): Promise<void> {
+  const actualOpen = (await vi.importActual<typeof import('node:fs/promises')>('node:fs/promises'))
+    .open
+
+  vi.mocked(open).mockImplementationOnce(async (...args) => {
+    const handle = await actualOpen(...args)
+    const originalStat = handle.stat.bind(handle)
+    vi.spyOn(handle, 'stat').mockImplementation((async () => {
+      const stats = await originalStat()
+      writeFileSync(String(args[0]), content, 'utf-8')
+      return stats
+    }) as FileHandle['stat'])
+    return handle
+  })
+}
+
 let dir: string
 
 beforeEach(() => {
@@ -187,7 +208,18 @@ describe('readSubagentMeta', () => {
     expect(result).toEqual({ ok: true, value: { agentType: 'code-reviewer' } })
   })
 
-  it('reports too-large when the file yields more bytes than fstat reported', async () => {
+  it('reads the whole file when it grows after fstat but stays under the cap', async () => {
+    const path = writeMeta('agent-written.meta.json', '{}')
+    await mockNextOpenWithRewriteAfterStat(
+      JSON.stringify(buildMinimalSubagentMeta('code-reviewer'))
+    )
+
+    const result = await readSubagentMeta(path)
+
+    expect(result).toEqual({ ok: true, value: { agentType: 'code-reviewer' } })
+  })
+
+  it('reports too-large when the file yields more bytes than the cap', async () => {
     const path = writeMeta('agent-grows.meta.json', 'x'.repeat(50))
     await mockNextOpenWithUnendingReads()
 

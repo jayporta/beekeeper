@@ -7,6 +7,7 @@ import { groupProjectFamily } from './groupProjectFamily'
 import type { IpcDeps } from './ipcDeps'
 import { errResult, okResult } from './ipcResults'
 import { mapSessionListItem, type ScannedSession } from './mapSessionListItem'
+import { readSessionAgentTerms } from './readSessionAgentTerms'
 import { sessionRefKey } from './sessionRefKey'
 
 function teamKeyOf(session: ScannedSession): string {
@@ -37,17 +38,19 @@ function isListedFor(projectDirName: string, { session, team }: ListedSession): 
  * folder grouped as a teammate under one of the project's leads; that
  * teammate is also listed in its own folder, under the same lead. Summary
  * reads are shared per transcript state (path, mtime, size) and capped by the
- * summaries scheduler. See {@link groupProjectFamily} for how an unreadable
+ * summaries scheduler. The search terms of subagents are read, through the
+ * agent terms cache and under the same scheduler, only for the sessions the
+ * list holds. See {@link groupProjectFamily} for how an unreadable
  * sibling folder is treated.
  *
- * @param deps - The projects root, the summary cache, and the summaries
- * scheduler.
+ * @param deps - The projects root, the summary and agent terms caches, and the
+ * summaries scheduler.
  * @param payload - The renderer's payload, validated here.
  * @returns The sessions, `invalid-request` for a bad payload, or
  * `not-found` for an unknown project.
  */
 export async function listSessionsHandler(
-  deps: Pick<IpcDeps, 'projectsRoot' | 'summaryCache' | 'summaries'>,
+  deps: Pick<IpcDeps, 'projectsRoot' | 'summaryCache' | 'summaries' | 'agentTerms'>,
   payload: unknown
 ): Promise<IpcResult<readonly SessionListItemDto[]>> {
   const request = listSessionsRequestSchema.safeParse(payload)
@@ -63,9 +66,15 @@ export async function listSessionsHandler(
     session,
     team: teams.get(teamKeyOf(session)) ?? null
   }))
+  const listed = items.filter((item) => isListedFor(project.dirName, item))
   return okResult(
-    items
-      .filter((item) => isListedFor(project.dirName, item))
-      .map(({ session, team }) => mapSessionListItem(session, team))
+    await Promise.all(
+      listed.map(async ({ session, team }) =>
+        mapSessionListItem(
+          { ...session, agentTerms: await readSessionAgentTerms(session.entry, deps) },
+          team
+        )
+      )
+    )
   )
 }

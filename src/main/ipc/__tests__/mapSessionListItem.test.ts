@@ -2,8 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 import { err, ok } from '../../../core/shared/result'
 import { toProjectDirName, toSessionId } from '../../../core/transcript/ids'
 import type { SessionSummary } from '../../../core/transcript/summary/sessionSummary'
+import { NO_AGENT_TERMS } from '../../../core/session/agentSearchTerms'
 import { buildSessionSummary } from '../../../core/transcript/summary/testSessionSummary'
-import { mapSessionListItem, type ScannedSession } from '../mapSessionListItem'
+import { mapSessionListItem, type ListableSession } from '../mapSessionListItem'
 
 const SUMMARY: SessionSummary = buildSessionSummary({
   title: 'A title',
@@ -14,7 +15,7 @@ const SUMMARY: SessionSummary = buildSessionSummary({
   transcriptTokens: 1200
 })
 
-function scanned(summary: ScannedSession['summary']): ScannedSession {
+function scanned(summary: ListableSession['summary']): ListableSession {
   return {
     projectDirName: toProjectDirName('-Users-a-repo'),
     entry: {
@@ -22,7 +23,8 @@ function scanned(summary: ScannedSession['summary']): ScannedSession {
       transcript: ok({ path: '/x/s.jsonl', mtimeMs: 10, size: 20 }),
       subagents: ok([])
     },
-    summary
+    summary,
+    agentTerms: NO_AGENT_TERMS
   }
 }
 
@@ -104,6 +106,33 @@ describe('mapSessionListItem', () => {
     expect(Object.keys(summary.value)).not.toContain('futureField')
   })
 
+  it('copies the agent terms, and only the three term fields', () => {
+    const withTerms: ListableSession = {
+      ...scanned(ok(SUMMARY)),
+      agentTerms: [{ name: 'scout', description: null, agentType: 'Explore', extra: 1 } as never]
+    }
+
+    const item = mapSessionListItem(withTerms, null)
+
+    expect(item.agentTerms).toEqual([{ name: 'scout', description: null, agentType: 'Explore' }])
+  })
+
+  it('sends no agent terms for a session whose transcript could not be read', () => {
+    const failed: ListableSession = {
+      ...scanned(ok(SUMMARY)),
+      entry: {
+        sessionId: toSessionId('11111111-1111-4111-8111-111111111111'),
+        transcript: err({ reason: 'unreadable', code: 'ENOENT' }),
+        subagents: ok([])
+      },
+      agentTerms: [{ name: 'x', description: null, agentType: 'Explore' }]
+    }
+
+    const item = mapSessionListItem(failed, null)
+
+    expect(item.agentTerms).toEqual([])
+  })
+
   it('reports an unreadable summary as an error code', () => {
     const item = mapSessionListItem(scanned(err({ reason: 'unreadable', code: 'EACCES' })), null)
 
@@ -131,7 +160,7 @@ describe('mapSessionListItem', () => {
     })
 
     it('logs an unmapped transcript stat failure by code', () => {
-      const failed: ScannedSession = {
+      const failed: ListableSession = {
         ...scanned(ok(SUMMARY)),
         entry: {
           sessionId: toSessionId('11111111-1111-4111-8111-111111111111'),

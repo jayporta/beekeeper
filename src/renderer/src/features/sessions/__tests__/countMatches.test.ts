@@ -36,6 +36,22 @@ describe('countMatches', () => {
     expect(countMatches(rows, 'review')).toBe(1)
   })
 
+  it('counts a session whose subagent matches, and a teammate’s own subagent', () => {
+    const withAgent = testSession(5, {
+      title: 'Other',
+      latestMs: 0,
+      agentTerms: [{ name: 'scout', description: null, agentType: 'Explore' }]
+    })
+    const mateWithAgent = testSession(2, {
+      role: testAgentRole('reviewer', 'code'),
+      team: testTeammateTeam(testRef(1)),
+      agentTerms: [{ name: 'scout', description: null, agentType: 'Explore' }]
+    })
+    const all = groupSessionRows([lead, mateWithAgent, mateB, other, withAgent], testSessionsT)
+
+    expect(countMatches(all, 'scout')).toBe(2)
+  })
+
   it('counts nothing when nothing matches', () => {
     expect(countMatches(rows, 'zzz')).toBe(0)
   })

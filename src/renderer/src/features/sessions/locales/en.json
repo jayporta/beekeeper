@@ -46,6 +46,7 @@
       "sevenDayResets": "hit 7-day limit, resets {{value, shortDateTime}}"
     }
   },
+  "matchingSubagent": "matching subagent {{agent}}",
   "refresh": "Refresh",
   "refreshing": "Refreshing",
   "refreshed": "Lists updated",

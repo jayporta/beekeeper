@@ -1,3 +1,4 @@
+import type { AgentSearchTerm } from '../../core/session/agentSearchTerms'
 import type { SessionEntry } from '../../core/transcript/discoverSessions'
 import type { ProjectDirName } from '../../core/transcript/ids'
 import type { Result } from '../../core/shared/result'
@@ -19,17 +20,23 @@ export interface ScannedSession {
   readonly summary: Result<SessionSummary, UnreadableError>
 }
 
+/** A scanned session with the search terms of its subagents, ready to list. */
+export interface ListableSession extends ScannedSession {
+  /** The search terms of the session's subagents. */
+  readonly agentTerms: readonly AgentSearchTerm[]
+}
+
 /**
  * Maps a scanned session to its list item, field by field, so no unknown
  * summary field crosses the bridge.
  *
- * @param scanned - The session and its summary read.
+ * @param scanned - The session, its summary read, and its subagent search terms.
  * @param team - The session's team entry, or `null` when it has none.
  * @returns The item as sent to the renderer. Its `team` is `null` whenever
  * the transcript or summary could not be read.
  */
 export function mapSessionListItem(
-  scanned: ScannedSession,
+  scanned: ListableSession,
   team: SessionTeamDto | null
 ): SessionListItemDto {
   const { entry, summary } = scanned
@@ -41,6 +48,7 @@ export function mapSessionListItem(
       modifiedMs: null,
       sizeBytes: null,
       subagentCount,
+      agentTerms: [],
       summary: errResult(toIpcErrorCode(entry.transcript.error)),
       team: null
     }
@@ -53,6 +61,11 @@ export function mapSessionListItem(
     modifiedMs: file.mtimeMs,
     sizeBytes: file.size,
     subagentCount,
+    agentTerms: scanned.agentTerms.map(({ name, description, agentType }) => ({
+      name,
+      description,
+      agentType
+    })),
     summary: summary.ok
       ? okResult({
           title: summary.value.title,

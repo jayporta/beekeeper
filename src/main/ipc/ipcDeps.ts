@@ -1,5 +1,6 @@
 import type { SessionSummaryCache } from '../../core/transcript/summary/sessionSummaryCache'
 import type { GitLocation } from '../git/gitLocator'
+import type { AgentTermsCache } from './agentTermsCache'
 import type { ProjectLabelCache } from './projectLabelCache'
 import type { LaneScanScheduler, ScanScheduler } from './scanScheduler'
 import type { SessionScanCache } from './sessionScanCache'
@@ -12,10 +13,12 @@ export interface IpcDeps {
   readonly projectLabels: ProjectLabelCache
   /** Summaries of scanned transcripts, kept for the app's lifetime. */
   readonly summaryCache: SessionSummaryCache
+  /** Search terms of each session's subagents, read from their meta files and kept for the app's lifetime. */
+  readonly agentTerms: AgentTermsCache
   /**
    * Shares and caps the summary reads behind a session listing, one per
-   * transcript. Bulk reads nobody waits on, such as project totals, take its
-   * background lane.
+   * transcript, and the agent term reads that follow them. Bulk reads nobody
+   * waits on, such as project totals, take its background lane.
    */
   readonly summaries: LaneScanScheduler
   /** Shares and caps full session scans. */

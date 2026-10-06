@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { groupSessionRows } from '../groupSessionRows'
 import { SessionCardList } from '../SessionCardList'
@@ -36,7 +36,12 @@ const mate = testSession(2, {
   totalTokens: 1,
   team: testTeammateTeam(testRef(1))
 })
-const solo = testSession(3, { title: 'No chips', latestMs: 1, totalTokens: 5 })
+const solo = testSession(3, {
+  title: 'No chips',
+  latestMs: 1,
+  totalTokens: 5,
+  agentTerms: [{ name: 'scout', description: null, agentType: 'Explore' }]
+})
 const rows = groupSessionRows([lead, mate, solo], testSessionsT)
 
 const list = (query: string, shown = rows): React.JSX.Element => (
@@ -55,6 +60,28 @@ describe('SessionCardList rendering', () => {
 
     expect(renders.get('With chips')).toBe(2)
     expect(renders.get('No chips')).toBe(1)
+  })
+
+  it('re-renders a card without chips only when its subagent match note changes', () => {
+    const { rerender } = render(list(''))
+
+    rerender(list('rev', [...rows]))
+    expect(renders.get('No chips')).toBe(1)
+    rerender(list('scout', [...rows]))
+    expect(renders.get('No chips')).toBe(2)
+    rerender(list('scou', [...rows]))
+    expect(renders.get('No chips')).toBe(2)
+    rerender(list('scouts', [...rows]))
+    expect(renders.get('No chips')).toBe(3)
+  })
+
+  it('updates a card’s note when only the search changes', () => {
+    const { rerender } = render(list(''))
+    expect(screen.queryByText(/^matching subagent/)).toBeNull()
+
+    rerender(list('scout'))
+
+    expect(screen.getByText('matching subagent scout')).toBeTruthy()
   })
 
   it('re-renders no card when the same rows come again with the same search', () => {

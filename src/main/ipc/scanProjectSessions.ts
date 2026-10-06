@@ -7,7 +7,8 @@ import type { TranscriptFileInfo } from '../../core/transcript/statTranscriptFil
 import type { IpcDeps } from './ipcDeps'
 import type { ScannedSession } from './mapSessionListItem'
 
-type ScanDeps = Pick<IpcDeps, 'summaryCache' | 'summaries'>
+/** What a scan needs: the summary cache and the summaries scheduler. */
+export type ScanDeps = Pick<IpcDeps, 'summaryCache' | 'summaries'>
 
 /**
  * Reads a transcript's summary through the summary cache. The read is shared
@@ -36,8 +37,7 @@ async function scanSession(
   const { projectDirName, entry } = located
   if (!entry.transcript.ok) return { projectDirName, entry, summary: err(entry.transcript.error) }
 
-  const summary = await readSummary(entry.transcript.value)
-  return { projectDirName, entry, summary }
+  return { projectDirName, entry, summary: await readSummary(entry.transcript.value) }
 }
 
 /** What {@link scanProjectSessions} reads. */
@@ -74,10 +74,10 @@ export async function scanProjectSessions(
 ): Promise<ScannedSession[]> {
   const { project, keep = () => true, background = false } = scan
   const sessions = (await discoverSessions(project.path)).filter(keep)
-  const readSummary = (file: TranscriptFileInfo): Promise<ScannedSession['summary']> =>
-    background
-      ? deps.summaries.runInBackground(summaryKey(file), () => deps.summaryCache.read(file))
-      : readSessionSummary(file, deps)
+  const readSummary = background
+    ? (file: TranscriptFileInfo) =>
+        deps.summaries.runInBackground(summaryKey(file), () => deps.summaryCache.read(file))
+    : (file: TranscriptFileInfo) => readSessionSummary(file, deps)
   return Promise.all(
     sessions.map((entry) => scanSession({ projectDirName: project.dirName, entry }, readSummary))
   )

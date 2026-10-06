@@ -1,4 +1,8 @@
-import type { SessionListItemDto, SessionSummaryDto } from '../../../../shared/ipc/sessionListDto'
+import type {
+  AgentSearchTermDto,
+  SessionListItemDto,
+  SessionSummaryDto
+} from '../../../../shared/ipc/sessionListDto'
 import type { SessionRefDto } from '../../../../shared/ipc/sessionRefDto'
 import type { SessionRoleDto } from '../../../../shared/ipc/sessionRoleDto'
 import type { SessionTeamDto, TeamUsageRollupDto } from '../../../../shared/ipc/sessionTeamDto'
@@ -29,6 +33,8 @@ interface TestSessionOptions {
   readonly transcriptTokens?: number | null
   /** How many subagent transcripts the session has, or `null` when unknown. Defaults to `0`. */
   readonly subagentCount?: number | null
+  /** What a search matches on for each subagent. Defaults to none. */
+  readonly agentTerms?: readonly AgentSearchTermDto[]
   /** How many transcript lines could not be read. Defaults to `0`. */
   readonly skippedLines?: number
   /** The plan limit the session hit. Defaults to `null`. */
@@ -57,6 +63,7 @@ export function testSession(n: number, options: TestSessionOptions = {}): Sessio
     totalTokens,
     transcriptTokens = null,
     subagentCount = 0,
+    agentTerms = [],
     skippedLines = 0,
     limitHit = null,
     unreadable = false
@@ -81,6 +88,7 @@ export function testSession(n: number, options: TestSessionOptions = {}): Sessio
     modifiedMs,
     sizeBytes: 1,
     subagentCount,
+    agentTerms,
     summary: unreadable
       ? { ok: false, error: { code: 'unreadable' } }
       : { ok: true, value: summary },

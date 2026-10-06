@@ -3,15 +3,14 @@ import { projectFamilyOf } from '../../core/teams/projectFamily'
 import { captureSystemError } from '../../core/transcript/captureSystemError'
 import type { ProjectEntry } from '../../core/transcript/discoverProjects'
 import type { SessionTeamDto } from '../../shared/ipc/sessionTeamDto'
-import type { IpcDeps } from './ipcDeps'
 import type { ScannedSession } from './mapSessionListItem'
 import { mapSessionTeams } from './mapSessionTeams'
-import { scanProjectSessions, summarizedSessions } from './scanProjectSessions'
+import { scanProjectSessions, summarizedSessions, type ScanDeps } from './scanProjectSessions'
 
 /** Options for {@link groupProjectFamily}. */
 export interface GroupProjectFamilyOptions {
   /** The summary cache and the summaries scheduler. */
-  readonly deps: Pick<IpcDeps, 'summaryCache' | 'summaries'>
+  readonly deps: ScanDeps
   /** The requested folder, from `projects`. */
   readonly project: ProjectEntry
   /** Every listed project folder. */
@@ -33,7 +32,7 @@ export interface ProjectFamilyGrouping {
  */
 async function scanSiblingFolder(
   folder: ProjectEntry,
-  deps: GroupProjectFamilyOptions['deps']
+  deps: ScanDeps
 ): Promise<readonly ScannedSession[]> {
   const scan = await captureSystemError(() => scanProjectSessions({ project: folder }, deps))
   if (scan.ok) return scan.value

@@ -26,6 +26,12 @@ interface SessionCardProps {
   readonly needle: string
   /** Whether the card's figures are partial, which adds a marker that the footnote explains. */
   readonly partial: boolean
+  /**
+   * The subagent the search matches this session through, when its label and
+   * teammates don't match, or `null`. A primitive, so a card without chips
+   * re-renders only when it changes.
+   */
+  readonly matchedAgent: string | null
 }
 
 /**
@@ -35,13 +41,14 @@ interface SessionCardProps {
  * empty markers that say what is missing.
  *
  * @example
- * <SessionCard row={row} selectedDirName="-Users-me-repo" needle="" partial={false} />
+ * <SessionCard row={row} selectedDirName="-Users-me-repo" needle="" partial={false} matchedAgent={null} />
  */
 export const SessionCard = memo(function SessionCard({
   row,
   selectedDirName,
   needle,
-  partial
+  partial,
+  matchedAgent
 }: SessionCardProps): React.JSX.Element {
   const { t } = useTranslation('sessions')
   const { item, label, teammates } = row
@@ -54,7 +61,7 @@ export const SessionCard = memo(function SessionCard({
   return (
     <li className={styles.card}>
       <div className={`${columns.columns} ${styles.grid}`}>
-        <SessionCell row={row} selectedDirName={selectedDirName} />
+        <SessionCell row={row} selectedDirName={selectedDirName} matchedAgent={matchedAgent} />
         <div>
           <AgentStrip item={item} />
           <p className={styles.muted}>
