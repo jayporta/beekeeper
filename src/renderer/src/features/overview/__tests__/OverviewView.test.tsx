@@ -749,6 +749,38 @@ describe('OverviewView announcements', () => {
     })
   })
 
+  it('says nothing while a refresh is under way, or once it leaves the outcome as it was', async () => {
+    const client = createTestQueryClient()
+    const refresh = gate()
+    let refreshing = false
+    renderOverview({
+      client,
+      totals: (dirName) => (refreshing ? refresh.reply : normal(dirName))
+    })
+    await totalsLoaded()
+    act(() => {
+      useNavigationStore.getState().showSessions()
+    })
+    act(() => {
+      useNavigationStore.getState().showOverview()
+    })
+    await totalsLoaded()
+    expect(statusRegion().textContent).toBe('')
+
+    refreshing = true
+    await act(async () => {
+      void client.invalidateQueries({ queryKey: ['projectTotals'] })
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+    expect(statusRegion().textContent).toBe('')
+    await act(async () => {
+      refresh.release(ok({ tokens: 1, sessions: 1, agents: 1 }))
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+
+    expect(statusRegion().textContent).toBe('')
+  })
+
   it('says nothing when the overview opens with its totals already in', async () => {
     renderOverview()
     await totalsLoaded()
