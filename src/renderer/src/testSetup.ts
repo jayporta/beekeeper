@@ -11,6 +11,9 @@ afterEach(() => {
 Element.prototype.setPointerCapture = () => undefined
 Element.prototype.releasePointerCapture = () => undefined
 
+// jsdom has no scrollIntoView, which the main landmark takes on navigation.
+Element.prototype.scrollIntoView = () => undefined
+
 // jsdom has no modal dialog. This models the parts the app uses: `showModal` opens it, and `close`
 // closes it and fires `close`. It doesn't model the focus trap, the top layer, or Escape.
 HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
