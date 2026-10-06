@@ -1,0 +1,9 @@
+.dialog {
+  --dialog-width: var(--size-dialog-narrow);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}

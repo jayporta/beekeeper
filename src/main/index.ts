@@ -8,6 +8,7 @@ import { registerIpcHandlers } from './ipc/registerIpcHandlers'
 import { isTrustedSender } from './ipc/senderValidation'
 import { hardenDefaultSession } from './security/session'
 import { hardenWebContents } from './security/windowSecurity'
+import { sendOpenAbout } from './sendOpenAbout'
 import { describeError } from './describeError'
 import { isFatalLoadFailure } from './startupFailure'
 
@@ -17,14 +18,13 @@ const devServerUrl = (is.dev && process.env['ELECTRON_RENDERER_URL']) || undefin
 const devToolsEnabled = devServerUrl !== undefined
 const rendererRoot = join(__dirname, '../renderer')
 
-function createWindow(): void {
+function createWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 1024,
     minHeight: 560,
     show: false,
-    autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       devTools: devToolsEnabled,
@@ -56,6 +56,14 @@ function createWindow(): void {
     console.error(`Beekeeper could not load its window (${describeError(error)}).`)
     app.exit(1)
   })
+  return mainWindow
+}
+
+function openAbout(): void {
+  const windows = BrowserWindow.getAllWindows()
+  // On macOS the app stays running with no window. The new window is still
+  // loading, so `sendOpenAbout` holds the request until its page has loaded.
+  sendOpenAbout(windows.length === 0 ? [createWindow()] : windows)
 }
 
 // Must run before the app is ready.
@@ -77,7 +85,11 @@ app
     // Set once, before any window: `activate` recreates windows, not the menu.
     Menu.setApplicationMenu(
       Menu.buildFromTemplate(
-        buildAppMenuTemplate({ platform: process.platform, devTools: devToolsEnabled })
+        buildAppMenuTemplate({
+          platform: process.platform,
+          devTools: devToolsEnabled,
+          onAbout: openAbout
+        })
       )
     )
 

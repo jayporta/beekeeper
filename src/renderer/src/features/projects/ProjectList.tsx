@@ -1,5 +1,6 @@
 import { useId, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { overviewTotals, projectTotalsOf } from '@renderer/features/overview/projectTotalsOf'
 import { showsMayBeLow } from '@renderer/features/overview/showsMayBeLow'
@@ -20,7 +21,9 @@ import { useProjects } from './useProjects'
  * each top-level project, each with its token total for the chosen window.
  * The worktrees of the project in effect, or of the project a selected
  * worktree belongs to, list beneath it. Pressing a project selects it and
- * shows its sessions. Renders nothing until there is a project to show, the
+ * shows its sessions. Pressing any row also dismisses the first-run screen,
+ * the same as its "Got it" button, since the sidebar is usable while it shows.
+ * Renders nothing until there is a project to show, the
  * same condition under which `ProjectsGate` shows its children.
  *
  * @example
@@ -35,6 +38,7 @@ export function ProjectList(): React.JSX.Element | null {
   const isOverview = useNavigationStore((state) => state.view === 'overview')
   const showOverview = useNavigationStore((state) => state.showOverview)
   const showSessions = useNavigationStore((state) => state.showSessions)
+  const dismissFirstRun = useFirstRunStore((state) => state.dismiss)
   const labelId = useId()
 
   const groups = useMemo(() => groupProjects(data ?? []), [data])
@@ -47,8 +51,13 @@ export function ProjectList(): React.JSX.Element | null {
   if (data === undefined || !hasProjectsToShow(data)) return null
 
   const choose = (dirName: string): void => {
+    dismissFirstRun()
     select(dirName)
     showSessions()
+  }
+  const chooseOverview = (): void => {
+    dismissFirstRun()
+    showOverview()
   }
   const isCurrent = (dirName: string): boolean => !isOverview && dirName === selected
 
@@ -62,7 +71,7 @@ export function ProjectList(): React.JSX.Element | null {
           label={t('list.all')}
           meta={<SidebarTotal totals={overall} />}
           current={isOverview}
-          onSelect={showOverview}
+          onSelect={chooseOverview}
         />
         {rows.flatMap(({ group, totals }) => {
           const { project, worktrees } = group

@@ -14,11 +14,11 @@ const ALPHA = '-Users-a-alpha'
 const BETA = '-Users-a-beta'
 
 beforeEach(() => {
-  useFirstRunStore.setState({ dismissed: true, isOpen: false })
+  useFirstRunStore.setState({ dismissed: true })
 })
 
 afterEach(async () => {
-  useFirstRunStore.setState({ dismissed: false, isOpen: false })
+  useFirstRunStore.setState({ dismissed: false })
   await resetPersistedState()
 })
 

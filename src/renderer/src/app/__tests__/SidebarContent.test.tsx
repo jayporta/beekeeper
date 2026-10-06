@@ -18,8 +18,8 @@ describe('SidebarContent', () => {
     const sidebar = await screen.findByRole('complementary', { name: 'Sidebar' })
     await within(sidebar).findByRole('navigation', { name: 'Projects' })
 
-    expect(within(sidebar).getByText('Beekeeper')).toBeTruthy()
-    expect(within(sidebar).getByRole('button', { name: 'About Beekeeper' })).toBeTruthy()
+    expect(within(sidebar).getByText('beekeeper')).toBeTruthy()
+    expect(within(sidebar).queryByRole('button', { name: /^About/ })).toBeNull()
     expect(within(sidebar).getByText('Local only · read-only')).toBeTruthy()
   })
 
@@ -31,7 +31,7 @@ describe('SidebarContent', () => {
     const sidebar = screen.getByRole('complementary', { name: 'Sidebar' })
 
     expect(within(sidebar).queryByRole('navigation')).toBeNull()
-    expect(within(sidebar).getByText('Beekeeper')).toBeTruthy()
+    expect(within(sidebar).getByText('beekeeper')).toBeTruthy()
     expect(within(sidebar).getByText('Local only · read-only')).toBeTruthy()
   })
 })

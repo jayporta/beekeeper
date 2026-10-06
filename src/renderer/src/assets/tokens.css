@@ -100,6 +100,8 @@
   --space-main: var(--space-6);
   --size-sidebar: 13rem;
   --size-readable: 44rem;
+  /* A modal dialog that holds a few short paragraphs. */
+  --size-dialog-narrow: 30rem;
   --size-search-field: 16.25rem;
   --size-target-min: 44px;
   /* A blueprint corner mark's width and height. */

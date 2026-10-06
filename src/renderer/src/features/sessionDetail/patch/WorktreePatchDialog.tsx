@@ -1,6 +1,7 @@
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
+import { DialogHeader } from '@renderer/components/DialogHeader'
 import { ModalDialog } from '@renderer/components/ModalDialog'
 import styles from './WorktreePatchDialog.module.css'
 import { WorktreePatchBody } from './WorktreePatchBody'
@@ -39,19 +40,16 @@ export function WorktreePatchDialog({
 
   return (
     <ModalDialog open={open} onClose={onClose} labelledBy={headingId}>
-      <header className={styles.header}>
-        <div className={styles.title}>
-          <h2 id={headingId} className={styles.heading}>
-            {t('inspector.patch.heading')}
-          </h2>
-          <p className={styles.branch}>
-            <bdi>{branch}</bdi>
-          </p>
-        </div>
-        <button type="button" className={styles.close} onClick={onClose}>
-          {t('inspector.patch.close')}
-        </button>
-      </header>
+      <DialogHeader
+        headingId={headingId}
+        heading={t('inspector.patch.heading')}
+        closeLabel={t('inspector.patch.close')}
+        onClose={onClose}
+      >
+        <p className={styles.branch}>
+          <bdi>{branch}</bdi>
+        </p>
+      </DialogHeader>
       <WorktreePatchBody sessionRef={sessionRef} agentId={agentId} />
     </ModalDialog>
   )

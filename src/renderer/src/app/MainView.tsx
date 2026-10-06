@@ -13,8 +13,8 @@ import { SessionsView } from '@renderer/features/sessions/SessionsView'
 import { useResetNavigationOnProjectChange } from './useResetNavigationOnProjectChange'
 
 /**
- * The main area's current view: the first-run screen until it is dismissed
- * (or while it is reopened from About), otherwise the view the navigation
+ * The main area's current view: the first-run screen until it is dismissed,
+ * otherwise the view the navigation
  * store names, inside a gate that explains why there are no projects when
  * there are none. A live region beside the gate announces when the selected
  * project's folder is gone, and a stored selection the project list no longer

@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { idbStorage } from '@renderer/storage/idbStorage'
 import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
-import { useFirstRunStore } from '../state/useFirstRunStore'
 
 beforeEach(() => {
   installBeekeeperApi()
@@ -16,7 +15,7 @@ afterEach(async () => {
 })
 
 const welcome = (): Promise<HTMLElement> =>
-  screen.findByRole('heading', { level: 1, name: 'Welcome to Beekeeper' })
+  screen.findByRole('heading', { level: 1, name: 'Welcome to beekeeper' })
 
 async function dismiss(): Promise<void> {
   await userEvent.click(await screen.findByRole('button', { name: 'Got it' }))
@@ -36,14 +35,13 @@ describe('first-run screen', () => {
     renderApp()
 
     expect(screen.queryByRole('heading', { level: 1 })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'About Beekeeper' })).toBeNull()
   })
 
   it('hides after Got it and shows the sessions view', async () => {
     renderApp()
     await dismiss()
 
-    expect(screen.queryByRole('heading', { name: 'Welcome to Beekeeper' })).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Welcome to beekeeper' })).toBeNull()
     expect(await screen.findByRole('heading', { level: 1, name: '-Users-a-repo' })).toBeTruthy()
   })
 
@@ -52,17 +50,6 @@ describe('first-run screen', () => {
     await dismiss()
 
     expect(document.activeElement).toBe(screen.getByRole('main'))
-  })
-
-  it('returns focus to About Beekeeper when Got it closes a reopened screen', async () => {
-    renderApp()
-    await dismiss()
-    await userEvent.click(screen.getByRole('button', { name: 'About Beekeeper' }))
-    await welcome()
-
-    await dismiss()
-
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'About Beekeeper' }))
   })
 
   it('takes focus on its heading when it appears', async () => {
@@ -88,7 +75,7 @@ describe('first-run screen', () => {
       renderApp()
 
       expect(await screen.findByRole('heading', { level: 1, name: '-Users-a-repo' })).toBeTruthy()
-      expect(screen.queryByRole('heading', { name: 'Welcome to Beekeeper' })).toBeNull()
+      expect(screen.queryByRole('heading', { name: 'Welcome to beekeeper' })).toBeNull()
     })
 
     it('does not move focus to the main landmark on launch', async () => {
@@ -125,60 +112,21 @@ describe('first-run screen', () => {
     })
 
     it('keeps the store actions when the stored value has keys of the same name', async () => {
-      await seed(
-        JSON.stringify({ state: { dismissed: true, dismiss: 'x', open: 'y' }, version: 0 })
-      )
+      await seed(JSON.stringify({ state: { dismissed: false, dismiss: 'x' }, version: 0 }))
 
       renderApp()
-      await userEvent.click(await screen.findByRole('button', { name: 'About Beekeeper' }))
+      await dismiss()
 
-      expect(await welcome()).toBeTruthy()
+      expect(await screen.findByRole('heading', { level: 1, name: '-Users-a-repo' })).toBeTruthy()
     })
   })
 
-  it('has no About Beekeeper button while the screen shows, since it would do nothing', async () => {
-    renderApp()
-    await welcome()
-
-    expect(screen.queryByRole('button', { name: 'About Beekeeper' })).toBeNull()
-  })
-
-  it('shows the About Beekeeper button once the screen is dismissed', async () => {
+  it('has no About button in the sidebar once the screen is dismissed', async () => {
     renderApp()
     await dismiss()
+    await screen.findByRole('heading', { level: 1, name: '-Users-a-repo' })
 
-    expect(screen.getByRole('button', { name: 'About Beekeeper' })).toBeTruthy()
-  })
-
-  it('puts focus on the heading when About Beekeeper reopens the screen', async () => {
-    renderApp()
-    await dismiss()
-
-    await userEvent.click(screen.getByRole('button', { name: 'About Beekeeper' }))
-
-    expect(document.activeElement).toBe(await welcome())
-  })
-
-  it('reopens from About Beekeeper and closes again with Got it', async () => {
-    renderApp()
-    await dismiss()
-
-    await userEvent.click(screen.getByRole('button', { name: 'About Beekeeper' }))
-    expect(await welcome()).toBeTruthy()
-
-    await dismiss()
-    expect(await screen.findByRole('heading', { level: 1, name: '-Users-a-repo' })).toBeTruthy()
-  })
-
-  it('does not persist the reopened state', async () => {
-    renderApp()
-    await dismiss()
-    await userEvent.click(screen.getByRole('button', { name: 'About Beekeeper' }))
-
-    expect(useFirstRunStore.getState().isOpen).toBe(true)
-    await vi.waitFor(async () => {
-      expect(await idbStorage.getItem('first-run')).not.toContain('isOpen')
-    })
+    expect(screen.queryByRole('button', { name: /^About/ })).toBeNull()
   })
 
   it('still closes when the write fails, handling the rejection and logging a fixed message', async () => {

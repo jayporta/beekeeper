@@ -1,6 +1,14 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { BeekeeperApi } from '../shared/ipc/beekeeperApi'
-import { IPC_CHANNELS } from '../shared/ipc/channels'
+import { IPC_CHANNELS, IPC_EVENTS } from '../shared/ipc/channels'
+import { createSignalRelay } from './createSignalRelay'
+
+// Registered once as the preload loads, before the page has run any script, so a
+// request made while the page loads is held until the dialog host subscribes.
+const openAbout = createSignalRelay()
+ipcRenderer.on(IPC_EVENTS.openAbout, () => {
+  openAbout.signal()
+})
 
 /**
  * The only thing exposed to the renderer: named wrappers that return just the
@@ -17,7 +25,9 @@ const api: BeekeeperApi = {
   getProjectTotals: (projectDirName, window) =>
     ipcRenderer.invoke(IPC_CHANNELS.getProjectTotals, { projectDirName, window }),
   getWorktreePatch: (projectDirName, sessionId, agentId) =>
-    ipcRenderer.invoke(IPC_CHANNELS.getWorktreePatch, { projectDirName, sessionId, agentId })
+    ipcRenderer.invoke(IPC_CHANNELS.getWorktreePatch, { projectDirName, sessionId, agentId }),
+  // The renderer learns only that About was requested, never the event.
+  onOpenAbout: (listener) => openAbout.subscribe(listener)
 }
 
 contextBridge.exposeInMainWorld('beekeeper', api)

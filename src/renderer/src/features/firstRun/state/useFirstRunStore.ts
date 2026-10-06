@@ -11,25 +11,19 @@ export const FIRST_RUN_STORAGE_KEY = 'first-run'
 interface FirstRunState {
   /** Whether the person has pressed "Got it". Persisted across launches. */
   readonly dismissed: boolean
-  /** Whether the screen was reopened from the sidebar. Not persisted. */
-  readonly isOpen: boolean
-  /** Records that the person has seen the screen and closes it. */
+  /** Records that the person has seen the screen and closes it. Does nothing once dismissed. */
   dismiss: () => void
-  /** Reopens the screen, for the About control. */
-  open: () => void
 }
 
 /**
- * Whether the first-run screen is on show: until it is dismissed, and again
- * while it is reopened from About. The one definition of that, for every reader.
+ * Whether the first-run screen is on show: until it is dismissed. The one
+ * definition of that, for every reader.
  *
  * @param state - The store's state.
  * @returns `true` while the screen shows.
  */
-export function selectIsFirstRunShowing(
-  state: Pick<FirstRunState, 'dismissed' | 'isOpen'>
-): boolean {
-  return !state.dismissed || state.isOpen
+export function selectIsFirstRunShowing(state: Pick<FirstRunState, 'dismissed'>): boolean {
+  return !state.dismissed
 }
 
 /**
@@ -40,14 +34,12 @@ export function selectIsFirstRunShowing(
  */
 export const useFirstRunStore = create<FirstRunState>()(
   persist<FirstRunState, [], [], { dismissed: boolean }>(
-    (set) => ({
+    (set, get) => ({
       dismissed: false,
-      isOpen: false,
       dismiss: () => {
-        set({ dismissed: true, isOpen: false })
-      },
-      open: () => {
-        set({ isOpen: true })
+        // Every `set` writes to IndexedDB, so a repeat dismissal must not reach it.
+        if (get().dismissed) return
+        set({ dismissed: true })
       }
     }),
     {

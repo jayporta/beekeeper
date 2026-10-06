@@ -6,7 +6,11 @@ export interface AppMenuOptions {
   readonly platform: NodeJS.Platform
   /** Whether to include reload and Developer Tools items in the View menu. */
   readonly devTools: boolean
+  /** Called when the user picks About beekeeper from the app menu or the Help menu. */
+  readonly onAbout: () => void
 }
+
+const ABOUT_LABEL = 'About beekeeper'
 
 const editMenu: MenuItemConstructorOptions = {
   label: 'Edit',
@@ -45,39 +49,57 @@ function viewMenu(devTools: boolean): MenuItemConstructorOptions {
   }
 }
 
-const macAppMenu: MenuItemConstructorOptions = {
-  label: 'Beekeeper',
-  submenu: [
-    { role: 'about' },
-    { type: 'separator' },
-    { role: 'hide' },
-    { role: 'hideOthers' },
-    { role: 'unhide' },
-    { type: 'separator' },
-    { role: 'quit' }
-  ]
+function aboutItem(onAbout: () => void): MenuItemConstructorOptions {
+  return {
+    label: ABOUT_LABEL,
+    click: () => {
+      onAbout()
+    }
+  }
+}
+
+function macAppMenu(onAbout: () => void): MenuItemConstructorOptions {
+  return {
+    label: 'beekeeper',
+    submenu: [
+      aboutItem(onAbout),
+      { type: 'separator' },
+      { role: 'hide', label: 'Hide beekeeper' },
+      { role: 'hideOthers' },
+      { role: 'unhide' },
+      { type: 'separator' },
+      { role: 'quit', label: 'Quit beekeeper' }
+    ]
+  }
 }
 
 /**
  * Builds the application menu template.
  *
- * Every item uses a built-in role, so the menu runs no code of its own, has no
- * Help menu, and opens no URLs. The reload and Developer Tools items appear
- * only when `devTools` is true.
+ * Every item uses a built-in role except the two About items, which only call
+ * `onAbout`. The menu opens no URLs. The reload and Developer Tools items
+ * appear only when `devTools` is true.
  *
- * @param options - The platform and whether to include the developer items.
+ * @param options - The platform, whether to include the developer items, and the About handler.
  * @returns A template for `Menu.buildFromTemplate`.
  * @example
  * Menu.setApplicationMenu(
- *   Menu.buildFromTemplate(buildAppMenuTemplate({ platform: process.platform, devTools: false }))
+ *   Menu.buildFromTemplate(buildAppMenuTemplate({ platform: process.platform, devTools: false, onAbout }))
  * )
  */
 export function buildAppMenuTemplate({
   platform,
-  devTools
+  devTools,
+  onAbout
 }: AppMenuOptions): MenuItemConstructorOptions[] {
   // The file menu is Close on macOS, where it follows the app menu, and Quit elsewhere.
   const leading: MenuItemConstructorOptions[] =
-    platform === 'darwin' ? [macAppMenu, { role: 'fileMenu' }] : [{ role: 'fileMenu' }]
-  return [...leading, editMenu, viewMenu(devTools), { role: 'windowMenu' }]
+    platform === 'darwin' ? [macAppMenu(onAbout), { role: 'fileMenu' }] : [{ role: 'fileMenu' }]
+  return [
+    ...leading,
+    editMenu,
+    viewMenu(devTools),
+    { role: 'windowMenu' },
+    { role: 'help', submenu: [aboutItem(onAbout)] }
+  ]
 }

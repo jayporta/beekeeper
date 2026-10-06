@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { mergeFirstRunState } from '../state/mergeFirstRunState'
 
-const current = { dismissed: false, isOpen: false, dismiss: () => undefined, open: () => undefined }
+const current = { dismissed: false, dismiss: () => undefined }
 
 describe('mergeFirstRunState', () => {
   it('takes a stored boolean dismissed', () => {
@@ -21,15 +21,10 @@ describe('mergeFirstRunState', () => {
     expect(mergeFirstRunState({ dismissed }, current).dismissed).toBe(false)
   })
 
-  it('keeps every other field, and the actions, from the current state', () => {
-    const merged = mergeFirstRunState(
-      { dismissed: true, isOpen: true, dismiss: 'x', open: 5 },
-      current
-    )
+  it('does not let a stored value overwrite an action', () => {
+    const merged = mergeFirstRunState({ dismissed: true, dismiss: 'x' }, current)
 
-    expect(merged.isOpen).toBe(false)
     expect(merged.dismiss).toBe(current.dismiss)
-    expect(merged.open).toBe(current.open)
   })
 
   it.each([
