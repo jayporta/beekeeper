@@ -77,20 +77,11 @@ describe('SessionCardList rendering', () => {
 
   it('updates a card’s note when only the search changes', () => {
     const { rerender } = render(list(''))
-    expect(screen.queryByText('matches')).toBeNull()
+    expect(screen.queryByText(/^matching subagent/)).toBeNull()
 
     rerender(list('scout'))
 
-    expect(screen.getByText('matches')).toBeTruthy()
-  })
-
-  it('updates a card’s note when only the search changes', () => {
-    const { rerender } = render(list(''))
-    expect(screen.queryByText('matches')).toBeNull()
-
-    rerender(list('scout'))
-
-    expect(screen.getByText('matches')).toBeTruthy()
+    expect(screen.getByText('matching subagent scout')).toBeTruthy()
   })
 
   it('re-renders no card when the same rows come again with the same search', () => {

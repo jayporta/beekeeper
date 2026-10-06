@@ -7,6 +7,7 @@ import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
 import { createAgentTermsCache } from '../agentTermsCache'
 import type { IpcDeps } from '../ipcDeps'
 import { listSessionsHandler } from '../listSessionsHandler'
+import { HUMAN_SESSION_ID, WORKTREE, writeTranscript } from '../testFamilyFixtures'
 import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
 
 const ctx = registerIpcTestTree()
@@ -60,15 +61,52 @@ describe('listSessionsHandler agent terms', () => {
     expect(item.summary.ok).toBe(true)
   })
 
-  it('sends no terms for a session without subagents', async () => {
+  it('sends no terms for a session without subagents, and reads only the metas that exist', async () => {
+    await writeTranscript(ctx.tree.home, {
+      projectDirName: TEST_PROJECT,
+      sessionId: HUMAN_SESSION_ID,
+      records: []
+    })
     const readMeta = vi.fn(resolveSubagentMeta)
-    const bare = { ...ctx.deps, agentTerms: createAgentTermsCache({ readMeta }) }
-    const result = await listSessionsHandler(bare, { projectDirName: TEST_PROJECT })
-    const others = result.ok
-      ? result.value.filter((entry) => entry.sessionId !== TEST_SESSION_ID)
-      : []
+    const deps = { ...ctx.deps, agentTerms: createAgentTermsCache({ readMeta }) }
+    const result = await listSessionsHandler(deps, { projectDirName: TEST_PROJECT })
+    const bare = result.ok
+      ? result.value.find((entry) => entry.sessionId === HUMAN_SESSION_ID)
+      : null
 
-    expect(others.every((entry) => entry.agentTerms.length === 0)).toBe(true)
+    expect(bare?.agentTerms).toEqual([])
+    expect(readMeta).toHaveBeenCalledTimes(1)
+  })
+
+  it('reads no meta of a sibling folder session that the list leaves out', async () => {
+    await writeTranscript(ctx.tree.home, {
+      projectDirName: WORKTREE,
+      sessionId: HUMAN_SESSION_ID,
+      records: []
+    })
+    const siblingSubagents = join(
+      ctx.tree.home,
+      '.claude',
+      'projects',
+      WORKTREE,
+      HUMAN_SESSION_ID,
+      'subagents'
+    )
+    await mkdir(siblingSubagents, { recursive: true })
+    await writeFile(join(siblingSubagents, 'agent-s1.jsonl'), '', 'utf-8')
+    await writeFile(
+      join(siblingSubagents, 'agent-s1.meta.json'),
+      JSON.stringify({ agentType: 'Plan' }),
+      'utf-8'
+    )
+    const readMeta = vi.fn(resolveSubagentMeta)
+    const deps = { ...ctx.deps, agentTerms: createAgentTermsCache({ readMeta }) }
+
+    await listItem(deps)
+
+    expect(readMeta.mock.calls.map(([path]) => path)).not.toContain(
+      join(siblingSubagents, 'agent-s1.meta.json')
+    )
   })
 
   it('reads no meta on a second listing when nothing changed', async () => {

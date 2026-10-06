@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { collectAgentTerms, type AgentTerms } from '../../core/session/agentSearchTerms'
 import { createLruMap } from '../../core/shared/lruMap'
 import type { SubagentEntry } from '../../core/transcript/discoverSubagents'
@@ -38,19 +39,20 @@ export interface AgentTermsCacheOptions {
 
 /**
  * Identifies a session's subagents by what discovery stat'd: each
- * transcript's path, modification time and size, and whether it has a meta
- * file. A subagent that spawns, or a transcript that grows, changes it.
+ * transcript's path and whether it has a meta file, hashed so a session with
+ * hundreds of subagents still has a short key. A subagent that spawns changes
+ * it. A transcript's modification time and size are left out: meta files are
+ * written once, so a subagent's growing transcript must not invalidate its
+ * terms.
  *
  * @param subagents - The session's subagents.
- * @returns The key.
+ * @returns The key, a SHA-256 digest in hex.
  */
 export function agentTermsKey(subagents: readonly SubagentEntry[]): string {
-  return subagents
-    .map(
-      ({ transcript, metaPath }) =>
-        `${transcript.path}\0${transcript.mtimeMs}\0${transcript.size}\0${metaPath === null ? 0 : 1}`
-    )
+  const identity = subagents
+    .map(({ transcript, metaPath }) => `${transcript.path}\0${metaPath === null ? 0 : 1}`)
     .join('\n')
+  return createHash('sha256').update(identity).digest('hex')
 }
 
 function weigh(key: string, value: AgentTerms): number {
@@ -65,10 +67,10 @@ function weigh(key: string, value: AgentTerms): number {
  * Creates a terms cache, keyed by {@link agentTermsKey} so a change to a
  * session's subagents is a miss. Entries are evicted least recently used
  * first once their total weight passes the bound, and an entry heavier than
- * the whole bound is served but not kept. Terms are kept only when every
- * meta file that exists was read: an unreadable one may recover without the
- * key changing. Meta files are assumed write-once, so the key covers their
- * presence and not their contents.
+ * the whole bound is served but not kept. Terms are kept unless a meta file
+ * failed in a way that can clear without the key changing (see
+ * `CollectedAgentTerms.complete`). Meta files are assumed write-once, so
+ * the key covers their presence and not their contents.
  *
  * @param options - The weight bound and the meta reader.
  * @returns An empty cache.

@@ -5,6 +5,7 @@ import { MAX_AGENT_TERM_CODE_UNITS, MAX_AGENT_TERMS } from '../agentTermCaps'
 import { collectAgentTerms } from '../agentSearchTerms'
 import type { SubagentEntry } from '../../transcript/discoverSubagents'
 import { resolveSubagentMeta } from '../resolveSubagentMeta'
+import type { SubagentMetaStatus } from '../subagentMetaStatus'
 import { createSessionScanDir, type SessionScanDir } from '../testSessionDir'
 
 let dir: SessionScanDir | undefined
@@ -59,16 +60,22 @@ describe('collectAgentTerms', () => {
     })
   })
 
-  it.each([
-    ['invalid JSON', 'not json'],
-    ['a shape without agentType', { description: 'no type' }]
-  ])('adds nothing for a meta with %s, and reports incomplete', async (_name, meta) => {
-    const subagents = subagentsWith([meta, { agentType: 'Explore' }])
+  it('adds nothing for invalid JSON, and reports incomplete since it may be mid-write', async () => {
+    const subagents = subagentsWith(['not json', { agentType: 'Explore' }])
 
     expect(await collectAgentTerms(subagents)).toMatchObject({
       terms: [{ agentType: 'Explore' }],
       truncated: false,
       complete: false
+    })
+  })
+
+  it('adds nothing for a shape without agentType, and still reports complete', async () => {
+    const subagents = subagentsWith([{ description: 'no type' }, { agentType: 'Explore' }])
+
+    expect(await collectAgentTerms(subagents)).toMatchObject({
+      terms: [{ agentType: 'Explore' }],
+      complete: true
     })
   })
 
@@ -80,7 +87,18 @@ describe('collectAgentTerms', () => {
     expect(await collectAgentTerms([withMeta])).toMatchObject({ terms: [], complete: false })
   })
 
-  it('adds nothing for a meta that is a symlink, and reports incomplete', async () => {
+  it('adds nothing for a meta that cannot be read, and reports incomplete', async () => {
+    const subagents = subagentsWith([{ agentType: 'Explore' }])
+    const unreadable = (): Promise<SubagentMetaStatus> =>
+      Promise.resolve({ status: 'error', reason: 'unreadable' })
+
+    expect(await collectAgentTerms(subagents, unreadable)).toMatchObject({
+      terms: [],
+      complete: false
+    })
+  })
+
+  it('adds nothing for a meta that is a symlink, and still reports complete', async () => {
     const [entry] = subagentsWith([{ agentType: 'Explore' }])
     const metaPath = entry?.metaPath ?? ''
     const real = join(metaPath, '..', 'real.json')
@@ -91,15 +109,23 @@ describe('collectAgentTerms', () => {
       metaPath: join(metaPath, '..', 'agent-link.meta.json')
     }
 
-    expect(await collectAgentTerms([linked])).toMatchObject({ terms: [], complete: false })
+    expect(await collectAgentTerms([linked])).toMatchObject({ terms: [], complete: true })
   })
 
-  it('adds nothing for a meta over the size cap, and reports incomplete', async () => {
+  it('adds nothing for a meta over the size cap, and still reports complete', async () => {
     const subagents = subagentsWith([
       JSON.stringify({ agentType: 'Explore', description: 'x'.repeat(70 * 1024) })
     ])
 
-    expect(await collectAgentTerms(subagents)).toMatchObject({ terms: [], complete: false })
+    expect(await collectAgentTerms(subagents)).toMatchObject({ terms: [], complete: true })
+  })
+
+  it('reports complete for a meta that is not a regular file', async () => {
+    const subagents = subagentsWith([{ agentType: 'Explore' }])
+    const notAFile = (): Promise<SubagentMetaStatus> =>
+      Promise.resolve({ status: 'error', reason: 'not-a-file' })
+
+    expect(await collectAgentTerms(subagents, notAFile)).toMatchObject({ complete: true })
   })
 
   it('keeps one term for subagents that match on name, description and type', async () => {

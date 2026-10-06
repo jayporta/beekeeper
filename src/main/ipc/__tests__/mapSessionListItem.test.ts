@@ -4,7 +4,7 @@ import { toProjectDirName, toSessionId } from '../../../core/transcript/ids'
 import type { SessionSummary } from '../../../core/transcript/summary/sessionSummary'
 import { NO_AGENT_TERMS } from '../../../core/session/agentSearchTerms'
 import { buildSessionSummary } from '../../../core/transcript/summary/testSessionSummary'
-import { mapSessionListItem, type ScannedSession } from '../mapSessionListItem'
+import { mapSessionListItem, type ListableSession } from '../mapSessionListItem'
 
 const SUMMARY: SessionSummary = buildSessionSummary({
   title: 'A title',
@@ -15,7 +15,7 @@ const SUMMARY: SessionSummary = buildSessionSummary({
   transcriptTokens: 1200
 })
 
-function scanned(summary: ScannedSession['summary']): ScannedSession {
+function scanned(summary: ListableSession['summary']): ListableSession {
   return {
     projectDirName: toProjectDirName('-Users-a-repo'),
     entry: {
@@ -107,7 +107,7 @@ describe('mapSessionListItem', () => {
   })
 
   it('copies the agent terms and the truncation flag, and only the three term fields', () => {
-    const withTerms: ScannedSession = {
+    const withTerms: ListableSession = {
       ...scanned(ok(SUMMARY)),
       agentTerms: {
         terms: [{ name: 'scout', description: null, agentType: 'Explore', extra: 1 } as never],
@@ -122,7 +122,7 @@ describe('mapSessionListItem', () => {
   })
 
   it('sends no agent terms for a session whose transcript could not be read', () => {
-    const failed: ScannedSession = {
+    const failed: ListableSession = {
       ...scanned(ok(SUMMARY)),
       entry: {
         sessionId: toSessionId('11111111-1111-4111-8111-111111111111'),
@@ -165,7 +165,7 @@ describe('mapSessionListItem', () => {
     })
 
     it('logs an unmapped transcript stat failure by code', () => {
-      const failed: ScannedSession = {
+      const failed: ListableSession = {
         ...scanned(ok(SUMMARY)),
         entry: {
           sessionId: toSessionId('11111111-1111-4111-8111-111111111111'),

@@ -9,7 +9,7 @@ import { scanProjectSessions, summarizedSessions, type ScanDeps } from './scanPr
 
 /** Options for {@link groupProjectFamily}. */
 export interface GroupProjectFamilyOptions {
-  /** The summary cache and the summaries scheduler, and the agent terms cache when sessions should carry search terms. */
+  /** The summary cache and the summaries scheduler. */
   readonly deps: ScanDeps
   /** The requested folder, from `projects`. */
   readonly project: ProjectEntry

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { resolveSubagentMeta } from '../../../core/session/resolveSubagentMeta'
+import type { SubagentMetaStatus } from '../../../core/session/subagentMetaStatus'
 import { createSessionScanDir, type SessionScanDir } from '../../../core/session/testSessionDir'
 import { agentTermsKey, createAgentTermsCache } from '../agentTermsCache'
 
@@ -64,7 +65,7 @@ describe('createAgentTermsCache', () => {
     expect(terms.terms.map((term) => term.agentType)).toEqual(['Explore', 'Plan'])
   })
 
-  it('reads again when a subagent’s transcript has grown', async () => {
+  it('reads no meta again when a subagent’s transcript has grown', async () => {
     const readMeta = vi.fn(resolveSubagentMeta)
     const cache = createAgentTermsCache({ readMeta })
     const entry = scanDir().addSubagent('a', { transcript: '', meta: meta('Explore') })
@@ -72,10 +73,13 @@ describe('createAgentTermsCache', () => {
     readMeta.mockClear()
 
     await cache.read([
-      { ...entry, transcript: { ...entry.transcript, size: entry.transcript.size + 1 } }
+      {
+        ...entry,
+        transcript: { ...entry.transcript, mtimeMs: entry.transcript.mtimeMs + 5, size: 99 }
+      }
     ])
 
-    expect(readMeta).toHaveBeenCalledTimes(1)
+    expect(readMeta).not.toHaveBeenCalled()
   })
 
   it('does not keep terms when a meta could not be read, so a recovered meta is picked up', async () => {
@@ -92,6 +96,32 @@ describe('createAgentTermsCache', () => {
     expect(first.terms.map((term) => term.agentType)).toEqual(['Plan'])
     expect(readMeta).toHaveBeenCalledTimes(4)
   })
+
+  it.each(['unreadable', 'missing', 'invalid-json'] as const)(
+    'does not keep terms when a meta fails with a transient %s error',
+    async (reason) => {
+      const readMeta = vi.fn(() => Promise.resolve<SubagentMetaStatus>({ status: 'error', reason }))
+      const cache = createAgentTermsCache({ readMeta })
+      const subagents = [scanDir().addSubagent('a', { transcript: '', meta: meta('Explore') })]
+      await cache.read(subagents)
+      await cache.read(subagents)
+
+      expect(readMeta).toHaveBeenCalledTimes(2)
+    }
+  )
+
+  it.each(['invalid-shape', 'too-large', 'symlink', 'not-a-file'] as const)(
+    'keeps terms when a meta fails with a permanent %s error',
+    async (reason) => {
+      const readMeta = vi.fn(() => Promise.resolve<SubagentMetaStatus>({ status: 'error', reason }))
+      const cache = createAgentTermsCache({ readMeta })
+      const subagents = [scanDir().addSubagent('a', { transcript: '', meta: meta('Explore') })]
+      await cache.read(subagents)
+      await cache.read(subagents)
+
+      expect(readMeta).toHaveBeenCalledTimes(1)
+    }
+  )
 
   it('keeps subagents without a meta file as a hit', async () => {
     const readMeta = vi.fn(resolveSubagentMeta)
@@ -159,5 +189,12 @@ describe('agentTermsKey', () => {
     expect(agentTermsKey([entry])).not.toBe(
       agentTermsKey([{ ...entry, metaPath: `${entry.transcript.path}.meta.json` }])
     )
+  })
+
+  it('is a fixed-length hash however many subagents there are', () => {
+    const entry = scanDir().addSubagent('a', { transcript: '' })
+
+    expect(agentTermsKey([entry])).toMatch(/^[0-9a-f]{64}$/)
+    expect(agentTermsKey(Array.from({ length: 500 }, () => entry))).toHaveLength(64)
   })
 })

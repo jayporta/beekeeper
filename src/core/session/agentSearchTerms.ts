@@ -1,7 +1,7 @@
 import type { SubagentEntry } from '../transcript/discoverSubagents'
 import { MAX_AGENT_TERM_CODE_UNITS, MAX_AGENT_TERMS } from './agentTermCaps'
 import { resolveSubagentMeta } from './resolveSubagentMeta'
-import type { SubagentMetaStatus } from './subagentMetaStatus'
+import type { SubagentMetaFailureReason, SubagentMetaStatus } from './subagentMetaStatus'
 
 /** What a session search matches on for one subagent. Transcript-derived text. */
 export interface AgentSearchTerm {
@@ -27,10 +27,27 @@ export const NO_AGENT_TERMS: AgentTerms = { terms: [], truncated: false }
 /** A session's {@link AgentTerms} and whether every meta that exists could be read. */
 export interface CollectedAgentTerms extends AgentTerms {
   /**
-   * `false` when a meta file existed but couldn't be read or validated. That
-   * can clear without the subagents changing, so such terms aren't kept.
+   * `false` when a meta file existed but failed in a way that can clear
+   * without the subagents changing (see {@link isTransientMetaFailure}), so
+   * such terms aren't kept.
    */
   readonly complete: boolean
+}
+
+/** The failures that can clear on their own: the file may be mid-write, or briefly unreadable. */
+const TRANSIENT_META_FAILURES: ReadonlySet<SubagentMetaFailureReason> = new Set([
+  'unreadable',
+  'missing',
+  'invalid-json'
+])
+
+/**
+ * Whether a meta failure can clear without the file being replaced. The
+ * others (`invalid-shape`, `too-large`, `symlink`, `not-a-file`) describe the
+ * file as it stands and repeat on every read.
+ */
+function isTransientMetaFailure(reason: SubagentMetaFailureReason): boolean {
+  return TRANSIENT_META_FAILURES.has(reason)
 }
 
 function lengthOf(term: AgentSearchTerm): number {
@@ -40,7 +57,7 @@ function lengthOf(term: AgentSearchTerm): number {
 /**
  * Collects the search terms of a session's subagents from their meta files,
  * one file at a time. A subagent with no meta, or whose meta can't be read,
- * adds nothing. Terms are deduplicated on name, description and type. The
+ * adds nothing, and only a transient failure makes the result incomplete. Terms are deduplicated on name, description and type. The
  * collection stops at the first distinct term that would pass
  * {@link MAX_AGENT_TERMS} terms or {@link MAX_AGENT_TERM_CODE_UNITS} code
  * units, and reports `truncated`.
@@ -61,7 +78,7 @@ export async function collectAgentTerms(
   for (const { metaPath } of subagents) {
     if (metaPath === null) continue
     const status = await readMeta(metaPath)
-    if (status.status === 'error') complete = false
+    if (status.status === 'error' && isTransientMetaFailure(status.reason)) complete = false
     if (status.status !== 'ok') continue
 
     const term: AgentSearchTerm = {

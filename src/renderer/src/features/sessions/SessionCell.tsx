@@ -64,9 +64,7 @@ export function SessionCell({
         <SeparatedText parts={meta} />
       </p>
       {matchedAgent !== null && (
-        <p className={styles.muted}>
-          {t('agentMatch')} <bdi>{matchedAgent}</bdi>
-        </p>
+        <p className={styles.muted}>{t('matchingSubagent', { agent: matchedAgent })}</p>
       )}
     </div>
   )

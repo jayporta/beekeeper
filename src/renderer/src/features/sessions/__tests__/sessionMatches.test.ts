@@ -108,7 +108,7 @@ describe('matchedAgentOf', () => {
       title: 'Lead',
       latestMs: 1,
       team: testLeadTeam([testRef(2)]),
-      agentTerms: [scout]
+      agentTerms: [scout, term({ agentType: 'code-reviewer' })]
     })
     const mate = testSession(2, {
       role: testAgentRole('reviewer', 'code'),
@@ -118,23 +118,6 @@ describe('matchedAgentOf', () => {
 
     expect(matchedAgentOf(row as SessionRow, 'review')).toBeNull()
     expect(matchedAgentOf(row as SessionRow, 'auth')).toBe('scout')
-  })
-
-  it('names nothing when a teammate and the session’s own subagent both match', () => {
-    const lead = testSession(1, {
-      title: 'Lead',
-      latestMs: 1,
-      team: testLeadTeam([testRef(2)]),
-      agentTerms: [scout]
-    })
-    const mate = testSession(2, {
-      role: testAgentRole('reviewer', 'code'),
-      team: testTeammateTeam(testRef(1)),
-      agentTerms: [term({ name: 'auth-checker' })]
-    })
-    const [row] = groupSessionRows([lead, mate], testSessionsT)
-
-    expect(matchedAgentOf(row as SessionRow, 'auth')).toBeNull()
   })
 
   it('names nothing when a teammate and the session’s own subagent both match', () => {

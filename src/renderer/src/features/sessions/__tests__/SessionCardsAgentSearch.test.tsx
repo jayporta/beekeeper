@@ -79,27 +79,26 @@ describe('session search by subagent', () => {
     await search(text, [refactor, lead, mate])
 
     const shown = await card('Refactor parser')
-    expect(within(shown).getByText('matches')).toBeTruthy()
-    expect(within(shown).getByText('scout').tagName).toBe('BDI')
+    expect(within(shown).getByText('matching subagent scout')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Team lead' })).toBeNull()
   })
 
-  it('shows one card with no "matches" line when the title and a subagent both match', async () => {
+  it('shows one card with no "matching subagent" line when the title and a subagent both match', async () => {
     await search('auth flow', [authTitled, refactor])
 
     expect(screen.getAllByRole('button', { name: 'Fix auth flow' })).toHaveLength(1)
     const shown = await card('Fix auth flow')
-    expect(within(shown).queryByText('matches')).toBeNull()
-    expect(within(await card('Refactor parser')).getByText('matches')).toBeTruthy()
+    expect(within(shown).queryByText(/^matching subagent/)).toBeNull()
+    expect(within(await card('Refactor parser')).getByText('matching subagent scout')).toBeTruthy()
   })
 
-  it('highlights a teammate’s chip, and adds no "matches" line, when its own subagent matches', async () => {
+  it('highlights a teammate’s chip, and adds no "matching subagent" line, when its own subagent matches', async () => {
     await search('checker', [lead, mate, refactor])
 
     const shown = await card('Team lead')
     expect(within(shown).getByRole('button', { name: /^reviewer \(code\)/ })).toBeTruthy()
     expect(within(shown).getByText('matches search')).toBeTruthy()
-    expect(within(shown).queryByText('matches')).toBeNull()
+    expect(within(shown).queryByText(/^matching subagent/)).toBeNull()
     expect(screen.queryByRole('button', { name: 'Refactor parser' })).toBeNull()
   })
 
@@ -113,12 +112,12 @@ describe('session search by subagent', () => {
 
     await search('bold', [markup])
 
-    expect(within(await card('Plain')).getByText('<b>bold</b>')).toBeTruthy()
+    expect(within(await card('Plain')).getByText('matching subagent <b>bold</b>')).toBeTruthy()
   })
 
-  it('shows no "matches" line without a search', async () => {
+  it('shows no "matching subagent" line without a search', async () => {
     await search('', [refactor])
 
-    expect(within(await card('Refactor parser')).queryByText('matches')).toBeNull()
+    expect(within(await card('Refactor parser')).queryByText(/^matching subagent/)).toBeNull()
   })
 })

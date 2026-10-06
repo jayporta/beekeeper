@@ -18,7 +18,11 @@ export interface ScannedSession {
   readonly entry: SessionEntry
   /** The summary read, or why there is none. A failed transcript stat carries its own error. */
   readonly summary: Result<SessionSummary, UnreadableError>
-  /** The search terms of the session's subagents, empty when they weren't read. */
+}
+
+/** A scanned session with the search terms of its subagents, ready to list. */
+export interface ListableSession extends ScannedSession {
+  /** The search terms of the session's subagents. */
   readonly agentTerms: AgentTerms
 }
 
@@ -26,13 +30,13 @@ export interface ScannedSession {
  * Maps a scanned session to its list item, field by field, so no unknown
  * summary field crosses the bridge.
  *
- * @param scanned - The session and its summary read.
+ * @param scanned - The session, its summary read, and its subagent search terms.
  * @param team - The session's team entry, or `null` when it has none.
  * @returns The item as sent to the renderer. Its `team` is `null` whenever
  * the transcript or summary could not be read.
  */
 export function mapSessionListItem(
-  scanned: ScannedSession,
+  scanned: ListableSession,
   team: SessionTeamDto | null
 ): SessionListItemDto {
   const { entry, summary } = scanned
