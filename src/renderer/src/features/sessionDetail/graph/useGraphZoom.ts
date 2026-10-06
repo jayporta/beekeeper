@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { flushSync } from 'react-dom'
-import { centeredScroll, scrollAfterZoom } from './graphSlack'
+import { centeredScroll, panSlack, scrollAfterZoom } from './graphSlack'
 import { fitScale, scaleAfterWheel, stepScale, type Size } from './graphZoom'
+import { useSeenScroll } from './useSeenScroll'
+import { useViewSize } from './useViewSize'
 
 /** A point inside the viewport, in pixels from its top left corner. */
 interface Point {
@@ -13,20 +15,14 @@ interface Point {
 interface GraphZoom {
   /** The current scale. */
   readonly scale: number
+  /** The empty scroll room on each side of the graph at the current scale. */
+  readonly slack: Size
   /** Shrinks by one step around the viewport's center. */
   readonly zoomOut: () => void
   /** Magnifies by one step around the viewport's center. */
   readonly zoomIn: () => void
   /** Scales the whole graph to fit the room above the zoom controls, never magnifying it, and centers it there. Does nothing while the viewport has no size. */
   readonly fit: () => void
-}
-
-/** What the zoom needs to know about the graph and the room around it. */
-interface GraphZoomOptions {
-  /** The graph's size at scale 1. */
-  readonly content: Size
-  /** The empty scroll room on each side of the graph, from {@link useGraphSlack}. */
-  readonly slack: Size
 }
 
 /**
@@ -42,31 +38,62 @@ function fitTarget(viewport: HTMLElement): Size {
 }
 
 /**
- * Holds the graph's scale and changes it by the zoom buttons, by Fit, and by
- * Ctrl or Cmd with the wheel. The viewport scrolls natively, so a change keeps
- * the point under the pointer (or the viewport's center) where it was by
- * scrolling to match. A plain wheel turn or trackpad scroll pans the view
- * natively, and only Ctrl or Cmd with the wheel is taken.
+ * Holds the graph's scale and the empty scroll room around the graph, and
+ * changes the scale by the zoom buttons, by Fit, and by Ctrl or Cmd with the
+ * wheel. The room lets the graph be panned past its edges, and depends on the
+ * viewport's size and the scaled graph's. The viewport scrolls natively, so a
+ * change of scale keeps the point under the pointer (or the viewport's center)
+ * where it was by scrolling to match, and a change of the viewport's or the
+ * graph's size keeps the graph where it is on screen. The graph first lands with
+ * its top left at the viewport's top left. A plain wheel turn or trackpad scroll
+ * pans the view natively, and only Ctrl or Cmd with the wheel is taken.
  *
  * @param viewportRef - The scrolling element the graph sits in.
- * @param options - The graph's size and the room around it.
- * @returns The scale and the actions that change it.
+ * @param content - The graph's size at scale 1.
+ * @returns The scale, the room around the graph, and the actions that change the scale.
  */
-export function useGraphZoom(
-  viewportRef: RefObject<HTMLElement | null>,
-  { content, slack }: GraphZoomOptions
-): GraphZoom {
+export function useGraphZoom(viewportRef: RefObject<HTMLElement | null>, content: Size): GraphZoom {
+  const { width: contentWidth, height: contentHeight } = content
   const [scale, setScale] = useState(1)
   // The scale the latest change set, for handlers that outlive a render, so the wheel listener attaches once.
   const scaleRef = useRef(scale)
+  const view = useViewSize(viewportRef)
+  const seenScroll = useSeenScroll(viewportRef)
 
-  const applyScale = useCallback((next: number) => {
-    scaleRef.current = next
-    // Scrolling needs the resized content in place, so the update can't wait for the next frame.
-    flushSync(() => {
-      setScale(next)
-    })
-  }, [])
+  const slackAt = useCallback(
+    (at: number): Size => panSlack(view, { width: contentWidth * at, height: contentHeight * at }),
+    [view, contentWidth, contentHeight]
+  )
+  const slack = slackAt(scale)
+  // The room the offsets last accounted for.
+  const accountedFor = useRef(slack)
+
+  // Keeps the graph where it is on screen when the room before it changes, other than by a zoom. The
+  // browser clamps the live offsets while laying the change out, so the ones last seen are shifted.
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current
+    const previous = accountedFor.current
+    accountedFor.current = { width: slack.width, height: slack.height }
+    if (viewport === null || (previous.width === slack.width && previous.height === slack.height)) {
+      return
+    }
+    const { left, top } = seenScroll.current
+    viewport.scrollLeft = left + slack.width - previous.width
+    viewport.scrollTop = top + slack.height - previous.height
+  }, [viewportRef, seenScroll, slack.width, slack.height])
+
+  // Applies a scale, whose room the caller sets the offsets for, so the shift above leaves it be.
+  const applyScale = useCallback(
+    (next: number) => {
+      scaleRef.current = next
+      accountedFor.current = slackAt(next)
+      // Scrolling needs the resized content in place, so the update can't wait for the next frame.
+      flushSync(() => {
+        setScale(next)
+      })
+    },
+    [slackAt]
+  )
 
   const zoomAround = useCallback(
     (next: number, anchor: Point) => {
@@ -74,23 +101,27 @@ export function useGraphZoom(
       const current = scaleRef.current
       if (viewport === null || next === current) return
       const ratio = next / current
+      const before = slackAt(current)
+      const after = slackAt(next)
       // Shrinking the content makes the browser clamp the offsets, so they are read before it does.
       const { scrollLeft, scrollTop } = viewport
       applyScale(next)
       viewport.scrollLeft = scrollAfterZoom({
         scroll: scrollLeft,
         anchor: anchor.x,
-        slack: slack.width,
+        before: before.width,
+        after: after.width,
         ratio
       })
       viewport.scrollTop = scrollAfterZoom({
         scroll: scrollTop,
         anchor: anchor.y,
-        slack: slack.height,
+        before: before.height,
+        after: after.height,
         ratio
       })
     },
-    [viewportRef, slack, applyScale]
+    [viewportRef, slackAt, applyScale]
   )
 
   const zoomBy = useCallback(
@@ -109,20 +140,21 @@ export function useGraphZoom(
     const viewport = viewportRef.current
     if (viewport === null) return
     const target = fitTarget(viewport)
-    const next = fitScale(content, target)
+    const next = fitScale({ width: contentWidth, height: contentHeight }, target)
     if (next === null) return
+    const after = slackAt(next)
     applyScale(next)
     viewport.scrollLeft = centeredScroll({
-      slack: slack.width,
-      content: content.width * next,
+      slack: after.width,
+      content: contentWidth * next,
       room: target.width
     })
     viewport.scrollTop = centeredScroll({
-      slack: slack.height,
-      content: content.height * next,
+      slack: after.height,
+      content: contentHeight * next,
       room: target.height
     })
-  }, [viewportRef, content, slack, applyScale])
+  }, [viewportRef, contentWidth, contentHeight, slackAt, applyScale])
 
   // A wheel listener has to be non-passive to cancel the browser's own page zoom.
   useEffect(() => {
@@ -145,6 +177,7 @@ export function useGraphZoom(
 
   return {
     scale,
+    slack,
     zoomOut: useCallback(() => {
       zoomBy('out')
     }, [zoomBy]),

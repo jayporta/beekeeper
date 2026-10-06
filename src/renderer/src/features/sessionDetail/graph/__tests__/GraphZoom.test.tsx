@@ -4,6 +4,7 @@ import { useNavigationStore } from '@renderer/features/navigation/state/useNavig
 import { MAX_SCALE, MIN_SCALE, ZOOM_STEP } from '../graphZoom'
 import { graphNode, renderGraph } from '../testGraphScene'
 import {
+  modelScrollClamp,
   press,
   scale,
   sizeView,
@@ -102,6 +103,7 @@ describe('GraphCanvas zoom with room around the graph', () => {
     const resizing = stubResizeObserver()
     sizeView({ width: 200, height: 200 })
     renderGraph()
+    modelScrollClamp()
     resizing.resize()
 
     await press('Zoom in')
@@ -116,6 +118,7 @@ describe('GraphCanvas zoom with room around the graph', () => {
     const resizing = stubResizeObserver()
     sizeView({ width: 200, height: 200 })
     renderGraph()
+    modelScrollClamp()
     resizing.resize()
     vi.spyOn(viewport(), 'getBoundingClientRect').mockReturnValue({ left: 50, top: 20 } as DOMRect)
 
@@ -125,34 +128,30 @@ describe('GraphCanvas zoom with room around the graph', () => {
     expect(viewport().scrollLeft).toBeCloseTo(100 + 100 * scale() - 100)
     expect(viewport().scrollTop).toBeCloseTo(100 + 100 * scale() - 100)
   })
+
+  it('keeps the point under the pointer where it was when zooming grows a small graph past half the view', () => {
+    const resizing = stubResizeObserver()
+    sizeView({ width: 1000, height: 800 })
+    renderGraph()
+    modelScrollClamp()
+    resizing.resize()
+    vi.spyOn(viewport(), 'getBoundingClientRect').mockReturnValue({ left: 50, top: 20 } as DOMRect)
+
+    // The graph is 476 wide, less than half the 1000 view, so 524 of room comes before it. Zooming
+    // makes it wider than half, so 500 of room comes before it.
+    fireEvent.wheel(viewport(), { deltaY: -10, ctrlKey: true, clientX: 250, clientY: 120 })
+
+    // The pointer is 200 into the view and so into the graph, which the zoom scales by the new scale.
+    expect(viewport().scrollLeft).toBeCloseTo(500 + 200 * scale() - 200)
+  })
 })
 
 describe('GraphCanvas zoom out near the far edges', () => {
   it('keeps the center where it was although the browser clamps the offsets to the shrunken graph', async () => {
+    sizeView({ width: 200, height: 100 })
     renderGraph()
-    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(200)
-    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(100)
+    modelScrollClamp()
     await press('Zoom in')
-    // Stands in for the browser: an offset can't pass the end of the scaled graph.
-    const offsets = { left: 0, top: 0 }
-    Object.defineProperties(viewport(), {
-      scrollLeft: {
-        configurable: true,
-        get: () =>
-          Math.min(offsets.left, Math.max(0, Number.parseFloat(sizer().style.width) - 200)),
-        set: (value: number) => {
-          offsets.left = value
-        }
-      },
-      scrollTop: {
-        configurable: true,
-        get: () =>
-          Math.min(offsets.top, Math.max(0, Number.parseFloat(sizer().style.height) - 100)),
-        set: (value: number) => {
-          offsets.top = value
-        }
-      }
-    })
     viewport().scrollLeft = 300
     viewport().scrollTop = 300
 
@@ -211,18 +210,23 @@ describe('GraphCanvas fit', () => {
     expect(scale()).toBe(1)
   })
 
-  it('centers the fitted graph in the room above the zoom controls', async () => {
+  it('centers the fitted graph in the room above the zoom controls, with the room it has at its new scale', async () => {
     const resizing = stubResizeObserver()
-    sizeView({ width: 1000, height: 600 })
+    sizeView({ width: 900, height: 400 })
     renderGraph()
+    modelScrollClamp()
     stubControlsClearance(100)
     resizing.resize()
 
     await press('Fit the graph to the view')
 
-    // The graph keeps its size in a 1000 by 500 room, with 500 by 300 of room before it.
-    expect(viewport().scrollLeft).toBeCloseTo(500 + (476 - 1000) / 2)
-    expect(viewport().scrollTop).toBeCloseTo(300 + (346 - 500) / 2)
+    // The 300 pixel room above the controls fits the graph at 300 / 346, so it is narrower than
+    // half the 900 view and has more room beside it than it had at full size.
+    const fitted = { width: 476 * (300 / 346), height: 300 }
+    const graphLeft = Number.parseFloat(surface().style.left) - viewport().scrollLeft
+    const graphTop = Number.parseFloat(surface().style.top) - viewport().scrollTop
+    expect(graphLeft).toBeCloseTo((900 - fitted.width) / 2)
+    expect(graphTop).toBeCloseTo((300 - fitted.height) / 2)
   })
 
   it('leaves the scale and the scrollable area alone while the view has no size', async () => {

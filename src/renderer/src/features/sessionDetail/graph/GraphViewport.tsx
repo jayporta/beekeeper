@@ -4,7 +4,6 @@ import { GRAPH_NOTES_ID } from './graphFootnoteId'
 import styles from './GraphViewport.module.css'
 import { GraphZoomControls } from './GraphZoomControls'
 import { useGraphPan } from './useGraphPan'
-import { useGraphSlack } from './useGraphSlack'
 import { useGraphZoom } from './useGraphZoom'
 
 /** Props for {@link GraphViewport}. */
@@ -19,8 +18,8 @@ interface GraphViewportProps {
 
 /**
  * The window onto the graph: it scrolls, pans freely in every direction by
- * dragging its background, by the wheel and by trackpad (until the graph's edge
- * reaches the middle of the view), zooms with the controls at its bottom right and
+ * dragging its background, by the wheel and by trackpad (until only the smaller
+ * of the graph and half the view stays in view), zooms with the controls at its bottom right and
  * with Ctrl or Cmd and the wheel, and fits the whole graph to its size on
  * request. The graph is scaled with a CSS transform, and its box is sized to
  * match with empty room on every side, so scrollbars follow the zoom and the
@@ -34,11 +33,7 @@ interface GraphViewportProps {
 export function GraphViewport({ width, height, children }: GraphViewportProps): React.JSX.Element {
   const { t } = useTranslation('sessionDetail')
   const viewportRef = useRef<HTMLDivElement>(null)
-  const slack = useGraphSlack(viewportRef)
-  const { scale, zoomOut, zoomIn, fit } = useGraphZoom(viewportRef, {
-    content: { width, height },
-    slack
-  })
+  const { scale, slack, zoomOut, zoomIn, fit } = useGraphZoom(viewportRef, { width, height })
   const pan = useGraphPan(viewportRef)
   // React types no custom properties, so the full-size height the view's styles read takes an assertion.
   const viewportStyle = { '--graph-height': `${height}px` } as CSSProperties

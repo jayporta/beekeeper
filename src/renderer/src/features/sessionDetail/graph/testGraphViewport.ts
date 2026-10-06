@@ -21,16 +21,21 @@ export const press = async (name: string): Promise<void> => {
 }
 
 /** A width and a height to give the view, in pixels. */
-interface ViewBox {
+export interface ViewBox {
   /** The view's width. */
   readonly width: number
   /** The view's height. */
   readonly height: number
 }
 
+/** Holds the view's offsets within its content, as the browser does when it lays the view out. */
+let layOut: () => void = () => undefined
+
 /**
  * Gives every element the size of a view with no scrollbars and no borders,
- * since jsdom lays nothing out. Call it again to resize.
+ * since jsdom lays nothing out. Call it again to resize. If the scroll
+ * clamping is modeled, the new size clamps the offsets against the content as
+ * it is, as the browser does before any observer reports.
  *
  * @param box - The border box and the client box, which are the same size.
  */
@@ -39,6 +44,43 @@ export function sizeView({ width, height }: ViewBox): void {
   vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(height)
   vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(width)
   vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(height)
+  layOut()
+}
+
+/**
+ * Makes the rendered view's scroll offsets behave as the browser's do: they
+ * read back held within `0` and the sizer's size less the view's client size,
+ * taken from the sizer's inline style and the client size {@link sizeView}
+ * gives, and a resize by {@link sizeView} holds them at once. Setting an offset
+ * fires `scroll`. Call it after rendering and sizing, and before the first
+ * resize.
+ */
+export function modelScrollClamp(): void {
+  const view = viewport()
+  const content = sizer()
+  const offsets = { left: 0, top: 0 }
+  const held = (offset: number, contentLength: string, client: number): number =>
+    Math.min(Math.max(0, offset), Math.max(0, Number.parseFloat(contentLength) - client))
+  const axis = (key: 'left' | 'top'): PropertyDescriptor => ({
+    configurable: true,
+    get: () => {
+      offsets[key] = held(
+        offsets[key],
+        key === 'left' ? content.style.width : content.style.height,
+        key === 'left' ? view.clientWidth : view.clientHeight
+      )
+      return offsets[key]
+    },
+    set: (value: number) => {
+      offsets[key] = value
+      view.dispatchEvent(new Event('scroll'))
+    }
+  })
+  Object.defineProperties(view, { scrollLeft: axis('left'), scrollTop: axis('top') })
+  layOut = () => {
+    void view.scrollLeft
+    void view.scrollTop
+  }
 }
 
 const realComputedStyle = window.getComputedStyle.bind(window)
