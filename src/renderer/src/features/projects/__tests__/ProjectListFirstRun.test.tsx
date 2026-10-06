@@ -1,7 +1,10 @@
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
+import {
+  FIRST_RUN_STORAGE_KEY,
+  useFirstRunStore
+} from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { idbStorage } from '@renderer/storage/idbStorage'
 import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
@@ -55,7 +58,7 @@ describe('the sidebar while the first-run screen shows', () => {
     await userEvent.click(within(nav).getByRole('button', { name: BETA }))
 
     await vi.waitFor(async () => {
-      expect(await idbStorage.getItem('first-run')).toContain('"dismissed":true')
+      expect(await idbStorage.getItem(FIRST_RUN_STORAGE_KEY)).toContain('"dismissed":true')
     })
   })
 
