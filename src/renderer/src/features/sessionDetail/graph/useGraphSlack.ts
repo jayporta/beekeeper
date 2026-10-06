@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { flushSync } from 'react-dom'
+import { controlsClearance } from './controlsClearance'
 import { panSlack } from './graphSlack'
 import type { Size } from './graphZoom'
 
@@ -26,7 +27,10 @@ export function useGraphSlack(viewportRef: RefObject<HTMLElement | null>): Size 
     const viewport = viewportRef.current
     if (viewport === null) return
     const observer = new ResizeObserver(() => {
-      const next = panSlack({ width: viewport.offsetWidth, height: viewport.offsetHeight })
+      const next = panSlack(
+        { width: viewport.offsetWidth, height: viewport.offsetHeight },
+        controlsClearance(viewport)
+      )
       const previous = applied.current
       if (next.width === previous.width && next.height === previous.height) return
       // Shrinking the content makes the browser clamp the offsets, so they are read before it does.

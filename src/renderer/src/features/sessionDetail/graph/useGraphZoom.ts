@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import { flushSync } from 'react-dom'
+import { controlsClearance } from './controlsClearance'
 import { centeredScroll, scrollAfterZoom } from './graphSlack'
 import { fitScale, scaleAfterWheel, stepScale, type Size } from './graphZoom'
 
@@ -37,8 +38,10 @@ interface GraphZoomOptions {
  * as the graph is scaled.
  */
 function fitTarget(viewport: HTMLElement): Size {
-  const covered = Number.parseFloat(getComputedStyle(viewport).scrollPaddingBottom) || 0
-  return { width: viewport.clientWidth, height: viewport.clientHeight - covered }
+  return {
+    width: viewport.clientWidth,
+    height: viewport.clientHeight - controlsClearance(viewport)
+  }
 }
 
 /**

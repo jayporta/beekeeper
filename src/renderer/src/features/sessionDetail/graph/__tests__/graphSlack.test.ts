@@ -4,15 +4,23 @@ import { PAN_KEEP, centeredScroll, panSlack, scrollAfterZoom } from '../graphSla
 
 describe('panSlack', () => {
   it('leaves the kept strip of a view out of the room on each side', () => {
-    expect(panSlack({ width: 1000, height: 600 })).toEqual({ width: 936, height: 536 })
+    expect(panSlack({ width: 1000, height: 600 }, 0)).toEqual({ width: 904, height: 504 })
+  })
+
+  it('also leaves the room the zoom controls cover out of the room below the graph', () => {
+    expect(panSlack({ width: 1000, height: 600 }, 100)).toEqual({ width: 904, height: 404 })
   })
 
   it('is zero for a view smaller than the kept strip', () => {
-    expect(panSlack({ width: 40, height: 10 })).toEqual({ width: 0, height: 0 })
+    expect(panSlack({ width: 40, height: 10 }, 0)).toEqual({ width: 0, height: 0 })
   })
 
-  it('keeps a 64 pixel strip', () => {
-    expect(PAN_KEEP).toBe(64)
+  it('is zero in height for a view the kept strip and the controls fill', () => {
+    expect(panSlack({ width: 1000, height: 150 }, 100).height).toBe(0)
+  })
+
+  it('keeps a 96 pixel strip', () => {
+    expect(PAN_KEEP).toBe(96)
   })
 })
 
@@ -39,16 +47,16 @@ describe('the room panSlack leaves', () => {
     const view = 1000
     const scrollPadding = 44
     const graphWidth = 476
-    const slack = panSlack({ width: view, height: view }).width
+    const slack = panSlack({ width: view, height: view }, 0).width
     const maxScroll = graphWidth + 2 * slack - view
 
-    const rightmostNodeRight = ORIGIN_X + COLUMN_WIDTH + NODE_WIDTH
-    const leftmostNodeLeft = ORIGIN_X
+    const rightmostNodeLeft = ORIGIN_X + COLUMN_WIDTH
+    const leftmostNodeRight = ORIGIN_X + NODE_WIDTH
 
-    // Rightmost node's far edge sits at the view's left edge plus the padding.
-    const scrollToLeftEdge = slack + rightmostNodeRight - scrollPadding
-    // Leftmost node's near edge sits at the view's right edge less the padding.
-    const scrollToRightEdge = slack + leftmostNodeLeft - (view - scrollPadding)
+    // A node left of the view scrolls in until its left edge is the padding in from the view's left.
+    const scrollToLeftEdge = slack + rightmostNodeLeft - scrollPadding
+    // A node right of the view scrolls in until its right edge is the padding in from the view's right.
+    const scrollToRightEdge = slack + leftmostNodeRight - (view - scrollPadding)
 
     expect(scrollToLeftEdge).toBeLessThanOrEqual(maxScroll)
     expect(scrollToRightEdge).toBeGreaterThanOrEqual(0)
