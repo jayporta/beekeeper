@@ -47,7 +47,6 @@ describe('listSessionsHandler agent terms', () => {
       { name: null, description: 'look around', agentType: 'Explore' },
       { name: 'planner', description: 'plan it', agentType: 'Plan' }
     ])
-    expect(item.agentTermsTruncated).toBe(false)
   })
 
   it('lists the session with its other terms when one meta is unreadable', async () => {
@@ -146,7 +145,7 @@ describe('listSessionsHandler agent terms', () => {
     expect(keys.some((key) => key.startsWith('terms\0'))).toBe(true)
   })
 
-  it('bounds a session with hundreds of subagents to the term cap and says so', async () => {
+  it('bounds a session with hundreds of subagents to the term cap', async () => {
     for (let index = 0; index < 300; index += 1) {
       await addSubagent(`b${String(index).padStart(3, '0')}`, { agentType: `type-${index}` })
     }
@@ -156,7 +155,6 @@ describe('listSessionsHandler agent terms', () => {
     const item = await listItem(deps)
 
     expect(item.agentTerms).toHaveLength(MAX_AGENT_TERMS)
-    expect(item.agentTermsTruncated).toBe(true)
     expect(readMeta.mock.calls.length).toBeLessThanOrEqual(MAX_AGENT_TERMS + 1)
   })
 

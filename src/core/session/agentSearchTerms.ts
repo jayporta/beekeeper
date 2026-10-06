@@ -9,23 +9,17 @@ export interface AgentSearchTerm {
   readonly name: string | null
   /** The subagent's task description, or `null` when its meta has none. */
   readonly description: string | null
-  /** The subagent's type, or `null` when its meta has none. */
-  readonly agentType: string | null
-}
-
-/** A session's subagent search terms. */
-export interface AgentTerms {
-  /** The distinct terms, in agent id order, within the caps. */
-  readonly terms: readonly AgentSearchTerm[]
-  /** Whether a further distinct term was left out because a cap was reached. */
-  readonly truncated: boolean
+  /** The subagent's type. */
+  readonly agentType: string
 }
 
 /** Terms for a session that has none to give. */
-export const NO_AGENT_TERMS: AgentTerms = { terms: [], truncated: false }
+export const NO_AGENT_TERMS: readonly AgentSearchTerm[] = []
 
-/** A session's {@link AgentTerms} and whether every meta that exists could be read. */
-export interface CollectedAgentTerms extends AgentTerms {
+/** A session's subagent search terms and whether every meta that exists could be read. */
+export interface CollectedAgentTerms {
+  /** The distinct terms, in agent id order, within the caps. */
+  readonly terms: readonly AgentSearchTerm[]
   /**
    * `false` when a meta file existed but failed in a way that can clear
    * without the subagents changing (see {@link isTransientMetaFailure}), so
@@ -50,8 +44,14 @@ function isTransientMetaFailure(reason: SubagentMetaFailureReason): boolean {
   return TRANSIENT_META_FAILURES.has(reason)
 }
 
-function lengthOf(term: AgentSearchTerm): number {
-  return (term.name?.length ?? 0) + (term.description?.length ?? 0) + (term.agentType?.length ?? 0)
+/**
+ * The total length of a term's text, in UTF-16 code units.
+ *
+ * @param term - The term to measure.
+ * @returns The summed length of its name, description and type.
+ */
+export function lengthOf(term: AgentSearchTerm): number {
+  return (term.name?.length ?? 0) + (term.description?.length ?? 0) + term.agentType.length
 }
 
 /**
@@ -60,11 +60,11 @@ function lengthOf(term: AgentSearchTerm): number {
  * adds nothing, and only a transient failure makes the result incomplete.
  * Terms are deduplicated on name, description and type. The collection stops
  * at the first distinct term that would pass {@link MAX_AGENT_TERMS} terms or
- * {@link MAX_AGENT_TERM_CODE_UNITS} code units, and reports `truncated`.
+ * {@link MAX_AGENT_TERM_CODE_UNITS} code units.
  *
  * @param subagents - The session's subagents, in agent id order.
  * @param readMeta - Resolves a meta path. Defaults to `resolveSubagentMeta`.
- * @returns The terms, whether they were cut, and whether every meta was read.
+ * @returns The terms, and whether every meta was read.
  */
 export async function collectAgentTerms(
   subagents: readonly SubagentEntry[],
@@ -90,11 +90,11 @@ export async function collectAgentTerms(
     if (seen.has(key)) continue
 
     if (terms.length >= MAX_AGENT_TERMS || codeUnits + lengthOf(term) > MAX_AGENT_TERM_CODE_UNITS) {
-      return { terms, truncated: true, complete }
+      return { terms, complete }
     }
     seen.add(key)
     terms.push(term)
     codeUnits += lengthOf(term)
   }
-  return { terms, truncated: false, complete }
+  return { terms, complete }
 }

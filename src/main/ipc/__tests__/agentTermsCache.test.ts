@@ -24,17 +24,16 @@ describe('createAgentTermsCache', () => {
 
     const terms = await createAgentTermsCache({ readMeta }).read([])
 
-    expect(terms).toEqual({ terms: [], truncated: false })
+    expect(terms).toEqual([])
     expect(readMeta).not.toHaveBeenCalled()
   })
 
   it('collects the terms of the subagents’ metas', async () => {
     const subagents = [scanDir().addSubagent('a', { transcript: '', meta: meta('Explore') })]
 
-    expect(await createAgentTermsCache().read(subagents)).toEqual({
-      terms: [{ name: null, description: null, agentType: 'Explore' }],
-      truncated: false
-    })
+    expect(await createAgentTermsCache().read(subagents)).toEqual([
+      { name: null, description: null, agentType: 'Explore' }
+    ])
   })
 
   it('reads no meta again when the subagents are unchanged', async () => {
@@ -50,7 +49,7 @@ describe('createAgentTermsCache', () => {
     const again = await cache.read(subagents)
 
     expect(readMeta).not.toHaveBeenCalled()
-    expect(again.terms).toHaveLength(2)
+    expect(again).toHaveLength(2)
   })
 
   it('reads the metas again when a subagent has spawned', async () => {
@@ -62,7 +61,7 @@ describe('createAgentTermsCache', () => {
 
     const terms = await cache.read([first, second])
 
-    expect(terms.terms.map((term) => term.agentType)).toEqual(['Explore', 'Plan'])
+    expect(terms.map((term) => term.agentType)).toEqual(['Explore', 'Plan'])
   })
 
   it('reads no meta again when a subagent’s transcript has grown', async () => {
@@ -93,7 +92,7 @@ describe('createAgentTermsCache', () => {
     const first = await cache.read(subagents)
     await cache.read(subagents)
 
-    expect(first.terms.map((term) => term.agentType)).toEqual(['Plan'])
+    expect(first.map((term) => term.agentType)).toEqual(['Plan'])
     expect(readMeta).toHaveBeenCalledTimes(4)
   })
 
@@ -156,7 +155,7 @@ describe('createAgentTermsCache', () => {
     const terms = await cache.read(subagents)
     await cache.read(subagents)
 
-    expect(terms.terms).toHaveLength(1)
+    expect(terms).toHaveLength(1)
     expect(readMeta).toHaveBeenCalledTimes(2)
   })
 })
@@ -178,7 +177,7 @@ describe('createAgentTermsCache identity', () => {
 
     const terms = await cache.read([twin])
 
-    expect(terms.terms.map((term) => term.agentType)).toEqual(['Two'])
+    expect(terms.map((term) => term.agentType)).toEqual(['Two'])
   })
 })
 

@@ -43,8 +43,8 @@ export interface AgentSearchTermDto {
   readonly name: string | null
   /** The subagent's task description, or `null` when it has none. */
   readonly description: string | null
-  /** The subagent's type, or `null` when it has none. */
-  readonly agentType: string | null
+  /** The subagent's type. */
+  readonly agentType: string
 }
 
 /**
@@ -69,8 +69,6 @@ export interface SessionListItemDto {
    * length. Empty when it has no subagents or none has a readable meta.
    */
   readonly agentTerms: readonly AgentSearchTermDto[]
-  /** Whether a further distinct subagent term was left out because a cap was reached. */
-  readonly agentTermsTruncated: boolean
   /** The session's summary, or why it is unavailable. */
   readonly summary: IpcResult<SessionSummaryDto>
   /**

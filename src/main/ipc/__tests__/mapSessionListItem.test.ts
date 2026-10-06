@@ -106,19 +106,15 @@ describe('mapSessionListItem', () => {
     expect(Object.keys(summary.value)).not.toContain('futureField')
   })
 
-  it('copies the agent terms and the truncation flag, and only the three term fields', () => {
+  it('copies the agent terms, and only the three term fields', () => {
     const withTerms: ListableSession = {
       ...scanned(ok(SUMMARY)),
-      agentTerms: {
-        terms: [{ name: 'scout', description: null, agentType: 'Explore', extra: 1 } as never],
-        truncated: true
-      }
+      agentTerms: [{ name: 'scout', description: null, agentType: 'Explore', extra: 1 } as never]
     }
 
     const item = mapSessionListItem(withTerms, null)
 
     expect(item.agentTerms).toEqual([{ name: 'scout', description: null, agentType: 'Explore' }])
-    expect(item.agentTermsTruncated).toBe(true)
   })
 
   it('sends no agent terms for a session whose transcript could not be read', () => {
@@ -129,13 +125,12 @@ describe('mapSessionListItem', () => {
         transcript: err({ reason: 'unreadable', code: 'ENOENT' }),
         subagents: ok([])
       },
-      agentTerms: { terms: [{ name: 'x', description: null, agentType: null }], truncated: true }
+      agentTerms: [{ name: 'x', description: null, agentType: 'Explore' }]
     }
 
     const item = mapSessionListItem(failed, null)
 
     expect(item.agentTerms).toEqual([])
-    expect(item.agentTermsTruncated).toBe(false)
   })
 
   it('reports an unreadable summary as an error code', () => {

@@ -107,7 +107,7 @@ describe('session search by subagent', () => {
       projectDirName: DIR,
       title: 'Plain',
       latestMs: 1,
-      agentTerms: [{ name: '<b>bold</b>', description: null, agentType: null }]
+      agentTerms: [{ name: '<b>bold</b>', description: null, agentType: 'Explore' }]
     })
 
     await search('bold', [markup])

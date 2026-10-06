@@ -33,6 +33,11 @@ function matchingTermIndex(row: SessionRow, needle: string): number {
   return lowercasedTerms(row.item.agentTerms).findIndex((text) => text.includes(needle))
 }
 
+/** Whether the row's own label contains `needle`. */
+function labelMatches(row: SessionRow, needle: string): boolean {
+  return row.label.text.toLowerCase().includes(needle)
+}
+
 /**
  * Whether a session matches the search text, ignoring case: its own label, or
  * the name, description or type of any of its subagents.
@@ -43,7 +48,7 @@ function matchingTermIndex(row: SessionRow, needle: string): number {
  * Its teammates are not considered.
  */
 export function rowMatches(row: SessionRow, needle: string): boolean {
-  return row.label.text.toLowerCase().includes(needle) || matchingTermIndex(row, needle) >= 0
+  return labelMatches(row, needle) || matchingTermIndex(row, needle) >= 0
 }
 
 /**
@@ -54,13 +59,12 @@ export function rowMatches(row: SessionRow, needle: string): boolean {
  *
  * @param row - The top-level row to test.
  * @param needle - Search text from {@link normalizeQuery}.
- * @returns The subagent's name, else its type, else its description, or `null`
- * when the search is blank, the label or a teammate matches, or no subagent does.
+ * @returns The subagent's name, else its type, or `null` when the search is blank, the label or a teammate matches, or no subagent does.
  */
 export function matchedAgentOf(row: SessionRow, needle: string): string | null {
-  if (needle === '' || row.label.text.toLowerCase().includes(needle)) return null
+  if (needle === '' || labelMatches(row, needle)) return null
   if (row.teammates.some((teammate) => rowMatches(teammate, needle))) return null
 
   const term = row.item.agentTerms[matchingTermIndex(row, needle)]
-  return term === undefined ? null : (term.name ?? term.agentType ?? term.description)
+  return term === undefined ? null : (term.name ?? term.agentType)
 }

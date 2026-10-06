@@ -1,5 +1,9 @@
 import { createHash } from 'node:crypto'
-import { collectAgentTerms, type AgentTerms } from '../../core/session/agentSearchTerms'
+import {
+  collectAgentTerms,
+  lengthOf,
+  type AgentSearchTerm
+} from '../../core/session/agentSearchTerms'
 import { createLruMap } from '../../core/shared/lruMap'
 import type { SubagentEntry } from '../../core/transcript/discoverSubagents'
 import type { SubagentMetaStatus } from '../../core/session/subagentMetaStatus'
@@ -23,7 +27,7 @@ export interface AgentTermsCache {
    * @param subagents - The session's subagents, as discovery found them.
    * @returns The terms, none for a session with no subagents.
    */
-  read(subagents: readonly SubagentEntry[]): Promise<AgentTerms>
+  read(subagents: readonly SubagentEntry[]): Promise<readonly AgentSearchTerm[]>
 }
 
 /** Options for {@link createAgentTermsCache}. */
@@ -55,12 +59,8 @@ export function agentTermsKey(subagents: readonly SubagentEntry[]): string {
   return createHash('sha256').update(identity).digest('hex')
 }
 
-function weigh(key: string, value: AgentTerms): number {
-  let weight = ENTRY_OVERHEAD + key.length
-  for (const { name, description, agentType } of value.terms) {
-    weight += (name?.length ?? 0) + (description?.length ?? 0) + (agentType?.length ?? 0)
-  }
-  return weight
+function weigh(key: string, terms: readonly AgentSearchTerm[]): number {
+  return terms.reduce((weight, term) => weight + lengthOf(term), ENTRY_OVERHEAD + key.length)
 }
 
 /**
@@ -77,7 +77,7 @@ function weigh(key: string, value: AgentTerms): number {
  */
 export function createAgentTermsCache(options: AgentTermsCacheOptions = {}): AgentTermsCache {
   const { maxWeight = AGENT_TERMS_CACHE_MAX_WEIGHT, readMeta } = options
-  const entries = createLruMap<string, { key: string; terms: AgentTerms }>({
+  const entries = createLruMap<string, { key: string; terms: readonly AgentSearchTerm[] }>({
     maxWeight,
     weigh: ({ key, terms }) => weigh(key, terms)
   })
@@ -88,10 +88,9 @@ export function createAgentTermsCache(options: AgentTermsCacheOptions = {}): Age
       const hit = entries.get(key)
       if (hit !== undefined) return hit.terms
 
-      const { terms, truncated, complete } = await collectAgentTerms(subagents, readMeta)
-      const collected: AgentTerms = { terms, truncated }
-      if (complete) entries.set(key, { key, terms: collected })
-      return collected
+      const { terms, complete } = await collectAgentTerms(subagents, readMeta)
+      if (complete) entries.set(key, { key, terms })
+      return terms
     }
   }
 }

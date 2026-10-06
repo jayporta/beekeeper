@@ -73,7 +73,7 @@ describe('filterRows', () => {
     const mateWithAgent = testSession(2, {
       role: testAgentRole('reviewer', 'code'),
       team: testTeammateTeam(testRef(1)),
-      agentTerms: [{ name: 'checker', description: null, agentType: null }]
+      agentTerms: [{ name: 'checker', description: null, agentType: 'Explore' }]
     })
     const all = groupSessionRows([lead, mateWithAgent, mateB, other], testSessionsT)
 

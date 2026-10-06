@@ -2,7 +2,7 @@ import { symlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MAX_AGENT_TERM_CODE_UNITS, MAX_AGENT_TERMS } from '../agentTermCaps'
-import { collectAgentTerms } from '../agentSearchTerms'
+import { collectAgentTerms, lengthOf } from '../agentSearchTerms'
 import type { SubagentEntry } from '../../transcript/discoverSubagents'
 import { resolveSubagentMeta } from '../resolveSubagentMeta'
 import type { SubagentMetaStatus } from '../subagentMetaStatus'
@@ -34,7 +34,6 @@ describe('collectAgentTerms', () => {
 
     expect(await collectAgentTerms(subagents)).toEqual({
       terms: [{ name: 'scout', description: 'Map the auth flow', agentType: 'Explore' }],
-      truncated: false,
       complete: true
     })
   })
@@ -48,7 +47,7 @@ describe('collectAgentTerms', () => {
   })
 
   it('has no terms for a session without subagents', async () => {
-    expect(await collectAgentTerms([])).toEqual({ terms: [], truncated: false, complete: true })
+    expect(await collectAgentTerms([])).toEqual({ terms: [], complete: true })
   })
 
   it('adds nothing for a subagent with no meta file, and still counts as complete', async () => {
@@ -65,7 +64,6 @@ describe('collectAgentTerms', () => {
 
     expect(await collectAgentTerms(subagents)).toMatchObject({
       terms: [{ agentType: 'Explore' }],
-      truncated: false,
       complete: false
     })
   })
@@ -138,18 +136,17 @@ describe('collectAgentTerms', () => {
     ])
   })
 
-  it('does not report truncation for duplicates beyond the term cap', async () => {
+  it('keeps one term for duplicates beyond the term cap', async () => {
     const subagents = subagentsWith(
       Array.from({ length: MAX_AGENT_TERMS + 10 }, () => ({ agentType: 'Explore' }))
     )
 
-    expect(await collectAgentTerms(subagents)).toMatchObject({
-      terms: [{ agentType: 'Explore' }],
-      truncated: false
-    })
+    expect((await collectAgentTerms(subagents)).terms).toEqual([
+      { name: null, description: null, agentType: 'Explore' }
+    ])
   })
 
-  it('stops at the term cap and reports truncation, reading no further', async () => {
+  it('stops at the term cap, reading no further', async () => {
     const subagents = subagentsWith(
       Array.from({ length: MAX_AGENT_TERMS + 5 }, (_unused, index) => ({ agentType: `t${index}` }))
     )
@@ -158,11 +155,10 @@ describe('collectAgentTerms', () => {
     const collected = await collectAgentTerms(subagents, readMeta)
 
     expect(collected.terms).toHaveLength(MAX_AGENT_TERMS)
-    expect(collected.truncated).toBe(true)
     expect(readMeta).toHaveBeenCalledTimes(MAX_AGENT_TERMS + 1)
   })
 
-  it('stops at the code unit budget and reports truncation', async () => {
+  it('stops at the code unit budget', async () => {
     const description = 'd'.repeat(250)
     const count = Math.ceil(MAX_AGENT_TERM_CODE_UNITS / (description.length + 1)) + 2
     const subagents = subagentsWith(
@@ -174,11 +170,7 @@ describe('collectAgentTerms', () => {
 
     const collected = await collectAgentTerms(subagents)
 
-    expect(collected.truncated).toBe(true)
-    const used = collected.terms.reduce(
-      (sum, term) => sum + (term.description?.length ?? 0) + (term.agentType?.length ?? 0),
-      0
-    )
+    const used = collected.terms.reduce((sum, term) => sum + lengthOf(term), 0)
     expect(used).toBeLessThanOrEqual(MAX_AGENT_TERM_CODE_UNITS)
     expect(collected.terms.length).toBeLessThan(count)
   })
@@ -197,7 +189,6 @@ describe('collectAgentTerms', () => {
     const collected = await collectAgentTerms(subagents)
 
     expect(collected.terms).toHaveLength(6)
-    expect(collected.truncated).toBe(false)
   })
 
   it('truncates when the last term is one code unit over the budget', async () => {
@@ -214,7 +205,6 @@ describe('collectAgentTerms', () => {
     const collected = await collectAgentTerms(subagents)
 
     expect(collected.terms).toHaveLength(5)
-    expect(collected.truncated).toBe(true)
   })
 
   it('keeps every term that fits when a cap is exactly met', async () => {
@@ -222,6 +212,6 @@ describe('collectAgentTerms', () => {
       Array.from({ length: MAX_AGENT_TERMS }, (_unused, index) => ({ agentType: `t${index}` }))
     )
 
-    expect(await collectAgentTerms(subagents)).toMatchObject({ truncated: false })
+    expect((await collectAgentTerms(subagents)).terms).toHaveLength(MAX_AGENT_TERMS)
   })
 })

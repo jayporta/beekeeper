@@ -1,4 +1,4 @@
-import type { AgentTerms } from '../../core/session/agentSearchTerms'
+import type { AgentSearchTerm } from '../../core/session/agentSearchTerms'
 import type { SessionEntry } from '../../core/transcript/discoverSessions'
 import type { ProjectDirName } from '../../core/transcript/ids'
 import type { Result } from '../../core/shared/result'
@@ -23,7 +23,7 @@ export interface ScannedSession {
 /** A scanned session with the search terms of its subagents, ready to list. */
 export interface ListableSession extends ScannedSession {
   /** The search terms of the session's subagents. */
-  readonly agentTerms: AgentTerms
+  readonly agentTerms: readonly AgentSearchTerm[]
 }
 
 /**
@@ -49,7 +49,6 @@ export function mapSessionListItem(
       sizeBytes: null,
       subagentCount,
       agentTerms: [],
-      agentTermsTruncated: false,
       summary: errResult(toIpcErrorCode(entry.transcript.error)),
       team: null
     }
@@ -62,12 +61,11 @@ export function mapSessionListItem(
     modifiedMs: file.mtimeMs,
     sizeBytes: file.size,
     subagentCount,
-    agentTerms: scanned.agentTerms.terms.map(({ name, description, agentType }) => ({
+    agentTerms: scanned.agentTerms.map(({ name, description, agentType }) => ({
       name,
       description,
       agentType
     })),
-    agentTermsTruncated: scanned.agentTerms.truncated,
     summary: summary.ok
       ? okResult({
           title: summary.value.title,

@@ -15,7 +15,7 @@ import { testSessionsT } from '../testSessionsT'
 const term = (overrides: Partial<AgentSearchTermDto>): AgentSearchTermDto => ({
   name: null,
   description: null,
-  agentType: null,
+  agentType: 'Misc',
   ...overrides
 })
 
@@ -85,10 +85,6 @@ describe('matchedAgentOf', () => {
     expect(matchedAgentOf(rowWith([term({ agentType: 'Explore', description: 'x' })]), 'x')).toBe(
       'Explore'
     )
-  })
-
-  it('names the description when the subagent has only that', () => {
-    expect(matchedAgentOf(rowWith([term({ description: 'only this' })]), 'only')).toBe('only this')
   })
 
   it('names nothing when the session’s label also matches', () => {

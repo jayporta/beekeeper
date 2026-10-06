@@ -35,8 +35,6 @@ interface TestSessionOptions {
   readonly subagentCount?: number | null
   /** What a search matches on for each subagent. Defaults to none. */
   readonly agentTerms?: readonly AgentSearchTermDto[]
-  /** Whether a further subagent term was left out by a cap. Defaults to `false`. */
-  readonly agentTermsTruncated?: boolean
   /** How many transcript lines could not be read. Defaults to `0`. */
   readonly skippedLines?: number
   /** The plan limit the session hit. Defaults to `null`. */
@@ -66,7 +64,6 @@ export function testSession(n: number, options: TestSessionOptions = {}): Sessio
     transcriptTokens = null,
     subagentCount = 0,
     agentTerms = [],
-    agentTermsTruncated = false,
     skippedLines = 0,
     limitHit = null,
     unreadable = false
@@ -92,7 +89,6 @@ export function testSession(n: number, options: TestSessionOptions = {}): Sessio
     sizeBytes: 1,
     subagentCount,
     agentTerms,
-    agentTermsTruncated,
     summary: unreadable
       ? { ok: false, error: { code: 'unreadable' } }
       : { ok: true, value: summary },

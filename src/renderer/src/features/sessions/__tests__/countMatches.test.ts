@@ -40,12 +40,12 @@ describe('countMatches', () => {
     const withAgent = testSession(5, {
       title: 'Other',
       latestMs: 0,
-      agentTerms: [{ name: 'scout', description: null, agentType: null }]
+      agentTerms: [{ name: 'scout', description: null, agentType: 'Explore' }]
     })
     const mateWithAgent = testSession(2, {
       role: testAgentRole('reviewer', 'code'),
       team: testTeammateTeam(testRef(1)),
-      agentTerms: [{ name: 'scout', description: null, agentType: null }]
+      agentTerms: [{ name: 'scout', description: null, agentType: 'Explore' }]
     })
     const all = groupSessionRows([lead, mateWithAgent, mateB, other, withAgent], testSessionsT)
 
