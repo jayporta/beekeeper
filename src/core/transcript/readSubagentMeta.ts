@@ -37,15 +37,15 @@ export interface SubagentMetaError {
  * FIFO with no writer can't hang the open. Every check after that,
  * including the size cap, runs against the same open file descriptor
  * (`fstat` and `read`, not `stat` and a separate `readFile`), so nothing
- * the path resolves to can change between checks. The read buffer is sized
- * to the file's reported size (capped at {@link MAX_META_BYTES}) plus one
- * byte, and filled in a loop that keeps calling `read` until it returns
- * `0` (real end of file) or the buffer is full, since a single `read` call
- * can legally return fewer bytes than requested and a short read must
- * never be mistaken for the whole file. Filling the buffer completely,
- * without reaching a real end of file, means the file has grown past what
- * `fstat` reported, so that's treated the same as oversized: the cap holds
- * even against a file that grows after the check.
+ * the path resolves to can change between checks. The read buffer holds
+ * {@link MAX_META_BYTES} plus one byte, whatever size `fstat` reported, so
+ * a file written between the check and the read is still read whole. It's
+ * filled in a loop that keeps calling `read` until it returns `0` (real end
+ * of file) or the buffer is full, since a single `read` call can legally
+ * return fewer bytes than requested and a short read must never be
+ * mistaken for the whole file. Filling the buffer completely means the
+ * file has grown past the cap, so the cap holds even against a file that
+ * grows after the check.
  *
  * A missing file, a symlink, a non-regular file, an oversized one,
  * invalid JSON, and JSON that fails {@link subagentMetaSchema} are all
@@ -72,7 +72,7 @@ export async function readSubagentMeta(
     if (!stats.isFile()) return err({ reason: 'not-a-file' })
     if (stats.size > MAX_META_BYTES) return err({ reason: 'too-large' })
 
-    const bufferSize = Math.min(stats.size, MAX_META_BYTES) + 1
+    const bufferSize = MAX_META_BYTES + 1
     const buffer = Buffer.alloc(bufferSize)
     let totalRead = 0
     while (totalRead < bufferSize) {
