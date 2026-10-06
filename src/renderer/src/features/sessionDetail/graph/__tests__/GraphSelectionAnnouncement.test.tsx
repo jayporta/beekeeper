@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { LIVE_COPY_CLEAR_MS } from '@renderer/components/liveCopyClearMs'
@@ -94,8 +94,8 @@ describe('GraphCanvas selection announcement', () => {
   })
 
   it('shares the graph’s one status region with the expansion announcements', () => {
-    renderGraph()
+    const { container } = renderGraph()
 
-    expect(screen.getAllByRole('status')).toHaveLength(1)
+    expect(within(container).getAllByRole('status')).toHaveLength(1)
   })
 })
