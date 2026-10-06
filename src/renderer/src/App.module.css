@@ -42,7 +42,7 @@
 
 .main {
   min-width: 0;
-  padding: var(--space-6);
+  padding: var(--space-main);
 
   /* Main's top meets the window's edge after navigating, so the ring is drawn inside it. */
   &:focus-visible {

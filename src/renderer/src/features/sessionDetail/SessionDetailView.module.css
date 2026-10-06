@@ -9,6 +9,6 @@
   gap: var(--space-4);
 
   @media (width > 60rem) and (min-height: 30rem) {
-    height: calc(100vh - 2 * var(--space-6));
+    height: calc(100vh - 2 * var(--space-main));
   }
 }

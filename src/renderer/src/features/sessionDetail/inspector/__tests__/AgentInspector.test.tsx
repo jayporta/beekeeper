@@ -126,6 +126,19 @@ describe('AgentInspector for the lead', () => {
   })
 })
 
+describe('AgentInspector scrolling by keyboard', () => {
+  it('is a named stop in the tab order, so the keyboard can scroll it whatever it holds', async () => {
+    renderInspectorScene()
+    const region = screen.getByRole('region', { name: 'Agent inspector' })
+
+    for (let i = 0; i < 40 && document.activeElement !== region; i += 1) {
+      await userEvent.tab()
+    }
+
+    expect(document.activeElement).toBe(region)
+  })
+})
+
 describe('AgentInspector scroll position', () => {
   it('returns to the top when another agent is selected, since the region persists across selections', async () => {
     renderInspectorScene()

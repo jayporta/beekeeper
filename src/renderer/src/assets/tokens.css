@@ -86,6 +86,8 @@
   --space-8: 2rem;
 
   /* Layout sizes. */
+  /* Main's padding; the session detail view's fill height subtracts it. */
+  --space-main: var(--space-6);
   --size-sidebar: 13rem;
   --size-readable: 44rem;
   --size-search-field: 16.25rem;
@@ -108,7 +110,7 @@
   /* Added and removed lines in a patch. They pass 4.5:1 on the surface, and the + or - itself marks each line as well. */
   --color-diff-add: #1f6b36;
   --color-diff-remove: #a12a2a;
-  /* The graph's viewport grows with the graph, between these. In the fill layout it fills its pane instead. */
+  /* The graph's viewport grows with the graph, between these. In the fill layout it fills its pane instead, but never below the minimum. */
   --size-graph-min-height: 10rem;
   --size-graph-max-height: 70vh;
   /* The scroll space the graph keeps below it, so its last row can scroll clear of the zoom controls: their height and their inset. */

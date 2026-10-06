@@ -22,7 +22,8 @@ interface AgentInspectorProps {
  * subagent of one, reads that session's detail, which the graph has already
  * loaded when it opened the teammate. While that loads, or if it can't be read,
  * the drawer says so and shows who the agent is. Where the layout gives it its
- * own scroll area, selecting another agent scrolls it back to the top.
+ * own scroll area, selecting another agent scrolls it back to the top. It is a
+ * tab stop, so the keyboard can scroll it whatever it holds.
  *
  * @example
  * <AgentInspector node={node} sessionRef={ref} />
@@ -30,15 +31,21 @@ interface AgentInspectorProps {
 export function AgentInspector({ node, sessionRef }: AgentInspectorProps): React.JSX.Element {
   const { t } = useTranslation('sessionDetail')
   const target = inspectionTarget(node, sessionRef)
-  const region = useRef<HTMLElement>(null)
-  // The section persists across selections, so the new agent would open at the old one's offset.
+  const region = useRef<HTMLDivElement>(null)
+  // The region persists across selections, so the new agent would open at the old one's offset.
   useLayoutEffect(() => {
     if (region.current) region.current.scrollTop = 0
   }, [node.key])
 
   return (
-    <section ref={region} aria-label={t('inspector.label')} className={styles.inspector}>
+    <div
+      ref={region}
+      role="region"
+      aria-label={t('inspector.label')}
+      tabIndex={0}
+      className={styles.inspector}
+    >
       <InspectedAgent key={sessionKey(target.ownerRef)} node={node} target={target} />
-    </section>
+    </div>
   )
 }

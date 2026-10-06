@@ -3,6 +3,7 @@ import styles from './GraphViewport.module.css'
 import { GraphZoomControls } from './GraphZoomControls'
 import { useGraphPan } from './useGraphPan'
 import { useGraphZoom } from './useGraphZoom'
+import { useScrollKeysFromMain } from './useScrollKeysFromMain'
 
 /** Props for {@link GraphViewport}. */
 interface GraphViewportProps {
@@ -19,7 +20,7 @@ interface GraphViewportProps {
  * zooms with the controls at its bottom right and with Ctrl or Cmd and the
  * wheel, and fits the whole graph to its size on request. The graph is scaled
  * with a CSS transform, and its box is sized to match, so scrollbars follow
- * the zoom.
+ * the zoom. The scroll keys scroll it while focus is on main.
  *
  * @example
  * <GraphViewport width={476} height={346}>{nodes}</GraphViewport>
@@ -28,6 +29,7 @@ export function GraphViewport({ width, height, children }: GraphViewportProps): 
   const viewportRef = useRef<HTMLDivElement>(null)
   const { scale, zoomOut, zoomIn, fit } = useGraphZoom(viewportRef, { width, height })
   const pan = useGraphPan(viewportRef)
+  useScrollKeysFromMain(viewportRef)
   // React types no custom properties, so the scale the graph's styles read takes an assertion.
   const surfaceStyle = {
     width,
