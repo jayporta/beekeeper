@@ -39,6 +39,7 @@
   },
   "announce": {
     "updated": "Totals for the {{range}} updated",
+    "partial": "Totals for the {{range}} updated. Some may be low, see the note below.",
     "failed": "Couldn't load the totals for the {{range}}",
     "empty": "{{heading}}. {{body}}"
   },

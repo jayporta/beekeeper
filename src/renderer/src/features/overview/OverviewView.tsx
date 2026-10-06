@@ -25,7 +25,9 @@ import { useProjectTotals } from './useProjectTotals'
  * above cards that show zero. While a
  * window's totals load, or show the other window's until they arrive, the cards
  * are marked busy and the empty message waits. A status region announces once
- * when the window's totals have all arrived, or that none could be loaded.
+ * when the window's totals have all arrived (noting when some may be low), that
+ * the window is empty, or that none could be loaded, and again if that outcome
+ * later changes.
  *
  * @example
  * <main><OverviewView /></main>
@@ -55,9 +57,11 @@ export function OverviewView(): React.JSX.Element {
     overall.tokens === 0 &&
     overall.sessions === 0 &&
     overall.agents === 0
+  const reasons = partialReasonsOf(overall)
   let outcome: TotalsOutcome = 'updated'
   if (totalsStatus(overall) === 'error') outcome = 'failed'
   else if (idle) outcome = 'empty'
+  else if (reasons.length > 0) outcome = 'partial'
 
   return (
     <div className={styles.view}>
@@ -81,7 +85,7 @@ export function OverviewView(): React.JSX.Element {
           />
         ))}
       </ul>
-      <OverviewFootnote reasons={partialReasonsOf(overall)} />
+      <OverviewFootnote reasons={reasons} />
     </div>
   )
 }

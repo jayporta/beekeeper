@@ -1,4 +1,5 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react'
+import type { QueryClient } from '@tanstack/react-query'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { IpcResult } from '../../../../../shared/ipc/ipcResult'
@@ -8,7 +9,11 @@ import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunS
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { useSelectedProjectStore } from '@renderer/features/projects/state/useSelectedProjectStore'
 import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
-import { createQueryWrapper } from '@renderer/testQueryWrapper'
+import {
+  createQueryWrapper,
+  createTestQueryClient,
+  refetchAndSettle
+} from '@renderer/testQueryWrapper'
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
 import { OverviewView } from '../OverviewView'
 import { useTotalsWindowStore } from '../state/useTotalsWindowStore'
@@ -36,6 +41,7 @@ const TOTALS: Readonly<Record<string, Partial<ProjectTotalsDto>>> = {
 
 const SHARE_BAR = '[aria-hidden] > div'
 const COULDNT_LOAD = "Couldn't load this project's totals."
+const MAY_BE_LOW = 'Totals for the last 7 days updated. Some may be low, see the note below.'
 const share = (percent: number): string => `${percent}% of the busiest project's tokens`
 
 beforeEach(() => {
@@ -64,15 +70,16 @@ function renderOverview(
   options: {
     projects?: readonly ProjectDto[]
     totals?: (dirName: string, window: string) => Promise<TotalsReply>
+    client?: QueryClient
   } = {}
 ): ReturnType<typeof installBeekeeperApi> {
-  const { projects = PROJECTS, totals = normal } = options
+  const { projects = PROJECTS, totals = normal, client } = options
   const api = installBeekeeperApi({
     listProjects: () => Promise.resolve({ ok: true, value: projects }),
     listSessions: () => Promise.resolve({ ok: true, value: [] }),
     getProjectTotals: totals
   })
-  renderApp()
+  renderApp(client)
   return api
 }
 
@@ -705,6 +712,43 @@ describe('OverviewView announcements', () => {
     })
   })
 
+  it('says the totals may be low when some projects failed', async () => {
+    renderOverview({
+      totals: (dirName) => (dirName === BETA ? Promise.resolve(failed) : normal(dirName))
+    })
+
+    await waitFor(() => {
+      expect(statusRegion().textContent).toBe(MAY_BE_LOW)
+    })
+  })
+
+  it("says the totals may be low when a session couldn't be read", async () => {
+    renderOverview({ totals: withPartial('unreadable') })
+
+    await waitFor(() => {
+      expect(statusRegion().textContent).toBe(MAY_BE_LOW)
+    })
+  })
+
+  it('says the totals are in when every project failed and then they recover', async () => {
+    let failing = true
+    const client = createTestQueryClient()
+    renderOverview({
+      client,
+      totals: (dirName) => (failing ? Promise.resolve(failed) : normal(dirName))
+    })
+    await waitFor(() => {
+      expect(statusRegion().textContent).toBe("Couldn't load the totals for the last 7 days")
+    })
+
+    failing = false
+    await refetchAndSettle(client, ['projectTotals'])
+
+    await waitFor(() => {
+      expect(statusRegion().textContent).toBe('Totals for the last 7 days updated')
+    })
+  })
+
   it('says nothing when the overview opens with its totals already in', async () => {
     renderOverview()
     await totalsLoaded()
@@ -727,7 +771,7 @@ describe('OverviewView empty window', () => {
     })
 
     await waitFor(() => {
-      expect(statusRegion().textContent).toBe('Totals for the last 7 days updated')
+      expect(statusRegion().textContent).toBe(MAY_BE_LOW)
     })
     expect(main().textContent).toContain("Some sessions couldn't be read.")
     expect(within(main()).queryByText('No activity in this window')).toBeNull()
