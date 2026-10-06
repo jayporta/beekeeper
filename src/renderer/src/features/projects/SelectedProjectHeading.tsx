@@ -32,7 +32,7 @@ export function SelectedProjectHeading({
   headingId,
   actions
 }: SelectedProjectHeadingProps): React.JSX.Element {
-  const { t } = useTranslation(['projects', 'navigation'])
+  const { t } = useTranslation(['projects', 'overview'])
   const { data: projects } = useProjects()
   const project = useSelectedProject()
   const select = useSelectedProjectStore((state) => state.select)
@@ -45,7 +45,7 @@ export function SelectedProjectHeading({
   )
   const title = project === null ? t('heading') : projectTitle(project)
   const segments: BreadcrumbSegment[] = [
-    { label: t('navigation:overview.heading'), onSelect: showOverview },
+    { label: t('overview:heading'), onSelect: showOverview },
     ...(parent === null
       ? []
       : [

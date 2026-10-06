@@ -2,12 +2,8 @@ import { useTranslation } from 'react-i18next'
 
 /** Props for {@link PartialMarker}. */
 interface PartialMarkerProps {
-  /**
-   * The spoken note that sends the reader to the footnote, for a view that
-   * isn't a list.
-   * @defaultValue The list's note, which points below the list.
-   */
-  readonly note?: string
+  /** The spoken note that sends the reader to the footnote. */
+  readonly note: string
 }
 
 /**
@@ -15,15 +11,15 @@ interface PartialMarkerProps {
  * skips, and a spoken note that sends the reader to the footnote.
  *
  * @example
- * <p>12.4M tokens<PartialMarker /></p>
+ * <p>12.4M tokens<PartialMarker note={t('partialNote')} /></p>
  */
 export function PartialMarker({ note }: PartialMarkerProps): React.JSX.Element {
-  const { t } = useTranslation('sessions')
+  const { t } = useTranslation()
 
   return (
     <>
       <sup aria-hidden="true">{t('partialMarker')}</sup>
-      <span className="visuallyHidden">{note ?? t('partialNote')}</span>
+      <span className="visuallyHidden">{note}</span>
     </>
   )
 }

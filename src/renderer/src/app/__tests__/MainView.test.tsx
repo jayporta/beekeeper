@@ -30,12 +30,12 @@ describe('MainView', () => {
     expect(await screen.findByRole('heading', { level: 1, name: '-Users-a-repo' })).toBeTruthy()
   })
 
-  it('shows the overview placeholder on the overview view', async () => {
+  it('shows the overview on the overview view', async () => {
     useNavigationStore.getState().showOverview()
     renderApp()
 
     expect(await screen.findByRole('heading', { level: 1, name: 'All projects' })).toBeTruthy()
-    expect(screen.queryByRole('heading', { name: '-Users-a-repo' })).toBeNull()
+    expect(screen.queryByRole('heading', { level: 1, name: '-Users-a-repo' })).toBeNull()
   })
 
   it('shows the session detail with a breadcrumb on the session view', async () => {

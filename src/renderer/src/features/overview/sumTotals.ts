@@ -4,7 +4,6 @@ import type {
   ProjectTotalsPartialDto
 } from '../../../../shared/ipc/projectTotalsDto'
 import type { FolderTotalsState } from './folderTotalsState'
-import { partialReasonsOf } from './partialReasons'
 
 /** Several folders' totals added together, with how many of the folders are in each state. */
 export interface AggregateTotals {
@@ -31,6 +30,7 @@ const NO_PARTIAL: ProjectTotalsPartialDto = {
   withoutCost: 0,
   unreadable: 0,
   lowTokens: 0,
+  uncountedSubagents: 0,
   undated: 0
 }
 
@@ -52,6 +52,7 @@ function addPartial(
     withoutCost: a.withoutCost + b.withoutCost,
     unreadable: a.unreadable + b.unreadable,
     lowTokens: a.lowTokens + b.lowTokens,
+    uncountedSubagents: a.uncountedSubagents + b.uncountedSubagents,
     undated: a.undated + b.undated
   }
 }
@@ -109,27 +110,4 @@ export function totalsStatus(totals: AggregateTotals): TotalsStatus {
   if (ready > 0) return 'ready'
   if (loading > 0) return 'loading'
   return failed > 0 ? 'error' : 'ready'
-}
-
-/**
- * Whether a sum's tokens and cost may be low: some session leaves them
- * incomplete, or a folder is missing from them.
- *
- * @param totals - The sum.
- * @returns `true` when they may be low.
- */
-export function isPartial(totals: AggregateTotals): boolean {
-  return partialReasonsOf(totals).length > 0
-}
-
-/**
- * Whether a sum's session and agent counts may be low: a folder is missing
- * from them, or a session couldn't be read or dated.
- *
- * @param totals - The sum.
- * @returns `true` when the counts may be low.
- */
-export function areCountsPartial(totals: AggregateTotals): boolean {
-  const { partial, folders } = totals
-  return folders.loading > 0 || folders.failed > 0 || partial.unreadable > 0 || partial.undated > 0
 }

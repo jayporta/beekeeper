@@ -2,7 +2,7 @@ import type { AgentKey, RootAgentGraphNode } from './agentGraphNode'
 import type { TeammateExpansion } from './teammateExpansion'
 import { useAnnounceExpansions } from './useAnnounceExpansions'
 import { useAnnounceSelection, type SelectedNode } from './useAnnounceSelection'
-import { useAnnouncement } from '../useAnnouncement'
+import { useAnnouncement } from '@renderer/components/useAnnouncement'
 
 /** What the graph's status region reports on. */
 interface GraphAnnouncementInput {

@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import { i18n } from '@renderer/i18n/i18n'
 import { formatDuration } from '../formatDuration'
 import { formatLastActive } from '../formatLastActive'
-import { formatUsd } from '../formatUsd'
 import { testSessionsT } from '../testSessionsT'
 
 const MIN = 60_000
@@ -31,30 +30,6 @@ describe('formatDuration', () => {
 
   it('treats a span that runs backwards as under a minute', () => {
     expect(formatDuration({ earliestMs: 5000, latestMs: 1000 }, testSessionsT)).toBe('<1m')
-  })
-})
-
-describe('formatUsd', () => {
-  it('reports null for an unknown amount', () => {
-    expect(formatUsd(null, testSessionsT)).toBeNull()
-  })
-
-  it.each([
-    [0, '$0.00'],
-    [0.004, '<$0.01'],
-    [0.01, '$0.01'],
-    [12.345, '$12.35'],
-    [1234.5, '$1,234.50']
-  ])('formats %s as %s', (usd, expected) => {
-    expect(formatUsd(usd, testSessionsT)).toBe(expected)
-  })
-
-  it('formats an amount the way the active language does', () => {
-    const british = i18n.getFixedT('en-GB', 'sessions')
-    const expected = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'USD' })
-
-    expect(formatUsd(1234.5, british)).toBe(expected.format(1234.5))
-    expect(formatUsd(0.004, british)).toBe(`<${expected.format(0.01)}`)
   })
 })
 

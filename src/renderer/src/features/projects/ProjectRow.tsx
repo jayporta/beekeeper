@@ -10,8 +10,8 @@ interface ProjectRowProps {
    * row's description and never shown. It tells apart rows whose labels match.
    */
   readonly detail?: string
-  /** A muted note on the right, such as `worktree`. */
-  readonly meta?: string
+  /** A muted note on the right, such as `worktree` or a token total. */
+  readonly meta?: React.ReactNode
   /** Whether the row is the current page. */
   readonly current: boolean
   /**

@@ -56,9 +56,8 @@ const STARTING_STATE = {
 } as const satisfies Pick<NavigationState, 'view' | 'selectedSessionRef' | 'selectedAgent'>
 
 /**
- * The main area's navigation. It starts on the sessions list while the
- * overview is a placeholder, and is never persisted, so every launch starts
- * there.
+ * The main area's navigation. It starts on the sessions list and is never
+ * persisted, so every launch starts there.
  */
 export const useNavigationStore = create<NavigationState>()((set) => ({
   ...STARTING_STATE,

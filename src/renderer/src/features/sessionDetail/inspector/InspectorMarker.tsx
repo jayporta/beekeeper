@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { PartialMarker } from '@renderer/features/sessions/PartialMarker'
+import { PartialMarker } from '@renderer/components/PartialMarker'
 
 /**
  * The marker after a partial figure in the inspector, whose spoken note sends

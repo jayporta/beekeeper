@@ -1,12 +1,12 @@
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { PartialMarker } from '@renderer/components/PartialMarker'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import type { SessionRefDto } from '../../../../shared/ipc/sessionRefDto'
 import { EmptyCell } from './EmptyCell'
 import { formatTokens } from './formatTokens'
 import { folderNote, stoppedNote } from './itemNotes'
 import { PARTIAL_FOOTNOTE_ID } from './partialFootnoteId'
-import { PartialMarker } from './PartialMarker'
 import { SeparatedText } from './SeparatedText'
 import type { SessionRow } from './sessionRow'
 import { sessionUsage } from './sessionUsage'
@@ -73,7 +73,7 @@ export const TeammateChip = memo(function TeammateChip({
       )}
       <span>
         {formatted ?? <EmptyCell spokenText={t('emptyCell.tokensNotRecorded')} />}
-        {tokensPartial && <PartialMarker />}
+        {tokensPartial && <PartialMarker note={t('partialNote')} />}
       </span>
       {highlighted && (
         <>

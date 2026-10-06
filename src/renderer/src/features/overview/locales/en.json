@@ -1,0 +1,83 @@
+{
+  "heading": "All projects",
+  "kicker": "Overview · {{range}}",
+  "range": {
+    "7d": "last 7 days",
+    "30d": "last 30 days"
+  },
+  "window": {
+    "label": "Time window",
+    "7d": "7 days",
+    "30d": "30 days"
+  },
+  "totals": {
+    "label": "Totals, {{range}}",
+    "tokens": "tokens",
+    "sessions": "sessions",
+    "agents": "agents, incl. teammates and subagents",
+    "labelUpdating": "Totals, {{range}}, updating"
+  },
+  "figure": {
+    "integer": "{{value, integer}}",
+    "compact": "{{value, compactInteger}}"
+  },
+  "tokens_one": "{{count, compactInteger}} token",
+  "tokens_other": "{{count, compactInteger}} tokens",
+  "apiCost": "{{value}} at API prices",
+  "placeholder": {
+    "loadingMark": "…",
+    "loading": "Loading",
+    "unavailableMark": "–",
+    "unavailable": "Unavailable"
+  },
+  "empty": {
+    "heading": "No activity in this window",
+    "body": {
+      "7d": "No agent ran in the {{range}}. Choose 30 days to look further back.",
+      "30d": "No agent ran in the {{range}}."
+    }
+  },
+  "announce": {
+    "updated": "Totals for the {{range}} updated",
+    "partial": "Totals for the {{range}} updated. Some may be low, see the note below.",
+    "failed": "Couldn't load the totals for the {{range}}",
+    "empty": "{{heading}}. {{body}}"
+  },
+  "card": {
+    "worktrees_one": "{{count, integer}} worktree",
+    "worktrees_other": "{{count, integer}} worktrees",
+    "sessions_one": "{{count, integer}} session",
+    "sessions_other": "{{count, integer}} sessions",
+    "agents_one": "{{count, integer}} agent",
+    "agents_other": "{{count, integer}} agents",
+    "share": "{{value, integer}}% of the busiest project's tokens",
+    "latest": "Latest: {{title}} · {{when, shortDateTime}}",
+    "latestUntitled": "Latest: untitled session · {{when, shortDateTime}}",
+    "noLatest": "No sessions in this window",
+    "error": "Couldn't load this project's totals."
+  },
+  "sidebar": {
+    "tokens_one": "{{count, compactInteger}} token, {{range}}",
+    "tokens_other": "{{count, compactInteger}} tokens, {{range}}",
+    "tokensUpdating_one": "{{count, compactInteger}} token, updating",
+    "tokensUpdating_other": "{{count, compactInteger}} tokens, updating",
+    "updatingMarker": "…",
+    "mayBeLowMarker": "~",
+    "mayBeLow": "{{figure}}, may be low",
+    "mayBeLowNote": "{{marker}} Total may be low"
+  },
+  "partialNote": "partial, see the note below",
+  "footnote": {
+    "label": "¹ Partial:",
+    "loading": "Some projects are still loading.",
+    "failed": "Some projects couldn't be read.",
+    "unreadable": "Some sessions couldn't be read.",
+    "withoutTokens": "Some sessions recorded no tokens.",
+    "withoutCost": "Some sessions recorded no cost.",
+    "lowTokens": "Some sessions have unreadable lines or leave out their subagents' tokens.",
+    "uncountedSubagents": "Some sessions have a subagents folder that couldn't be read, so their subagents are missing from the agent count.",
+    "undated": "Some sessions have no timestamps, so they count by when their file was last written.",
+    "mayBeLow": "A total may be low."
+  },
+  "updating": "Updating"
+}

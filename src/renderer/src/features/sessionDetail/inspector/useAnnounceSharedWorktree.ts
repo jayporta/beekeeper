@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { useAnnouncement } from '../useAnnouncement'
+import { useAnnouncement } from '@renderer/components/useAnnouncement'
 
 /**
  * Announces a shared worktree note that arrives after its reader mounted, such

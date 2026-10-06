@@ -49,7 +49,7 @@ describe('format caching', () => {
   const distinct = Array.from({ length: 50 }, (_, i) => i + 1)
 
   it('builds one currency formatter per language, however many amounts it formats', () => {
-    const t = i18n.getFixedT('en-NZ', 'sessions')
+    const t = i18n.getFixedT('en-NZ', 'common')
     const spy = vi.spyOn(Intl, 'NumberFormat')
 
     for (const n of distinct) t('usd', { value: n * 1.01 })
