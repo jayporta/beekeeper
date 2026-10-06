@@ -60,4 +60,11 @@ export interface BeekeeperApi {
     sessionId: string,
     agentId: string
   ): Promise<IpcResult<WorktreePatchDto>>
+
+  /**
+   * Subscribes to the menu's request to open the About dialog.
+   * @param listener - Called with no arguments each time About is chosen from the menu.
+   * @returns A function that removes the subscription.
+   */
+  onOpenAbout(listener: () => void): () => void
 }

@@ -8,6 +8,7 @@ import { registerIpcHandlers } from './ipc/registerIpcHandlers'
 import { isTrustedSender } from './ipc/senderValidation'
 import { hardenDefaultSession } from './security/session'
 import { hardenWebContents } from './security/windowSecurity'
+import { sendOpenAbout } from './sendOpenAbout'
 import { describeError } from './describeError'
 import { isFatalLoadFailure } from './startupFailure'
 
@@ -58,6 +59,14 @@ function createWindow(): void {
   })
 }
 
+function openAbout(): void {
+  const windows = BrowserWindow.getAllWindows()
+  // On macOS the app stays running with no window. A new window's renderer
+  // hasn't subscribed yet, so an event sent now would be lost.
+  if (windows.length === 0) createWindow()
+  else sendOpenAbout(windows)
+}
+
 // Must run before the app is ready.
 app.enableSandbox()
 
@@ -77,7 +86,11 @@ app
     // Set once, before any window: `activate` recreates windows, not the menu.
     Menu.setApplicationMenu(
       Menu.buildFromTemplate(
-        buildAppMenuTemplate({ platform: process.platform, devTools: devToolsEnabled })
+        buildAppMenuTemplate({
+          platform: process.platform,
+          devTools: devToolsEnabled,
+          onAbout: openAbout
+        })
       )
     )
 

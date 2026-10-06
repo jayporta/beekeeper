@@ -10,3 +10,11 @@ export const IPC_CHANNELS = {
 
 /** One of the channel names in {@link IPC_CHANNELS}. */
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
+
+/**
+ * The events the main process sends to the renderer. They are not in
+ * {@link IPC_CHANNELS}, which holds only the request channels that get a handler.
+ */
+export const IPC_EVENTS = {
+  openAbout: 'beekeeper:open-about'
+} as const

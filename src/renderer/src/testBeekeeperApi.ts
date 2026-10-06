@@ -28,12 +28,16 @@ export function testProject(dirName: string, worktree?: TestWorktree): ProjectDt
 }
 
 /** The stubbed API: each method is a mock, so a test can assert on calls or change a result. */
-export type TestBeekeeperApi = { [K in keyof BeekeeperApi]: Mock<BeekeeperApi[K]> }
+export type TestBeekeeperApi = { [K in keyof BeekeeperApi]: Mock<BeekeeperApi[K]> } & {
+  /** Calls every listener subscribed through `onOpenAbout`, as the menu's About item does. */
+  fireOpenAbout(): void
+}
 
 /**
  * Installs a stub `window.beekeeper`. `listProjects` returns one project by
  * default. Calls to a method the test did not stub reject, so a test can't
- * silently depend on it.
+ * silently depend on it. `onOpenAbout` subscriptions are real: `fireOpenAbout`
+ * reaches every listener that has not unsubscribed.
  *
  * @param overrides - Implementations to use instead of the defaults.
  * @returns The installed stub.
@@ -41,6 +45,7 @@ export type TestBeekeeperApi = { [K in keyof BeekeeperApi]: Mock<BeekeeperApi[K]
 export function installBeekeeperApi(overrides: Partial<BeekeeperApi> = {}): TestBeekeeperApi {
   const unstubbed = (name: string) => () =>
     Promise.reject(new Error(`window.beekeeper.${name} was not stubbed`))
+  const aboutListeners = new Set<() => void>()
   const api: TestBeekeeperApi = {
     listProjects: vi.fn(
       overrides.listProjects ??
@@ -51,7 +56,19 @@ export function installBeekeeperApi(overrides: Partial<BeekeeperApi> = {}): Test
     getSession: vi.fn(overrides.getSession ?? unstubbed('getSession')),
     getWorktreeDiffs: vi.fn(overrides.getWorktreeDiffs ?? unstubbed('getWorktreeDiffs')),
     getProjectTotals: vi.fn(overrides.getProjectTotals ?? unstubbed('getProjectTotals')),
-    getWorktreePatch: vi.fn(overrides.getWorktreePatch ?? unstubbed('getWorktreePatch'))
+    getWorktreePatch: vi.fn(overrides.getWorktreePatch ?? unstubbed('getWorktreePatch')),
+    onOpenAbout: vi.fn(
+      overrides.onOpenAbout ??
+        ((listener) => {
+          aboutListeners.add(listener)
+          return () => {
+            aboutListeners.delete(listener)
+          }
+        })
+    ),
+    fireOpenAbout: () => {
+      for (const listener of [...aboutListeners]) listener()
+    }
   }
   window.beekeeper = api
   return api
