@@ -106,10 +106,10 @@ describe('GraphCanvas zoom with room around the graph', () => {
 
     await press('Zoom in')
 
-    // The room before the graph is 104 each way. The center is 100 into the view and so into the
+    // The room before the graph is 100 each way. The center is 100 into the view and so into the
     // graph, which becomes 125 after the zoom.
-    expect(viewport().scrollLeft).toBeCloseTo(104 + 125 - 100)
-    expect(viewport().scrollTop).toBeCloseTo(104 + 125 - 100)
+    expect(viewport().scrollLeft).toBeCloseTo(100 + 125 - 100)
+    expect(viewport().scrollTop).toBeCloseTo(100 + 125 - 100)
   })
 
   it('keeps the point under the pointer where it was when the wheel zooms', () => {
@@ -122,8 +122,8 @@ describe('GraphCanvas zoom with room around the graph', () => {
     fireEvent.wheel(viewport(), { deltaY: -10, ctrlKey: true, clientX: 150, clientY: 120 })
 
     // The pointer is 100 into the view and so into the graph, which the zoom scales by the new scale.
-    expect(viewport().scrollLeft).toBeCloseTo(104 + 100 * scale() - 100)
-    expect(viewport().scrollTop).toBeCloseTo(104 + 100 * scale() - 100)
+    expect(viewport().scrollLeft).toBeCloseTo(100 + 100 * scale() - 100)
+    expect(viewport().scrollTop).toBeCloseTo(100 + 100 * scale() - 100)
   })
 })
 
@@ -220,9 +220,9 @@ describe('GraphCanvas fit', () => {
 
     await press('Fit the graph to the view')
 
-    // The graph keeps its size in a 1000 by 500 room, with 904 by 404 of room before it.
-    expect(viewport().scrollLeft).toBeCloseTo(904 + (476 - 1000) / 2)
-    expect(viewport().scrollTop).toBeCloseTo(404 + (346 - 500) / 2)
+    // The graph keeps its size in a 1000 by 500 room, with 500 by 300 of room before it.
+    expect(viewport().scrollLeft).toBeCloseTo(500 + (476 - 1000) / 2)
+    expect(viewport().scrollTop).toBeCloseTo(300 + (346 - 500) / 2)
   })
 
   it('leaves the scale and the scrollable area alone while the view has no size', async () => {

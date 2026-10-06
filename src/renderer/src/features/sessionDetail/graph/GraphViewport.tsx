@@ -19,8 +19,8 @@ interface GraphViewportProps {
 
 /**
  * The window onto the graph: it scrolls, pans freely in every direction by
- * dragging its background, by the wheel and by trackpad (keeping at least a
- * strip of the graph in view), zooms with the controls at its bottom right and
+ * dragging its background, by the wheel and by trackpad (until the graph's edge
+ * reaches the middle of the view), zooms with the controls at its bottom right and
  * with Ctrl or Cmd and the wheel, and fits the whole graph to its size on
  * request. The graph is scaled with a CSS transform, and its box is sized to
  * match with empty room on every side, so scrollbars follow the zoom and the

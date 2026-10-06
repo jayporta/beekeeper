@@ -1,23 +1,15 @@
 import type { Size } from './graphZoom'
 
-/** How much of the graph's box, in screen pixels, stays in view however far it is panned. */
-export const PAN_KEEP = 96
-
 /**
- * Finds the empty scroll room to leave on every side of the graph so it can be
- * panned until only {@link PAN_KEEP} pixels of it remain in view. The strip
- * kept at the bottom stays above the zoom controls, which cover the room the
- * view's bottom scroll padding holds.
+ * Finds the empty scroll room to leave on every side of the graph: half the
+ * view, so the graph can be panned until its edge reaches the middle of the
+ * view and a good part of it always stays in view.
  *
  * @param view - The view's size.
- * @param covered - The room at the bottom of the view that the zoom controls cover.
- * @returns The room on each side: the view's size less the kept strip, and below the graph less the covered room, never negative.
+ * @returns The room on each side.
  */
-export function panSlack(view: Size, covered: number): Size {
-  return {
-    width: Math.max(0, view.width - PAN_KEEP),
-    height: Math.max(0, view.height - PAN_KEEP - covered)
-  }
+export function panSlack(view: Size): Size {
+  return { width: view.width / 2, height: view.height / 2 }
 }
 
 /** Where a zoom happens, along one axis. */
