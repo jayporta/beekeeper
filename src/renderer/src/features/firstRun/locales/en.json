@@ -1,16 +1,16 @@
 {
-  "title": "Welcome to Beekeeper",
+  "title": "Welcome to beekeeper",
   "reads": {
-    "heading": "What Beekeeper reads",
-    "body": "Beekeeper reads the session files Claude Code writes under <code>~/.claude/projects</code> and shows what each agent did, changed, and cost. It only reads. It never writes to <code>~/.claude</code> or to your repositories."
+    "heading": "What beekeeper reads",
+    "body": "beekeeper reads the session files Claude Code writes under <code>~/.claude/projects</code> and shows what each agent did, changed, and cost. It only reads. It never writes to <code>~/.claude</code> or to your repositories."
   },
   "local": {
     "heading": "Nothing leaves your computer",
-    "body": "Beekeeper makes no network requests and sends no telemetry. Everything you see is worked out locally from those files."
+    "body": "beekeeper makes no network requests and sends no telemetry. Everything you see is worked out locally from those files."
   },
   "macos": {
     "heading": "Why macOS may ask for folder access",
-    "body": "To show what an agent changed, Beekeeper runs read-only git commands in the repository a session worked in. When that is a worktree under a protected folder such as Documents, Desktop, or Downloads, macOS asks whether Beekeeper may access it. Allow it to see that worktree's changes. If you decline, Beekeeper hides those changes and everything else keeps working."
+    "body": "To show what an agent changed, beekeeper runs read-only git commands in the repository a session worked in. When that is a worktree under a protected folder such as Documents, Desktop, or Downloads, macOS asks whether beekeeper may access it. Allow it to see that worktree's changes. If you decline, beekeeper hides those changes and everything else keeps working."
   },
   "dismiss": "Got it"
 }

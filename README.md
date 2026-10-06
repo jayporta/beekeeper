@@ -1,4 +1,4 @@
-# Beekeeper
+# beekeeper
 
 See what your Claude Code agents did, what they changed, and what they cost. Local-only.
 
@@ -6,7 +6,7 @@ See what your Claude Code agents did, what they changed, and what they cost. Loc
 
 ## Why
 
-Tools like Langfuse, Braintrust, and Helicone are built to trace single requests in a production LLM app. That's not the question a local agent swarm raises. When you kick off a handful of subagents or teammates on a repo, you want to know which agent touched which files, what each worktree actually changed, what each one cost, and where one of them went off the rails. Beekeeper is built to answer those questions by reading Claude Code's own session files on disk, without a proxy, a server, or a network call.
+Tools like Langfuse, Braintrust, and Helicone are built to trace single requests in a production LLM app. That's not the question a local agent swarm raises. When you kick off a handful of subagents or teammates on a repo, you want to know which agent touched which files, what each worktree actually changed, what each one cost, and where one of them went off the rails. beekeeper is built to answer those questions by reading Claude Code's own session files on disk, without a proxy, a server, or a network call.
 
 ## Status
 
@@ -21,56 +21,56 @@ A rough roadmap, in build order:
 
 ## Privacy promise
 
-Beekeeper is local-first and read-only. It makes zero network calls and collects zero telemetry. That's not just a claim in this README, it's enforced in a few concrete ways:
+beekeeper is local-first and read-only. It makes zero network calls and collects zero telemetry. That's not just a claim in this README, it's enforced in a few concrete ways:
 
 - **A session-level request blocker.** Every outgoing request is checked against an allowlist before it's allowed to leave the process. In production, only the app's own bundled files are allowed through, nothing else, not even to `localhost`. In development, only the Vite dev server's own origin is allowed too, so hot reload keeps working.
 - **A strict Content-Security-Policy.** The renderer runs under a CSP that blocks any script, connection, or resource that isn't bundled with the app.
 - **Lint rules that ban network APIs.** `http`, `https`, `net`, `tls`, `dgram`, `http2`, and Electron's own `net` module are banned imports. `fetch`, `XMLHttpRequest`, `WebSocket`, and `EventSource` are banned globals. If one of these ever creeps into the code, lint fails and CI blocks the merge.
 
-## What Beekeeper reads
+## What beekeeper reads
 
 - `~/.claude/projects/**/*.jsonl`: the main transcript and subagent transcripts for every session
 - `~/.claude/projects/**/subagents/*.meta.json`: per-agent metadata (type, model, team, worktree)
-- Read-only git commands inside your project and worktree folders, to show what a worktree agent changed: `rev-parse`, `merge-base`, `diff`, `diff-index`, and `ls-files` for the changes themselves, `check-ref-format` to validate a branch name, `config --get-regexp` to find filter drivers, since a repo that defines one isn't diffed as a working tree, and `check-attr` to check whether a changed path has a filter attribute, since such a path isn't diffed as a working tree either. To find a usable git, Beekeeper checks a few known install paths, runs `git --version`, and on macOS also runs `xcode-select -p` and `xcrun --find git`.
-- File metadata (`lstat`, `realpath`, `readlink`) inside project and worktree folders, to keep every git path confined to the folder it belongs to. Beekeeper doesn't read file contents there except through git.
+- Read-only git commands inside your project and worktree folders, to show what a worktree agent changed: `rev-parse`, `merge-base`, `diff`, `diff-index`, and `ls-files` for the changes themselves, `check-ref-format` to validate a branch name, `config --get-regexp` to find filter drivers, since a repo that defines one isn't diffed as a working tree, and `check-attr` to check whether a changed path has a filter attribute, since such a path isn't diffed as a working tree either. To find a usable git, beekeeper checks a few known install paths, runs `git --version`, and on macOS also runs `xcode-select -p` and `xcrun --find git`.
+- File metadata (`lstat`, `realpath`, `readlink`) inside project and worktree folders, to keep every git path confined to the folder it belongs to. beekeeper doesn't read file contents there except through git.
 
 Planned: `~/.claude/sessions/*.json`, the live session registry, for a "running now" badge.
 
-Beekeeper never reads `~/.claude/sessions/*.key` (a peer token, not session data), `~/.claude/history.jsonl` (your prompt history), or `~/.claude/file-history/` (Claude Code's own edit backups).
+beekeeper never reads `~/.claude/sessions/*.key` (a peer token, not session data), `~/.claude/history.jsonl` (your prompt history), or `~/.claude/file-history/` (Claude Code's own edit backups).
 
-## What Beekeeper stores
+## What beekeeper stores
 
-Beekeeper keeps a cache of the project list and of the session lists you've opened, so the app opens without rescanning everything. The cache holds those lists exactly as the app shows them:
+beekeeper keeps a cache of the project list and of the session lists you've opened, so the app opens without rescanning everything. The cache holds those lists exactly as the app shows them:
 
 - **Projects:** each project folder name, which encodes the path of the project, and which project is a worktree of which.
 - **Each session:** its id, the project folder it's in, its title, whether it's a lead or a teammate agent, its agent type, name, and team, its model, and its activity times; its transcript's size and modification time; its subagent count; its recorded token and cost totals, and the token total of its own transcript; how many lines couldn't be read; and any plan limit it hit, with its reset time.
 - **Why a summary is missing:** when a session's summary couldn't be read, the error code (`not-found`, `unreadable`, or `internal`).
 - **Teams:** the team name, and how a session groups with its lead and teammates, including how a teammate was matched to its lead, whether it stopped, and whether it's missing. For a lead, it also holds the team's token and cost totals, how many sessions have no figure, and whether the lead's spawn or stop lists were capped.
 
-Beekeeper also keeps two preferences: the selected project and whether you've dismissed the first-run screen.
+beekeeper also keeps two preferences: the selected project and whether you've dismissed the first-run screen.
 
-- They live in IndexedDB in Beekeeper's own app data folder, never in `~/.claude` or in a repository, and they're never sent anywhere.
+- They live in IndexedDB in beekeeper's own app data folder, never in `~/.claude` or in a repository, and they're never sent anywhere.
 - No cached list is older than 7 days, and an update that changes the data format clears the cache. The two preferences stay until you change them.
 
 ## Permissions you may see
 
-- **A macOS folder prompt.** If a project or worktree lives under Documents, Desktop, Downloads, or iCloud Drive, macOS will ask if Beekeeper can access that folder the first time it reads a file or runs `git` there. This is macOS protecting those folders, not Beekeeper asking for anything unusual. `~/.claude` itself isn't protected this way.
-- **A Gatekeeper warning on unsigned builds.** Until Beekeeper ships signed and notarized builds, macOS will warn you the first time you open one. That's expected for an app you built or downloaded from source.
-- Beekeeper never asks for Full Disk Access.
+- **A macOS folder prompt.** If a project or worktree lives under Documents, Desktop, Downloads, or iCloud Drive, macOS will ask if beekeeper can access that folder the first time it reads a file or runs `git` there. This is macOS protecting those folders, not beekeeper asking for anything unusual. `~/.claude` itself isn't protected this way.
+- **A Gatekeeper warning on unsigned builds.** Until beekeeper ships signed and notarized builds, macOS will warn you the first time you open one. That's expected for an app you built or downloaded from source.
+- beekeeper never asks for Full Disk Access.
 
 ## What's knowable
 
 | Knowable from session files                                                   | Estimated, or needs hooks                                                                                     |
 | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | Agent tree: lead, subagents, teammates, model, team                           | Files changed via Bash in a shared checkout (attribution is a guess without a hook)                           |
-| Tokens per agent, tool calls, wall-clock span, errors                         | Exact billed cost (subscription plans aren't billed per token, so Beekeeper shows an API-equivalent estimate) |
+| Tokens per agent, tool calls, wall-clock span, errors                         | Exact billed cost (subscription plans aren't billed per token, so beekeeper shows an API-equivalent estimate) |
 | Files edited through Edit/Write (the transcript records each patch)           | A worktree's base commit once the worktree is deleted                                                         |
 | A worktree agent's exact `git diff` against its merge-base                    | History older than 30 days (Claude Code's default retention)                                                  |
-| Signs an agent went off the rails: error streaks, `stoppedByUser`, compaction | Live output while an agent is still running (Beekeeper reads what's on disk, not a live stream)               |
+| Signs an agent went off the rails: error streaks, `stoppedByUser`, compaction | Live output while an agent is still running (beekeeper reads what's on disk, not a live stream)               |
 
 ## Development
 
-Beekeeper needs Node 22 or newer (CI runs on Node 24).
+beekeeper needs Node 22 or newer (CI runs on Node 24).
 
 ```bash
 npm install           # install dependencies
@@ -86,4 +86,4 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for how to contribute and what every ch
 
 ## License
 
-Apache License 2.0. See [LICENSE](./LICENSE) and [NOTICE](./NOTICE). The license doesn't grant rights to the Beekeeper name or logo.
+Apache License 2.0. See [LICENSE](./LICENSE) and [NOTICE](./NOTICE). The license doesn't grant rights to the beekeeper name or logo.

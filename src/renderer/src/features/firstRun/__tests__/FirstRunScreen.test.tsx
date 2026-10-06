@@ -32,7 +32,7 @@ describe('FirstRunScreen macOS section', () => {
     render(<FirstRunScreen />)
 
     expect(screen.queryByRole('heading', { name: /macOS/ })).toBeNull()
-    expect(screen.getByRole('heading', { level: 2, name: 'What Beekeeper reads' })).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 2, name: 'What beekeeper reads' })).toBeTruthy()
     expect(
       screen.getByRole('heading', { level: 2, name: 'Nothing leaves your computer' })
     ).toBeTruthy()

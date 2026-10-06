@@ -1,10 +1,10 @@
 {
-  "appName": "Beekeeper",
+  "appName": "beekeeper",
   "sidebar": "Sidebar",
   "retry": "Retry",
   "error": {
     "heading": "Something went wrong",
-    "unexpected": "Beekeeper hit an unexpected error. Reload to try again.",
+    "unexpected": "beekeeper hit an unexpected error. Reload to try again.",
     "reload": "Reload"
   },
   "localOnly": "Local only · read-only",

@@ -62,7 +62,7 @@ describe('MainView', () => {
     renderApp()
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Welcome to Beekeeper' })
+      await screen.findByRole('heading', { level: 1, name: 'Welcome to beekeeper' })
     ).toBeTruthy()
     expect(screen.queryByRole('heading', { name: 'All projects' })).toBeNull()
   })
@@ -111,7 +111,7 @@ describe('MainView', () => {
   it('keeps the same gone-folder status in the page while the first-run screen closes', async () => {
     useFirstRunStore.setState({ dismissed: false })
     renderApp()
-    await screen.findByRole('heading', { level: 1, name: 'Welcome to Beekeeper' })
+    await screen.findByRole('heading', { level: 1, name: 'Welcome to beekeeper' })
     const statusRegion = (): HTMLElement | undefined =>
       within(screen.getByRole('main')).queryAllByRole('status')[0]
     const before = statusRegion()

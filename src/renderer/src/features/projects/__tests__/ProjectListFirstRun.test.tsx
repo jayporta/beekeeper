@@ -27,7 +27,7 @@ afterEach(async () => {
 })
 
 const welcome = (): Promise<HTMLElement> =>
-  screen.findByRole('heading', { level: 1, name: 'Welcome to Beekeeper' })
+  screen.findByRole('heading', { level: 1, name: 'Welcome to beekeeper' })
 
 async function renderWithFirstRun(): Promise<HTMLElement> {
   renderApp()
@@ -41,7 +41,7 @@ describe('the sidebar while the first-run screen shows', () => {
 
     await userEvent.click(within(nav).getByRole('button', { name: BETA }))
 
-    expect(screen.queryByRole('heading', { name: 'Welcome to Beekeeper' })).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Welcome to beekeeper' })).toBeNull()
     expect(await screen.findByRole('heading', { level: 1, name: BETA })).toBeTruthy()
     expect(within(nav).getByRole('button', { name: BETA }).getAttribute('aria-current')).toBe(
       'page'
@@ -61,7 +61,7 @@ describe('the sidebar while the first-run screen shows', () => {
 
     await userEvent.click(within(nav).getByRole('button', { name: 'All projects' }))
 
-    expect(screen.queryByRole('heading', { name: 'Welcome to Beekeeper' })).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Welcome to beekeeper' })).toBeNull()
     expect(await screen.findByRole('heading', { level: 1, name: 'All projects' })).toBeTruthy()
     expect(
       within(nav).getByRole('button', { name: 'All projects' }).getAttribute('aria-current')

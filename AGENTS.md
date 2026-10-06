@@ -2,12 +2,12 @@
 
 Instructions for anyone, human or AI agent, changing code in this repo. Where this file and a general-purpose style guide disagree, this file wins.
 
-## What Beekeeper is, and the promises it keeps
+## What beekeeper is, and the promises it keeps
 
-Beekeeper is a local-only, read-only Electron app that reads Claude Code's session files in `~/.claude/projects` and shows what each agent did, changed, and cost. Every change must keep these promises:
+beekeeper is a local-only, read-only Electron app that reads Claude Code's session files in `~/.claude/projects` and shows what each agent did, changed, and cost. Every change must keep these promises:
 
 - **No network, ever.** No telemetry, no update checks, no remote fonts or assets. The session request allowlist (`src/main/security/`), the CSP, and the lint bans on network APIs enforce this. Never weaken them to make something work.
-- **Read-only.** Beekeeper never writes to `~/.claude` or to a user's repositories. Git commands are read-only: every command run in a repository is checked against the allowlist in `src/core/git/gitAllowlist.ts`, and all of them run through `execFile` with argument arrays, never a shell string.
+- **Read-only.** beekeeper never writes to `~/.claude` or to a user's repositories. Git commands are read-only: every command run in a repository is checked against the allowlist in `src/core/git/gitAllowlist.ts`, and all of them run through `execFile` with argument arrays, never a shell string.
 - **Transcripts are untrusted input.** They contain web pages, tool output, and possibly secrets. Render them as plain text. Never use `dangerouslySetInnerHTML`, and never log transcript content.
 - **The renderer has no Node access.** All file and git access happens in the main process and reaches the renderer through one typed preload API whose contract lives in `src/shared/`.
 
@@ -16,7 +16,7 @@ Beekeeper is a local-only, read-only Electron app that reads Claude Code's sessi
 - [CONTRIBUTING.md](./CONTRIBUTING.md) is the policy every change meets. This file covers how agents and contributors work day to day.
 - Work in small, human-reviewable chunks on a branch off `main`. Never commit directly to `main`. Each commit covers one issue. Closely related issues may share one branch and one pull request with a `Closes #n` for each, and an issue may take several commits. That keeps the number of pull requests (and GitHub-side reviews) down.
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `ci:`), with an optional scope such as `feat(transcript):`. Keep descriptions concise. Don't be wordy.
-- Track all work on the [Beekeeper project board](https://github.com/users/jayporta/projects/4). Each task is an issue, and the [v1 roadmap](https://github.com/jayporta/beekeeper/issues/2) holds the plan and links every task as a sub-issue. Move a card when its state changes, and put `Closes #n` in PR bodies.
+- Track all work on the [beekeeper project board](https://github.com/users/jayporta/projects/4). Each task is an issue, and the [v1 roadmap](https://github.com/jayporta/beekeeper/issues/2) holds the plan and links every task as a sub-issue. Move a card when its state changes, and put `Closes #n` in PR bodies.
 - File new work as an issue before starting it. An agent files or picks up issues only on a person's behalf. [Start with an issue](./CONTRIBUTING.md#start-with-an-issue) has the rule for accepting one.
 - CI (lint, format check, typecheck, tests, build on macOS and Ubuntu) must pass before merge.
 
@@ -148,6 +148,7 @@ This covers app UI text, the README, and the macOS permission strings in `electr
 - Never use em dashes.
 - American English, written for engineers: clear and direct.
 - Keep terminology consistent. An agent is always an "agent", a session is always a "session", and a subagent spawned into a team is a "teammate".
+- Write the app's name all lowercase, "beekeeper", even at the start of a sentence or in a heading. `productName` in `electron-builder.yml` stays "Beekeeper", because it names the app bundle and its saved-data folder.
 - Every renderer UI string, including `aria-label`s and visually hidden text, goes through i18next. Add it to the feature's `locales/en.json` (strings shared across features go in `src/renderer/src/i18n/locales/en.json`) and render it with `t`.
 - Format numbers, dates, durations, and costs with the formats registered in `src/renderer/src/i18n/formats.ts` (`integer`, `compactInteger`, `usd`, `shortDateTime`), never i18next's built-in `number`, `currency`, or `datetime`, whose cache keeps a new `Intl` object for every distinct value.
 - A transcript-derived value (title, agent or team name, folder name) shown on its own renders as plain JSX text. Combined with UI text, it goes through `t()` interpolation, never as a key and never through `<Trans values>`, which parses the result as markup.

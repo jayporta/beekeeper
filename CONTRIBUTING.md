@@ -1,8 +1,8 @@
-# Contributing to Beekeeper
+# Contributing to beekeeper
 
-Use whatever tools you like, AI agents or none. Beekeeper judges the result, not how it was made. A change is good when a person owns it, it's verified, it's independently reviewed, and it's small enough to read.
+Use whatever tools you like, AI agents or none. beekeeper judges the result, not how it was made. A change is good when a person owns it, it's verified, it's independently reviewed, and it's small enough to read.
 
-[AGENTS.md](./AGENTS.md) holds the promises Beekeeper keeps, the code rules, and the review roles. Read it before you change code.
+[AGENTS.md](./AGENTS.md) holds the promises beekeeper keeps, the code rules, and the review roles. Read it before you change code.
 
 ## Start with an issue
 
@@ -11,7 +11,7 @@ Every pull request needs an accepted issue. Open one, describe the problem, and 
 ## The standard every change meets
 
 1. **You own it.** Whoever opens the pull request answers for every line and its behavior, whatever wrote it. You answer review comments yourself, not by relaying them to a tool you can't explain.
-2. **It keeps Beekeeper's promises.** No network, read-only, transcripts as untrusted input, and no Node access in the renderer. See [the promises in AGENTS.md](./AGENTS.md#what-beekeeper-is-and-the-promises-it-keeps).
+2. **It keeps beekeeper's promises.** No network, read-only, transcripts as untrusted input, and no Node access in the renderer. See [the promises in AGENTS.md](./AGENTS.md#what-beekeeper-is-and-the-promises-it-keeps).
 3. **It's verified.** You ran it. Tests cover the new behavior and can fail, which you prove by breaking the code on purpose. The pull request says how you verified it.
 4. **It's reviewed independently.** The review roles in [AGENTS.md](./AGENTS.md#review) that apply to the change ran, and no finding is left unfixed or unanswered. If you're an outside contributor, the maintainer decides any finding you decline. A reviewer can be a person or an AI agent, but never the one that wrote the change. For an AI reviewer, that means a fresh session without the author's context.
 5. **It's worth its review.** It's small, each commit covers one issue, and there's no unrelated churn. It has no generated output nobody read, no dead code, and no comments that narrate what the code already says.

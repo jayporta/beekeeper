@@ -49,7 +49,7 @@ describe('the main landmark name', () => {
     useFirstRunStore.setState({ dismissed: false })
     renderApp()
 
-    expect(await screen.findByRole('main', { name: 'Welcome to Beekeeper' })).toBeTruthy()
+    expect(await screen.findByRole('main', { name: 'Welcome to beekeeper' })).toBeTruthy()
   })
 
   it('is the status heading when the projects gate has a message to show', async () => {

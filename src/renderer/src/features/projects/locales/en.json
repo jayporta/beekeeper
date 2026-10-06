@@ -7,14 +7,14 @@
   "heading": "Sessions",
   "empty": {
     "heading": "No sessions found",
-    "body": "Beekeeper found no Claude Code sessions under ~/.claude/projects. Sessions appear here after you run Claude Code in a project."
+    "body": "beekeeper found no Claude Code sessions under ~/.claude/projects. Sessions appear here after you run Claude Code in a project."
   },
   "loading": "Loading projects",
   "unreadable": {
     "heading": "Can't read your sessions",
-    "body": "Beekeeper can't read ~/.claude/projects. Check that folder's permissions. On macOS, also check whether Beekeeper was denied access to it. Then retry."
+    "body": "beekeeper can't read ~/.claude/projects. Check that folder's permissions. On macOS, also check whether beekeeper was denied access to it. Then retry."
   },
-  "error": "Beekeeper couldn't load your projects.",
+  "error": "beekeeper couldn't load your projects.",
   "folderGone": {
     "showing": "The folder {{folder}} no longer exists. Showing {{project}}.",
     "gone": "The folder {{folder}} no longer exists."

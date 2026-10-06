@@ -30,7 +30,7 @@ describe('App', () => {
   it('names the app in the sidebar once loaded', async () => {
     renderApp()
 
-    expect(await screen.findByText('Beekeeper')).toBeTruthy()
+    expect(await screen.findByText('beekeeper')).toBeTruthy()
   })
 
   it('opens About before the stored state is read', async () => {
@@ -44,12 +44,12 @@ describe('App', () => {
 
   it('leaves the first-run screen showing after About opens over it and closes', async () => {
     renderApp()
-    await screen.findByRole('heading', { level: 1, name: 'Welcome to Beekeeper' })
+    await screen.findByRole('heading', { level: 1, name: 'Welcome to beekeeper' })
 
     openAbout()
     await userEvent.click(screen.getByRole('button', { name: 'Close' }))
 
     expect(screen.queryByRole('dialog')).toBeNull()
-    expect(screen.getByRole('heading', { level: 1, name: 'Welcome to Beekeeper' })).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 1, name: 'Welcome to beekeeper' })).toBeTruthy()
   })
 })

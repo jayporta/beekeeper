@@ -15,7 +15,7 @@ afterEach(async () => {
 })
 
 const welcome = (): Promise<HTMLElement> =>
-  screen.findByRole('heading', { level: 1, name: 'Welcome to Beekeeper' })
+  screen.findByRole('heading', { level: 1, name: 'Welcome to beekeeper' })
 
 async function dismiss(): Promise<void> {
   await userEvent.click(await screen.findByRole('button', { name: 'Got it' }))
@@ -41,7 +41,7 @@ describe('first-run screen', () => {
     renderApp()
     await dismiss()
 
-    expect(screen.queryByRole('heading', { name: 'Welcome to Beekeeper' })).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Welcome to beekeeper' })).toBeNull()
     expect(await screen.findByRole('heading', { level: 1, name: '-Users-a-repo' })).toBeTruthy()
   })
 
@@ -75,7 +75,7 @@ describe('first-run screen', () => {
       renderApp()
 
       expect(await screen.findByRole('heading', { level: 1, name: '-Users-a-repo' })).toBeTruthy()
-      expect(screen.queryByRole('heading', { name: 'Welcome to Beekeeper' })).toBeNull()
+      expect(screen.queryByRole('heading', { name: 'Welcome to beekeeper' })).toBeNull()
     })
 
     it('does not move focus to the main landmark on launch', async () => {
