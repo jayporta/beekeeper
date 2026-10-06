@@ -1,8 +1,9 @@
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
+import { idbStorage } from '@renderer/storage/idbStorage'
 import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
 
@@ -53,7 +54,9 @@ describe('the sidebar while the first-run screen shows', () => {
 
     await userEvent.click(within(nav).getByRole('button', { name: BETA }))
 
-    expect(useFirstRunStore.getState().dismissed).toBe(true)
+    await vi.waitFor(async () => {
+      expect(await idbStorage.getItem('first-run')).toContain('"dismissed":true')
+    })
   })
 
   it('dismisses the screen and shows the overview when All projects is pressed', async () => {
