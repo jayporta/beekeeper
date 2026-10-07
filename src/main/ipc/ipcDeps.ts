@@ -4,6 +4,7 @@ import type { AgentTermsCache } from './agentTermsCache'
 import type { ProjectLabelCache } from './projectLabelCache'
 import type { LaneScanScheduler, ScanScheduler } from './scanScheduler'
 import type { SessionScanCache } from './sessionScanCache'
+import type { WorkflowRunNamesCache } from './workflowRunNamesCache'
 
 /** What the handlers need, injected so tests can point them at a temp directory. */
 export interface IpcDeps {
@@ -15,6 +16,8 @@ export interface IpcDeps {
   readonly summaryCache: SessionSummaryCache
   /** Search terms of each session's subagents, read from their meta files and kept for the app's lifetime. */
   readonly agentTerms: AgentTermsCache
+  /** Names of each session's workflow runs, read from their records and kept for the app's lifetime. */
+  readonly workflowRunNames: WorkflowRunNamesCache
   /**
    * Shares and caps the summary reads behind a session listing, one per
    * transcript, and the agent term reads that follow them. Bulk reads nobody
