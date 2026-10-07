@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import type { AgentReportDto } from '../../../../../shared/ipc/agentDto'
 import { CapsText } from '@renderer/components/CapsText'
+import { MutedText } from '@renderer/components/MutedText'
 import { formatDuration } from '@renderer/features/sessions/formatDuration'
 import { SeparatedText } from '@renderer/features/sessions/SeparatedText'
 import type { AgentGraphNode } from '../graph/agentGraphNode'
@@ -50,11 +51,11 @@ export function InspectorHeader({ node, report }: InspectorHeaderProps): React.J
         <bdi>{node.name}</bdi>
       </h2>
       {facts.length > 0 && (
-        <p className={styles.facts}>
+        <MutedText wrapAnywhere>
           <bdi>
             <SeparatedText parts={facts} />
           </bdi>
-        </p>
+        </MutedText>
       )}
     </header>
   )

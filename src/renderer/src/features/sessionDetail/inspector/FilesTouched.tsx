@@ -52,15 +52,15 @@ export function FilesTouched({ report }: FilesTouchedProps): React.JSX.Element {
               </span>
               <span className={styles.tags}>
                 {operations.map((operation) => (
-                  <span key={operation} className={styles.tag}>
+                  <MutedText key={operation} as="span" smaller className={styles.tag}>
                     {t(`inspector.operation.${operation}`)}
-                  </span>
+                  </MutedText>
                 ))}
                 {touches > 1 && (
                   <>
-                    <span className={styles.count} aria-hidden="true">
+                    <MutedText as="span" smaller decorative>
                       {t('inspector.touchCount', { count: touches })}
-                    </span>
+                    </MutedText>
                     <span className="visuallyHidden">
                       {t('inspector.touchCountSpoken', { count: touches })}
                     </span>

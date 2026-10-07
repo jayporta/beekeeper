@@ -139,11 +139,6 @@
   font-weight: var(--font-weight-semibold);
 }
 
-.detail {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-2xs);
-}
-
 .tokens {
   flex: none;
   font-size: var(--font-size-sm);

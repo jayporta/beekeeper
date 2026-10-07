@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
 import { DialogHeader } from '@renderer/components/DialogHeader'
 import { ModalDialog } from '@renderer/components/ModalDialog'
+import { MutedText } from '@renderer/components/MutedText'
 import styles from './WorktreePatchDialog.module.css'
 import { WorktreePatchBody } from './WorktreePatchBody'
 
@@ -46,9 +47,9 @@ export function WorktreePatchDialog({
         closeLabel={t('inspector.patch.close')}
         onClose={onClose}
       >
-        <p className={styles.branch}>
+        <MutedText wrapAnywhere className={styles.branch}>
           <bdi>{branch}</bdi>
-        </p>
+        </MutedText>
       </DialogHeader>
       <WorktreePatchBody sessionRef={sessionRef} agentId={agentId} />
     </ModalDialog>

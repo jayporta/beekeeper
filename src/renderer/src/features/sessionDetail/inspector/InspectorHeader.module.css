@@ -10,9 +10,3 @@
   font-weight: var(--font-weight-semibold);
   overflow-wrap: anywhere;
 }
-
-.facts {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-  overflow-wrap: anywhere;
-}

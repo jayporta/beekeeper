@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
+import { MutedText } from '@renderer/components/MutedText'
 import { diffFailureKey } from '../inspector/diffFailureKey'
 import { uncommittedNoteKey } from '../inspector/uncommittedNoteKey'
 import { PatchFileView } from './PatchFileView'
@@ -65,9 +66,11 @@ export function WorktreePatchBody({
         role="status"
         className={files.length > 0 && !hasNote ? 'visuallyHidden' : styles.status}
       >
-        <p className={files.length > 0 ? 'visuallyHidden' : styles.note}>{outcome()}</p>
-        {noteKey !== null && <p className={styles.note}>{t(`inspector.worktree.${noteKey}`)}</p>}
-        {truncatedTotal && <p className={styles.note}>{t('inspector.patch.totalTruncated')}</p>}
+        <MutedText className={files.length > 0 ? 'visuallyHidden' : undefined}>
+          {outcome()}
+        </MutedText>
+        {noteKey !== null && <MutedText>{t(`inspector.worktree.${noteKey}`)}</MutedText>}
+        {truncatedTotal && <MutedText>{t('inspector.patch.totalTruncated')}</MutedText>}
       </div>
       {files.map((file) => (
         <PatchFileView key={`${file.path}\0${file.oldPath ?? ''}`} file={file} />

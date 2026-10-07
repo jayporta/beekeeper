@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { MutedText } from '@renderer/components/MutedText'
 import styles from './GraphFootnote.module.css'
 import { GRAPH_FOOTNOTE_ID, GRAPH_NOTES_ID, GRAPH_WORKFLOW_FOOTNOTE_ID } from './graphFootnoteId'
 
@@ -34,7 +35,7 @@ export function GraphFootnote({
   const { t } = useTranslation('sessionDetail')
 
   return (
-    <div id={GRAPH_NOTES_ID} className={styles.footnotes}>
+    <MutedText as="div" smaller id={GRAPH_NOTES_ID} className={styles.footnotes}>
       <p>{t('graph.footnote.keyboard')}</p>
       {partial && <p id={GRAPH_FOOTNOTE_ID}>{t('graph.footnote.partial')}</p>}
       {partialWorkflow && (
@@ -44,6 +45,6 @@ export function GraphFootnote({
         <p>{t('graph.footnote.missingTeammates', { count: missingTeammates })}</p>
       )}
       {teamListsTruncated && <p>{t('graph.footnote.truncated')}</p>}
-    </div>
+    </MutedText>
   )
 }

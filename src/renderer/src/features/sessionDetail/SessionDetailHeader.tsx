@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { MAIN_HEADING_ID } from '@renderer/components/mainHeading'
+import { MutedText } from '@renderer/components/MutedText'
 import { PartialMarker } from '@renderer/components/PartialMarker'
 import { PartialFootnote } from '@renderer/features/sessions/PartialFootnote'
 import { figureReasons, type PartialReason } from '@renderer/features/sessions/partialReasons'
@@ -42,14 +43,14 @@ export function SessionDetailHeader({ label, row }: SessionDetailHeaderProps): R
       <h1 id={MAIN_HEADING_ID} className={styles.title}>
         <bdi>{label.text}</bdi>
       </h1>
-      {label.idHint !== null && <p className={styles.muted}>{label.idHint}</p>}
+      {label.idHint !== null && <MutedText wrapAnywhere>{label.idHint}</MutedText>}
       {metaLine.length > 0 && (
-        <p className={styles.muted}>
+        <MutedText wrapAnywhere>
           <bdi>
             <SeparatedText parts={metaLine} />
           </bdi>
           {reasons.size > 0 && <PartialMarker note={t('partial.note')} />}
-        </p>
+        </MutedText>
       )}
       <PartialFootnote
         reasons={reasons}
