@@ -48,7 +48,7 @@ export interface AgentActivityDto {
   readonly earliestMs: number
   /** The latest message timestamp, in epoch milliseconds. */
   readonly latestMs: number
-  /** The time between its messages, in milliseconds, with every gap past 10 minutes left out. */
+  /** The time between its messages, in milliseconds, with every gap longer than the idle cutoff left out. */
   readonly activeMs: number
 }
 

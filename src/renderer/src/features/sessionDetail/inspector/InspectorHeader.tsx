@@ -3,7 +3,6 @@ import type { AgentReportDto } from '../../../../../shared/ipc/agentDto'
 import { CapsText } from '@renderer/components/CapsText'
 import { MutedText } from '@renderer/components/MutedText'
 import { formatDuration } from '@renderer/features/sessions/formatDuration'
-import { formatLastActive } from '@renderer/features/sessions/formatLastActive'
 import { SeparatedText } from '@renderer/features/sessions/SeparatedText'
 import type { AgentGraphNode } from '../graph/agentGraphNode'
 import styles from './InspectorHeader.module.css'
@@ -42,7 +41,7 @@ export function InspectorHeader({ node, report }: InspectorHeaderProps): React.J
 
   const facts = [
     node.kind === 'workflow' ? runIdFact(node) : node.model,
-    activity === null ? null : formatLastActive(activity.earliestMs, tSessions),
+    activity === null ? null : t('inspector.started', { value: activity.earliestMs }),
     active === null ? null : t('inspector.active', { duration: active }),
     report === null ? null : t('inspector.messages', { count: report.messageCount })
   ].filter((part) => part !== null)

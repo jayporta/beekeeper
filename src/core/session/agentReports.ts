@@ -44,7 +44,7 @@ export interface AgentActivity {
   readonly earliestMs: number
   /** The latest message timestamp, in epoch milliseconds. */
   readonly latestMs: number
-  /** The time between its messages, in milliseconds, with every gap past 10 minutes left out. */
+  /** The time between its messages, in milliseconds, with every gap past the cutoff described at {@link activeDurationMs} left out. */
   readonly activeMs: number
 }
 

@@ -11,7 +11,14 @@ import { SCENE_SESSION } from '../../graph/testGraphScene'
 import { testGraphNode } from '../../graph/testGraphNode'
 import { InspectedWorkflow } from '../InspectedWorkflow'
 import { testDetail, testMeta, testNode, testReport } from '../../testSessionDetail'
-import { SCENE_START, inspector, pricedGroup, renderInspectorScene } from '../testInspectorScene'
+import {
+  SCENE_START,
+  factsText,
+  inspector,
+  pricedGroup,
+  renderInspectorScene,
+  startedFact
+} from '../testInspectorScene'
 
 afterEach(() => {
   useNavigationStore.getState().reset()
@@ -74,8 +81,8 @@ describe('AgentInspector for a workflow run', () => {
   it('shows the run id, when it started, how long its agents were active and how many messages it sent', async () => {
     await openRun()
 
-    expect(inspector().getByText(/5 messages/).textContent).toMatch(
-      /^wf_a\s*·\s*Jan \d{1,2}, 2026, \d{1,2}:\d{2}\s[AP]M\s*·\s*25m active\s*·\s*5 messages$/
+    expect(factsText(/5 messages/)).toBe(
+      `wf_a · ${startedFact(SCENE_START)} · 25m active · 5 messages`
     )
   })
 

@@ -8,7 +8,15 @@ import { LISTS_STALE_TIME_MS } from '@renderer/app/listsStaleTime'
 import { createTestQueryClient } from '@renderer/testQueryWrapper'
 import { SCENE_ITEMS, SCENE_SESSION } from '../../graph/testGraphScene'
 import { stubFillLayout } from '../../testFillLayout'
-import { LEAD_REPORT, inspector, pricedGroup, renderInspectorScene } from '../testInspectorScene'
+import {
+  LEAD_REPORT,
+  SCENE_START,
+  factsText,
+  inspector,
+  pricedGroup,
+  renderInspectorScene,
+  startedFact
+} from '../testInspectorScene'
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -37,8 +45,8 @@ describe('AgentInspector for the lead', () => {
   it('shows the model, when the agent started, how long it was active, and its message count', () => {
     renderInspectorScene()
 
-    expect(inspector().getByText(/claude-opus-5/).textContent).toMatch(
-      /^claude-opus-5\s*·\s*Jan \d{1,2}, 2026, \d{1,2}:\d{2}\s[AP]M\s*·\s*1h active\s*·\s*12 messages$/
+    expect(factsText(/claude-opus-5/)).toBe(
+      `claude-opus-5 · ${startedFact(SCENE_START)} · 1h active · 12 messages`
     )
   })
 

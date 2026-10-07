@@ -18,6 +18,27 @@ const MIN = 60_000
 /** When the scene lead's activity starts. */
 export const SCENE_START = Date.parse('2026-01-15T11:00:00Z')
 
+/**
+ * The inspector's "started" fact for a time, as the English locale formats it.
+ *
+ * @param ms - The start, in epoch milliseconds.
+ * @returns For example `started Jan 15, 2026, 11:00 AM`, in the viewer's time zone.
+ */
+export function startedFact(ms: number): string {
+  const when = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(ms)
+  return `started ${when}`
+}
+
+/**
+ * Reads the inspector's facts line with its separators normalized to ` · `.
+ *
+ * @param pattern - Text the facts line contains.
+ * @returns The line's text.
+ */
+export function factsText(pattern: RegExp): string {
+  return (inspector().getByText(pattern).textContent ?? '').replace(/\s*·\s*/g, ' · ')
+}
+
 /** A token group priced at `usd`. */
 export function pricedGroup(
   tokens: Parameters<typeof testTokenGroup>[0],
