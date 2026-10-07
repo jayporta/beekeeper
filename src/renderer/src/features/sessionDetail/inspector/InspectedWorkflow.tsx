@@ -1,6 +1,7 @@
 import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
 import type { AgentGraphNode } from '../graph/agentGraphNode'
 import { reportTokens } from '../graph/reportFacts'
+import { runMembers } from '../graph/runMembers'
 import { useSessionDetail } from '../useSessionDetail'
 import { InspectorFootnote } from './InspectorFootnote'
 import { InspectorHeader } from './InspectorHeader'
@@ -25,8 +26,10 @@ interface InspectedWorkflowProps {
  * detail: who it is, and while that loads or once it can't be read, the same
  * note an agent gets. Once loaded, its totals, its phases, and its tokens by
  * class over all its agents. It shows no files or flags, since a run is never
- * stopped and its "¹" marks and footnote say where its tokens may be low. Key
- * it by the owner session, so a different owner mounts a fresh reader.
+ * stopped and its "¹" marks and footnote say where its tokens may be low. Its
+ * agents are every member of the run below its node, at any depth, including
+ * one nested under another agent. Key it by the owner session, so a different
+ * owner mounts a fresh reader.
  *
  * @example
  * <InspectedWorkflow key={sessionKey(ownerRef)} node={node} ownerRef={ownerRef} />
@@ -44,7 +47,8 @@ export function InspectedWorkflow({ node, ownerRef }: InspectedWorkflowProps): R
     )
   }
 
-  const agentIds = node.children.flatMap(({ selection }) =>
+  const members = node.workflow === null ? [] : runMembers(node.children, node.workflow.runId)
+  const agentIds = members.flatMap(({ selection }) =>
     selection?.kind === 'subagent' ? [selection.agentId] : []
   )
   const reports = readableReports(data, agentIds)

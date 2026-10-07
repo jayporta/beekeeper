@@ -2,6 +2,7 @@ import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
 import type { WorkflowRunDto } from '../../../../../shared/ipc/workflowRunDto'
 import { sessionKey } from '@renderer/features/sessions/sessionKey'
 import type { AgentGraphNode, NodeWorkflow } from './agentGraphNode'
+import { runMembers } from './runMembers'
 
 /** One run's facts. A run's name is its record's name, or its id when the record has none or is missing. */
 function runFacts({ runId, record }: WorkflowRunDto, duplicateName: boolean): NodeWorkflow {
@@ -55,9 +56,10 @@ interface WorkflowRunNodesInput {
 }
 
 /**
- * Builds one node per run, each holding its agents. A run's tokens are its
- * agents' own tokens added up, `null` when none has any. A run is partial when
- * any agent is, or has no tokens, so a total that leaves one out says so.
+ * Builds one node per run, each holding its agents. A run's tokens are the own
+ * tokens of every member below its node, at any depth, added up, `null` when
+ * none has any. A run is partial when any member is, or has no tokens, so a
+ * total that leaves one out says so. Each member stays under its own parent.
  *
  * @param input - The owner, the runs' facts, and each run's agents.
  * @returns The run nodes, sorted by run id.
@@ -66,6 +68,7 @@ export function workflowRunNodes(input: WorkflowRunNodesInput): readonly AgentGr
   const { ownerRef, workflows, agents } = input
   return [...agents.keys()].sort().map((runId) => {
     const children = agents.get(runId) ?? []
+    const members = runMembers(children, runId)
     const workflow = workflowOf(workflows, runId)
     return {
       key: `run:${sessionKey(ownerRef)}:${runId}`,
@@ -73,11 +76,11 @@ export function workflowRunNodes(input: WorkflowRunNodesInput): readonly AgentGr
       name: workflow.name,
       agentType: null,
       model: null,
-      tokens: children.reduce<number | null>(
+      tokens: members.reduce<number | null>(
         (total, { tokens }) => (tokens === null ? total : (total ?? 0) + tokens),
         null
       ),
-      partial: children.some((agent) => agent.partial || agent.tokens === null),
+      partial: members.some((agent) => agent.partial || agent.tokens === null),
       stopped: false,
       subagentsNotLoaded: false,
       folder: null,

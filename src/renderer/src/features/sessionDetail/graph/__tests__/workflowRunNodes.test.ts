@@ -174,6 +174,69 @@ describe('buildSubagentNodes run tokens', () => {
   })
 })
 
+describe('buildSubagentNodes run tokens with a member nested under another member', () => {
+  const nested = testNode('w1', {
+    workflowRunId: 'wf_a',
+    children: [testNode('w2', { workflowRunId: 'wf_a' })]
+  })
+  const workflowRuns: WorkflowRunDto[] = [{ runId: 'wf_a', record: record('alpha') }]
+
+  it('keeps the nested member under its parent, not directly under the run', () => {
+    const [run] = nodesOf({ children: [nested], workflowRuns })
+
+    expect(keysOf(run?.children ?? [])).toEqual([agentKey('w1')])
+    expect(keysOf(run?.children[0]?.children ?? [])).toEqual([agentKey('w2')])
+  })
+
+  it('sums the nested member’s tokens into the run’s', () => {
+    const [run] = nodesOf({
+      children: [nested],
+      workflowRuns,
+      reports: { w1: spent(10), w2: spent(20) }
+    })
+
+    expect(run).toMatchObject({ tokens: 30, partial: false })
+  })
+
+  it('is partial when only the nested member recorded no tokens', () => {
+    const [run] = nodesOf({
+      children: [nested],
+      workflowRuns,
+      reports: { w1: spent(10), w2: testReport() }
+    })
+
+    expect(run).toMatchObject({ tokens: 10, partial: true })
+  })
+
+  it('is partial when only the nested member’s report is unreadable', () => {
+    const [run] = nodesOf({
+      children: [nested],
+      workflowRuns,
+      reports: { w1: spent(10), w2: 'error' }
+    })
+
+    expect(run).toMatchObject({ tokens: 10, partial: true })
+  })
+
+  it('does not sum an agent nested under a member that is not in the run', () => {
+    const outsider = testNode('w1', {
+      workflowRunId: 'wf_a',
+      children: [
+        testNode('plain', { children: [testNode('w3', { workflowRunId: 'wf_a' })] }),
+        testNode('other', { workflowRunId: 'wf_b' })
+      ]
+    })
+
+    const [run] = nodesOf({
+      children: [outsider],
+      workflowRuns,
+      reports: { w1: spent(10), plain: spent(100), w3: spent(5), other: spent(1000) }
+    })
+
+    expect(run).toMatchObject({ tokens: 15, partial: false })
+  })
+})
+
 describe('nodeWorkflows', () => {
   it('flags the runs that share a name and no others', () => {
     const runs: WorkflowRunDto[] = [

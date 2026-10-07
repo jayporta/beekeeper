@@ -10,8 +10,9 @@ import { nodeWorkflows, workflowOf, workflowRunNodes } from './workflowRunNodes'
  * Builds the subagent nodes of a session, each under the one that spawned it.
  * An agent whose report is missing or errored is kept, with no tokens. A
  * workflow agent the lead spawned sits under its run's node, after the plain
- * subagents; one nested under another agent stays under it. It walks the tree
- * without recursing, so a deep spawn chain can't overflow the stack.
+ * subagents; one nested under another agent stays under it, though its run's
+ * totals still count it. It walks the tree without recursing, so a deep spawn
+ * chain can't overflow the stack.
  *
  * @param detail - The session's agent tree, reports, and workflow runs.
  * @param ownerRef - The session whose transcripts hold the subagents.

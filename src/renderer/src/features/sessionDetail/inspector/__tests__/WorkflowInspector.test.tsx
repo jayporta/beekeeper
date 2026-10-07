@@ -205,6 +205,53 @@ describe('AgentInspector for a workflow run', () => {
   })
 })
 
+describe('AgentInspector for a workflow run with a member nested under another', () => {
+  const nestedChildren = [
+    testNode('w1', {
+      workflowRunId: 'wf_a',
+      children: [
+        testNode('w2', { workflowRunId: 'wf_a' }),
+        testNode('plain', { children: [testNode('w3', { workflowRunId: 'wf_a' })] }),
+        testNode('other', { workflowRunId: 'wf_b' })
+      ]
+    })
+  ]
+  const nestedReports = {
+    w1: testReport({ tokenGroups: [pricedGroup({ output: 10 })], messageCount: 3 }),
+    w2: testReport({ tokenGroups: [pricedGroup({ input: 20 })], messageCount: 2 }),
+    plain: testReport({ tokenGroups: [pricedGroup({ output: 1000 })], messageCount: 100 }),
+    w3: testReport({ tokenGroups: [pricedGroup({ cacheRead: 5 })], messageCount: 4 }),
+    other: testReport({ tokenGroups: [pricedGroup({ output: 7000 })], messageCount: 700 })
+  }
+
+  async function openNestedRun(
+    runReports: Readonly<Record<string, ReturnType<typeof testReport> | 'error'>>
+  ): Promise<void> {
+    const detail = testDetail({
+      children: nestedChildren,
+      reports: runReports,
+      workflowRuns: [RUN]
+    })
+    renderInspectorScene({ detail })
+    await userEvent.click(screen.getByRole('button', { name: /^scan, workflow/ }))
+  }
+
+  it('counts every member of the run at any depth, and no agent that is not one', async () => {
+    await openNestedRun(nestedReports)
+
+    expect(inspector().getByText('3 agents')).toBeTruthy()
+    expect(inspector().getByText('35 tokens')).toBeTruthy()
+    expect(inspector().getByText(/9 messages/)).toBeTruthy()
+  })
+
+  it('is partial when only the nested member’s report is unreadable', async () => {
+    await openNestedRun({ ...nestedReports, w2: 'error' })
+
+    expect(inspector().getByText(/^15 tokens/).textContent).toContain('¹')
+    expect(inspector().getByText(/Some of this workflow's agents/)).toBeTruthy()
+  })
+})
+
 describe('InspectedWorkflow without its session’s detail', () => {
   const node = testGraphNode('run:x', {
     kind: 'workflow',
