@@ -33,13 +33,17 @@ const reports = {
   w1: testReport({
     tokenGroups: [pricedGroup({ output: 10 })],
     messageCount: 3,
-    activity: { earliestMs: SCENE_START, latestMs: SCENE_START + 10 * MIN },
+    activity: { earliestMs: SCENE_START, latestMs: SCENE_START + 10 * MIN, activeMs: 10 * MIN },
     fileTouches: [{ filePath: '/repo/a.ts', operation: 'edit', source: 'edit-write' }]
   }),
   w2: testReport({
     tokenGroups: [pricedGroup({ input: 20 })],
     messageCount: 2,
-    activity: { earliestMs: SCENE_START + 5 * MIN, latestMs: SCENE_START + 30 * MIN }
+    activity: {
+      earliestMs: SCENE_START + 5 * MIN,
+      latestMs: SCENE_START + 30 * MIN,
+      activeMs: 25 * MIN
+    }
   })
 }
 

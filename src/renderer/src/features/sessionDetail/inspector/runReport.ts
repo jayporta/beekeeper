@@ -30,9 +30,13 @@ export function readableReports(
  *
  * @param reports - The run's readable agent reports, from {@link readableReports}.
  * @returns The combined report: every token group, the summed message count and skipped lines, and a span from the earliest start to the latest end.
+ * @remarks The run's active time is the smaller of that span and the sum of its agents' active times. A run's agents work in parallel, so the sum alone would count overlapping time twice, and the span alone would include stretches when none of them was working.
  */
 export function runReport(reports: readonly AgentReportDto[]): AgentReportDto {
   const spans = reports.flatMap(({ activity }) => (activity === null ? [] : [activity]))
+  const earliestMs = Math.min(...spans.map((span) => span.earliestMs))
+  const latestMs = Math.max(...spans.map((span) => span.latestMs))
+  const summedActiveMs = spans.reduce((total, { activeMs }) => total + activeMs, 0)
   return {
     tokenGroups: reports.flatMap(({ tokenGroups }) => tokenGroups),
     messageCount: reports.reduce((total, { messageCount }) => total + messageCount, 0),
@@ -42,10 +46,7 @@ export function runReport(reports: readonly AgentReportDto[]): AgentReportDto {
     activity:
       spans.length === 0
         ? null
-        : {
-            earliestMs: Math.min(...spans.map(({ earliestMs }) => earliestMs)),
-            latestMs: Math.max(...spans.map(({ latestMs }) => latestMs))
-          }
+        : { earliestMs, latestMs, activeMs: Math.min(latestMs - earliestMs, summedActiveMs) }
   }
 }
 

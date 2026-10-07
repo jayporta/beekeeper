@@ -6,6 +6,7 @@ import { createSessionScanDir, type SessionScanDir } from '../testSessionDir'
 const T1 = '2026-01-01T00:00:01.000Z'
 const T2 = '2026-01-01T00:00:02.000Z'
 const T3 = '2026-01-01T00:00:03.000Z'
+const T_HOURS_LATER = '2026-01-01T05:00:00.000Z'
 
 let dir: SessionScanDir
 
@@ -29,7 +30,29 @@ describe('scanSession agent activity', () => {
 
     const scan = await scanSession({ leadPath, subagents: [] })
 
-    expect(scan.lead.activity).toEqual({ earliestMs: Date.parse(T1), latestMs: Date.parse(T3) })
+    expect(scan.lead.activity).toEqual({
+      earliestMs: Date.parse(T1),
+      latestMs: Date.parse(T3),
+      activeMs: 2000
+    })
+  })
+
+  it('leaves out a gap past the cutoff from the active time', async () => {
+    const leadPath = dir.writeLead(
+      buildJsonlText([
+        buildAssistantRecord({ messageId: 'msg_1', timestamp: T1 }),
+        buildAssistantRecord({ messageId: 'msg_2', timestamp: T2 }),
+        buildAssistantRecord({ messageId: 'msg_3', timestamp: T_HOURS_LATER })
+      ])
+    )
+
+    const scan = await scanSession({ leadPath, subagents: [] })
+
+    expect(scan.lead.activity).toEqual({
+      earliestMs: Date.parse(T1),
+      latestMs: Date.parse(T_HOURS_LATER),
+      activeMs: 1000
+    })
   })
 
   it('has no span for an agent whose messages carry no timestamp', async () => {
@@ -70,9 +93,14 @@ describe('scanSession agent activity', () => {
     if (forkResult?.ok) {
       expect(forkResult.value.activity).toEqual({
         earliestMs: Date.parse(T3),
-        latestMs: Date.parse(T3)
+        latestMs: Date.parse(T3),
+        activeMs: 0
       })
     }
-    expect(scan.lead.activity).toEqual({ earliestMs: Date.parse(T1), latestMs: Date.parse(T1) })
+    expect(scan.lead.activity).toEqual({
+      earliestMs: Date.parse(T1),
+      latestMs: Date.parse(T1),
+      activeMs: 0
+    })
   })
 })

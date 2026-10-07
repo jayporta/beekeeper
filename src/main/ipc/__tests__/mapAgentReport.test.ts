@@ -9,12 +9,16 @@ const REPORT: AgentReport = {
     { filePath: '/repo/gone.ts', operation: 'delete', source: 'bash', toolUseId: 'toolu_2' }
   ],
   fileListIncomplete: true,
-  activity: { earliestMs: 1000, latestMs: 3000 }
+  activity: { earliestMs: 1000, latestMs: 3000, activeMs: 1500 }
 }
 
 describe('mapAgentReport activity', () => {
-  it('maps the span to its earliest and latest milliseconds', () => {
-    expect(mapAgentReport(REPORT).activity).toEqual({ earliestMs: 1000, latestMs: 3000 })
+  it('maps the span to its earliest and latest milliseconds and its active time', () => {
+    expect(mapAgentReport(REPORT).activity).toEqual({
+      earliestMs: 1000,
+      latestMs: 3000,
+      activeMs: 1500
+    })
   })
 
   it('maps an agent with no span to null', () => {

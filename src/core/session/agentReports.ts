@@ -1,3 +1,4 @@
+import { activeDurationMs } from './activeDurationMs'
 import { agentIdentityKey, type AgentIdentity } from './agentIdentity'
 import type { AgentUsage } from './agentUsage'
 import type { AgentReports } from './collectAgentReports'
@@ -30,19 +31,21 @@ export interface AgentReport {
   readonly fileListIncomplete: boolean
   /**
    * The span of the agent's own assistant messages, from the earliest
-   * timestamp to the latest, or `null` when none of them has a usable
-   * timestamp. Messages credited to another agent, such as a fork's copy of
-   * the lead's history, don't count.
+   * timestamp to the latest, and the active time within it, or `null` when
+   * none of them has a usable timestamp. Messages credited to another agent,
+   * such as a fork's copy of the lead's history, don't count.
    */
   readonly activity: AgentActivity | null
 }
 
-/** The span between an agent's first and last timestamped assistant messages. */
+/** The span between an agent's first and last timestamped assistant messages, and the active time within it. */
 export interface AgentActivity {
   /** The earliest message timestamp, in epoch milliseconds. */
   readonly earliestMs: number
   /** The latest message timestamp, in epoch milliseconds. */
   readonly latestMs: number
+  /** The time between its messages, in milliseconds, with every gap past 10 minutes left out. */
+  readonly activeMs: number
 }
 
 /** Input for {@link applyAgentReports}. */
@@ -86,9 +89,10 @@ export interface BuildAgentReportInput {
 }
 
 /**
- * Finds the span of the timestamps across an agent's ledger entries.
+ * Finds the span of the timestamps across an agent's ledger entries, and its
+ * active time.
  * @param entries - The entries the agent owns.
- * @returns The span, or `null` when no entry has a timestamp.
+ * @returns The span and active time, or `null` when no entry has a timestamp.
  */
 function activityOf(entries: readonly LedgerEntry[]): AgentActivity | null {
   let earliestMs: number | null = null
@@ -101,7 +105,9 @@ function activityOf(entries: readonly LedgerEntry[]): AgentActivity | null {
       latestMs = entry.latestMs
     }
   }
-  return earliestMs === null || latestMs === null ? null : { earliestMs, latestMs }
+  return earliestMs === null || latestMs === null
+    ? null
+    : { earliestMs, latestMs, activeMs: activeDurationMs(entries) }
 }
 
 /**

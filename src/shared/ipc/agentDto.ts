@@ -42,12 +42,14 @@ export interface FileTouchDto {
   readonly source: 'edit-write' | 'bash'
 }
 
-/** The span between an agent's first and last timestamped assistant messages. */
+/** The span between an agent's first and last timestamped assistant messages, and the active time within it. */
 export interface AgentActivityDto {
   /** The earliest message timestamp, in epoch milliseconds. */
   readonly earliestMs: number
   /** The latest message timestamp, in epoch milliseconds. */
   readonly latestMs: number
+  /** The time between its messages, in milliseconds, with every gap past 10 minutes left out. */
+  readonly activeMs: number
 }
 
 /** One agent's usage, file touches, and activity span. */
@@ -76,8 +78,9 @@ export interface AgentReportDto {
    */
   readonly fileListIncomplete: boolean
   /**
-   * The span of its own assistant messages, or `null` when none has a usable
-   * timestamp. A fork's copies of the lead's messages don't count.
+   * The span of its own assistant messages and the active time within it, or
+   * `null` when none has a usable timestamp. A fork's copies of the lead's
+   * messages don't count.
    */
   readonly activity: AgentActivityDto | null
 }

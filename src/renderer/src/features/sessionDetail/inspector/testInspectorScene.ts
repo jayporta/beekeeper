@@ -32,7 +32,7 @@ export const LEAD_REPORT: AgentReportDto = testReport({
     pricedGroup({ input: 1000, output: 400, cacheRead: 100, cacheWrite5m: 60, cacheWrite1h: 40 })
   ],
   messageCount: 12,
-  activity: { earliestMs: SCENE_START, latestMs: SCENE_START + 90 * MIN },
+  activity: { earliestMs: SCENE_START, latestMs: SCENE_START + 90 * MIN, activeMs: 60 * MIN },
   fileTouches: [
     { filePath: '/repo/src/a.ts', operation: 'edit', source: 'edit-write' },
     { filePath: '/repo/b.ts', operation: 'create', source: 'bash' }
