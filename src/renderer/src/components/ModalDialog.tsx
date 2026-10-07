@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import styles from './ModalDialog.module.css'
+import { withClassName } from './withClassName'
 
 /** Props for {@link ModalDialog}. */
 interface ModalDialogProps {
@@ -49,7 +50,7 @@ export function ModalDialog({
   return (
     <dialog
       ref={ref}
-      className={className === undefined ? styles.dialog : `${styles.dialog} ${className}`}
+      className={withClassName(styles.dialog, className)}
       aria-labelledby={labelledBy}
       onCancel={(event) => {
         // Escape closes through the parent, so its state and the dialog never disagree.
