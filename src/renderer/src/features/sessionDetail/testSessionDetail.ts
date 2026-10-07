@@ -6,6 +6,7 @@ import type {
   TokenGroupDto
 } from '../../../../shared/ipc/agentDto'
 import type { SessionDetailDto } from '../../../../shared/ipc/sessionDetailDto'
+import type { WorkflowRunDto } from '../../../../shared/ipc/workflowRunDto'
 
 /** An agent report with no usage, files, or flags, unless overridden. */
 export function testReport(overrides: Partial<AgentReportDto> = {}): AgentReportDto {
@@ -38,13 +39,24 @@ export function testMeta(overrides: Partial<AgentMetaDto> = {}): AgentMetaStatus
   return { status: 'ok', meta: { agentType: 'Explore', ...overrides } }
 }
 
+/** The options of {@link testNode}. */
+interface TestNodeOptions {
+  /** The agent's meta. Defaults to a readable `Explore` meta, or an absent one for the lead. */
+  readonly meta?: AgentMetaStatusDto
+  /** The agents it spawned. Defaults to none. */
+  readonly children?: readonly AgentNodeDto[]
+  /** The workflow run the agent ran in. Defaults to none. */
+  readonly workflowRunId?: string
+}
+
 /** One node of the agent tree: a subagent when given an id, the lead otherwise. */
-export function testNode(
-  agentId: string | null,
-  options: { meta?: AgentMetaStatusDto; children?: readonly AgentNodeDto[] } = {}
-): AgentNodeDto {
-  const { meta = agentId === null ? { status: 'absent' } : testMeta(), children = [] } = options
-  return { agentId, meta, workflowRunId: null, children }
+export function testNode(agentId: string | null, options: TestNodeOptions = {}): AgentNodeDto {
+  const {
+    meta = agentId === null ? { status: 'absent' } : testMeta(),
+    children = [],
+    workflowRunId = null
+  } = options
+  return { agentId, meta, workflowRunId, children }
 }
 
 /** The options of {@link testDetail}. */
@@ -55,11 +67,13 @@ interface TestDetailOptions {
   readonly children?: readonly AgentNodeDto[]
   /** Each subagent's report by id, or `false` for an unreadable subagents folder. Missing ids get a default report. */
   readonly reports?: Readonly<Record<string, AgentReportDto | 'error'>> | false
+  /** The session's workflow runs. Defaults to none. */
+  readonly workflowRuns?: readonly WorkflowRunDto[]
 }
 
 /** A session detail with the given subagents and reports. */
 export function testDetail(options: TestDetailOptions = {}): SessionDetailDto {
-  const { lead = testReport(), children = [], reports = {} } = options
+  const { lead = testReport(), children = [], reports = {}, workflowRuns = [] } = options
   const ids: string[] = []
   const pending = [...children]
   for (let node = pending.pop(); node !== undefined; node = pending.pop()) {
@@ -90,6 +104,6 @@ export function testDetail(options: TestDetailOptions = {}): SessionDetailDto {
       models: [],
       totals: { transcriptUSD: null, transcriptPartial: false, recordedUSD: null }
     },
-    workflowRuns: []
+    workflowRuns
   }
 }

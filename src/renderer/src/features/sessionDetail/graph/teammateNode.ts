@@ -30,6 +30,7 @@ export function teammateNode(row: SessionRow, leadRef: SessionRefDto): AgentGrap
       kind: 'teammate',
       ref: { projectDirName: item.projectDirName, sessionId: item.sessionId }
     },
+    workflow: null,
     children: []
   }
 }

@@ -114,6 +114,9 @@
   --size-mark: 0.75rem;
   --size-mark-subagent: 0.5625rem;
   --border-width-mark: 1.5px;
+  /* A workflow run's border: `double` draws two lines only from 3px, so its card mark is 3px and its graph node 4px. */
+  --border-width-double-mark: 3px;
+  --border-width-double-node: 4px;
   --border-width-strong: 2px;
   /* The session graph's dot grid: a dot every 20px, and its edges at 55% opacity, which passes 3:1 on ground in both schemes. */
   --size-graph-grid: 1.25rem;

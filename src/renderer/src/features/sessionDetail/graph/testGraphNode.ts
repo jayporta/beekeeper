@@ -17,6 +17,7 @@ export function testGraphNode(
     subagentsNotLoaded: false,
     folder: null,
     selection: null,
+    workflow: null,
     children: [],
     ...overrides
   }

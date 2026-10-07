@@ -63,6 +63,7 @@ export function GraphCanvas({ graph }: GraphCanvasProps): React.JSX.Element {
       </GraphViewport>
       <GraphFootnote
         partial={layout.nodes.some(({ node }) => node.partial)}
+        partialWorkflow={layout.nodes.some(({ node }) => node.kind === 'workflow' && node.partial)}
         missingTeammates={root.missingTeammates}
         teamListsTruncated={root.teamListsTruncated}
       />

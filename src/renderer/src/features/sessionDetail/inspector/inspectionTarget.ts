@@ -25,5 +25,6 @@ export function inspectionTarget(
   const { selection } = node
   if (selection === null) return { ownerRef: sessionRef, agentId: null }
   if (selection.kind === 'teammate') return { ownerRef: selection.ref, agentId: null }
+  if (selection.kind === 'workflow') return { ownerRef: selection.ownerRef, agentId: null }
   return { ownerRef: selection.ownerRef, agentId: selection.agentId }
 }

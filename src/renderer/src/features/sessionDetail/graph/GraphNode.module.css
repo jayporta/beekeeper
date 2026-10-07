@@ -34,6 +34,18 @@
   border-style: dashed;
 }
 
+/*
+ * A workflow run groups agents that ran as a unit: a double border. It is wider than the others so the
+ * two lines draw, and the padding gives back the extra width so its text lines up with a plain node's.
+ */
+.workflow {
+  --border-extra: calc(var(--border-width-double-node) - var(--border-width-mark));
+
+  padding: calc(var(--space-2) - var(--border-extra)) calc(var(--space-2-5) - var(--border-extra));
+  border-style: double;
+  border-width: var(--border-width-double-node);
+}
+
 /* The lead is always filled: --color-bg on --color-accent-strong, a pair the contrast test holds to 4.5:1 and Lc 75. */
 .lead {
   color: var(--color-bg);
@@ -75,6 +87,16 @@
   @media (forced-colors: active) {
     border-color: Highlight;
     border-width: calc(var(--border-width-strong) * 2);
+  }
+}
+
+/* A selected run keeps its double border. Forced colors drop the ring, so there it widens by half, as the plain border doubles. */
+.workflow.selected {
+  border-style: double;
+  border-width: var(--border-width-double-node);
+
+  @media (forced-colors: active) {
+    border-width: calc(var(--border-width-double-node) * 1.5);
   }
 }
 

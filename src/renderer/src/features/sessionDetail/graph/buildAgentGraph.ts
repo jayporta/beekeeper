@@ -52,6 +52,7 @@ export function buildAgentGraph(input: BuildAgentGraphInput): RootAgentGraphNode
     subagentsNotLoaded: false,
     folder: null,
     selection: null,
+    workflow: null,
     children: [...buildSubagentNodes(detail, ref), ...teammates],
     missingTeammates: lead?.missingTeammates ?? 0,
     teamListsTruncated: lead?.teamListsTruncated ?? false

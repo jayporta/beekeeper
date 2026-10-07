@@ -7,8 +7,13 @@
       "kind": {
         "lead": "lead",
         "teammate": "teammate",
-        "subagent": "subagent"
+        "subagent": "subagent",
+        "workflow": "workflow"
       },
+      "phases_one": "{{count, integer}} phase",
+      "phases_other": "{{count, integer}} phases",
+      "agents_one": "{{count, integer}} agent",
+      "agents_other": "{{count, integer}} agents",
       "label": "{{name}}, {{kind}}, {{details}}",
       "labelWithParent": "{{name}}, {{kind}} of {{parent}}, {{details}}",
       "labelSeparator": ", ",
@@ -27,6 +32,7 @@
     "footnote": {
       "keyboard": "Up and Down move between siblings, Left goes to the parent and Right to the first child. Home and End go to the first and last agent. Enter selects.",
       "partial": "¹ Partial: part of this agent's data couldn't be read, so its tokens or files may be incomplete.",
+      "partialWorkflow": "On a workflow, ¹ means some of its agents have partial data or no recorded tokens.",
       "missingTeammates_one": "{{count, integer}} teammate not found: the lead spawned it, but it isn't in the sessions list.",
       "missingTeammates_other": "{{count, integer}} teammates not found: the lead spawned them, but they aren't in the sessions list.",
       "truncated": "The lead's spawn and stop lists hit their cap, so more teammates may be missing."

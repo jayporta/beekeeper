@@ -161,6 +161,26 @@ describe('GraphCanvas partial data', () => {
     expect(node(/^Lead/).getAttribute('aria-describedby')).toBeNull()
   })
 
+  it('says what a workflow’s marker means when a run is partial', () => {
+    const detail = testDetail({
+      children: [
+        testNode('w1', { workflowRunId: 'wf_a' }),
+        testNode('w2', { workflowRunId: 'wf_a' })
+      ],
+      reports: { w1: 'error' },
+      workflowRuns: [{ runId: 'wf_a', record: null }]
+    })
+    renderGraphWith({ detail, row: null })
+
+    expect(screen.getByText(/On a workflow, ¹ means some of its agents/)).toBeTruthy()
+  })
+
+  it('leaves the workflow note out when only an agent outside any run is partial', () => {
+    renderGraphWith({ detail: partialDetail, row: null })
+
+    expect(screen.queryByText(/On a workflow/)).toBeNull()
+  })
+
   it('has no footnote when nothing is partial', () => {
     renderGraph()
 
