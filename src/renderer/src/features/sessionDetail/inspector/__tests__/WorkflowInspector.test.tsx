@@ -176,6 +176,7 @@ describe('AgentInspector for a workflow run', () => {
     await openRun({ reports: { ...reports, w2: testReport() } })
 
     expect(inspector().getByText(/^10 tokens/).textContent).toContain('¹')
+    expect(inspector().queryByText('Partial transcript')).toBeNull()
   })
 })
 

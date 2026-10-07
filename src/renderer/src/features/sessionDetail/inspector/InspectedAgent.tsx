@@ -22,8 +22,7 @@ interface InspectedAgentProps {
  * What the inspector shows for one agent, read from its owner session's
  * detail: who it is, and while that loads, once it can't be read, or once it
  * has loaded, its totals, files, worktree diff, and flags. Key it by the node,
- * so a different agent mounts a fresh reader instead of changing the query key
- * of the old one, which would refetch stale detail.
+ * so each agent starts with fresh state in the parts below it.
  *
  * @example
  * <InspectedAgent key={node.key} node={node} selection={node.selection} sessionRef={ref} />

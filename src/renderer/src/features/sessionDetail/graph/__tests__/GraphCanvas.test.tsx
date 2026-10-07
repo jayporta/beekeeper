@@ -9,7 +9,7 @@ import {
   testSession,
   testUsage
 } from '@renderer/features/sessions/testSessionFixtures'
-import { testDetail, testNode, testReport } from '../../testSessionDetail'
+import { testDetail, testNode, testReport, testTokenGroup } from '../../testSessionDetail'
 import { layoutGraph as layoutGraphOriginal } from '../layoutGraph'
 import { COLUMN_WIDTH, LEAF_PITCH, NODE_HEIGHT, NODE_WIDTH } from '../graphMetrics'
 import {
@@ -212,6 +212,21 @@ describe('GraphCanvas partial data', () => {
 
     expect(screen.getAllByRole('button', { name: /subagent of scan \(wf_a\)/ })).toHaveLength(1)
     expect(screen.getAllByRole('button', { name: /subagent of scan \(wf_b\)/ })).toHaveLength(1)
+  })
+
+  it('leaves the agent footnote out when only a run is partial, through an agent with no tokens', () => {
+    const detail = testDetail({
+      children: [
+        testNode('w1', { workflowRunId: 'wf_a' }),
+        testNode('w2', { workflowRunId: 'wf_a' })
+      ],
+      reports: { w1: testReport({ tokenGroups: [testTokenGroup({ input: 10 })] }) },
+      workflowRuns: [{ runId: 'wf_a', record: { name: 'scan', completed: true, phases: [] } }]
+    })
+    renderGraphWith({ detail, row: null })
+
+    expect(screen.getByText(/On a workflow, ¹ means some of its agents/)).toBeTruthy()
+    expect(screen.queryByText(/Partial: part of this agent's data couldn't be read/)).toBeNull()
   })
 
   it('leaves the workflow note out when only an agent outside any run is partial', () => {
