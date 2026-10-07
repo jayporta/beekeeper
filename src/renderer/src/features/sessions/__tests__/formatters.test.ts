@@ -5,13 +5,9 @@ import { formatLastActive } from '../formatLastActive'
 import { testSessionsT } from '../testSessionsT'
 
 const MIN = 60_000
-const span = (minutes: number): { earliestMs: number; latestMs: number } => ({
-  earliestMs: 1000,
-  latestMs: 1000 + minutes * MIN
-})
 
 describe('formatDuration', () => {
-  it('reports null without activity', () => {
+  it('reports null without a duration', () => {
     expect(formatDuration(null, testSessionsT)).toBeNull()
   })
 
@@ -25,11 +21,11 @@ describe('formatDuration', () => {
     [185, '3h 5m'],
     [1500, '25h']
   ])('formats %s minutes as %s', (minutes, expected) => {
-    expect(formatDuration(span(minutes), testSessionsT)).toBe(expected)
+    expect(formatDuration(minutes * MIN, testSessionsT)).toBe(expected)
   })
 
-  it('treats a span that runs backwards as under a minute', () => {
-    expect(formatDuration({ earliestMs: 5000, latestMs: 1000 }, testSessionsT)).toBe('<1m')
+  it('treats a negative duration as under a minute', () => {
+    expect(formatDuration(-4000, testSessionsT)).toBe('<1m')
   })
 })
 

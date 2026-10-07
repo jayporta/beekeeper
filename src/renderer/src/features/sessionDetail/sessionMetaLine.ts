@@ -1,5 +1,6 @@
 import { agentCountLabel, hasAgents } from '@renderer/features/sessions/agentCountLabel'
 import { cardFigures } from '@renderer/features/sessions/cardFigures'
+import { activitySpanMs } from '@renderer/features/sessions/activitySpanMs'
 import { formatDuration } from '@renderer/features/sessions/formatDuration'
 import { formatLastActive } from '@renderer/features/sessions/formatLastActive'
 import { formatTokens } from '@renderer/features/sessions/formatTokens'
@@ -42,7 +43,7 @@ export function sessionMetaLine(row: SessionRow, t: SessionsT): readonly string[
 
   return [
     formatLastActive(activity?.earliestMs ?? null, t),
-    formatDuration(activity, t),
+    formatDuration(activitySpanMs(activity), t),
     teamName === null ? null : t('notes.team', { name: teamName }),
     hasAgents(item) ? agentCountLabel(item, t) : null,
     formatTokens(figures?.tokens ?? null, t),

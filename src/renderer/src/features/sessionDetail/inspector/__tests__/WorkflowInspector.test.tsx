@@ -42,7 +42,7 @@ const reports = {
     activity: {
       earliestMs: SCENE_START + 5 * MIN,
       latestMs: SCENE_START + 30 * MIN,
-      activeMs: 25 * MIN
+      activeMs: 15 * MIN
     }
   })
 }
@@ -71,11 +71,11 @@ describe('AgentInspector for a workflow run', () => {
     expect(inspector().getByRole('heading', { level: 2, name: 'scan' })).toBeTruthy()
   })
 
-  it('shows the run id, how long it ran and how many messages it sent', async () => {
+  it('shows the run id, when it started, how long its agents were active and how many messages it sent', async () => {
     await openRun()
 
     expect(inspector().getByText(/5 messages/).textContent).toMatch(
-      /wf_a\s*·\s*30m\s*·\s*5 messages/
+      /^wf_a\s*·\s*Jan \d{1,2}, 2026, \d{1,2}:\d{2}\s[AP]M\s*·\s*25m active\s*·\s*5 messages$/
     )
   })
 

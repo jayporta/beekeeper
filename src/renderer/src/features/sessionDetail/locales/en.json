@@ -96,6 +96,7 @@
       "loading": "Loading this workflow",
       "unreadable": "beekeeper couldn't read this workflow's agents."
     },
+    "active": "{{duration}} active",
     "messages_one": "{{count, integer}} message",
     "messages_other": "{{count, integer}} messages",
     "loading": "Loading this agent",

@@ -7,6 +7,7 @@ import { CardColumns } from './CardColumns'
 import { CardTokens } from './CardTokens'
 import { cardFigures } from './cardFigures'
 import { EmptyCell } from './EmptyCell'
+import { activitySpanMs } from './activitySpanMs'
 import { formatDuration } from './formatDuration'
 import { rowMatches } from './sessionMatches'
 import { SessionCell } from './SessionCell'
@@ -55,7 +56,10 @@ export const SessionCard = memo(function SessionCard({
   const { item, label, teammates } = row
   const { figures, teamTotal } = cardFigures(item)
   const agents = agentCountLabel(item, t)
-  const duration = formatDuration(item.summary.ok ? item.summary.value.activity : null, t)
+  const duration = formatDuration(
+    activitySpanMs(item.summary.ok ? item.summary.value.activity : null),
+    t
+  )
   const { projectDirName, sessionId } = item
   const leadRef = useMemo(() => ({ projectDirName, sessionId }), [projectDirName, sessionId])
 

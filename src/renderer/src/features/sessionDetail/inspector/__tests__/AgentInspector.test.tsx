@@ -34,21 +34,20 @@ describe('AgentInspector for the lead', () => {
     expect(inspector().getByText('Lead session')).toBeTruthy()
   })
 
-  it('shows the model, how long the agent was active, and its message count', () => {
+  it('shows the model, when the agent started, how long it was active, and its message count', () => {
     renderInspectorScene()
 
     expect(inspector().getByText(/claude-opus-5/).textContent).toMatch(
-      /claude-opus-5\s*·\s*1h 30m\s*·\s*12 messages/
+      /^claude-opus-5\s*·\s*Jan \d{1,2}, 2026, \d{1,2}:\d{2}\s[AP]M\s*·\s*1h active\s*·\s*12 messages$/
     )
   })
 
-  it('leaves out the span when the agent has no timestamps', () => {
+  it('leaves out the start and the active time when the agent has no timestamps', () => {
     renderInspectorScene({ detail: testDetail({ lead: { ...LEAD_REPORT, activity: null } }) })
 
     const facts = inspector().getByText(/12 messages/).textContent
 
-    expect(facts).toMatch(/claude-opus-5\s*·\s*12 messages/)
-    expect(facts).not.toContain('1h')
+    expect(facts).toMatch(/^claude-opus-5\s*·\s*12 messages$/)
   })
 
   it('counts a single message in the singular', () => {
