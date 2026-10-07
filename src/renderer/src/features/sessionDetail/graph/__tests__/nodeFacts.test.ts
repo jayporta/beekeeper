@@ -83,7 +83,7 @@ describe('nodeAccessibleName a workflow run', () => {
     name: workflow.name,
     tokens: 635000,
     workflow,
-    children: Array.from({ length: 8 }, (_, i) => testGraphNode(`w${i}`))
+    children: Array.from({ length: 8 }, (_, i) => testGraphNode(`w${i}`, { workflow }))
   })
 
   it('gives the kind once, then tokens, phases and the agent count', () => {
@@ -99,9 +99,21 @@ describe('nodeAccessibleName a workflow run', () => {
   })
 
   it('counts one agent in the singular and leaves out phases a run lacks', () => {
-    const lone = { ...run(runWorkflow({ phases: [] })), children: [testGraphNode('w1')] }
+    const workflow = runWorkflow({ phases: [] })
+    const lone = { ...run(workflow), children: [testGraphNode('w1', { workflow })] }
 
     expect(nameOf(lone, { parent: 'Lead' })).toBe('scan, workflow of Lead, 635K tokens, 1 agent')
+  })
+
+  it('counts a member nested under another agent, but not a nested agent outside the run', () => {
+    const workflow = runWorkflow({ phases: [] })
+    const nested = testGraphNode('w2', { workflow })
+    const outsider = testGraphNode('s1', { workflow: null, children: [nested] })
+    const parent = testGraphNode('w1', { workflow, children: [outsider] })
+
+    expect(nameOf({ ...run(workflow), children: [parent] }, { parent: 'Lead' })).toBe(
+      'scan, workflow of Lead, 635K tokens, 2 agents'
+    )
   })
 
   it('names the flags last', () => {

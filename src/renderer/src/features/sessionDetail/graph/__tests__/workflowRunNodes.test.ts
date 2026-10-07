@@ -218,8 +218,8 @@ describe('buildSubagentNodes run tokens with a member nested under another membe
     expect(run).toMatchObject({ tokens: 10, partial: true })
   })
 
-  it('does not sum an agent nested under a member that is not in the run', () => {
-    const outsider = testNode('w1', {
+  it('leaves out agents below a member that are not in the run, but sums a member below them', () => {
+    const member = testNode('w1', {
       workflowRunId: 'wf_a',
       children: [
         testNode('plain', { children: [testNode('w3', { workflowRunId: 'wf_a' })] }),
@@ -228,7 +228,7 @@ describe('buildSubagentNodes run tokens with a member nested under another membe
     })
 
     const [run] = nodesOf({
-      children: [outsider],
+      children: [member],
       workflowRuns,
       reports: { w1: spent(10), plain: spent(100), w3: spent(5), other: spent(1000) }
     })

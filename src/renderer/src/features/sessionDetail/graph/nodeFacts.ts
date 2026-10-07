@@ -1,5 +1,6 @@
 import type { AgentGraphNode, NodeWorkflow } from './agentGraphNode'
 import type { GraphT } from './graphT'
+import { runMembers } from './runMembers'
 
 /** The run's phase count as text, or `null` when it has no phases or isn't a run. */
 function phasesText(workflow: NodeWorkflow | null, t: GraphT): string | null {
@@ -30,13 +31,14 @@ export function nodeDetail(node: AgentGraphNode, t: GraphT): readonly string[] {
   return [node.agentType, node.model].filter((part) => part !== null)
 }
 
-/** What a run's accessible name says after its tokens: its phase count, its id when its name isn't unique, and how many agents it holds. The kind is already said. */
+/** What a run's accessible name says after its tokens: its phase count, its id when its name isn't unique, and how many of its agents are below it, at any depth. The kind is already said. */
 function runDetails(node: AgentGraphNode, t: GraphT): readonly (string | null)[] {
   const { workflow } = node
+  const agents = workflow === null ? 0 : runMembers(node.children, workflow.runId).length
   return [
     phasesText(workflow, t),
     workflow?.duplicateName === true ? workflow.runId : null,
-    t('graph.node.agents', { count: node.children.length })
+    t('graph.node.agents', { count: agents })
   ]
 }
 
