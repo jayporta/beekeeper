@@ -1,5 +1,6 @@
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { MutedText } from '@renderer/components/MutedText'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { EmptyCell } from '@renderer/features/sessions/EmptyCell'
 import type { AgentGraphNode } from './agentGraphNode'
@@ -89,7 +90,9 @@ export const GraphNode = memo(function GraphNode({
         </span>
       </span>
       <span className={styles.line}>
-        <span className={styles.detail}>{detail !== '' && <bdi>{detail}</bdi>}</span>
+        <MutedText as="span" smaller className={styles.detail}>
+          {detail !== '' && <bdi>{detail}</bdi>}
+        </MutedText>
         {loading ? (
           <span className={styles.flag}>{t('graph.node.loadingFlag')}</span>
         ) : (

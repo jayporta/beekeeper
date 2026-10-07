@@ -2,13 +2,13 @@ import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
+import { MutedText } from '@renderer/components/MutedText'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { shortId } from '@renderer/features/sessions/sessionLabel'
 import { WorktreePatchDialog } from '../patch/WorktreePatchDialog'
 import { useWorktreeDiffs } from '../useWorktreeDiffs'
 import { diffsOlderThanDetail } from './diffsOlderThanDetail'
 import { InspectorHeading } from './InspectorHeading'
-import { InspectorNote } from './InspectorNote'
 import { LinkButton } from './LinkButton'
 import { useAnnounceSharedWorktree } from './useAnnounceSharedWorktree'
 import { WorktreeDiffResult } from './WorktreeDiffResult'
@@ -85,9 +85,9 @@ export function WorktreeDiffBox({
         {agentId !== null && (
           <div role="status" className={styles.result}>
             {diffs === undefined ? (
-              <InspectorNote>
+              <MutedText>
                 {isError ? t('inspector.worktree.loadFailed') : t('inspector.worktree.loading')}
-              </InspectorNote>
+              </MutedText>
             ) : (
               <WorktreeDiffResult diffs={diffs} entry={entry} />
             )}
@@ -116,7 +116,7 @@ export function WorktreeDiffBox({
         )}
         {shared !== null && (
           <>
-            <InspectorNote>{sharedNote}</InspectorNote>
+            <MutedText>{sharedNote}</MutedText>
             <LinkButton onClick={showShared}>
               {t('inspector.worktree.showShared', { agent: shortId(shared.agentId) })}
             </LinkButton>

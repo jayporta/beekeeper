@@ -23,15 +23,8 @@
   align-items: baseline;
 }
 
-.count {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-2xs);
-}
-
 .tag {
   flex: none;
   padding: 0 var(--space-1-5);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-2xs);
   border: 1px solid var(--color-divider);
 }

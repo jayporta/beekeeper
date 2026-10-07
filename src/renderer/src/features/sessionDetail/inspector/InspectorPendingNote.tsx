@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { InspectorNote } from './InspectorNote'
+import { MutedText } from '@renderer/components/MutedText'
 
 /** Props for {@link InspectorPendingNote}. */
 interface InspectorPendingNoteProps {
@@ -30,5 +30,5 @@ export function InspectorPendingNote({
     ? t(loading ? 'inspector.workflow.loading' : 'inspector.workflow.unreadable')
     : t(loading ? 'inspector.loading' : 'inspector.unreadable')
 
-  return <InspectorNote role={loading ? 'status' : undefined}>{text}</InspectorNote>
+  return <MutedText role={loading ? 'status' : undefined}>{text}</MutedText>
 }

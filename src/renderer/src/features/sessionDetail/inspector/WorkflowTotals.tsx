@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
+import { MutedText } from '@renderer/components/MutedText'
 import { InspectorCostNote } from './InspectorCostNote'
-import { InspectorNote } from './InspectorNote'
 import { InspectorTotalsFrame } from './InspectorTotalsFrame'
 import type { ReportCost } from './reportCost'
 
@@ -34,7 +34,7 @@ export function WorkflowTotals({
 
   return (
     <InspectorTotalsFrame tokens={tokens} partial={partial}>
-      <InspectorNote>{t('inspector.workflow.agents', { count: agents })}</InspectorNote>
+      <MutedText>{t('inspector.workflow.agents', { count: agents })}</MutedText>
       <InspectorCostNote cost={cost} usageIncomplete={partial} />
     </InspectorTotalsFrame>
   )

@@ -21,7 +21,7 @@ interface InspectorTotalsFrameProps {
  *
  * @example
  * <InspectorTotalsFrame tokens={1200} partial={false}>
- *   <InspectorNote>No agents below</InspectorNote>
+ *   <MutedText>No agents below</MutedText>
  * </InspectorTotalsFrame>
  */
 export function InspectorTotalsFrame({

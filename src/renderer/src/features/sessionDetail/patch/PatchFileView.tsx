@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { WorktreePatchFileDto } from '../../../../../shared/ipc/worktreePatchDto'
+import { MutedText } from '@renderer/components/MutedText'
 import styles from './PatchFileView.module.css'
 import { patchRuns } from './patchRuns'
 
@@ -29,9 +30,9 @@ export function PatchFileView({ file }: PatchFileViewProps): React.JSX.Element {
         <bdi>{file.path}</bdi>
       </h3>
       {file.oldPath !== undefined && (
-        <p className={styles.note}>
+        <MutedText wrapAnywhere>
           <bdi>{t('inspector.patch.renamedFrom', { path: file.oldPath })}</bdi>
-        </p>
+        </MutedText>
       )}
       {file.patch !== '' && (
         <pre className={styles.patch}>
@@ -42,7 +43,7 @@ export function PatchFileView({ file }: PatchFileViewProps): React.JSX.Element {
           ))}
         </pre>
       )}
-      {file.truncated && <p className={styles.note}>{t('inspector.patch.fileTruncated')}</p>}
+      {file.truncated && <MutedText wrapAnywhere>{t('inspector.patch.fileTruncated')}</MutedText>}
     </section>
   )
 }

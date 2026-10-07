@@ -1,11 +1,11 @@
 import { useTranslation } from 'react-i18next'
 import { useMemo } from 'react'
+import { MutedText } from '@renderer/components/MutedText'
 import type { AgentReportDto } from '../../../../../shared/ipc/agentDto'
 import styles from './FilesTouched.module.css'
 import { groupFileTouches } from './groupFileTouches'
 import { InspectorMarker } from './InspectorMarker'
 import { InspectorList } from './InspectorList'
-import { InspectorNote } from './InspectorNote'
 import { InspectorSection } from './InspectorSection'
 
 /** Props for {@link FilesTouched}. */
@@ -40,9 +40,9 @@ export function FilesTouched({ report }: FilesTouchedProps): React.JSX.Element {
       }
     >
       {files.length === 0 ? (
-        <InspectorNote>
+        <MutedText>
           {fileListIncomplete ? t('inspector.noEditsRecorded') : t('inspector.readOnly')}
-        </InspectorNote>
+        </MutedText>
       ) : (
         <InspectorList>
           {files.map(({ filePath, operations, touches }) => (
@@ -52,15 +52,15 @@ export function FilesTouched({ report }: FilesTouchedProps): React.JSX.Element {
               </span>
               <span className={styles.tags}>
                 {operations.map((operation) => (
-                  <span key={operation} className={styles.tag}>
+                  <MutedText key={operation} as="span" smaller className={styles.tag}>
                     {t(`inspector.operation.${operation}`)}
-                  </span>
+                  </MutedText>
                 ))}
                 {touches > 1 && (
                   <>
-                    <span className={styles.count} aria-hidden="true">
+                    <MutedText as="span" smaller decorative>
                       {t('inspector.touchCount', { count: touches })}
-                    </span>
+                    </MutedText>
                     <span className="visuallyHidden">
                       {t('inspector.touchCountSpoken', { count: touches })}
                     </span>

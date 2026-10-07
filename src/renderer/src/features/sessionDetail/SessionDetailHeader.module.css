@@ -8,9 +8,3 @@
   font-size: var(--font-size-lg);
   overflow-wrap: anywhere;
 }
-
-.muted {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-  overflow-wrap: anywhere;
-}

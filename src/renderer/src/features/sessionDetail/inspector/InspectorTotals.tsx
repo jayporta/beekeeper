@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next'
+import { MutedText } from '@renderer/components/MutedText'
 import { formatTokens } from '@renderer/features/sessions/formatTokens'
 import { InspectorCostNote } from './InspectorCostNote'
 import { InspectorMarker } from './InspectorMarker'
-import { InspectorNote } from './InspectorNote'
 import { InspectorTotalsFrame } from './InspectorTotalsFrame'
 import type { ReportCost } from './reportCost'
 import type { Rollup } from './rollupBelow'
@@ -53,7 +53,7 @@ export function InspectorTotals({
 
   return (
     <InspectorTotalsFrame tokens={tokens} partial={unreadableLines}>
-      <InspectorNote>
+      <MutedText>
         {rollup.below === 0
           ? noAgentsBelow
           : t('inspector.rollup', {
@@ -61,7 +61,7 @@ export function InspectorTotals({
               count: rollup.below
             })}
         {noteMayBeLow && <InspectorMarker />}
-      </InspectorNote>
+      </MutedText>
       <InspectorCostNote cost={cost} usageIncomplete={unreadableLines} />
     </InspectorTotalsFrame>
   )
