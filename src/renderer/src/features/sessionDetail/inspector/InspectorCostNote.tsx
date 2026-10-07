@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next'
+import { MutedText } from '@renderer/components/MutedText'
 import { EmptyCell } from '@renderer/features/sessions/EmptyCell'
 import { formatUsd } from '@renderer/i18n/formatUsd'
 import { InspectorMarker } from './InspectorMarker'
-import { InspectorNote } from './InspectorNote'
 import type { ReportCost } from './reportCost'
 
 /** Props for {@link InspectorCostNote}. */
@@ -30,9 +30,9 @@ export function InspectorCostNote({
   const noCostText = tSessions('emptyCell.costNotRecorded')
 
   return (
-    <InspectorNote>
+    <MutedText>
       {costText ?? <EmptyCell spokenText={noCostText} />}
       {(cost.partial || usageIncomplete) && <InspectorMarker />}
-    </InspectorNote>
+    </MutedText>
   )
 }

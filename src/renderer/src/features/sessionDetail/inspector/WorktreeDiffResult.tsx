@@ -3,10 +3,10 @@ import type {
   AgentWorktreeDiffDto,
   WorktreeDiffsDto
 } from '../../../../../shared/ipc/worktreeDiffDto'
+import { MutedText } from '@renderer/components/MutedText'
 import { diffFailureKey } from './diffFailureKey'
 import { summarizeNumstat } from './summarizeNumstat'
 import { uncommittedNoteKey } from './uncommittedNoteKey'
-import { InspectorNote } from './InspectorNote'
 import styles from './WorktreeDiffResult.module.css'
 
 /** Props for {@link WorktreeDiffResult}. */
@@ -31,19 +31,17 @@ export function WorktreeDiffResult({ diffs, entry }: WorktreeDiffResultProps): R
   const { t } = useTranslation('sessionDetail')
 
   if (diffs.git === 'git-not-found') {
-    return <InspectorNote>{t('inspector.worktree.gitNotFound')}</InspectorNote>
+    return <MutedText>{t('inspector.worktree.gitNotFound')}</MutedText>
   }
   if (diffs.git === 'git-too-old') {
-    return <InspectorNote>{t('inspector.worktree.gitTooOld')}</InspectorNote>
+    return <MutedText>{t('inspector.worktree.gitTooOld')}</MutedText>
   }
   if (entry === undefined) {
-    return <InspectorNote>{t('inspector.worktree.failure.failed')}</InspectorNote>
+    return <MutedText>{t('inspector.worktree.failure.failed')}</MutedText>
   }
   if (!entry.result.ok) {
     return (
-      <InspectorNote>
-        {t(`inspector.worktree.failure.${diffFailureKey(entry.result.code)}`)}
-      </InspectorNote>
+      <MutedText>{t(`inspector.worktree.failure.${diffFailureKey(entry.result.code)}`)}</MutedText>
     )
   }
 
@@ -58,7 +56,7 @@ export function WorktreeDiffResult({ diffs, entry }: WorktreeDiffResultProps): R
           <> {t('inspector.worktree.untracked', { count: untracked.length })}</>
         )}
       </p>
-      {noteKey !== null && <InspectorNote>{t(`inspector.worktree.${noteKey}`)}</InspectorNote>}
+      {noteKey !== null && <MutedText>{t(`inspector.worktree.${noteKey}`)}</MutedText>}
     </>
   )
 }

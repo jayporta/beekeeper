@@ -25,6 +25,8 @@ interface MutedTextProps {
    * @defaultValue false
    */
   readonly decorative?: boolean
+  /** An ARIA role for a note that is announced, such as a loading note. Omit it for a plain note. */
+  readonly role?: 'status'
   /** The element's id, so a figure can describe itself by it. */
   readonly id?: string
   /**
@@ -46,6 +48,7 @@ export function MutedText({
   smaller = false,
   wrapAnywhere = false,
   decorative = false,
+  role,
   id,
   className
 }: MutedTextProps): React.JSX.Element {
@@ -56,6 +59,7 @@ export function MutedText({
   return (
     <Element
       id={id}
+      role={role}
       className={withClassName(own, className)}
       aria-hidden={decorative || undefined}
     >

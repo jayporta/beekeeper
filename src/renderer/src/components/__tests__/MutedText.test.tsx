@@ -66,4 +66,16 @@ describe('MutedText', () => {
 
     expect(screen.getByText('Note').hasAttribute('aria-hidden')).toBe(false)
   })
+
+  it('announces a note given the status role', () => {
+    render(<MutedText role="status">Loading</MutedText>)
+
+    expect(screen.getByRole('status').textContent).toBe('Loading')
+  })
+
+  it('has no status role unless asked for one', () => {
+    render(<MutedText>Note</MutedText>)
+
+    expect(screen.queryByRole('status')).toBeNull()
+  })
 })
