@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { CapsText } from '@renderer/components/CapsText'
 import { MAIN_HEADING_ID } from '@renderer/components/mainHeading'
 import { SegmentedControl } from '@renderer/components/SegmentedControl'
 import styles from './OverviewHeader.module.css'
@@ -24,7 +25,7 @@ export function OverviewHeader(): React.JSX.Element {
   return (
     <header className={styles.header}>
       <div className={styles.heading}>
-        <p className={styles.kicker}>{t('kicker', { range: t(`range.${range}`) })}</p>
+        <CapsText accent>{t('kicker', { range: t(`range.${range}`) })}</CapsText>
         <h1 id={MAIN_HEADING_ID} className={styles.title}>
           {t('heading')}
         </h1>

@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { CapsText } from '@renderer/components/CapsText'
 import { AgentLegend } from './AgentLegend'
 import { agentMarks, type AgentMarkKind } from './agentMarks'
 import { CardColumns } from './CardColumns'
@@ -63,10 +64,12 @@ export const SessionCardList = memo(function SessionCardList({
   return (
     <div className={styles.list}>
       <CardColumns className={styles.header} decorative>
-        <span>{t('columns.session')}</span>
-        <span>{t('columns.agents')}</span>
-        <span>{t('columns.duration')}</span>
-        <span className={styles.right}>{t('columns.tokens')}</span>
+        <CapsText as="span">{t('columns.session')}</CapsText>
+        <CapsText as="span">{t('columns.agents')}</CapsText>
+        <CapsText as="span">{t('columns.duration')}</CapsText>
+        <CapsText as="span" className={styles.right}>
+          {t('columns.tokens')}
+        </CapsText>
       </CardColumns>
       <ol className={styles.cards} aria-labelledby={labelledBy}>
         {cards.map(({ row, reasons }, index) => (

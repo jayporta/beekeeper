@@ -1,5 +1,6 @@
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
+import { CapsText } from '@renderer/components/CapsText'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { showsMayBeLow } from '@renderer/features/overview/showsMayBeLow'
@@ -52,9 +53,7 @@ export function ProjectList(): React.JSX.Element | null {
 
   return (
     <nav className={styles.list} aria-labelledby={labelId}>
-      <p id={labelId} className={styles.label}>
-        {t('list.label')}
-      </p>
+      <CapsText id={labelId}>{t('list.label')}</CapsText>
       <ul className={styles.rows}>
         <ProjectRow
           label={t('list.all')}

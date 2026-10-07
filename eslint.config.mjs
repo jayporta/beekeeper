@@ -138,6 +138,7 @@ export default defineConfig(
               'height',
               // Props whose values are identifiers or roles, not text.
               'role',
+              'as',
               'ns',
               'emptyReason'
             ]
