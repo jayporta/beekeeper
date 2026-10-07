@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import type { AgentReportDto } from '../../../../../shared/ipc/agentDto'
 import { formatTokens } from '@renderer/features/sessions/formatTokens'
+import { InspectorSection } from './InspectorSection'
 import styles from './TokenRows.module.css'
 import { tokenBreakdown } from './tokenBreakdown'
 
@@ -24,11 +25,10 @@ export function TokenRows({ report, tokens }: TokenRowsProps): React.JSX.Element
   const { t } = useTranslation('sessionDetail')
   const { t: tSessions } = useTranslation('sessions')
 
+  const heading = t('inspector.tokensHeading', { total: formatTokens(tokens, tSessions) })
+
   return (
-    <section className={styles.section}>
-      <h3 className={styles.heading}>
-        {t('inspector.tokensHeading', { total: formatTokens(tokens, tSessions) })}
-      </h3>
+    <InspectorSection heading={heading}>
       <ul className={styles.rows}>
         {tokenBreakdown(report).map((row) => (
           <li key={row.tokenClass} className={styles.row}>
@@ -40,6 +40,6 @@ export function TokenRows({ report, tokens }: TokenRowsProps): React.JSX.Element
           </li>
         ))}
       </ul>
-    </section>
+    </InspectorSection>
   )
 }

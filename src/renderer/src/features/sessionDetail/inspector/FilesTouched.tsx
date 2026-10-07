@@ -4,6 +4,8 @@ import type { AgentReportDto } from '../../../../../shared/ipc/agentDto'
 import styles from './FilesTouched.module.css'
 import { groupFileTouches } from './groupFileTouches'
 import { InspectorMarker } from './InspectorMarker'
+import { InspectorNote } from './InspectorNote'
+import { InspectorSection } from './InspectorSection'
 
 /** Props for {@link FilesTouched}. */
 interface FilesTouchedProps {
@@ -25,17 +27,21 @@ export function FilesTouched({ report }: FilesTouchedProps): React.JSX.Element {
   const { t } = useTranslation('sessionDetail')
   const { fileTouches, fileListIncomplete } = report
   const files = useMemo(() => groupFileTouches(fileTouches), [fileTouches])
+  const heading = t('inspector.filesHeading', { count: files.length })
 
   return (
-    <section className={styles.section}>
-      <h3 className={styles.heading}>
-        {t('inspector.filesHeading', { count: files.length })}
-        {fileListIncomplete && <InspectorMarker />}
-      </h3>
+    <InspectorSection
+      heading={
+        <>
+          {heading}
+          {fileListIncomplete && <InspectorMarker />}
+        </>
+      }
+    >
       {files.length === 0 ? (
-        <p className={styles.empty}>
+        <InspectorNote>
           {fileListIncomplete ? t('inspector.noEditsRecorded') : t('inspector.readOnly')}
-        </p>
+        </InspectorNote>
       ) : (
         <ul className={styles.files}>
           {files.map(({ filePath, operations, touches }) => (
@@ -64,6 +70,6 @@ export function FilesTouched({ report }: FilesTouchedProps): React.JSX.Element {
           ))}
         </ul>
       )}
-    </section>
+    </InspectorSection>
   )
 }

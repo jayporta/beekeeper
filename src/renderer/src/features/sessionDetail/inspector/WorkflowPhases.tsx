@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { InspectorSection } from './InspectorSection'
 import styles from './WorkflowPhases.module.css'
 
 /** Props for {@link WorkflowPhases}. */
@@ -18,10 +19,10 @@ interface WorkflowPhasesProps {
 export function WorkflowPhases({ phases }: WorkflowPhasesProps): React.JSX.Element | null {
   const { t } = useTranslation('sessionDetail')
   if (phases.length === 0) return null
+  const heading = t('inspector.workflow.phasesHeading')
 
   return (
-    <section className={styles.section}>
-      <h3 className={styles.heading}>{t('inspector.workflow.phasesHeading')}</h3>
+    <InspectorSection heading={heading}>
       <ol className={styles.phases}>
         {phases.map((phase, index) => (
           // The list never reorders, and titles can repeat, so the index is the identity.
@@ -30,6 +31,6 @@ export function WorkflowPhases({ phases }: WorkflowPhasesProps): React.JSX.Eleme
           </li>
         ))}
       </ol>
-    </section>
+    </InspectorSection>
   )
 }
