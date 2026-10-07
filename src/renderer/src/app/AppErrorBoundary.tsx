@@ -1,5 +1,6 @@
 import { Component, createRef } from 'react'
 import { Translation } from 'react-i18next'
+import { MAIN_HEADING_ID } from '@renderer/components/mainHeading'
 import { StatusMessage } from '@renderer/components/StatusMessage'
 import styles from './AppErrorBoundary.module.css'
 
@@ -64,7 +65,7 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
 
     const { onReload = reloadWindow } = this.props
     return (
-      <main className={styles.main}>
+      <main className={styles.main} aria-labelledby={MAIN_HEADING_ID}>
         <Translation ns="common">
           {(t) => (
             <StatusMessage heading={t('error.heading')} role="alert">

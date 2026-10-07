@@ -58,6 +58,17 @@ describe('AppErrorBoundary', () => {
     expect(within(screen.getByRole('main')).getByRole('alert')).toBeTruthy()
   })
 
+  it('names the main landmark by the fallback heading', () => {
+    render(
+      <AppErrorBoundary>
+        <Thrower />
+      </AppErrorBoundary>
+    )
+
+    const heading = screen.getByRole('heading', { level: 1 })
+    expect(screen.getByRole('main', { name: heading.textContent })).toBeTruthy()
+  })
+
   it('focuses the Reload button when the error is caught', () => {
     render(
       <AppErrorBoundary>
