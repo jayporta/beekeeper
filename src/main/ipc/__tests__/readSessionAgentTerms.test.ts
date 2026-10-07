@@ -10,7 +10,8 @@ import { createScanScheduler } from '../scanScheduler'
 const SUBAGENT = {
   agentId: toAgentId('a1'),
   transcript: { path: '/x/s/subagents/agent-a1.jsonl', mtimeMs: 1, size: 1 },
-  metaPath: '/x/s/subagents/agent-a1.meta.json'
+  metaPath: '/x/s/subagents/agent-a1.meta.json',
+  workflowRunId: null
 }
 
 describe('readSessionAgentTerms', () => {
