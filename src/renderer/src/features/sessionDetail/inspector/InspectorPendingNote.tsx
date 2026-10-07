@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import styles from './AgentInspector.module.css'
+import { InspectorNote } from './InspectorNote'
 
 /** Props for {@link InspectorPendingNote}. */
 interface InspectorPendingNoteProps {
@@ -30,9 +30,5 @@ export function InspectorPendingNote({
     ? t(loading ? 'inspector.workflow.loading' : 'inspector.workflow.unreadable')
     : t(loading ? 'inspector.loading' : 'inspector.unreadable')
 
-  return (
-    <p className={styles.note} role={loading ? 'status' : undefined}>
-      {text}
-    </p>
-  )
+  return <InspectorNote role={loading ? 'status' : undefined}>{text}</InspectorNote>
 }

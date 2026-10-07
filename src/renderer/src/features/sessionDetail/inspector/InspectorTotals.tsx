@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next'
-import { EmptyCell } from '@renderer/features/sessions/EmptyCell'
 import { formatTokens } from '@renderer/features/sessions/formatTokens'
 import { InspectorCostNote } from './InspectorCostNote'
 import { InspectorMarker } from './InspectorMarker'
-import styles from './InspectorTotals.module.css'
+import { InspectorNote } from './InspectorNote'
+import { InspectorTotalsFrame } from './InspectorTotalsFrame'
 import type { ReportCost } from './reportCost'
 import type { Rollup } from './rollupBelow'
 
@@ -43,7 +43,6 @@ export function InspectorTotals({
 }: InspectorTotalsProps): React.JSX.Element {
   const { t } = useTranslation('sessionDetail')
   const { t: tSessions } = useTranslation('sessions')
-  const noTokensText = tSessions('emptyCell.tokensNotRecorded')
   const noteMayBeLow =
     subagentsUnreadable ||
     (rollup.below > 0 &&
@@ -53,12 +52,8 @@ export function InspectorTotals({
     : t('inspector.noneBelow')
 
   return (
-    <div className={styles.totals}>
-      <p className={styles.figure}>
-        {formatTokens(tokens, tSessions) ?? <EmptyCell spokenText={noTokensText} />}
-        {unreadableLines && <InspectorMarker />}
-      </p>
-      <p className={styles.note}>
+    <InspectorTotalsFrame tokens={tokens} partial={unreadableLines}>
+      <InspectorNote>
         {rollup.below === 0
           ? noAgentsBelow
           : t('inspector.rollup', {
@@ -66,8 +61,8 @@ export function InspectorTotals({
               count: rollup.below
             })}
         {noteMayBeLow && <InspectorMarker />}
-      </p>
+      </InspectorNote>
       <InspectorCostNote cost={cost} usageIncomplete={unreadableLines} />
-    </div>
+    </InspectorTotalsFrame>
   )
 }

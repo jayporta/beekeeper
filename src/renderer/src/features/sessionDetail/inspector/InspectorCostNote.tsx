@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { EmptyCell } from '@renderer/features/sessions/EmptyCell'
 import { formatUsd } from '@renderer/i18n/formatUsd'
 import { InspectorMarker } from './InspectorMarker'
-import styles from './InspectorTotals.module.css'
+import { InspectorNote } from './InspectorNote'
 import type { ReportCost } from './reportCost'
 
 /** Props for {@link InspectorCostNote}. */
@@ -30,9 +30,9 @@ export function InspectorCostNote({
   const noCostText = tSessions('emptyCell.costNotRecorded')
 
   return (
-    <p className={styles.note}>
+    <InspectorNote>
       {costText ?? <EmptyCell spokenText={noCostText} />}
       {(cost.partial || usageIncomplete) && <InspectorMarker />}
-    </p>
+    </InspectorNote>
   )
 }

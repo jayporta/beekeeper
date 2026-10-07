@@ -10,8 +10,3 @@
   font-weight: var(--font-weight-semibold);
   line-height: 1.1;
 }
-
-.note {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-}
