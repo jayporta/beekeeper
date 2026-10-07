@@ -1,4 +1,4 @@
-import styles from './Footnote.module.css'
+import { MutedText } from './MutedText'
 
 /** Props for {@link Footnote}. */
 interface FootnoteProps {
@@ -21,8 +21,8 @@ export function Footnote({ id, label, sentences }: FootnoteProps): React.JSX.Ele
   if (sentences.length === 0) return null
 
   return (
-    <p id={id} className={styles.footnote}>
+    <MutedText id={id} smaller>
       {label} {sentences.join(' ')}
-    </p>
+    </MutedText>
   )
 }
