@@ -59,12 +59,6 @@
   gap: var(--space-2);
 }
 
-.muted {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-  overflow-wrap: anywhere;
-}
-
 .name {
   font-family: var(--font-heading);
   font-size: var(--font-size-2xl);

@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { MutedText } from '@renderer/components/MutedText'
 import styles from './SidebarMayBeLowNote.module.css'
 
 /**
@@ -13,8 +14,8 @@ export function SidebarMayBeLowNote(): React.JSX.Element {
   const { t } = useTranslation('overview')
 
   return (
-    <p className={styles.note} aria-hidden="true">
+    <MutedText decorative className={styles.note}>
       {t('sidebar.mayBeLowNote', { marker: t('sidebar.mayBeLowMarker') })}
-    </p>
+    </MutedText>
   )
 }

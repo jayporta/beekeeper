@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { MutedText } from '@renderer/components/MutedText'
 import { PartialMarker } from '@renderer/components/PartialMarker'
 import { formatUsd } from '@renderer/i18n/formatUsd'
 import { FigurePlaceholder } from './FigurePlaceholder'
@@ -57,28 +58,28 @@ export function TotalsStrip({ totals, range }: TotalsStripProps): React.JSX.Elem
           <p className={styles.figure}>
             {figure(t('figure.compact', { value: totals.tokens }), partial.tokens)}
           </p>
-          <p className={styles.label}>{t('totals.tokens')}</p>
+          <MutedText>{t('totals.tokens')}</MutedText>
           {status === 'ready' && (
-            <p className={styles.label}>
+            <MutedText>
               {t('apiCost', { value: formatUsd(totals.usd, t) })}
               {partial.cost && <PartialMarker note={partialNote} />}
-            </p>
+            </MutedText>
           )}
         </li>
         <li className={styles.cell}>
           <p className={styles.figure}>
             {figure(t('figure.integer', { value: totals.sessions }), partial.sessions)}
           </p>
-          <p className={styles.label}>{t('totals.sessions')}</p>
+          <MutedText>{t('totals.sessions')}</MutedText>
         </li>
         <li className={styles.cell}>
           <p className={styles.figure}>
             {figure(t('figure.integer', { value: totals.agents }), partial.agents)}
           </p>
-          <p className={styles.label}>{t('totals.agents')}</p>
+          <MutedText>{t('totals.agents')}</MutedText>
         </li>
       </ul>
-      {refreshing && <p className={styles.updating}>{t('updating')}</p>}
+      {refreshing && <MutedText>{t('updating')}</MutedText>}
     </div>
   )
 }

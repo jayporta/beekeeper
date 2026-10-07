@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { CardOpenButton } from '@renderer/components/CardOpenButton'
+import { MutedText } from '@renderer/components/MutedText'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { formatLastActive } from './formatLastActive'
 import { lastActiveMs } from './lastActiveMs'
@@ -57,12 +58,12 @@ export function SessionCell({
           {label.text}
         </CardOpenButton>
       </h2>
-      {label.idHint !== null && <p className={styles.muted}>{label.idHint}</p>}
-      <p className={styles.muted}>
+      {label.idHint !== null && <MutedText wrapAnywhere>{label.idHint}</MutedText>}
+      <MutedText wrapAnywhere>
         <SeparatedText parts={meta} />
-      </p>
+      </MutedText>
       {matchedAgent !== null && (
-        <p className={styles.muted}>{t('matchingSubagent', { agent: matchedAgent })}</p>
+        <MutedText wrapAnywhere>{t('matchingSubagent', { agent: matchedAgent })}</MutedText>
       )}
     </div>
   )
