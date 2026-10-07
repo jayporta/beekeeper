@@ -4,14 +4,6 @@
   gap: var(--space-1);
 }
 
-.titleRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
 .heading {
   display: flex;
   flex-direction: column;

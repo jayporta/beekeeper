@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { CapsText } from '@renderer/components/CapsText'
 import { MAIN_HEADING_ID } from '@renderer/components/mainHeading'
 import { SegmentedControl } from '@renderer/components/SegmentedControl'
+import { TitleRow } from '@renderer/components/TitleRow'
 import styles from './OverviewHeader.module.css'
 import { useTotalsWindowStore } from './state/useTotalsWindowStore'
 import type { TotalsWindowDto } from '../../../../shared/ipc/projectTotalsDto'
@@ -23,7 +24,7 @@ export function OverviewHeader(): React.JSX.Element {
   const setWindow = useTotalsWindowStore((state) => state.setWindow)
 
   return (
-    <header className={styles.header}>
+    <TitleRow as="header">
       <div className={styles.heading}>
         <CapsText accent>{t('kicker', { range: t(`range.${range}`) })}</CapsText>
         <h1 id={MAIN_HEADING_ID} className={styles.title}>
@@ -36,6 +37,6 @@ export function OverviewHeader(): React.JSX.Element {
         value={range}
         onChange={setWindow}
       />
-    </header>
+    </TitleRow>
   )
 }
