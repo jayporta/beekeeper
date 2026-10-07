@@ -1,35 +1,12 @@
-import { mkdir, writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { buildAssistantRecord, buildJsonlText } from '../../../core/transcript/testFixtures'
 import { getSessionHandler } from '../getSessionHandler'
 import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
+import { createWorkflowRunFixtures } from '../testWorkflowRuns'
 
 const ctx = registerIpcTestTree()
 const request = { projectDirName: TEST_PROJECT, sessionId: TEST_SESSION_ID }
 
-/** Writes a workflow agent's transcript into a run folder of the test session. */
-async function addWorkflowAgent(runId: string, agentId: string): Promise<void> {
-  const runDir = join(
-    dirname(ctx.tree.sessionPath),
-    TEST_SESSION_ID,
-    'subagents',
-    'workflows',
-    runId
-  )
-  await mkdir(runDir, { recursive: true })
-  await writeFile(
-    join(runDir, `agent-${agentId}.jsonl`),
-    buildJsonlText([buildAssistantRecord({ messageId: `msg_${agentId}` })])
-  )
-}
-
-/** Writes a workflow run's record file in the test session. */
-async function writeRunRecord(runId: string, record: unknown): Promise<void> {
-  const workflowsDir = join(dirname(ctx.tree.sessionPath), TEST_SESSION_ID, 'workflows')
-  await mkdir(workflowsDir, { recursive: true })
-  await writeFile(join(workflowsDir, `${runId}.json`), JSON.stringify(record))
-}
+const { addWorkflowAgent, writeRunRecord } = createWorkflowRunFixtures(ctx)
 
 describe('getSessionHandler workflow runs', () => {
   it('sends no runs for a session without workflow agents', async () => {

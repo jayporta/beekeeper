@@ -3,6 +3,7 @@ import { err, ok } from '../../../core/shared/result'
 import { toProjectDirName, toSessionId } from '../../../core/transcript/ids'
 import type { SessionSummary } from '../../../core/transcript/summary/sessionSummary'
 import { NO_AGENT_TERMS } from '../../../core/session/agentSearchTerms'
+import { NO_WORKFLOW_RUN_NAMES } from '../readSessionWorkflowRunNames'
 import { buildSessionSummary } from '../../../core/transcript/summary/testSessionSummary'
 import { toAgentId } from '../../../core/transcript/ids'
 import type { SubagentEntry } from '../../../core/transcript/discoverSubagents'
@@ -28,7 +29,8 @@ function scanned(summary: ListableSession['summary']): ListableSession {
       subagents: ok([])
     },
     summary,
-    agentTerms: NO_AGENT_TERMS
+    agentTerms: NO_AGENT_TERMS,
+    workflowRunNames: NO_WORKFLOW_RUN_NAMES
   }
 }
 
@@ -152,6 +154,26 @@ describe('mapSessionListItem', () => {
     const item = mapSessionListItem(failed, null)
 
     expect(item.agentTerms).toEqual([])
+  })
+
+  it('copies the workflow run names', () => {
+    const withNames: ListableSession = {
+      ...scanned(ok(SUMMARY)),
+      workflowRunNames: ['scan', 'review']
+    }
+
+    expect(mapSessionListItem(withNames, null).workflowRunNames).toEqual(['scan', 'review'])
+  })
+
+  it('sends no workflow run names for a session whose transcript could not be read', () => {
+    const base = scanned(ok(SUMMARY))
+    const failed: ListableSession = {
+      ...base,
+      entry: { ...base.entry, transcript: err({ reason: 'unreadable', code: 'ENOENT' }) },
+      workflowRunNames: ['scan']
+    }
+
+    expect(mapSessionListItem(failed, null).workflowRunNames).toEqual([])
   })
 
   it('reports an unreadable summary as an error code', () => {

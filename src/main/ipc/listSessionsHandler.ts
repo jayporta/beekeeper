@@ -8,6 +8,7 @@ import type { IpcDeps } from './ipcDeps'
 import { errResult, okResult } from './ipcResults'
 import { mapSessionListItem, type ScannedSession } from './mapSessionListItem'
 import { readSessionAgentTerms } from './readSessionAgentTerms'
+import { readSessionWorkflowRunNames } from './readSessionWorkflowRunNames'
 import { sessionRefKey } from './sessionRefKey'
 
 function teamKeyOf(session: ScannedSession): string {
@@ -38,19 +39,22 @@ function isListedFor(projectDirName: string, { session, team }: ListedSession): 
  * folder grouped as a teammate under one of the project's leads; that
  * teammate is also listed in its own folder, under the same lead. Summary
  * reads are shared per transcript state (path, mtime, size) and capped by the
- * summaries scheduler. The search terms of subagents are read, through the
- * agent terms cache and under the same scheduler, only for the sessions the
- * list holds. See {@link groupProjectFamily} for how an unreadable
- * sibling folder is treated.
+ * summaries scheduler. The search terms of subagents and the names of
+ * workflow runs are read, through their caches and under the same scheduler,
+ * only for the sessions the list holds. See {@link groupProjectFamily} for
+ * how an unreadable sibling folder is treated.
  *
- * @param deps - The projects root, the summary and agent terms caches, and the
- * summaries scheduler.
+ * @param deps - The projects root, the summary, agent terms and workflow run
+ * names caches, and the summaries scheduler.
  * @param payload - The renderer's payload, validated here.
  * @returns The sessions, `invalid-request` for a bad payload, or
  * `not-found` for an unknown project.
  */
 export async function listSessionsHandler(
-  deps: Pick<IpcDeps, 'projectsRoot' | 'summaryCache' | 'summaries' | 'agentTerms'>,
+  deps: Pick<
+    IpcDeps,
+    'projectsRoot' | 'summaryCache' | 'summaries' | 'agentTerms' | 'workflowRunNames'
+  >,
   payload: unknown
 ): Promise<IpcResult<readonly SessionListItemDto[]>> {
   const request = listSessionsRequestSchema.safeParse(payload)
@@ -69,12 +73,13 @@ export async function listSessionsHandler(
   const listed = items.filter((item) => isListedFor(project.dirName, item))
   return okResult(
     await Promise.all(
-      listed.map(async ({ session, team }) =>
-        mapSessionListItem(
-          { ...session, agentTerms: await readSessionAgentTerms(session.entry, deps) },
-          team
-        )
-      )
+      listed.map(async ({ session, team }) => {
+        const [agentTerms, workflowRunNames] = await Promise.all([
+          readSessionAgentTerms(session.entry, deps),
+          readSessionWorkflowRunNames(session.entry, deps)
+        ])
+        return mapSessionListItem({ ...session, agentTerms, workflowRunNames }, team)
+      })
     )
   )
 }
