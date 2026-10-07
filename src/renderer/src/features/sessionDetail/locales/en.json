@@ -10,6 +10,7 @@
         "subagent": "subagent",
         "workflow": "workflow"
       },
+      "workflowWithId": "{{name}} ({{runId}})",
       "phases_one": "{{count, integer}} phase",
       "phases_other": "{{count, integer}} phases",
       "agents_one": "{{count, integer}} agent",
@@ -91,7 +92,9 @@
     "workflow": {
       "agents_one": "{{count, integer}} agent",
       "agents_other": "{{count, integer}} agents",
-      "phasesHeading": "Phases"
+      "phasesHeading": "Phases",
+      "loading": "Loading this workflow",
+      "unreadable": "beekeeper couldn't read this workflow's agents."
     },
     "messages_one": "{{count, integer}} message",
     "messages_other": "{{count, integer}} messages",

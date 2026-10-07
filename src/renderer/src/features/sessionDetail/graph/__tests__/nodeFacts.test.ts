@@ -67,13 +67,13 @@ describe('nodeDetail a workflow run', () => {
     expect(nodeDetail(node, testGraphT)).toEqual(['workflow'])
   })
 
-  it('adds the run id when another run has the same name', () => {
+  it('is the run id instead of the phase count when another run has the same name, so the id fits', () => {
     const node = testGraphNode('run', {
       kind: 'workflow',
       workflow: runWorkflow({ duplicateName: true })
     })
 
-    expect(nodeDetail(node, testGraphT)).toEqual(['workflow', '3 phases', 'wf_b'])
+    expect(nodeDetail(node, testGraphT)).toEqual(['workflow', 'wf_b'])
   })
 })
 

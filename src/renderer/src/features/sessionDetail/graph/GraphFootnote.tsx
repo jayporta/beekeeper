@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import styles from './GraphFootnote.module.css'
-import { GRAPH_FOOTNOTE_ID, GRAPH_NOTES_ID } from './graphFootnoteId'
+import { GRAPH_FOOTNOTE_ID, GRAPH_NOTES_ID, GRAPH_WORKFLOW_FOOTNOTE_ID } from './graphFootnoteId'
 
 /** Props for {@link GraphFootnote}. */
 interface GraphFootnoteProps {
@@ -37,7 +37,9 @@ export function GraphFootnote({
     <div id={GRAPH_NOTES_ID} className={styles.footnotes}>
       <p>{t('graph.footnote.keyboard')}</p>
       {partial && <p id={GRAPH_FOOTNOTE_ID}>{t('graph.footnote.partial')}</p>}
-      {partialWorkflow && <p>{t('graph.footnote.partialWorkflow')}</p>}
+      {partialWorkflow && (
+        <p id={GRAPH_WORKFLOW_FOOTNOTE_ID}>{t('graph.footnote.partialWorkflow')}</p>
+      )}
       {missingTeammates > 0 && (
         <p>{t('graph.footnote.missingTeammates', { count: missingTeammates })}</p>
       )}

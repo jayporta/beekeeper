@@ -63,4 +63,21 @@ describe('inspectorKicker', () => {
       'Subagent · in workflow scan'
     )
   })
+
+  it('gives the run id with the name of a run whose name another run shares', () => {
+    const workflow: NodeWorkflow = {
+      runId: 'wf_a',
+      name: 'scan',
+      completed: true,
+      duplicateName: true,
+      phases: []
+    }
+
+    expect(kicker({ kind: 'subagent', agentType: 'Explore', workflow })).toBe(
+      'Subagent · in workflow scan (wf_a) · Explore'
+    )
+    expect(kicker({ kind: 'subagent', agentType: null, workflow })).toBe(
+      'Subagent · in workflow scan (wf_a)'
+    )
+  })
 })

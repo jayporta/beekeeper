@@ -7,7 +7,6 @@ import styles from './AgentInspector.module.css'
 import { useFillLayout } from '../useFillLayout'
 import { InspectedAgent } from './InspectedAgent'
 import { InspectedWorkflow } from './InspectedWorkflow'
-import { inspectionTarget } from './inspectionTarget'
 
 /** Props for {@link AgentInspector}. */
 interface AgentInspectorProps {
@@ -34,7 +33,6 @@ export function AgentInspector({ node, sessionRef }: AgentInspectorProps): React
   const { t } = useTranslation('sessionDetail')
   const fill = useFillLayout()
   const { selection } = node
-  const target = selection?.kind === 'workflow' ? null : inspectionTarget(selection, sessionRef)
   const region = useRef<HTMLDivElement>(null)
   // The region persists across selections, so the new agent would open at the old one's offset.
   useLayoutEffect(() => {
@@ -56,7 +54,7 @@ export function AgentInspector({ node, sessionRef }: AgentInspectorProps): React
           ownerRef={selection.ownerRef}
         />
       ) : (
-        target && <InspectedAgent key={sessionKey(target.ownerRef)} node={node} target={target} />
+        <InspectedAgent key={node.key} node={node} selection={selection} sessionRef={sessionRef} />
       )}
     </div>
   )

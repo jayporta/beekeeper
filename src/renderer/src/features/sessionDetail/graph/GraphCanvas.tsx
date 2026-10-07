@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { GraphEdges } from './GraphEdges'
 import styles from './GraphCanvas.module.css'
 import { GraphFootnote } from './GraphFootnote'
@@ -34,7 +35,8 @@ interface GraphCanvasProps {
 export function GraphCanvas({ graph }: GraphCanvasProps): React.JSX.Element {
   const { root, layout, loading, expansions, selectedKey } = graph
 
-  const parents = useMemo(() => parentNames(layout), [layout])
+  const { t } = useTranslation(['sessionDetail', 'sessions'])
+  const parents = useMemo(() => parentNames(layout, t), [layout, t])
   const selectedName = layout.nodes.find(({ node }) => node.key === selectedKey)?.node.name ?? ''
   const announcement = useGraphAnnouncement({
     root,

@@ -195,13 +195,13 @@ describe('InspectedWorkflow without its session’s detail', () => {
   it('says it is loading, politely, while the detail loads', async () => {
     renderRun(() => new Promise(() => undefined))
 
-    expect(await screen.findByRole('status')).toHaveProperty('textContent', 'Loading this agent')
+    expect(await screen.findByRole('status')).toHaveProperty('textContent', 'Loading this workflow')
     expect(screen.getByRole('heading', { level: 2, name: 'scan' })).toBeTruthy()
   })
 
   it('says it cannot read the run when the detail failed to load', async () => {
     renderRun(() => Promise.resolve({ ok: false, error: { code: 'unreadable' } }))
 
-    expect(await screen.findByText("beekeeper couldn't read this agent's transcript.")).toBeTruthy()
+    expect(await screen.findByText("beekeeper couldn't read this workflow's agents.")).toBeTruthy()
   })
 })

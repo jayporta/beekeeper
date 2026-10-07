@@ -2,8 +2,16 @@ import type { AgentReportDto } from '../../../../../shared/ipc/agentDto'
 import type { SessionDetailDto } from '../../../../../shared/ipc/sessionDetailDto'
 import { reportTokens } from '../graph/reportFacts'
 
-/** The readable reports of the given agents in the order given, skipping one that is unreadable or that the detail doesn't hold. */
-function readableReports(
+/**
+ * Reads the reports of a run's agents out of the session's detail, in the order
+ * given, skipping an agent whose report is unreadable or that the detail
+ * doesn't hold.
+ *
+ * @param detail - The session's detail, which holds the agents' reports.
+ * @param agentIds - The ids of the run's agents.
+ * @returns The readable reports.
+ */
+export function readableReports(
   detail: SessionDetailDto,
   agentIds: readonly string[]
 ): readonly AgentReportDto[] {
@@ -17,16 +25,13 @@ function readableReports(
 
 /**
  * Adds up the reports of a workflow run's agents into one, so the inspector can
- * read a run's tokens by class, cost, messages and span like an agent's. An
- * agent whose report is unreadable, or that the detail doesn't hold, adds
- * nothing. A run shows no files, so the report holds none.
+ * read a run's tokens by class, cost, messages and span like an agent's. A run
+ * shows no files, so the report holds none.
  *
- * @param detail - The session's detail, which holds the agents' reports.
- * @param agentIds - The ids of the run's agents.
+ * @param reports - The run's readable agent reports, from {@link readableReports}.
  * @returns The combined report: every token group, the summed message count and skipped lines, and a span from the earliest start to the latest end.
  */
-export function runReport(detail: SessionDetailDto, agentIds: readonly string[]): AgentReportDto {
-  const reports = readableReports(detail, agentIds)
+export function runReport(reports: readonly AgentReportDto[]): AgentReportDto {
   const spans = reports.flatMap(({ activity }) => (activity === null ? [] : [activity]))
   return {
     tokenGroups: reports.flatMap(({ tokenGroups }) => tokenGroups),
@@ -49,14 +54,13 @@ export function runReport(detail: SessionDetailDto, agentIds: readonly string[])
  * missing, skipped transcript lines, or recorded no tokens. An incomplete file
  * list doesn't count, since a run shows no files.
  *
- * @param detail - The session's detail, which holds the agents' reports.
- * @param agentIds - The ids of the run's agents.
+ * @param reports - The run's readable agent reports, from {@link readableReports}.
+ * @param agentCount - How many agents the run has, readable or not.
  * @returns `true` when the run's tokens may be low.
  */
-export function runTokensPartial(detail: SessionDetailDto, agentIds: readonly string[]): boolean {
-  const reports = readableReports(detail, agentIds)
+export function runTokensPartial(reports: readonly AgentReportDto[], agentCount: number): boolean {
   return (
-    reports.length < agentIds.length ||
+    reports.length < agentCount ||
     reports.some((report) => report.skippedLines > 0 || reportTokens(report) === null)
   )
 }

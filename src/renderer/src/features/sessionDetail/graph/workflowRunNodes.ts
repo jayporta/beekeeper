@@ -3,28 +3,29 @@ import type { WorkflowRunDto } from '../../../../../shared/ipc/workflowRunDto'
 import { sessionKey } from '@renderer/features/sessions/sessionKey'
 import type { AgentGraphNode, NodeWorkflow } from './agentGraphNode'
 
+/** One run's facts. A run's name is its record's name, or its id when the record has none or is missing. */
+function runFacts({ runId, record }: WorkflowRunDto, duplicateName: boolean): NodeWorkflow {
+  return {
+    runId,
+    name: record?.name ?? runId,
+    completed: record?.completed ?? false,
+    duplicateName,
+    phases: record?.phases ?? []
+  }
+}
+
 /**
- * Reads the facts of a session's workflow runs. A run's name is its record's
- * name, or its id when the record has none or is missing.
+ * Reads the facts of a session's workflow runs, and which of them share a name.
  *
  * @param runs - The session's runs from its detail.
  * @returns Each run's facts by run id.
  */
 export function nodeWorkflows(runs: readonly WorkflowRunDto[]): ReadonlyMap<string, NodeWorkflow> {
-  const named = runs.map(({ runId, record }) => ({ runId, record, name: record?.name ?? runId }))
+  const facts = runs.map((run) => runFacts(run, false))
   const counts = new Map<string, number>()
-  for (const { name } of named) counts.set(name, (counts.get(name) ?? 0) + 1)
+  for (const { name } of facts) counts.set(name, (counts.get(name) ?? 0) + 1)
   return new Map(
-    named.map(({ runId, record, name }) => [
-      runId,
-      {
-        runId,
-        name,
-        completed: record?.completed ?? false,
-        duplicateName: (counts.get(name) ?? 0) > 1,
-        phases: record?.phases ?? []
-      }
-    ])
+    facts.map((run) => [run.runId, { ...run, duplicateName: (counts.get(run.name) ?? 0) > 1 }])
   )
 }
 
@@ -40,15 +41,7 @@ export function workflowOf(
   workflows: ReadonlyMap<string, NodeWorkflow>,
   runId: string
 ): NodeWorkflow {
-  return (
-    workflows.get(runId) ?? {
-      runId,
-      name: runId,
-      completed: false,
-      duplicateName: false,
-      phases: []
-    }
-  )
+  return workflows.get(runId) ?? runFacts({ runId, record: null }, false)
 }
 
 /** Input for {@link workflowRunNodes}. */

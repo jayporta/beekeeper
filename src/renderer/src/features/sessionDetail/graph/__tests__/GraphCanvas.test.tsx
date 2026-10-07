@@ -175,6 +175,45 @@ describe('GraphCanvas partial data', () => {
     expect(screen.getByText(/On a workflow, ¹ means some of its agents/)).toBeTruthy()
   })
 
+  it('points a partial run at the workflow note, and the agents in it at the agent footnote', () => {
+    const detail = testDetail({
+      children: [
+        testNode('w1', { workflowRunId: 'wf_a' }),
+        testNode('w2', { workflowRunId: 'wf_a' })
+      ],
+      reports: { w1: 'error' },
+      workflowRuns: [{ runId: 'wf_a', record: { name: 'scan', completed: true, phases: [] } }]
+    })
+    renderGraphWith({ detail, row: null })
+
+    const workflowNote = screen.getByText(/On a workflow, ¹ means some of its agents/)
+    const agentNote = screen.getByText(/Partial: part of this agent's data couldn't be read/)
+
+    expect(workflowNote.id).not.toBe('')
+    expect(workflowNote.id).not.toBe(agentNote.id)
+    expect(node(/^scan, workflow/).getAttribute('aria-describedby')).toBe(workflowNote.id)
+    expect(node(/^Explore, subagent of scan.*partial data/).getAttribute('aria-describedby')).toBe(
+      agentNote.id
+    )
+  })
+
+  it('names the run with its id for the agents in a run whose name another run shares', () => {
+    const detail = testDetail({
+      children: [
+        testNode('w1', { workflowRunId: 'wf_a' }),
+        testNode('w2', { workflowRunId: 'wf_b' })
+      ],
+      workflowRuns: [
+        { runId: 'wf_a', record: { name: 'scan', completed: true, phases: [] } },
+        { runId: 'wf_b', record: { name: 'scan', completed: true, phases: [] } }
+      ]
+    })
+    renderGraphWith({ detail, row: null })
+
+    expect(screen.getAllByRole('button', { name: /subagent of scan \(wf_a\)/ })).toHaveLength(1)
+    expect(screen.getAllByRole('button', { name: /subagent of scan \(wf_b\)/ })).toHaveLength(1)
+  })
+
   it('leaves the workflow note out when only an agent outside any run is partial', () => {
     renderGraphWith({ detail: partialDetail, row: null })
 

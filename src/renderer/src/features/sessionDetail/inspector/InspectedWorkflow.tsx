@@ -1,15 +1,14 @@
-import { useTranslation } from 'react-i18next'
 import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
 import type { AgentGraphNode } from '../graph/agentGraphNode'
 import { reportTokens } from '../graph/reportFacts'
 import { useSessionDetail } from '../useSessionDetail'
-import styles from './AgentInspector.module.css'
 import { InspectorFlags } from './InspectorFlags'
 import { InspectorFootnote } from './InspectorFootnote'
 import { InspectorHeader } from './InspectorHeader'
+import { InspectorPendingNote } from './InspectorPendingNote'
 import type { InspectorReason } from './inspectorReasons'
 import { reportCost } from './reportCost'
-import { runReport, runTokensPartial } from './runReport'
+import { readableReports, runReport, runTokensPartial } from './runReport'
 import { TokenRows } from './TokenRows'
 import { WorkflowPhases } from './WorkflowPhases'
 import { WorkflowTotals } from './WorkflowTotals'
@@ -34,7 +33,6 @@ interface InspectedWorkflowProps {
  * <InspectedWorkflow key={sessionKey(ownerRef)} node={node} ownerRef={ownerRef} />
  */
 export function InspectedWorkflow({ node, ownerRef }: InspectedWorkflowProps): React.JSX.Element {
-  const { t } = useTranslation('sessionDetail')
   // The view and the graph keep this entry fresh; a click must not re-parse it.
   const { data, isError } = useSessionDetail(ownerRef, { refetchOnMount: false })
 
@@ -42,13 +40,7 @@ export function InspectedWorkflow({ node, ownerRef }: InspectedWorkflowProps): R
     return (
       <>
         <InspectorHeader node={node} report={null} />
-        {isError ? (
-          <p className={styles.note}>{t('inspector.unreadable')}</p>
-        ) : (
-          <p className={styles.note} role="status">
-            {t('inspector.loading')}
-          </p>
-        )}
+        <InspectorPendingNote loading={!isError} workflow />
       </>
     )
   }
@@ -56,10 +48,11 @@ export function InspectedWorkflow({ node, ownerRef }: InspectedWorkflowProps): R
   const agentIds = node.children.flatMap(({ selection }) =>
     selection?.kind === 'subagent' ? [selection.agentId] : []
   )
-  const report = runReport(data, agentIds)
+  const reports = readableReports(data, agentIds)
+  const report = runReport(reports)
   const tokens = reportTokens(report)
   const cost = reportCost(report)
-  const partial = runTokensPartial(data, agentIds)
+  const partial = runTokensPartial(reports, agentIds.length)
   const reasons = new Set<InspectorReason>()
   if (report.skippedLines > 0) reasons.add('unreadableLines')
   if (cost.partial) reasons.add('unpricedTokens')
