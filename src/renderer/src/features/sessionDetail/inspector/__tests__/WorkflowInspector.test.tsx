@@ -11,7 +11,14 @@ import { SCENE_SESSION } from '../../graph/testGraphScene'
 import { testGraphNode } from '../../graph/testGraphNode'
 import { InspectedWorkflow } from '../InspectedWorkflow'
 import { testDetail, testMeta, testNode, testReport } from '../../testSessionDetail'
-import { SCENE_START, inspector, pricedGroup, renderInspectorScene } from '../testInspectorScene'
+import {
+  SCENE_START,
+  factsText,
+  inspector,
+  pricedGroup,
+  renderInspectorScene,
+  startedFact
+} from '../testInspectorScene'
 
 afterEach(() => {
   useNavigationStore.getState().reset()
@@ -33,13 +40,17 @@ const reports = {
   w1: testReport({
     tokenGroups: [pricedGroup({ output: 10 })],
     messageCount: 3,
-    activity: { earliestMs: SCENE_START, latestMs: SCENE_START + 10 * MIN },
+    activity: { earliestMs: SCENE_START, latestMs: SCENE_START + 10 * MIN, activeMs: 10 * MIN },
     fileTouches: [{ filePath: '/repo/a.ts', operation: 'edit', source: 'edit-write' }]
   }),
   w2: testReport({
     tokenGroups: [pricedGroup({ input: 20 })],
     messageCount: 2,
-    activity: { earliestMs: SCENE_START + 5 * MIN, latestMs: SCENE_START + 30 * MIN }
+    activity: {
+      earliestMs: SCENE_START + 5 * MIN,
+      latestMs: SCENE_START + 30 * MIN,
+      activeMs: 15 * MIN
+    }
   })
 }
 
@@ -67,11 +78,11 @@ describe('AgentInspector for a workflow run', () => {
     expect(inspector().getByRole('heading', { level: 2, name: 'scan' })).toBeTruthy()
   })
 
-  it('shows the run id, how long it ran and how many messages it sent', async () => {
+  it('shows the run id, when it started, how long its agents were active and how many messages it sent', async () => {
     await openRun()
 
-    expect(inspector().getByText(/5 messages/).textContent).toMatch(
-      /wf_a\s*·\s*30m\s*·\s*5 messages/
+    expect(factsText(/5 messages/)).toBe(
+      `wf_a · ${startedFact(SCENE_START)} · 25m active · 5 messages`
     )
   })
 

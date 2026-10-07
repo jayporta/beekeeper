@@ -58,17 +58,41 @@ describe('runReport', () => {
 
   it('spans from the earliest start to the latest end', () => {
     const detail = detailOf({
-      w1: testReport({ activity: { earliestMs: 100, latestMs: 200 } }),
-      w2: testReport({ activity: { earliestMs: 50, latestMs: 150 } })
+      w1: testReport({ activity: { earliestMs: 100, latestMs: 200, activeMs: 100 } }),
+      w2: testReport({ activity: { earliestMs: 50, latestMs: 150, activeMs: 100 } })
     })
 
-    expect(reportOf(detail, ['w1', 'w2']).activity).toEqual({ earliestMs: 50, latestMs: 200 })
+    expect(reportOf(detail, ['w1', 'w2']).activity).toMatchObject({ earliestMs: 50, latestMs: 200 })
+  })
+
+  it('sums its agents active time when that is under the span', () => {
+    const detail = detailOf({
+      w1: testReport({ activity: { earliestMs: 0, latestMs: 1000, activeMs: 100 } }),
+      w2: testReport({ activity: { earliestMs: 500, latestMs: 2000, activeMs: 200 } })
+    })
+
+    expect(reportOf(detail, ['w1', 'w2']).activity?.activeMs).toBe(300)
+  })
+
+  it('caps its active time at the span when agents ran in parallel', () => {
+    const detail = detailOf({
+      w1: testReport({ activity: { earliestMs: 0, latestMs: 1000, activeMs: 1000 } }),
+      w2: testReport({ activity: { earliestMs: 0, latestMs: 1000, activeMs: 1000 } })
+    })
+
+    expect(reportOf(detail, ['w1', 'w2']).activity?.activeMs).toBe(1000)
   })
 
   it('ignores an agent with no activity span when working out the span', () => {
-    const detail = detailOf({ w1: testReport({ activity: { earliestMs: 100, latestMs: 200 } }) })
+    const detail = detailOf({
+      w1: testReport({ activity: { earliestMs: 100, latestMs: 200, activeMs: 100 } })
+    })
 
-    expect(reportOf(detail, ['w1', 'w2']).activity).toEqual({ earliestMs: 100, latestMs: 200 })
+    expect(reportOf(detail, ['w1', 'w2']).activity).toEqual({
+      earliestMs: 100,
+      latestMs: 200,
+      activeMs: 100
+    })
   })
 
   it('has no span when no agent has one', () => {
