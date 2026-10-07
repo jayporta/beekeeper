@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { toAgentId } from '../../transcript/ids'
 import { buildSubagentMeta } from '../../transcript/testFixtures'
+import { parseWorkflowRunId } from '../../transcript/workflowRunId'
 import { resolveAgentHierarchy } from '../agentHierarchy'
 import { buildAgentTree, type AgentTreeInput, type AgentTreeNode } from '../agentTree'
 import { buildTreeInput } from '../testAgentTreeFixtures'
@@ -105,7 +106,8 @@ describe('buildAgentTree', () => {
   it('parents a subagent with an unreadable meta under the lead, carrying the error status', () => {
     const errorInput: AgentTreeInput = {
       agentId: toAgentId('a'),
-      metaStatus: { status: 'error', reason: 'invalid-shape' }
+      metaStatus: { status: 'error', reason: 'invalid-shape' },
+      workflowRunId: null
     }
 
     const tree = buildTestTree([errorInput])
@@ -263,6 +265,18 @@ describe('buildAgentTree', () => {
     })
     expect(tree.children[0]?.children.map((c) => c.identity)).toEqual([
       { kind: 'subagent', agentId: 'child' }
+    ])
+  })
+
+  it('gives the lead and a top-level agent no run, and a workflow agent its run', () => {
+    const inRun = { ...buildTreeInput('b', null), workflowRunId: parseWorkflowRunId('wf_a') }
+
+    const tree = buildTestTree([buildTreeInput('a', null), inRun])
+
+    expect([tree.workflowRunId, ...tree.children.map((c) => c.workflowRunId)]).toEqual([
+      null,
+      null,
+      'wf_a'
     ])
   })
 })

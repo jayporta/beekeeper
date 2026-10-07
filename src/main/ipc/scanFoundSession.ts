@@ -21,7 +21,8 @@ function buildScanKey(options: ScanFoundSessionOptions): string {
         entry.agentId,
         entry.transcript.mtimeMs,
         entry.transcript.size,
-        entry.metaPath !== null
+        entry.metaPath !== null,
+        entry.workflowRunId
       ])
     : []
   return JSON.stringify([

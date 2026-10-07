@@ -4,6 +4,9 @@ import { toProjectDirName, toSessionId } from '../../../core/transcript/ids'
 import type { SessionSummary } from '../../../core/transcript/summary/sessionSummary'
 import { NO_AGENT_TERMS } from '../../../core/session/agentSearchTerms'
 import { buildSessionSummary } from '../../../core/transcript/summary/testSessionSummary'
+import { toAgentId } from '../../../core/transcript/ids'
+import type { SubagentEntry } from '../../../core/transcript/discoverSubagents'
+import { parseWorkflowRunId } from '../../../core/transcript/workflowRunId'
 import { mapSessionListItem, type ListableSession } from '../mapSessionListItem'
 
 const SUMMARY: SessionSummary = buildSessionSummary({
@@ -26,6 +29,22 @@ function scanned(summary: ListableSession['summary']): ListableSession {
     summary,
     agentTerms: NO_AGENT_TERMS
   }
+}
+
+/** A subagent entry in the given run, or directly in `subagents/` for `null`. */
+function subagent(agentId: string, runId: string | null): SubagentEntry {
+  return {
+    agentId: toAgentId(agentId),
+    transcript: { path: `/x/agent-${agentId}.jsonl`, mtimeMs: 1, size: 1 },
+    metaPath: null,
+    workflowRunId: runId === null ? null : parseWorkflowRunId(runId)
+  }
+}
+
+/** A readable session whose subagents are the given entries. */
+function scannedWith(entries: readonly SubagentEntry[]): ListableSession {
+  const base = scanned(ok(SUMMARY))
+  return { ...base, entry: { ...base.entry, subagents: ok(entries) } }
 }
 
 describe('mapSessionListItem', () => {
@@ -175,6 +194,56 @@ describe('mapSessionListItem', () => {
       expect(spy).toHaveBeenCalledExactlyOnceWith(
         'Beekeeper hit an internal error handling an IPC call (EIO).'
       )
+    })
+  })
+
+  describe('workflows', () => {
+    it('counts the distinct runs and the agents inside them, apart from top-level agents', () => {
+      const item = mapSessionListItem(
+        scannedWith([
+          subagent('top', null),
+          subagent('a', 'wf_1'),
+          subagent('b', 'wf_1'),
+          subagent('c', 'wf_2')
+        ]),
+        null
+      )
+
+      expect(item.workflows).toEqual({ runs: 2, agents: 3 })
+      expect(item.subagentCount).toBe(4)
+    })
+
+    it('counts no runs for a session with only top-level agents', () => {
+      const item = mapSessionListItem(scannedWith([subagent('top', null)]), null)
+
+      expect(item.workflows).toEqual({ runs: 0, agents: 0 })
+    })
+
+    it('counts no runs for a session with no subagents', () => {
+      expect(mapSessionListItem(scanned(ok(SUMMARY)), null).workflows).toEqual({
+        runs: 0,
+        agents: 0
+      })
+    })
+
+    it('is null when the subagents folder could not be listed', () => {
+      const base = scanned(ok(SUMMARY))
+      const failed: ListableSession = {
+        ...base,
+        entry: { ...base.entry, subagents: err({ reason: 'unreadable', code: 'EACCES' }) }
+      }
+
+      expect(mapSessionListItem(failed, null).workflows).toBeNull()
+    })
+
+    it('still counts runs when the transcript could not be read', () => {
+      const base = scannedWith([subagent('a', 'wf_1')])
+      const failed: ListableSession = {
+        ...base,
+        entry: { ...base.entry, transcript: err({ reason: 'unreadable', code: 'ENOENT' }) }
+      }
+
+      expect(mapSessionListItem(failed, null).workflows).toEqual({ runs: 1, agents: 1 })
     })
   })
 })

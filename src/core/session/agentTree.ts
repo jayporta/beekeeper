@@ -1,5 +1,6 @@
 import { compareCodeUnits } from '../shared/compareCodeUnits'
 import type { AgentId } from '../transcript/ids'
+import type { WorkflowRunId } from '../transcript/workflowRunId'
 import type { AgentHierarchy } from './agentHierarchy'
 import {
   agentIdentityKey,
@@ -19,6 +20,8 @@ export interface AgentTreeNode {
   readonly identity: AgentIdentity
   /** The node's meta status: `absent` for the lead, which never has one. */
   readonly metaStatus: SubagentMetaStatus
+  /** The workflow run the agent belongs to, or `null` for the lead and for a subagent spawned outside a workflow. */
+  readonly workflowRunId: WorkflowRunId | null
   /** This node's direct children, ordered by agent id. */
   readonly children: readonly AgentTreeNode[]
 }
@@ -119,10 +122,9 @@ function buildTree(context: TreeContext): AgentTreeNode {
  * @returns The assembled node.
  */
 function buildNode(identity: AgentIdentity, context: NodeBuildContext): AgentTreeNode {
-  const metaStatus: SubagentMetaStatus =
-    identity.kind === 'subagent'
-      ? (context.inputByAgentId.get(identity.agentId)?.metaStatus ?? { status: 'absent' })
-      : { status: 'absent' }
+  const input =
+    identity.kind === 'subagent' ? context.inputByAgentId.get(identity.agentId) : undefined
+  const metaStatus: SubagentMetaStatus = input?.metaStatus ?? { status: 'absent' }
 
   const children = (context.childIdsByParentKey.get(agentIdentityKey(identity)) ?? [])
     .map((childId) => context.builtByKey.get(agentIdentityKey(subagentIdentity(childId))))
@@ -131,6 +133,7 @@ function buildNode(identity: AgentIdentity, context: NodeBuildContext): AgentTre
   return {
     identity,
     metaStatus,
+    workflowRunId: input?.workflowRunId ?? null,
     children
   }
 }

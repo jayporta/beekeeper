@@ -21,6 +21,7 @@ function mapMetaStatus(status: SubagentMetaStatus): AgentMetaStatusDto {
       teamName: meta.teamName,
       name: meta.name,
       taskKind: meta.taskKind,
+      workflowPhase: meta.workflowPhase,
       isFork: meta.isFork
     }
   }
@@ -36,6 +37,7 @@ export function mapAgentNode(node: AgentTreeNode): AgentNodeDto {
   return {
     agentId: node.identity.kind === 'lead' ? null : node.identity.agentId,
     meta: mapMetaStatus(node.metaStatus),
+    workflowRunId: node.workflowRunId,
     children: node.children.map(mapAgentNode)
   }
 }

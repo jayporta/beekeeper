@@ -1,6 +1,7 @@
 import type { IpcResult } from './ipcResult'
 import type { SessionRoleDto } from './sessionRoleDto'
 import type { SessionTeamDto } from './sessionTeamDto'
+import type { WorkflowCountsDto } from './workflowRunDto'
 
 /** What a scan of a session's transcript found, without its agent tree. */
 export interface SessionSummaryDto {
@@ -63,6 +64,11 @@ export interface SessionListItemDto {
   readonly sizeBytes: number | null
   /** How many subagent transcripts the session has, or `null` when its folder couldn't be read. */
   readonly subagentCount: number | null
+  /**
+   * How many workflow runs the session has and how many of its subagents ran
+   * inside them, or `null` when its subagents folder couldn't be read.
+   */
+  readonly workflows: WorkflowCountsDto | null
   /**
    * What a search matches on for each of the session's subagents: distinct
    * name, description and type, in agent id order, capped in number and total

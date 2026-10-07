@@ -1,6 +1,7 @@
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ok, type Result } from '../../shared/result'
+import { parseWorkflowRunId } from '../../transcript/workflowRunId'
 import type { SkippedLineError } from '../../transcript/readRecords'
 import {
   buildAssistantToolUseRecord,
@@ -252,6 +253,7 @@ describe('scanSession tree', () => {
     expect(scan.tree).toEqual({
       identity: { kind: 'lead' },
       metaStatus: { status: 'absent' },
+      workflowRunId: null,
       children: []
     })
   })
@@ -294,5 +296,21 @@ describe('scanSession tree', () => {
 
     expect(scan.tree.children.map((c) => c.identity)).toEqual([{ kind: 'subagent', agentId: 'a' }])
     expect(scan.tree.children[0]?.metaStatus).toEqual({ status: 'error', reason: 'invalid-json' })
+  })
+
+  it('carries a workflow agent run id onto its tree node, and null for a top-level agent', async () => {
+    const leadPath = dir.writeLead('')
+    const top = dir.addSubagent('top', { transcript: '' })
+    const inRun = {
+      ...dir.addSubagent('inrun', { transcript: '' }),
+      workflowRunId: parseWorkflowRunId('wf_a')
+    }
+
+    const scan = await scanSession({ leadPath, subagents: [top, inRun] })
+
+    expect(scan.tree.children.map((c) => [c.identity, c.workflowRunId])).toEqual([
+      [{ kind: 'subagent', agentId: 'inrun' }, 'wf_a'],
+      [{ kind: 'subagent', agentId: 'top' }, null]
+    ])
   })
 })
