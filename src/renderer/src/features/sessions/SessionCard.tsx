@@ -2,6 +2,7 @@ import { memo, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { agentCountLabel } from './agentCountLabel'
 import { AgentStrip } from './AgentStrip'
+import { CardColumns } from './CardColumns'
 import { CardTokens } from './CardTokens'
 import { cardFigures } from './cardFigures'
 import { EmptyCell } from './EmptyCell'
@@ -11,7 +12,6 @@ import { SessionCell } from './SessionCell'
 import styles from './SessionCard.module.css'
 import type { SessionRow } from './sessionRow'
 import { TeammateChip } from './TeammateChip'
-import columns from './CardColumns.module.css'
 
 /** Props for {@link SessionCard}. */
 interface SessionCardProps {
@@ -60,7 +60,7 @@ export const SessionCard = memo(function SessionCard({
 
   return (
     <li className={styles.card}>
-      <div className={`${columns.columns} ${styles.grid}`}>
+      <CardColumns className={styles.grid}>
         <SessionCell row={row} selectedDirName={selectedDirName} matchedAgent={matchedAgent} />
         <div>
           <AgentStrip item={item} />
@@ -74,7 +74,7 @@ export const SessionCard = memo(function SessionCard({
           {duration ?? <EmptyCell />}
         </p>
         <CardTokens figures={figures} teamTotal={teamTotal} partial={partial} />
-      </div>
+      </CardColumns>
       {teammates.length > 0 && (
         <ul className={styles.chips} aria-label={t('chips.label', { name: label.text })}>
           {teammates.map((teammate) => (

@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { InspectorList } from './InspectorList'
 import { InspectorMarker } from './InspectorMarker'
 import styles from './InspectorFlags.module.css'
 
@@ -25,7 +26,7 @@ export function InspectorFlags({
   if (!stopped && !partial) return null
 
   return (
-    <ul className={styles.flags}>
+    <InspectorList className={styles.flags}>
       {stopped && <li className={styles.flag}>{t('inspector.flags.stopped')}</li>}
       {partial && (
         <li className={styles.flag}>
@@ -33,6 +34,6 @@ export function InspectorFlags({
           <InspectorMarker />
         </li>
       )}
-    </ul>
+    </InspectorList>
   )
 }

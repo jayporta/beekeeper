@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import styles from './OverviewFootnote.module.css'
+import { Footnote } from '@renderer/components/Footnote'
 import { OVERVIEW_FOOTNOTE_ID } from './overviewFootnoteId'
 import type { PartialReason } from './partialReasons'
 
@@ -20,10 +20,7 @@ export function OverviewFootnote({ reasons }: OverviewFootnoteProps): React.JSX.
   const { t } = useTranslation('overview')
   if (reasons.length === 0) return null
 
-  return (
-    <p id={OVERVIEW_FOOTNOTE_ID} className={styles.footnote}>
-      {t('footnote.label')} {reasons.map((reason) => t(`footnote.${reason}`)).join(' ')}{' '}
-      {t('footnote.mayBeLow')}
-    </p>
-  )
+  const sentences = [...reasons.map((reason) => t(`footnote.${reason}`)), t('footnote.mayBeLow')]
+
+  return <Footnote id={OVERVIEW_FOOTNOTE_ID} label={t('footnote.label')} sentences={sentences} />
 }

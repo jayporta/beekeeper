@@ -2,7 +2,7 @@ import { memo, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AgentLegend } from './AgentLegend'
 import { agentMarks, type AgentMarkKind } from './agentMarks'
-import columns from './CardColumns.module.css'
+import { CardColumns } from './CardColumns'
 import { matchedAgentOf } from './sessionMatches'
 import { PartialFootnote } from './PartialFootnote'
 import { partialReasons, type PartialReason } from './partialReasons'
@@ -62,12 +62,12 @@ export const SessionCardList = memo(function SessionCardList({
 
   return (
     <div className={styles.list}>
-      <div className={`${columns.columns} ${styles.header}`} aria-hidden="true">
+      <CardColumns className={styles.header} decorative>
         <span>{t('columns.session')}</span>
         <span>{t('columns.agents')}</span>
         <span>{t('columns.duration')}</span>
         <span className={styles.right}>{t('columns.tokens')}</span>
-      </div>
+      </CardColumns>
       <ol className={styles.cards} aria-labelledby={labelledBy}>
         {cards.map(({ row, reasons }, index) => (
           <SessionCard
