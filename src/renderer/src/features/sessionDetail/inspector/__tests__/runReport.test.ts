@@ -1,0 +1,117 @@
+import { describe, expect, it } from 'vitest'
+import { testDetail, testNode, testReport, testTokenGroup } from '../../testSessionDetail'
+import { runReport, runTokensPartial } from '../runReport'
+
+type Reports = NonNullable<NonNullable<Parameters<typeof testDetail>[0]>['reports']>
+
+/** A detail whose lead holds the run's agents `w1` and `w2` and a plain subagent `a1`. */
+const detailOf = (reports: Exclude<Reports, false>): ReturnType<typeof testDetail> =>
+  testDetail({ children: [testNode('w1'), testNode('w2'), testNode('a1')], reports })
+
+describe('runReport', () => {
+  it('holds the token groups of every agent', () => {
+    const detail = detailOf({
+      w1: testReport({ tokenGroups: [testTokenGroup({ input: 1 }, 'm1')] }),
+      w2: testReport({ tokenGroups: [testTokenGroup({ output: 2 }, 'm2')] })
+    })
+
+    const report = runReport(detail, ['w1', 'w2'])
+
+    expect(report.tokenGroups.map(({ model }) => model)).toEqual(['m1', 'm2'])
+  })
+
+  it('sums the message counts and the skipped lines', () => {
+    const detail = detailOf({
+      w1: testReport({ messageCount: 3, skippedLines: 1 }),
+      w2: testReport({ messageCount: 4, skippedLines: 2 })
+    })
+
+    expect(runReport(detail, ['w1', 'w2'])).toMatchObject({ messageCount: 7, skippedLines: 3 })
+  })
+
+  it('spans from the earliest start to the latest end', () => {
+    const detail = detailOf({
+      w1: testReport({ activity: { earliestMs: 100, latestMs: 200 } }),
+      w2: testReport({ activity: { earliestMs: 50, latestMs: 150 } })
+    })
+
+    expect(runReport(detail, ['w1', 'w2']).activity).toEqual({ earliestMs: 50, latestMs: 200 })
+  })
+
+  it('ignores an agent with no activity span when working out the span', () => {
+    const detail = detailOf({ w1: testReport({ activity: { earliestMs: 100, latestMs: 200 } }) })
+
+    expect(runReport(detail, ['w1', 'w2']).activity).toEqual({ earliestMs: 100, latestMs: 200 })
+  })
+
+  it('has no span when no agent has one', () => {
+    expect(runReport(detailOf({}), ['w1', 'w2']).activity).toBeNull()
+  })
+
+  it('skips an agent whose report is unreadable', () => {
+    const detail = detailOf({
+      w1: testReport({ messageCount: 3 }),
+      w2: 'error'
+    })
+
+    expect(runReport(detail, ['w1', 'w2']).messageCount).toBe(3)
+  })
+
+  it('skips an agent the detail does not hold', () => {
+    const detail = detailOf({ w1: testReport({ messageCount: 3 }) })
+
+    expect(runReport(detail, ['w1', 'gone']).messageCount).toBe(3)
+  })
+
+  it('shows no files, whatever its agents touched', () => {
+    const touch = { filePath: '/repo/a.ts', operation: 'edit', source: 'edit-write' } as const
+    const detail = detailOf({
+      w1: testReport({ fileTouches: [touch], fileListIncomplete: true })
+    })
+
+    expect(runReport(detail, ['w1'])).toMatchObject({
+      fileTouches: [],
+      fileListIncomplete: false
+    })
+  })
+
+  it('has no groups and no span for no agents', () => {
+    expect(runReport(detailOf({}), [])).toMatchObject({
+      tokenGroups: [],
+      messageCount: 0,
+      activity: null
+    })
+  })
+})
+
+describe('runTokensPartial', () => {
+  const spent = testReport({ tokenGroups: [testTokenGroup({ output: 5 })] })
+
+  it('is false when every agent has readable tokens', () => {
+    expect(runTokensPartial(detailOf({ w1: spent, w2: spent }), ['w1', 'w2'])).toBe(false)
+  })
+
+  it('is true when an agent’s report is unreadable', () => {
+    expect(runTokensPartial(detailOf({ w1: spent, w2: 'error' }), ['w1', 'w2'])).toBe(true)
+  })
+
+  it('is true when the detail does not hold an agent', () => {
+    expect(runTokensPartial(detailOf({ w1: spent }), ['w1', 'gone'])).toBe(true)
+  })
+
+  it('is true when an agent skipped transcript lines', () => {
+    const skipped = { ...spent, skippedLines: 1 }
+
+    expect(runTokensPartial(detailOf({ w1: spent, w2: skipped }), ['w1', 'w2'])).toBe(true)
+  })
+
+  it('is true when an agent recorded no tokens', () => {
+    expect(runTokensPartial(detailOf({ w1: spent, w2: testReport() }), ['w1', 'w2'])).toBe(true)
+  })
+
+  it('is false for an incomplete file list alone, since a run shows no files', () => {
+    const files = { ...spent, fileListIncomplete: true }
+
+    expect(runTokensPartial(detailOf({ w1: files }), ['w1'])).toBe(false)
+  })
+})

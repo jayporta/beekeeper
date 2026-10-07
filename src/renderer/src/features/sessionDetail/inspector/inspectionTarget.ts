@@ -1,5 +1,5 @@
 import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
-import type { AgentGraphNode } from '../graph/agentGraphNode'
+import type { SelectedAgent } from '@renderer/features/navigation/state/useNavigationStore'
 
 /** Where the data for the inspected agent lives. */
 export interface InspectionTarget {
@@ -9,22 +9,23 @@ export interface InspectionTarget {
   readonly agentId: string | null
 }
 
+/** A selection that picks one agent: any but a workflow run, which groups agents. */
+export type AgentSelection = Exclude<SelectedAgent, { readonly kind: 'workflow' }>
+
 /**
- * Works out whose detail describes a graph node. The root and a teammate
- * node are the agent of a session, the viewed one or the teammate's own, and
- * a subagent lives in the transcripts of whichever session spawned it.
+ * Works out whose detail describes a selected agent. The root (no selection)
+ * and a teammate are the agent of a session, the viewed one or the teammate's
+ * own, and a subagent lives in the transcripts of whichever session spawned it.
  *
- * @param node - The inspected node.
+ * @param selection - The inspected agent's selection, or `null` for the root.
  * @param sessionRef - The viewed session.
  * @returns The session to read, and which of its agents.
  */
 export function inspectionTarget(
-  node: AgentGraphNode,
+  selection: AgentSelection | null,
   sessionRef: SessionRefDto
 ): InspectionTarget {
-  const { selection } = node
   if (selection === null) return { ownerRef: sessionRef, agentId: null }
   if (selection.kind === 'teammate') return { ownerRef: selection.ref, agentId: null }
-  if (selection.kind === 'workflow') return { ownerRef: selection.ownerRef, agentId: null }
   return { ownerRef: selection.ownerRef, agentId: selection.agentId }
 }

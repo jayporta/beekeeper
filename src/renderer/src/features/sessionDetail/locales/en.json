@@ -82,7 +82,16 @@
       "teammate": "Teammate · own session",
       "teammateInSession": "Teammate · in the lead's session",
       "subagent": "Subagent · {{type}}",
-      "subagentUntyped": "Subagent"
+      "subagentUntyped": "Subagent",
+      "workflow": "Workflow",
+      "workflowCompleted": "Workflow · completed",
+      "subagentInWorkflow": "Subagent · in workflow {{name}} · {{type}}",
+      "subagentInWorkflowUntyped": "Subagent · in workflow {{name}}"
+    },
+    "workflow": {
+      "agents_one": "{{count, integer}} agent",
+      "agents_other": "{{count, integer}} agents",
+      "phasesHeading": "Phases"
     },
     "messages_one": "{{count, integer}} message",
     "messages_other": "{{count, integer}} messages",

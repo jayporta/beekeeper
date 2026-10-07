@@ -3,11 +3,12 @@ import type { SessionDetailT } from '../sessionDetailT'
 
 /**
  * Says what kind of agent the inspector is showing. A teammate that lives in
- * the lead's transcript, rather than in a session of its own, says so.
+ * the lead's transcript, rather than in a session of its own, says so. A
+ * workflow run says whether it completed, and an agent in one names it.
  *
  * @param node - The inspected node.
  * @param t - The session detail translate function.
- * @returns The kicker. Includes a transcript-derived agent type for a subagent.
+ * @returns The kicker. Includes a transcript-derived agent type or workflow name for a subagent.
  */
 export function inspectorKicker(node: AgentGraphNode, t: SessionDetailT): string {
   if (node.kind === 'lead') return t('inspector.kicker.lead')
@@ -15,6 +16,19 @@ export function inspectorKicker(node: AgentGraphNode, t: SessionDetailT): string
     return node.selection?.kind === 'subagent'
       ? t('inspector.kicker.teammateInSession')
       : t('inspector.kicker.teammate')
+  }
+  if (node.kind === 'workflow') {
+    return node.workflow?.completed === true
+      ? t('inspector.kicker.workflowCompleted')
+      : t('inspector.kicker.workflow')
+  }
+  if (node.workflow !== null) {
+    return node.agentType === null
+      ? t('inspector.kicker.subagentInWorkflowUntyped', { name: node.workflow.name })
+      : t('inspector.kicker.subagentInWorkflow', {
+          name: node.workflow.name,
+          type: node.agentType
+        })
   }
   return node.agentType === null
     ? t('inspector.kicker.subagentUntyped')

@@ -152,4 +152,44 @@ describe('rollupBelow', () => {
       subagentsNotLoaded: false
     })
   })
+
+  describe('with a workflow run below', () => {
+    const run = (
+      children: GraphNode[],
+      overrides: Parameters<typeof testGraphNode>[1] = {}
+    ): GraphNode =>
+      testGraphNode('run:wf_a', { kind: 'workflow', tokens: 50, children, ...overrides })
+
+    it('counts the run’s agents once and leaves the run node out of the tokens and the count', () => {
+      const root = testGraphNode('lead', {
+        children: [
+          testGraphNode('a1', tokens(10)),
+          run([testGraphNode('w1', tokens(20)), testGraphNode('w2', tokens(30))])
+        ]
+      })
+
+      expect(rollupBelow(root)).toEqual({
+        tokens: 60,
+        below: 3,
+        incomplete: false,
+        subagentsNotLoaded: false
+      })
+    })
+
+    it('is not incomplete because the run node is partial when its agents are whole', () => {
+      const root = testGraphNode('lead', {
+        children: [run([testGraphNode('w1', tokens(20))], { partial: true })]
+      })
+
+      expect(rollupBelow(root).incomplete).toBe(false)
+    })
+
+    it('is incomplete when one of the run’s agents is partial', () => {
+      const root = testGraphNode('lead', {
+        children: [run([testGraphNode('w1', tokens(20, true))])]
+      })
+
+      expect(rollupBelow(root).incomplete).toBe(true)
+    })
+  })
 })

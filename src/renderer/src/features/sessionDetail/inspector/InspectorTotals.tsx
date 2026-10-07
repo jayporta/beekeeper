@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { EmptyCell } from '@renderer/features/sessions/EmptyCell'
 import { formatTokens } from '@renderer/features/sessions/formatTokens'
-import { formatUsd } from '@renderer/i18n/formatUsd'
+import { InspectorCostNote } from './InspectorCostNote'
 import { InspectorMarker } from './InspectorMarker'
 import styles from './InspectorTotals.module.css'
 import type { ReportCost } from './reportCost'
@@ -43,10 +43,7 @@ export function InspectorTotals({
 }: InspectorTotalsProps): React.JSX.Element {
   const { t } = useTranslation('sessionDetail')
   const { t: tSessions } = useTranslation('sessions')
-  const usd = formatUsd(cost.usd, tSessions)
-  const costText = usd === null ? null : tSessions('apiCost', { value: usd })
   const noTokensText = tSessions('emptyCell.tokensNotRecorded')
-  const noCostText = tSessions('emptyCell.costNotRecorded')
   const noteMayBeLow =
     subagentsUnreadable ||
     (rollup.below > 0 &&
@@ -70,10 +67,7 @@ export function InspectorTotals({
             })}
         {noteMayBeLow && <InspectorMarker />}
       </p>
-      <p className={styles.note}>
-        {costText ?? <EmptyCell spokenText={noCostText} />}
-        {(cost.partial || unreadableLines) && <InspectorMarker />}
-      </p>
+      <InspectorCostNote cost={cost} usageIncomplete={unreadableLines} />
     </div>
   )
 }

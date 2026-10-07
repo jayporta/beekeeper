@@ -17,7 +17,8 @@ interface InspectorHeaderProps {
 /**
  * Who the inspector is showing: a kicker for what kind of agent it is, its
  * name as a heading under the page's own, and a line of its model, how long
- * it was active, and how many messages it sent. Any part that is unknown is
+ * it was active, and how many messages it sent. A workflow run shows its id in
+ * place of a model, so same-named runs read apart. Any part that is unknown is
  * left out.
  *
  * @example
@@ -28,7 +29,7 @@ export function InspectorHeader({ node, report }: InspectorHeaderProps): React.J
   const { t: tSessions } = useTranslation('sessions')
 
   const facts = [
-    node.model,
+    node.kind === 'workflow' ? (node.workflow?.runId ?? null) : node.model,
     report === null ? null : formatDuration(report.activity, tSessions),
     report === null ? null : t('inspector.messages', { count: report.messageCount })
   ].filter((part) => part !== null)
