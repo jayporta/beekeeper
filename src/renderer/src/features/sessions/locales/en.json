@@ -51,6 +51,7 @@
     }
   },
   "matchingSubagent": "matching subagent {{agent}}",
+  "matchingWorkflow": "matching workflow {{workflow}}",
   "refresh": "Refresh",
   "refreshing": "Refreshing",
   "refreshed": "Lists updated",

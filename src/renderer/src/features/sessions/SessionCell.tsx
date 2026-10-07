@@ -16,25 +16,25 @@ interface SessionCellProps {
   readonly row: SessionRow
   /** The folder the list is for, to mark a session from another folder. */
   readonly selectedDirName: string
-  /** The subagent the search matches this session through, or `null`. It adds a muted line naming it. */
-  readonly matchedAgent: string | null
+  /** The note naming the workflow or subagent the search matches this session through, or `null`. It adds a muted line. */
+  readonly matchNote: string | null
 }
 
 /**
  * The title cell of a session card: the session's name as a button that opens
  * it, a short id beside a placeholder name, and a muted line with when it was
  * last active, its model, and notes such as a plan limit it hit, and a line
- * naming the subagent the search matched when nothing else on the card did. The button
- * stretches over the whole card, so the card is one target, while the
- * teammate chips sit above it.
+ * naming the workflow or subagent the search matched when nothing else on the
+ * card did. The button stretches over the whole card, so the card is one
+ * target, while the teammate chips sit above it.
  *
  * @example
- * <SessionCell row={row} selectedDirName="-Users-me-repo" matchedAgent={null} />
+ * <SessionCell row={row} selectedDirName="-Users-me-repo" matchNote={null} />
  */
 export function SessionCell({
   row,
   selectedDirName,
-  matchedAgent
+  matchNote
 }: SessionCellProps): React.JSX.Element {
   const { t } = useTranslation('sessions')
   const showSession = useNavigationStore((state) => state.showSession)
@@ -62,9 +62,7 @@ export function SessionCell({
       <MutedText wrapAnywhere>
         <SeparatedText parts={meta} />
       </MutedText>
-      {matchedAgent !== null && (
-        <MutedText wrapAnywhere>{t('matchingSubagent', { agent: matchedAgent })}</MutedText>
-      )}
+      {matchNote !== null && <MutedText wrapAnywhere>{matchNote}</MutedText>}
     </div>
   )
 }

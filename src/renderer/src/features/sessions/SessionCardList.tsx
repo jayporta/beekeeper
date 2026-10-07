@@ -4,7 +4,7 @@ import { CapsText } from '@renderer/components/CapsText'
 import { AgentLegend } from './AgentLegend'
 import { agentMarks, type AgentMarkKind } from './agentMarks'
 import { CardColumns } from './CardColumns'
-import { matchedAgentOf } from './sessionMatches'
+import { matchOf } from './sessionMatches'
 import { PartialFootnote } from './PartialFootnote'
 import { partialReasons, type PartialReason } from './partialReasons'
 import { SessionCard } from './SessionCard'
@@ -32,7 +32,7 @@ interface SessionCardListProps {
   readonly labelledBy: string
   /** The folder the list is for. */
   readonly selectedDirName: string
-  /** The search text from `normalizeQuery`, or `''` when no search is active. It highlights the chips that match and names a subagent a card matches only through. */
+  /** The search text from `normalizeQuery`, or `''` when no search is active. It highlights the chips that match and names the workflow or subagent a card matches only through. */
   readonly query: string
 }
 
@@ -59,7 +59,17 @@ export const SessionCardList = memo(function SessionCardList({
   )
   const kinds = useMemo(() => kindsDrawn(rows), [rows])
   // Worked out here, as a string or `null`, so a card without chips re-renders only when its note changes.
-  const matchedAgents = useMemo(() => rows.map((row) => matchedAgentOf(row, query)), [rows, query])
+  const matchNotes = useMemo(
+    () =>
+      rows.map((row) => {
+        const match = matchOf(row, query)
+        if (match === null) return null
+        return match.kind === 'workflow'
+          ? t('matchingWorkflow', { workflow: match.name })
+          : t('matchingSubagent', { agent: match.name })
+      }),
+    [rows, query, t]
+  )
 
   return (
     <div className={styles.list}>
@@ -79,7 +89,7 @@ export const SessionCardList = memo(function SessionCardList({
             selectedDirName={selectedDirName}
             needle={row.teammates.length > 0 ? query : ''}
             partial={reasons.size > 0}
-            matchedAgent={matchedAgents[index] ?? null}
+            matchNote={matchNotes[index] ?? null}
           />
         ))}
       </ol>
