@@ -50,17 +50,18 @@ export function runReport(reports: readonly AgentReportDto[]): AgentReportDto {
 }
 
 /**
- * Whether a run's token figures may be low: an agent's report is unreadable or
- * missing, skipped transcript lines, or recorded no tokens. An incomplete file
- * list doesn't count, since a run shows no files.
+ * Whether some of a run's agents leave its token figures low: an agent's report
+ * is unreadable or missing, or recorded no tokens. Skipped transcript lines
+ * aren't counted here, since the run report sums them. An incomplete file list
+ * doesn't count, since a run shows no files.
  *
  * @param reports - The run's readable agent reports, from {@link readableReports}.
  * @param agentCount - How many agents the run has, readable or not.
- * @returns `true` when the run's tokens may be low.
+ * @returns `true` when some agent leaves the run's tokens low.
  */
-export function runTokensPartial(reports: readonly AgentReportDto[], agentCount: number): boolean {
-  return (
-    reports.length < agentCount ||
-    reports.some((report) => report.skippedLines > 0 || reportTokens(report) === null)
-  )
+export function runAgentsIncomplete(
+  reports: readonly AgentReportDto[],
+  agentCount: number
+): boolean {
+  return reports.length < agentCount || reports.some((report) => reportTokens(report) === null)
 }

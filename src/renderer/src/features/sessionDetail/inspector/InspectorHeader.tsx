@@ -6,6 +6,12 @@ import type { AgentGraphNode } from '../graph/agentGraphNode'
 import styles from './InspectorHeader.module.css'
 import { inspectorKicker } from './inspectorKicker'
 
+/** A run's id for the facts line, left out when the run is already named by it. */
+function runIdFact(node: AgentGraphNode): string | null {
+  const { workflow } = node
+  return workflow === null || workflow.name === workflow.runId ? null : workflow.runId
+}
+
 /** Props for {@link InspectorHeader}. */
 interface InspectorHeaderProps {
   /** The inspected node. */
@@ -29,7 +35,7 @@ export function InspectorHeader({ node, report }: InspectorHeaderProps): React.J
   const { t: tSessions } = useTranslation('sessions')
 
   const facts = [
-    node.kind === 'workflow' ? (node.workflow?.runId ?? null) : node.model,
+    node.kind === 'workflow' ? runIdFact(node) : node.model,
     report === null ? null : formatDuration(report.activity, tSessions),
     report === null ? null : t('inspector.messages', { count: report.messageCount })
   ].filter((part) => part !== null)

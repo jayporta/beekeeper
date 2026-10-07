@@ -7,7 +7,7 @@ import { InspectorHeader } from './InspectorHeader'
 import { InspectorPendingNote } from './InspectorPendingNote'
 import type { InspectorReason } from './inspectorReasons'
 import { reportCost } from './reportCost'
-import { readableReports, runReport, runTokensPartial } from './runReport'
+import { readableReports, runAgentsIncomplete, runReport } from './runReport'
 import { TokenRows } from './TokenRows'
 import { WorkflowPhases } from './WorkflowPhases'
 import { WorkflowTotals } from './WorkflowTotals'
@@ -51,11 +51,12 @@ export function InspectedWorkflow({ node, ownerRef }: InspectedWorkflowProps): R
   const report = runReport(reports)
   const tokens = reportTokens(report)
   const cost = reportCost(report)
-  const partial = runTokensPartial(reports, agentIds.length)
+  const agentsIncomplete = runAgentsIncomplete(reports, agentIds.length)
+  const partial = agentsIncomplete || report.skippedLines > 0
   const reasons = new Set<InspectorReason>()
   if (report.skippedLines > 0) reasons.add('unreadableLines')
   if (cost.partial) reasons.add('unpricedTokens')
-  if (partial) reasons.add('belowIncomplete')
+  if (agentsIncomplete) reasons.add('workflowAgentsIncomplete')
 
   return (
     <>

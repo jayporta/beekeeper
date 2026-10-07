@@ -45,7 +45,10 @@ const reports = {
 
 /** Renders the scene with the run `wf_a` and selects its node. */
 async function openRun(
-  options: { workflowRuns?: readonly WorkflowRunDto[]; reports?: typeof reports } = {}
+  options: {
+    workflowRuns?: readonly WorkflowRunDto[]
+    reports?: Readonly<Record<string, ReturnType<typeof testReport> | 'error'>>
+  } = {}
 ): Promise<void> {
   const detail = testDetail({
     children,
@@ -118,6 +121,28 @@ describe('AgentInspector for a workflow run', () => {
     expect(inspector().getByRole('heading', { level: 2, name: 'wf_a' })).toBeTruthy()
     expect(inspector().getByText('Workflow')).toBeTruthy()
     expect(inspector().queryByRole('heading', { name: 'Phases' })).toBeNull()
+  })
+
+  it('shows the run id once when the run is named by it', async () => {
+    await openRun({ workflowRuns: [{ runId: 'wf_a', record: null }] })
+
+    expect(inspector().getAllByText(/wf_a/)).toHaveLength(1)
+  })
+
+  it('says which agents left the total low, not agents below, when a report is unreadable', async () => {
+    await openRun({ reports: { w1: reports.w1, w2: 'error' } })
+
+    expect(inspector().getByText(/Some of this workflow's agents/)).toBeTruthy()
+    expect(inspector().queryByText(/agents below/)).toBeNull()
+  })
+
+  it('names only the skipped lines when they alone leave the total low', async () => {
+    await openRun({ reports: { ...reports, w1: { ...reports.w1, skippedLines: 2 } } })
+
+    expect(inspector().getByText(/^30 tokens/).textContent).toContain('¹')
+    expect(inspector().getByText(/Some transcript lines couldn't be read/)).toBeTruthy()
+    expect(inspector().queryByText(/Some of this workflow's agents/)).toBeNull()
+    expect(inspector().queryByText(/agents below/)).toBeNull()
   })
 
   it('renders a phase title as plain text, isolated from the text around it', async () => {

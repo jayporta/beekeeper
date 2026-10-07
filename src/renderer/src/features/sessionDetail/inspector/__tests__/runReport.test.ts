@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { testDetail, testNode, testReport, testTokenGroup } from '../../testSessionDetail'
-import { readableReports, runReport, runTokensPartial } from '../runReport'
+import { readableReports, runAgentsIncomplete, runReport } from '../runReport'
 
 type Reports = NonNullable<NonNullable<Parameters<typeof testDetail>[0]>['reports']>
 
@@ -14,9 +14,9 @@ const reportOf = (
   ids: readonly string[]
 ): ReturnType<typeof runReport> => runReport(readableReports(detail, ids))
 
-/** Whether the run's tokens may be low, read the way the inspector reads it. */
+/** Whether some of the run's agents left its tokens low, read the way the inspector reads it. */
 const partialOf = (detail: ReturnType<typeof testDetail>, ids: readonly string[]): boolean =>
-  runTokensPartial(readableReports(detail, ids), ids.length)
+  runAgentsIncomplete(readableReports(detail, ids), ids.length)
 
 describe('readableReports', () => {
   it('lists the reports of the given agents in the order given', () => {
@@ -111,7 +111,7 @@ describe('runReport', () => {
   })
 })
 
-describe('runTokensPartial', () => {
+describe('runAgentsIncomplete', () => {
   const spent = testReport({ tokenGroups: [testTokenGroup({ output: 5 })] })
 
   it('is false when every agent has readable tokens', () => {
@@ -126,10 +126,10 @@ describe('runTokensPartial', () => {
     expect(partialOf(detailOf({ w1: spent }), ['w1', 'gone'])).toBe(true)
   })
 
-  it('is true when an agent skipped transcript lines', () => {
+  it('is false when an agent only skipped transcript lines, which the run report counts', () => {
     const skipped = { ...spent, skippedLines: 1 }
 
-    expect(partialOf(detailOf({ w1: spent, w2: skipped }), ['w1', 'w2'])).toBe(true)
+    expect(partialOf(detailOf({ w1: spent, w2: skipped }), ['w1', 'w2'])).toBe(false)
   })
 
   it('is true when an agent recorded no tokens', () => {
