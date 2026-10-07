@@ -6,7 +6,7 @@ import type { AgentGraphNode } from '../graph/agentGraphNode'
 import styles from './AgentInspector.module.css'
 import { useFillLayout } from '../useFillLayout'
 import { InspectedAgent } from './InspectedAgent'
-import { inspectionTarget } from './inspectionTarget'
+import { InspectedWorkflow } from './InspectedWorkflow'
 
 /** Props for {@link AgentInspector}. */
 interface AgentInspectorProps {
@@ -17,9 +17,9 @@ interface AgentInspectorProps {
 }
 
 /**
- * The drawer for the selected agent, a region beside the graph: who it is, and
+ * The drawer for the selected agent or workflow run, a region beside the graph: who it is, and
  * once its data has loaded, its totals, tokens by class, files touched,
- * worktree diff, and flags. A teammate in a session of its own, or a
+ * worktree diff, and flags (a run shows its phases and its agents' tokens instead of files and a diff). A teammate in a session of its own, or a
  * subagent of one, reads that session's detail, which the graph has already
  * loaded when it opened the teammate. While that loads, or if it can't be read,
  * the drawer says so and shows who the agent is. Where the layout gives it its
@@ -31,8 +31,8 @@ interface AgentInspectorProps {
  */
 export function AgentInspector({ node, sessionRef }: AgentInspectorProps): React.JSX.Element {
   const { t } = useTranslation('sessionDetail')
-  const target = inspectionTarget(node, sessionRef)
   const fill = useFillLayout()
+  const { selection } = node
   const region = useRef<HTMLDivElement>(null)
   // The region persists across selections, so the new agent would open at the old one's offset.
   useLayoutEffect(() => {
@@ -47,7 +47,15 @@ export function AgentInspector({ node, sessionRef }: AgentInspectorProps): React
       tabIndex={fill ? 0 : undefined}
       className={styles.inspector}
     >
-      <InspectedAgent key={sessionKey(target.ownerRef)} node={node} target={target} />
+      {selection?.kind === 'workflow' ? (
+        <InspectedWorkflow
+          key={sessionKey(selection.ownerRef)}
+          node={node}
+          ownerRef={selection.ownerRef}
+        />
+      ) : (
+        <InspectedAgent key={node.key} node={node} selection={selection} sessionRef={sessionRef} />
+      )}
     </div>
   )
 }

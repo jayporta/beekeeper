@@ -1,5 +1,6 @@
 .lead,
-.teammate {
+.teammate,
+.workflow {
   width: var(--size-mark);
   height: var(--size-mark);
 }
@@ -16,6 +17,11 @@
 
 .teammate {
   border: var(--border-width-mark) solid var(--color-text);
+}
+
+/* A workflow run groups agents: a double border, wide enough for both lines to draw. */
+.workflow {
+  border: var(--border-width-double-mark) double var(--color-text);
 }
 
 .subagent {

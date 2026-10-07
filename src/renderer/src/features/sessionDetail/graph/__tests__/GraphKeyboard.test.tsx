@@ -2,6 +2,7 @@ import { fireEvent, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it } from 'vitest'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
+import { testDetail, testMeta, testNode } from '../../testSessionDetail'
 import { SCENE_SESSION, graphNode, graphNodes, renderGraph } from '../testGraphScene'
 
 afterEach(() => {
@@ -160,6 +161,44 @@ describe('GraphCanvas arrow keys', () => {
       expect(document.activeElement).toBe(graphNode(/^Lead/))
     }
   )
+})
+
+describe('GraphCanvas workflow runs', () => {
+  const detail = testDetail({
+    children: [
+      testNode('w1', { workflowRunId: 'wf_a', meta: testMeta({ name: 'drafter' }) }),
+      testNode('w2', { workflowRunId: 'wf_a', meta: testMeta({ name: 'checker' }) })
+    ],
+    workflowRuns: [{ runId: 'wf_a', record: { name: 'scan', completed: true, phases: ['plan'] } }]
+  })
+  const focused = (): string => document.activeElement?.getAttribute('aria-label') ?? ''
+
+  it('reaches a run with the right arrow from the lead and its agents from the run', async () => {
+    renderGraph(undefined, detail)
+    graphNode(/^Lead/).focus()
+
+    await userEvent.keyboard('{ArrowRight}')
+    expect(focused()).toMatch(/^scan, workflow of Lead/)
+
+    await userEvent.keyboard('{ArrowRight}')
+    expect(focused()).toMatch(/^drafter, subagent of scan/)
+
+    await userEvent.keyboard('{ArrowDown}')
+    expect(focused()).toMatch(/^checker, subagent of scan/)
+  })
+
+  it('selects a run with Enter', async () => {
+    renderGraph(undefined, detail)
+    graphNode(/^scan, workflow/).focus()
+
+    await userEvent.keyboard('{Enter}')
+
+    expect(useNavigationStore.getState().selectedAgent).toEqual({
+      kind: 'workflow',
+      ownerRef: SCENE_SESSION,
+      runId: 'wf_a'
+    })
+  })
 })
 
 describe('GraphCanvas Enter and Space', () => {

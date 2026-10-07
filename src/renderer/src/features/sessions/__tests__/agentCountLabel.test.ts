@@ -39,6 +39,32 @@ describe('agentCountLabel', () => {
     expect(labelOf(withSubagents(leadOf(1), 1))).toBe('1 teammate, 1 subagent')
   })
 
+  it('names the workflow runs and their agents after the plain subagents', () => {
+    const item = testSession(1, { subagentCount: 10, workflows: { runs: 1, agents: 8 } })
+
+    expect(labelOf(item)).toBe('2 subagents, 1 workflow (8 agents)')
+  })
+
+  it('leaves out subagents when every one is a workflow agent', () => {
+    const item = testSession(1, { subagentCount: 3, workflows: { runs: 1, agents: 3 } })
+
+    expect(labelOf(item)).toBe('1 workflow (3 agents)')
+  })
+
+  it('joins teammates, subagents and workflows, with the agent count in the singular', () => {
+    const item = testSession(1, {
+      team: testLeadTeam([testRef(2), testRef(3)]),
+      subagentCount: 2,
+      workflows: { runs: 2, agents: 1 }
+    })
+
+    expect(labelOf(item)).toBe('2 teammates, 1 subagent, 2 workflows (1 agent)')
+  })
+
+  it('counts every subagent as plain when the workflows are unknown', () => {
+    expect(labelOf(testSession(1, { subagentCount: 4, workflows: null }))).toBe('4 subagents')
+  })
+
   it('says None for a readable lead with neither', () => {
     expect(labelOf(testSession(1))).toBe('None')
   })
@@ -70,6 +96,12 @@ describe('hasAgents', () => {
 
   it('is true for a session with subagents', () => {
     expect(hasAgents(withSubagents(testSession(1), 2))).toBe(true)
+  })
+
+  it('is true for a session whose only agents are workflow agents', () => {
+    const item = testSession(1, { subagentCount: 3, workflows: { runs: 1, agents: 3 } })
+
+    expect(hasAgents(item)).toBe(true)
   })
 
   it('is false for a session with neither', () => {

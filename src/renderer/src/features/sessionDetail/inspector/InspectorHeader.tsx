@@ -6,6 +6,12 @@ import type { AgentGraphNode } from '../graph/agentGraphNode'
 import styles from './InspectorHeader.module.css'
 import { inspectorKicker } from './inspectorKicker'
 
+/** A run's id for the facts line, left out when the run is already named by it. */
+function runIdFact(node: AgentGraphNode): string | null {
+  const { workflow } = node
+  return workflow === null || workflow.name === workflow.runId ? null : workflow.runId
+}
+
 /** Props for {@link InspectorHeader}. */
 interface InspectorHeaderProps {
   /** The inspected node. */
@@ -17,7 +23,8 @@ interface InspectorHeaderProps {
 /**
  * Who the inspector is showing: a kicker for what kind of agent it is, its
  * name as a heading under the page's own, and a line of its model, how long
- * it was active, and how many messages it sent. Any part that is unknown is
+ * it was active, and how many messages it sent. A workflow run shows its id in
+ * place of a model, so same-named runs read apart. Any part that is unknown is
  * left out.
  *
  * @example
@@ -28,7 +35,7 @@ export function InspectorHeader({ node, report }: InspectorHeaderProps): React.J
   const { t: tSessions } = useTranslation('sessions')
 
   const facts = [
-    node.model,
+    node.kind === 'workflow' ? runIdFact(node) : node.model,
     report === null ? null : formatDuration(report.activity, tSessions),
     report === null ? null : t('inspector.messages', { count: report.messageCount })
   ].filter((part) => part !== null)

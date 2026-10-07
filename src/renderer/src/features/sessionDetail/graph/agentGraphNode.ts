@@ -3,16 +3,31 @@ import type { SelectedAgent } from '@renderer/features/navigation/state/useNavig
 /**
  * A graph node's identity: `lead` for the viewed session's own agent,
  * `sub:<folder>/<session>:<agentId>` for a subagent in a transcript, and
- * `mate:<folder>/<session>` for a teammate's own session. A subagent's key
- * names the session that holds it, so a teammate's subagents never collide
+ * `mate:<folder>/<session>` for a teammate's own session, and
+ * `run:<folder>/<session>:<runId>` for a workflow run. A subagent's or run's
+ * key names the session that holds it, so a teammate's subagents never collide
  * with the lead's.
  */
-export type AgentKey = 'lead' | `sub:${string}` | `mate:${string}`
+export type AgentKey = 'lead' | `sub:${string}` | `mate:${string}` | `run:${string}`
 
-/** What an agent is: the viewed session's own agent, a separate teammate session, or a sidechain inside a transcript. */
-export type AgentKind = 'lead' | 'teammate' | 'subagent'
+/** What a node is: the viewed session's own agent, a separate teammate session, a sidechain inside a transcript, or a workflow run that groups its agents. */
+export type AgentKind = 'lead' | 'teammate' | 'subagent' | 'workflow'
 
-/** One agent in the spawn graph. */
+/** The facts of one workflow run, shared by its node and each agent inside it. */
+export interface NodeWorkflow {
+  /** The run's id. */
+  readonly runId: string
+  /** The workflow's name from the run's record, or the run id when the record has none or is missing. Transcript-derived: render as plain text. */
+  readonly name: string
+  /** Whether the record says the run finished successfully. `false` when there is no record. */
+  readonly completed: boolean
+  /** Whether another run of the same session has the same name, so the run id is shown to tell them apart. */
+  readonly duplicateName: boolean
+  /** The titles of the run's phases, in order, empty when there is no record. Transcript-derived: render as plain text. */
+  readonly phases: readonly string[]
+}
+
+/** One node in the spawn graph: an agent, or a workflow run that holds its agents. */
 export interface AgentGraphNode {
   /** The node's identity, unique within the graph. */
   readonly key: AgentKey
@@ -39,7 +54,9 @@ export interface AgentGraphNode {
   readonly folder: string | null
   /** The selection that picks this node, or `null` for the root. */
   readonly selection: SelectedAgent | null
-  /** The agents it spawned, then, for the lead, its teammate sessions. */
+  /** The workflow run the node is, or the agent in it ran in, or `null` for any other node. */
+  readonly workflow: NodeWorkflow | null
+  /** The agents it spawned, then, for the lead, its teammate sessions. A workflow run holds the agents that ran in it. */
   readonly children: readonly AgentGraphNode[]
 }
 

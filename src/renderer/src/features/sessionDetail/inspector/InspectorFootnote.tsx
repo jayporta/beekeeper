@@ -12,6 +12,7 @@ const REASON_ORDER = [
   'subagentsUnreadable',
   'subagentsNotLoaded',
   'belowIncomplete',
+  'workflowAgentsIncomplete',
   'other'
 ] as const satisfies readonly InspectorReason[]
 

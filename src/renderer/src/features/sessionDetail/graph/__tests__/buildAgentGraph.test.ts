@@ -282,6 +282,36 @@ describe('buildAgentGraph subagents', () => {
   })
 })
 
+describe('buildAgentGraph workflow runs', () => {
+  const lead = testSession(1, { team: testLeadTeam([testRef(2)]) })
+  const mate = testSession(2, {
+    role: testAgentRole('writer', 'general-purpose'),
+    team: testTeammateTeam(REF)
+  })
+
+  it('sit among the lead’s subagents and before its teammate sessions', () => {
+    const detail = testDetail({
+      children: [
+        testNode('a1', { meta: testMeta({ name: 'scout' }) }),
+        testNode('w1', { workflowRunId: 'wf_a' })
+      ],
+      workflowRuns: [{ runId: 'wf_a', record: { name: 'scan', completed: true, phases: [] } }]
+    })
+
+    const graph = graphAmong([lead, mate], detail)
+
+    expect(graph.children.map(({ kind, name }) => [kind, name])).toEqual([
+      ['subagent', 'scout'],
+      ['workflow', 'scan'],
+      ['teammate', 'writer (general-purpose)']
+    ])
+  })
+
+  it('leave the root with no workflow of its own', () => {
+    expect(graphOf().workflow).toBeNull()
+  })
+})
+
 describe('buildAgentGraph in-process teammates recorded as subagents', () => {
   const inProcess = { spawnDepth: 0, teamName: 'auth', name: 'worker' }
 

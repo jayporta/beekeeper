@@ -1,9 +1,11 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { GraphEdges } from './GraphEdges'
 import styles from './GraphCanvas.module.css'
 import { GraphFootnote } from './GraphFootnote'
 import { GraphNode } from './GraphNode'
 import { GraphViewport } from './GraphViewport'
+import { nodeLabel } from './nodeLabel'
 import { parentNames } from './parentNames'
 import type { AgentGraph } from './useAgentGraph'
 import { useGraphAnnouncement } from './useGraphAnnouncement'
@@ -34,8 +36,10 @@ interface GraphCanvasProps {
 export function GraphCanvas({ graph }: GraphCanvasProps): React.JSX.Element {
   const { root, layout, loading, expansions, selectedKey } = graph
 
-  const parents = useMemo(() => parentNames(layout), [layout])
-  const selectedName = layout.nodes.find(({ node }) => node.key === selectedKey)?.node.name ?? ''
+  const { t } = useTranslation(['sessionDetail', 'sessions'])
+  const parents = useMemo(() => parentNames(layout, t), [layout, t])
+  const selectedNode = layout.nodes.find(({ node }) => node.key === selectedKey)?.node
+  const selectedName = selectedNode === undefined ? '' : nodeLabel(selectedNode, t)
   const announcement = useGraphAnnouncement({
     root,
     expansions,
@@ -62,7 +66,8 @@ export function GraphCanvas({ graph }: GraphCanvasProps): React.JSX.Element {
         ))}
       </GraphViewport>
       <GraphFootnote
-        partial={layout.nodes.some(({ node }) => node.partial)}
+        partial={layout.nodes.some(({ node }) => node.kind !== 'workflow' && node.partial)}
+        partialWorkflow={layout.nodes.some(({ node }) => node.kind === 'workflow' && node.partial)}
         missingTeammates={root.missingTeammates}
         teamListsTruncated={root.teamListsTruncated}
       />

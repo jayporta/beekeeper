@@ -15,8 +15,3 @@
     overscroll-behavior-y: contain;
   }
 }
-
-.note {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-}

@@ -34,6 +34,24 @@
   border-style: dashed;
 }
 
+/*
+ * A workflow run groups agents that ran as a unit: a double border. The graph is scaled, and `double` draws two
+ * lines only from 3px on screen, so the border is never narrower than that however far the graph is zoomed out.
+ * The padding gives back the extra width so its text lines up with a plain node's, and never goes below zero.
+ */
+.workflow {
+  --run-border-width: max(
+    var(--border-width-double-node),
+    calc(var(--border-width-double-mark) / var(--graph-scale, 1))
+  );
+  --run-border-extra: calc(var(--run-border-width) - var(--border-width-mark));
+
+  padding: max(0px, calc(var(--space-2) - var(--run-border-extra)))
+    max(0px, calc(var(--space-2-5) - var(--run-border-extra)));
+  border-style: double;
+  border-width: var(--run-border-width);
+}
+
 /* The lead is always filled: --color-bg on --color-accent-strong, a pair the contrast test holds to 4.5:1 and Lc 75. */
 .lead {
   color: var(--color-bg);
@@ -75,6 +93,16 @@
   @media (forced-colors: active) {
     border-color: Highlight;
     border-width: calc(var(--border-width-strong) * 2);
+  }
+}
+
+/* A selected run keeps its double border. Forced colors drop the ring, so there it widens by half, as the plain border doubles. */
+.workflow.selected {
+  border-style: double;
+  border-width: var(--run-border-width);
+
+  @media (forced-colors: active) {
+    border-width: calc(var(--run-border-width) * 1.5);
   }
 }
 

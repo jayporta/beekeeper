@@ -12,6 +12,7 @@ export type InspectorReason =
   | 'subagentsUnreadable'
   | 'subagentsNotLoaded'
   | 'belowIncomplete'
+  | 'workflowAgentsIncomplete'
   | 'other'
 
 /** What {@link inspectorReasons} reads. */

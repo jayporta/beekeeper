@@ -7,8 +7,14 @@
       "kind": {
         "lead": "lead",
         "teammate": "teammate",
-        "subagent": "subagent"
+        "subagent": "subagent",
+        "workflow": "workflow"
       },
+      "workflowWithId": "{{name}} ({{runId}})",
+      "phases_one": "{{count, integer}} phase",
+      "phases_other": "{{count, integer}} phases",
+      "agents_one": "{{count, integer}} agent",
+      "agents_other": "{{count, integer}} agents",
       "label": "{{name}}, {{kind}}, {{details}}",
       "labelWithParent": "{{name}}, {{kind}} of {{parent}}, {{details}}",
       "labelSeparator": ", ",
@@ -27,6 +33,7 @@
     "footnote": {
       "keyboard": "Up and Down move between siblings, Left goes to the parent and Right to the first child. Home and End go to the first and last agent. Enter selects.",
       "partial": "¹ Partial: part of this agent's data couldn't be read, so its tokens or files may be incomplete.",
+      "partialWorkflow": "On a workflow, ¹ means some of its agents have partial data or no recorded tokens.",
       "missingTeammates_one": "{{count, integer}} teammate not found: the lead spawned it, but it isn't in the sessions list.",
       "missingTeammates_other": "{{count, integer}} teammates not found: the lead spawned them, but they aren't in the sessions list.",
       "truncated": "The lead's spawn and stop lists hit their cap, so more teammates may be missing."
@@ -76,7 +83,18 @@
       "teammate": "Teammate · own session",
       "teammateInSession": "Teammate · in the lead's session",
       "subagent": "Subagent · {{type}}",
-      "subagentUntyped": "Subagent"
+      "subagentUntyped": "Subagent",
+      "workflow": "Workflow",
+      "workflowCompleted": "Workflow · completed",
+      "subagentInWorkflow": "Subagent · in workflow {{name}} · {{type}}",
+      "subagentInWorkflowUntyped": "Subagent · in workflow {{name}}"
+    },
+    "workflow": {
+      "agents_one": "{{count, integer}} agent",
+      "agents_other": "{{count, integer}} agents",
+      "phasesHeading": "Phases",
+      "loading": "Loading this workflow",
+      "unreadable": "beekeeper couldn't read this workflow's agents."
     },
     "messages_one": "{{count, integer}} message",
     "messages_other": "{{count, integer}} messages",
@@ -144,6 +162,7 @@
       "subagentsUnreadable": "beekeeper couldn't read this session's subagents, so agents below may be missing and the total may be low.",
       "subagentsNotLoaded": "Some teammates' subagents aren't loaded, so the total may be low.",
       "belowIncomplete": "Some agents below have partial or unrecorded totals, so the total may be low.",
+      "workflowAgentsIncomplete": "Some of this workflow's agents couldn't be read or recorded no tokens, so the total may be low.",
       "other": "Some data for this agent couldn't be read."
     },
     "patch": {

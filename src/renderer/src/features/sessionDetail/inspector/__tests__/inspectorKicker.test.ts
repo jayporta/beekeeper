@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { testRef } from '@renderer/features/sessions/testSessionFixtures'
+import type { NodeWorkflow } from '../../graph/agentGraphNode'
 import { testGraphNode } from '../../graph/testGraphNode'
 import { testSessionDetailT } from '../../testSessionDetailT'
 import { inspectorKicker } from '../inspectorKicker'
@@ -31,5 +32,52 @@ describe('inspectorKicker', () => {
 
   it('names a subagent with no known type without one', () => {
     expect(kicker({ kind: 'subagent', agentType: null })).toBe('Subagent')
+  })
+
+  it('names a completed workflow run, and one that is not completed without saying so', () => {
+    const workflow = (completed: boolean): NodeWorkflow => ({
+      runId: 'wf_a',
+      name: 'scan',
+      completed,
+      duplicateName: false,
+      phases: []
+    })
+
+    expect(kicker({ kind: 'workflow', workflow: workflow(true) })).toBe('Workflow · completed')
+    expect(kicker({ kind: 'workflow', workflow: workflow(false) })).toBe('Workflow')
+  })
+
+  it('names the run a workflow agent ran in, then its type when known', () => {
+    const workflow: NodeWorkflow = {
+      runId: 'wf_a',
+      name: 'scan',
+      completed: true,
+      duplicateName: false,
+      phases: []
+    }
+
+    expect(kicker({ kind: 'subagent', agentType: 'Explore', workflow })).toBe(
+      'Subagent · in workflow scan · Explore'
+    )
+    expect(kicker({ kind: 'subagent', agentType: null, workflow })).toBe(
+      'Subagent · in workflow scan'
+    )
+  })
+
+  it('gives the run id with the name of a run whose name another run shares', () => {
+    const workflow: NodeWorkflow = {
+      runId: 'wf_a',
+      name: 'scan',
+      completed: true,
+      duplicateName: true,
+      phases: []
+    }
+
+    expect(kicker({ kind: 'subagent', agentType: 'Explore', workflow })).toBe(
+      'Subagent · in workflow scan (wf_a) · Explore'
+    )
+    expect(kicker({ kind: 'subagent', agentType: null, workflow })).toBe(
+      'Subagent · in workflow scan (wf_a)'
+    )
   })
 })

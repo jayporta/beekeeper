@@ -64,6 +64,28 @@ describe('TeammateChip', () => {
     ).toBeTruthy()
   })
 
+  it('notes the workflows a teammate ran, instead of counting their agents as subagents', () => {
+    renderChip(
+      teammateRow({ totalTokens: 1500, subagentCount: 3, workflows: { runs: 1, agents: 3 } })
+    )
+
+    expect(
+      screen.getByRole('button', { name: 'reviewer (code) 1 workflow (3 agents) 1.5K tokens' })
+    ).toBeTruthy()
+  })
+
+  it('notes plain subagents beside workflows', () => {
+    renderChip(
+      teammateRow({ totalTokens: 1500, subagentCount: 5, workflows: { runs: 1, agents: 3 } })
+    )
+
+    expect(
+      screen.getByRole('button', {
+        name: 'reviewer (code) 2 subagents 1 workflow (3 agents) 1.5K tokens'
+      })
+    ).toBeTruthy()
+  })
+
   it('notes a teammate its lead stopped', () => {
     renderChip(teammateRow({ totalTokens: 1500 }, testTeammateTeam(LEAD_REF, true)))
 

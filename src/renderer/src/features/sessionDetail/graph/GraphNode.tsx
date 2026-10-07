@@ -3,14 +3,14 @@ import { useTranslation } from 'react-i18next'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { EmptyCell } from '@renderer/features/sessions/EmptyCell'
 import type { AgentGraphNode } from './agentGraphNode'
-import { GRAPH_FOOTNOTE_ID } from './graphFootnoteId'
+import { GRAPH_FOOTNOTE_ID, GRAPH_WORKFLOW_FOOTNOTE_ID } from './graphFootnoteId'
 import { NODE_HEIGHT, NODE_WIDTH } from './graphMetrics'
 import styles from './GraphNode.module.css'
 import { nodeAccessibleName, nodeDetail } from './nodeFacts'
 
 /** Props for {@link GraphNode}. */
 interface GraphNodeProps {
-  /** The agent to show. */
+  /** The agent or workflow run to show. */
   readonly node: AgentGraphNode
   /** The left edge on the canvas, in pixels. */
   readonly x: number
@@ -27,10 +27,11 @@ interface GraphNodeProps {
 }
 
 /**
- * One agent on the graph, as a button that selects it. The first line is its
+ * One node on the graph, as a button that selects it. The first line is its
  * name and own tokens, and the second its type and model (or the folder of a
- * teammate in another folder) and a stopped flag. A lead is filled, a teammate
- * has a solid border, and a subagent a dashed one, and the selected node has a
+ * teammate in another folder, or a workflow run's kind and phase count) and a
+ * stopped flag. A lead is filled, a teammate has a solid border, a subagent a
+ * dashed one, and a workflow run a double one, and the selected node has a
  * heavier border and a ring around it. The accessible name carries all of that
  * and the parent's name, and `aria-current` marks the selected node: pressing
  * the selected node doesn't unselect it, so it is a choice among nodes, not a
@@ -53,6 +54,7 @@ export const GraphNode = memo(function GraphNode({
   const { t } = useTranslation(['sessionDetail', 'sessions'])
   const selectAgent = useNavigationStore((state) => state.selectAgent)
   const detail = nodeDetail(node, t).join(t('graph.node.lineSeparator'))
+  const footnoteId = node.kind === 'workflow' ? GRAPH_WORKFLOW_FOOTNOTE_ID : GRAPH_FOOTNOTE_ID
   const className = [styles.node, styles[node.kind], selected ? styles.selected : null]
     .filter((name) => name !== null)
     .join(' ')
@@ -67,7 +69,7 @@ export const GraphNode = memo(function GraphNode({
       aria-label={nodeAccessibleName(node, { t, loading, parent: parentName })}
       aria-current={selected ? 'true' : undefined}
       aria-busy={loading ? 'true' : undefined}
-      aria-describedby={node.partial ? GRAPH_FOOTNOTE_ID : undefined}
+      aria-describedby={node.partial ? footnoteId : undefined}
       onClick={() => {
         selectAgent(node.selection)
       }}

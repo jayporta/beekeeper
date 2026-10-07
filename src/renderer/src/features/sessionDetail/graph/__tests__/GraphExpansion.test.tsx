@@ -294,6 +294,24 @@ describe('GraphCanvas expansion announcements', () => {
     await announced('Loaded 3 subagents of writer (code)')
   })
 
+  it('counts the agents of a workflow run once and leaves the run node out', async () => {
+    const withRun: IpcResult<SessionDetailDto> = {
+      ok: true,
+      value: testDetail({
+        children: [
+          testNode('w1', { workflowRunId: 'wf_a' }),
+          testNode('w2', { workflowRunId: 'wf_a' })
+        ],
+        workflowRuns: [{ runId: 'wf_a', record: null }]
+      })
+    }
+    renderGraphWith({ teammateDetails: { [WRITER.sessionId]: withRun } })
+
+    await click(/^writer/)
+
+    await announced('Loaded 2 subagents of writer (code)')
+  })
+
   it('says it in the singular for one subagent', async () => {
     const one: IpcResult<SessionDetailDto> = {
       ok: true,

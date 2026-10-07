@@ -70,6 +70,40 @@ describe('agentMarks', () => {
     expect(overflow).toBe(0)
   })
 
+  it('draws one workflow mark per run, after the teammates and before the plain subagents', () => {
+    const item = testSession(1, {
+      team: testLeadTeam([testRef(2)]),
+      subagentCount: 10,
+      workflows: { runs: 1, agents: 8 }
+    })
+
+    expect(agentMarks(item)).toEqual({
+      marks: ['lead', 'teammate', 'workflow', 'subagent', 'subagent'],
+      overflow: 0
+    })
+  })
+
+  it('draws a workflow mark for a session whose subagents are all workflow agents', () => {
+    const item = testSession(1, { subagentCount: 3, workflows: { runs: 1, agents: 3 } })
+
+    expect(agentMarks(item).marks).toEqual(['lead', 'workflow'])
+  })
+
+  it('keeps the runs when the limit cuts the plain subagents short', () => {
+    const item = testSession(1, { subagentCount: 13, workflows: { runs: 2, agents: 2 } })
+
+    const { marks, overflow } = agentMarks(item)
+
+    expect(marks).toEqual(['lead', 'workflow', 'workflow', ...Array<string>(9).fill('subagent')])
+    expect(overflow).toBe(2)
+  })
+
+  it('draws no workflow marks when the workflows are unknown', () => {
+    const item = testSession(1, { subagentCount: 3, workflows: null })
+
+    expect(agentMarks(item).marks).toEqual(['lead', 'subagent', 'subagent', 'subagent'])
+  })
+
   it('keeps teammates ahead of subagents when the limit cuts the strip short', () => {
     const teammates = Array.from({ length: 11 }, (_, index) => testRef(index + 2))
     const item = testSession(1, { team: testLeadTeam(teammates), subagentCount: 5 })

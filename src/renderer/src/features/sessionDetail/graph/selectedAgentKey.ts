@@ -5,14 +5,22 @@ import type { AgentGraphNode, AgentKey } from './agentGraphNode'
 /** Whether a node's selection picks the same agent as `selected`. */
 function picks(selection: SelectedAgent | null, selected: SelectedAgent): boolean {
   if (selection === null) return false
-  if (selection.kind === 'subagent') {
-    return (
-      selected.kind === 'subagent' &&
-      selected.agentId === selection.agentId &&
-      sessionKey(selected.ownerRef) === sessionKey(selection.ownerRef)
-    )
+  switch (selection.kind) {
+    case 'subagent':
+      return (
+        selected.kind === 'subagent' &&
+        selected.agentId === selection.agentId &&
+        sessionKey(selected.ownerRef) === sessionKey(selection.ownerRef)
+      )
+    case 'teammate':
+      return selected.kind === 'teammate' && sessionKey(selected.ref) === sessionKey(selection.ref)
+    case 'workflow':
+      return (
+        selected.kind === 'workflow' &&
+        selected.runId === selection.runId &&
+        sessionKey(selected.ownerRef) === sessionKey(selection.ownerRef)
+      )
   }
-  return selected.kind === 'teammate' && sessionKey(selected.ref) === sessionKey(selection.ref)
 }
 
 /**

@@ -14,11 +14,15 @@ const sameIdElsewhere = testGraphNode('sub:a1-elsewhere', {
   selection: { kind: 'subagent', ownerRef: MATE, agentId: 'a1' }
 })
 const teammate = testGraphNode('mate:2', { selection: { kind: 'teammate', ref: MATE } })
+const run = testGraphNode('run:wf_a', {
+  selection: { kind: 'workflow', ownerRef: OWNER, runId: 'wf_a' }
+})
 const NODES: readonly AgentGraphNode[] = [
   testGraphNode('lead'),
   subagent,
   sameIdElsewhere,
-  teammate
+  teammate,
+  run
 ]
 
 describe('selectedAgentKey', () => {
@@ -44,6 +48,18 @@ describe('selectedAgentKey', () => {
 
   it('tells a teammate from a session of the same id in another folder', () => {
     expect(selectedAgentKey(NODES, { kind: 'teammate', ref: testRef(2) })).toBe('lead')
+  })
+
+  it('finds a run by its owner and run id, whichever selection object names it', () => {
+    expect(
+      selectedAgentKey(NODES, { kind: 'workflow', ownerRef: { ...OWNER }, runId: 'wf_a' })
+    ).toBe('run:wf_a')
+  })
+
+  it('falls back to the lead for a run of another session with the same run id', () => {
+    expect(selectedAgentKey(NODES, { kind: 'workflow', ownerRef: MATE, runId: 'wf_a' })).toBe(
+      'lead'
+    )
   })
 
   it('falls back to the lead for a subagent that is not in the graph', () => {

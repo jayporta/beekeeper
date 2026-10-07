@@ -5,7 +5,7 @@ import type {
 } from '../../../../../shared/ipc/agentDto'
 import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
 import { sessionKey } from '@renderer/features/sessions/sessionKey'
-import type { AgentGraphNode, AgentKind } from './agentGraphNode'
+import type { AgentGraphNode, AgentKind, NodeWorkflow } from './agentGraphNode'
 import { agentName } from './agentName'
 import { isPartialReport, reportTokens } from './reportFacts'
 
@@ -19,6 +19,8 @@ export interface SubagentNodeInput {
   readonly report: AgentReportDto | null
   /** The session whose transcript holds the subagent. */
   readonly ownerRef: SessionRefDto
+  /** The workflow run the agent ran in, or `null` for an agent outside any run. */
+  readonly workflow: NodeWorkflow | null
   /** The agents this one spawned. */
   readonly children: readonly AgentGraphNode[]
 }
@@ -37,11 +39,11 @@ function isInProcessTeammate(meta: AgentMetaDto): boolean {
  * subagent whose meta is absent or unreadable is still a node, named by its
  * short id, and so is one whose report could not be read, with no tokens.
  *
- * @param input - The subagent's identity, meta, report, owner, and children.
+ * @param input - The subagent's identity, meta, report, owner, run, and children.
  * @returns The node.
  */
 export function subagentNode(input: SubagentNodeInput): AgentGraphNode {
-  const { agentId, meta, report, ownerRef, children } = input
+  const { agentId, meta, report, ownerRef, workflow, children } = input
   const kind: AgentKind =
     meta.status === 'ok' && isInProcessTeammate(meta.meta) ? 'teammate' : 'subagent'
   const details = meta.status === 'ok' ? meta.meta : null
@@ -57,6 +59,7 @@ export function subagentNode(input: SubagentNodeInput): AgentGraphNode {
     subagentsNotLoaded: false,
     folder: null,
     selection: { kind: 'subagent', ownerRef, agentId },
+    workflow,
     children
   }
 }
