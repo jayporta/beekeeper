@@ -33,6 +33,8 @@ interface TestSessionOptions {
   readonly transcriptTokens?: number | null
   /** How many subagent transcripts the session has, or `null` when unknown. Defaults to `0`. */
   readonly subagentCount?: number | null
+  /** The session's workflow counts. Defaults to none, or `null` when `subagentCount` is `null`. */
+  readonly workflows?: SessionListItemDto['workflows']
   /** What a search matches on for each subagent. Defaults to none. */
   readonly agentTerms?: readonly AgentSearchTermDto[]
   /** How many transcript lines could not be read. Defaults to `0`. */
@@ -63,6 +65,7 @@ export function testSession(n: number, options: TestSessionOptions = {}): Sessio
     totalTokens,
     transcriptTokens = null,
     subagentCount = 0,
+    workflows = subagentCount === null ? null : { runs: 0, agents: 0 },
     agentTerms = [],
     skippedLines = 0,
     limitHit = null,
@@ -88,6 +91,7 @@ export function testSession(n: number, options: TestSessionOptions = {}): Sessio
     modifiedMs,
     sizeBytes: 1,
     subagentCount,
+    workflows,
     agentTerms,
     summary: unreadable
       ? { ok: false, error: { code: 'unreadable' } }

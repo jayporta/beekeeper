@@ -4,6 +4,7 @@ import { findRequestedSession } from './findRequestedSession'
 import type { IpcDeps } from './ipcDeps'
 import { okResult } from './ipcResults'
 import { mapSessionScan } from './mapSessionScan'
+import { readWorkflowRuns } from './readWorkflowRuns'
 import { scanFoundSession } from './scanFoundSession'
 import { toIpcErrorCode } from './toIpcErrorCode'
 
@@ -18,7 +19,9 @@ import { toIpcErrorCode } from './toIpcErrorCode'
  * `not-found` when the project or session isn't in a fresh listing. A
  * transcript that vanishes mid-scan rejects, and `guardIpc` turns the
  * rejection into a code-only error. An unreadable subagents folder comes back
- * inside the detail as `subagents: { ok: false }`.
+ * inside the detail as `subagents: { ok: false }`. A run's record is read on
+ * every call, never cached, and a run whose record can't be used comes back
+ * with `record: null`.
  */
 export async function getSessionHandler(
   deps: Pick<IpcDeps, 'projectsRoot' | 'scans' | 'scanCache'>,
@@ -31,5 +34,10 @@ export async function getSessionHandler(
   const scan = await scanFoundSession({ deps, found, transcript })
   const { subagents } = found.session
   const subagentsError = subagents.ok ? null : toIpcErrorCode(subagents.error)
-  return okResult(mapSessionScan({ sessionId, scan, subagentsError }))
+  // Run records are read per request, outside the cached scan, so a run that
+  // finishes after the scan was cached still shows its final record.
+  const workflowRuns = subagents.ok
+    ? await readWorkflowRuns(found.session.sessionDir, subagents.value)
+    : []
+  return okResult(mapSessionScan({ sessionId, scan, subagentsError, workflowRuns }))
 }

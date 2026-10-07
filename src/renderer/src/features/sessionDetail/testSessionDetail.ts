@@ -44,7 +44,7 @@ export function testNode(
   options: { meta?: AgentMetaStatusDto; children?: readonly AgentNodeDto[] } = {}
 ): AgentNodeDto {
   const { meta = agentId === null ? { status: 'absent' } : testMeta(), children = [] } = options
-  return { agentId, meta, children }
+  return { agentId, meta, workflowRunId: null, children }
 }
 
 /** The options of {@link testDetail}. */
@@ -89,6 +89,7 @@ export function testDetail(options: TestDetailOptions = {}): SessionDetailDto {
     reconciliation: {
       models: [],
       totals: { transcriptUSD: null, transcriptPartial: false, recordedUSD: null }
-    }
+    },
+    workflowRuns: []
   }
 }

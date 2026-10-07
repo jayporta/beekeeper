@@ -61,7 +61,8 @@ export function createSessionScanDir(): SessionScanDir {
       return {
         agentId: toAgentId(agentId),
         transcript: { path, mtimeMs: stats.mtimeMs, size: stats.size },
-        metaPath
+        metaPath,
+        workflowRunId: null
       }
     },
     missingSubagent(agentId: string): SubagentEntry {
@@ -69,7 +70,8 @@ export function createSessionScanDir(): SessionScanDir {
       return {
         agentId: toAgentId(agentId),
         transcript: { path, mtimeMs: 0, size: 0 },
-        metaPath: null
+        metaPath: null,
+        workflowRunId: null
       }
     },
     cleanup: () => rmSync(root, { recursive: true, force: true })

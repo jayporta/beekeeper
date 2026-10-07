@@ -21,3 +21,33 @@ describe('mapAgentNode meta status', () => {
     expect(dto.meta).toEqual({ status: 'absent' })
   })
 })
+
+describe('mapAgentNode workflow fields', () => {
+  it('maps the run id of a workflow agent and null for the lead', () => {
+    const node = {
+      identity: { kind: 'subagent', agentId: 'w1' },
+      metaStatus: { status: 'absent' },
+      workflowRunId: 'wf_a',
+      children: [
+        {
+          identity: { kind: 'subagent', agentId: 'w2' },
+          metaStatus: { status: 'absent' },
+          workflowRunId: null,
+          children: []
+        }
+      ]
+    } as unknown as AgentTreeNode
+
+    const dto = mapAgentNode(node)
+
+    expect([dto.workflowRunId, dto.children[0]?.workflowRunId]).toEqual(['wf_a', null])
+  })
+
+  it('maps the workflow phase from the meta', () => {
+    const dto = mapAgentNode(
+      nodeWith({ status: 'ok', meta: { agentType: 'scout', workflowPhase: 'Inventory' } })
+    )
+
+    expect(dto.meta).toMatchObject({ status: 'ok', meta: { workflowPhase: 'Inventory' } })
+  })
+})

@@ -1,6 +1,7 @@
 import type { AgentNodeDto, AgentReportDto, SubagentReportDto } from './agentDto'
 import type { IpcResult } from './ipcResult'
 import type { ReconciliationDto } from './reconciliationDto'
+import type { WorkflowRunDto } from './workflowRunDto'
 
 /** A session scanned in full: its agent tree, each agent's report, and its cost reconciliation. */
 export interface SessionDetailDto {
@@ -14,4 +15,6 @@ export interface SessionDetailDto {
   readonly subagents: IpcResult<readonly SubagentReportDto[]>
   /** Usage from the transcripts beside what the session recorded. */
   readonly reconciliation: ReconciliationDto
+  /** The session's workflow runs sorted by run id, each with its record when one could be read. */
+  readonly workflowRuns: readonly WorkflowRunDto[]
 }

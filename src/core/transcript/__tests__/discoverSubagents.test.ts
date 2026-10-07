@@ -124,6 +124,178 @@ describe('discoverSubagents', () => {
     expect(subagents).toEqual([])
   })
 
+  describe('workflow runs', () => {
+    it('tags agents inside a workflow run with the run id', async () => {
+      tree = await buildDiscoveryTree({
+        files: {
+          'session/subagents/agent-top.jsonl': '{}\n',
+          'session/subagents/workflows/wf_a/agent-x.jsonl': '{}\n',
+          'session/subagents/workflows/wf_a/agent-x.meta.json': '{"agentType":"t"}',
+          'session/subagents/workflows/wf_a/journal.jsonl': '{}\n'
+        }
+      })
+
+      const entries = await discoverSubagents(join(tree.root, 'session'))
+
+      expect(entries.map((e) => [e.agentId, e.workflowRunId, e.metaPath !== null])).toEqual([
+        ['top', null, false],
+        ['x', 'wf_a', true]
+      ])
+    })
+
+    it('gives the paths of a run agent inside its run folder', async () => {
+      tree = await buildDiscoveryTree({
+        files: {
+          'session/subagents/workflows/wf_a/agent-x.jsonl': '{}\n',
+          'session/subagents/workflows/wf_a/agent-x.meta.json': '{}'
+        }
+      })
+      const runDir = join(tree.root, 'session', 'subagents', 'workflows', 'wf_a')
+
+      const [entry] = await discoverSubagents(join(tree.root, 'session'))
+
+      expect([entry?.transcript.path, entry?.metaPath]).toEqual([
+        join(runDir, 'agent-x.jsonl'),
+        join(runDir, 'agent-x.meta.json')
+      ])
+    })
+
+    it('ignores a run folder whose name is not a valid run id', async () => {
+      tree = await buildDiscoveryTree({
+        files: {
+          'session/subagents/workflows/not-a-run/agent-x.jsonl': '{}\n',
+          'session/subagents/workflows/wf_a.b/agent-y.jsonl': '{}\n'
+        }
+      })
+
+      expect(await discoverSubagents(join(tree.root, 'session'))).toEqual([])
+    })
+
+    it('ignores a symlinked run folder', async () => {
+      tree = await buildDiscoveryTree({
+        files: { 'elsewhere/agent-x.jsonl': '{}\n' },
+        symlinks: { 'session/subagents/workflows/wf_a': '../../../elsewhere' }
+      })
+
+      expect(await discoverSubagents(join(tree.root, 'session'))).toEqual([])
+    })
+
+    it('ignores a file named like a run', async () => {
+      tree = await buildDiscoveryTree({
+        files: { 'session/subagents/workflows/wf_b': 'not a folder' }
+      })
+
+      expect(await discoverSubagents(join(tree.root, 'session'))).toEqual([])
+    })
+
+    it('ignores a folder nested inside a run folder', async () => {
+      tree = await buildDiscoveryTree({
+        files: {
+          'session/subagents/workflows/wf_a/agent-x.jsonl': '{}\n',
+          'session/subagents/workflows/wf_a/nested/agent-y.jsonl': '{}\n'
+        }
+      })
+
+      const entries = await discoverSubagents(join(tree.root, 'session'))
+
+      expect(entries.map((e) => e.agentId)).toEqual(['x'])
+    })
+
+    it('sorts top-level and run agents together by agent id', async () => {
+      tree = await buildDiscoveryTree({
+        files: {
+          'session/subagents/agent-c.jsonl': '{}\n',
+          'session/subagents/agent-a.jsonl': '{}\n',
+          'session/subagents/workflows/wf_z/agent-b.jsonl': '{}\n',
+          'session/subagents/workflows/wf_a/agent-d.jsonl': '{}\n'
+        }
+      })
+
+      const entries = await discoverSubagents(join(tree.root, 'session'))
+
+      expect(entries.map((e) => e.agentId)).toEqual(['a', 'b', 'c', 'd'])
+    })
+
+    it('sorts run agents by agent id whatever order the folders list in', async () => {
+      tree = await buildDiscoveryTree({
+        files: {
+          'session/subagents/workflows/wf_a/agent-Zed.jsonl': '{}\n',
+          'session/subagents/workflows/wf_a/agent-alpha.jsonl': '{}\n',
+          'session/subagents/workflows/wf_b/agent-Beta.jsonl': '{}\n'
+        }
+      })
+      reversedReaddirState.reverseListingFor = join(tree.root, 'session', 'subagents', 'workflows')
+
+      const entries = await discoverSubagents(join(tree.root, 'session'))
+
+      expect(entries.map((e) => e.agentId)).toEqual(['Beta', 'Zed', 'alpha'])
+    })
+
+    it('keeps only the top-level entry when an agent id also appears in a run', async () => {
+      tree = await buildDiscoveryTree({
+        files: {
+          'session/subagents/agent-x.jsonl': '{}\n',
+          'session/subagents/workflows/wf_a/agent-x.jsonl': '{}\n'
+        }
+      })
+
+      const entries = await discoverSubagents(join(tree.root, 'session'))
+
+      expect(entries.map((e) => [e.agentId, e.workflowRunId])).toEqual([['x', null]])
+    })
+
+    it('keeps the first run in id order when an agent id appears in two runs', async () => {
+      tree = await buildDiscoveryTree({
+        files: {
+          'session/subagents/workflows/wf_b/agent-x.jsonl': '{}\n',
+          'session/subagents/workflows/wf_a/agent-x.jsonl': '{}\n'
+        }
+      })
+      reversedReaddirState.reverseListingFor = join(tree.root, 'session', 'subagents', 'workflows')
+
+      const entries = await discoverSubagents(join(tree.root, 'session'))
+
+      expect(entries.map((e) => [e.agentId, e.workflowRunId])).toEqual([['x', 'wf_a']])
+    })
+
+    it('returns the top-level agents when workflows is a file', async () => {
+      tree = await buildDiscoveryTree({
+        files: {
+          'session/subagents/agent-top.jsonl': '{}\n',
+          'session/subagents/workflows': 'not a folder'
+        }
+      })
+
+      const entries = await discoverSubagents(join(tree.root, 'session'))
+
+      expect(entries.map((e) => e.agentId)).toEqual(['top'])
+    })
+
+    it('returns the top-level agents when workflows is a symlink to a folder', async () => {
+      tree = await buildDiscoveryTree({
+        files: {
+          'session/subagents/agent-top.jsonl': '{}\n',
+          'elsewhere/wf_a/agent-x.jsonl': '{}\n'
+        },
+        symlinks: { 'session/subagents/workflows': '../../elsewhere' }
+      })
+
+      const entries = await discoverSubagents(join(tree.root, 'session'))
+
+      expect(entries.map((e) => e.agentId)).toEqual(['top'])
+    })
+
+    it('finds run agents when the session has no top-level agents', async () => {
+      tree = await buildDiscoveryTree({
+        files: { 'session/subagents/workflows/wf_a/agent-x.jsonl': '{}\n' }
+      })
+
+      const entries = await discoverSubagents(join(tree.root, 'session'))
+
+      expect(entries.map((e) => [e.agentId, e.workflowRunId])).toEqual([['x', 'wf_a']])
+    })
+  })
+
   it('resolves a relative sessionDir into absolute transcript and meta paths', async () => {
     tree = await buildDiscoveryTree({
       files: {

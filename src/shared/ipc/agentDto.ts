@@ -108,6 +108,8 @@ export interface AgentMetaDto {
   readonly name?: string
   /** The kind of task. */
   readonly taskKind?: string
+  /** The title of the workflow phase it ran in, if any. */
+  readonly workflowPhase?: string
   /** Whether it forked the lead's context. */
   readonly isFork?: boolean
 }
@@ -134,6 +136,8 @@ export interface AgentNodeDto {
   readonly agentId: string | null
   /** Whether the agent's meta was found and readable. */
   readonly meta: AgentMetaStatusDto
+  /** The id of the workflow run the agent ran in, or `null` for the lead and for an agent outside a workflow. */
+  readonly workflowRunId: string | null
   /** The agent's direct children, ordered by id. */
   readonly children: readonly AgentNodeDto[]
 }

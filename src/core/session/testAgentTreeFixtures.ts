@@ -8,7 +8,7 @@ import type { SubagentMetaStatus } from './subagentMetaStatus'
  *
  * @param agentId - The subagent's id.
  * @param meta - The resolved meta, or `null` for a subagent whose meta is absent.
- * @returns The input, with its meta status set accordingly.
+ * @returns The input, with its meta status set accordingly and no workflow run.
  */
 export function buildTreeInput(
   agentId: string,
@@ -16,5 +16,5 @@ export function buildTreeInput(
 ): AgentTreeInput {
   const metaStatus: SubagentMetaStatus =
     meta === null ? { status: 'absent' } : { status: 'ok', meta: meta as SubagentMeta }
-  return { agentId: toAgentId(agentId), metaStatus }
+  return { agentId: toAgentId(agentId), metaStatus, workflowRunId: null }
 }

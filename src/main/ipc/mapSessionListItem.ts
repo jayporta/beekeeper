@@ -1,11 +1,13 @@
 import type { AgentSearchTerm } from '../../core/session/agentSearchTerms'
 import type { SessionEntry } from '../../core/transcript/discoverSessions'
+import type { SubagentEntry } from '../../core/transcript/discoverSubagents'
 import type { ProjectDirName } from '../../core/transcript/ids'
 import type { Result } from '../../core/shared/result'
 import type { SessionSummary } from '../../core/transcript/summary/sessionSummary'
 import type { UnreadableError } from '../../core/transcript/unreadableError'
 import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
 import type { SessionTeamDto } from '../../shared/ipc/sessionTeamDto'
+import type { WorkflowCountsDto } from '../../shared/ipc/workflowRunDto'
 import { errResult, okResult } from './ipcResults'
 import { mapSessionRole } from './mapSessionRole'
 import { toIpcErrorCode } from './toIpcErrorCode'
@@ -27,6 +29,22 @@ export interface ListableSession extends ScannedSession {
 }
 
 /**
+ * Counts a session's workflow runs and the agents inside them.
+ * @param subagents - The session's discovered subagents.
+ * @returns The distinct run count and the number of subagents that ran in a run.
+ */
+function countWorkflows(subagents: readonly SubagentEntry[]): WorkflowCountsDto {
+  const runIds = new Set<string>()
+  let agents = 0
+  for (const { workflowRunId } of subagents) {
+    if (workflowRunId === null) continue
+    runIds.add(workflowRunId)
+    agents += 1
+  }
+  return { runs: runIds.size, agents }
+}
+
+/**
  * Maps a scanned session to its list item, field by field, so no unknown
  * summary field crosses the bridge.
  *
@@ -41,6 +59,7 @@ export function mapSessionListItem(
 ): SessionListItemDto {
   const { entry, summary } = scanned
   const subagentCount = entry.subagents.ok ? entry.subagents.value.length : null
+  const workflows = entry.subagents.ok ? countWorkflows(entry.subagents.value) : null
   if (!entry.transcript.ok) {
     return {
       projectDirName: scanned.projectDirName,
@@ -48,6 +67,7 @@ export function mapSessionListItem(
       modifiedMs: null,
       sizeBytes: null,
       subagentCount,
+      workflows,
       agentTerms: [],
       summary: errResult(toIpcErrorCode(entry.transcript.error)),
       team: null
@@ -61,6 +81,7 @@ export function mapSessionListItem(
     modifiedMs: file.mtimeMs,
     sizeBytes: file.size,
     subagentCount,
+    workflows,
     agentTerms: scanned.agentTerms.map(({ name, description, agentType }) => ({
       name,
       description,

@@ -14,6 +14,11 @@ export interface SessionEntry {
   /** The session's id, parsed from its transcript's filename. */
   readonly sessionId: SessionId
   /**
+   * The absolute path of the session's folder, beside its transcript, which
+   * holds `subagents/` and `workflows/`. The folder may not exist.
+   */
+  readonly sessionDir: string
+  /**
    * The session's transcript file, or an error when it couldn't be stat'd.
    * Isolated per session so one unreadable transcript doesn't fail the
    * whole project scan.
@@ -74,9 +79,10 @@ export async function discoverSessions(projectPath: string): Promise<SessionEntr
     }
 
     const sessionId = dirent.name.slice(0, -SESSION_TRANSCRIPT_SUFFIX.length)
-    const subagents = await captureSystemError(() => discoverSubagents(join(projectDir, sessionId)))
+    const sessionDir = join(projectDir, sessionId)
+    const subagents = await captureSystemError(() => discoverSubagents(sessionDir))
 
-    entries.push({ sessionId: toSessionId(sessionId), transcript, subagents })
+    entries.push({ sessionId: toSessionId(sessionId), sessionDir, transcript, subagents })
   }
 
   entries.sort((a, b) => compareCodeUnits(a.sessionId, b.sessionId))

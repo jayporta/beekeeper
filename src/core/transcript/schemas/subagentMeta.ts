@@ -27,12 +27,12 @@ const optionalIdentifierSchema = boundedIdentifierSchema.optional().catch(undefi
  * subagent has; any other field, `toolUseId` included, may be absent
  * depending on how the subagent was spawned.
  *
- * `agentType`, `teamName`, `name` and `description` are labels, shown to
+ * `agentType`, `teamName`, `name`, `description` and `workflowPhase` are labels, shown to
  * the reader: each is trimmed and normalized to NFC, and must be printable
  * and within the label cap, by the same rule a session's role uses (see
  * {@link toAgentLabel}). An unusable `agentType` fails the whole meta, like a
- * non-string one. An unusable or non-string `teamName`, `name` or
- * `description` reads as absent, so the subagent is kept. `description` is
+ * non-string one. An unusable or non-string `teamName`, `name`,
+ * `description` or `workflowPhase` reads as absent, so the subagent is kept. `description` is
  * the Agent tool's short task description, which fits the label cap.
  *
  * `toolUseId`, `parentAgentId`, `model` and `taskKind` are identifiers,
@@ -76,6 +76,7 @@ export const subagentMetaSchema = z.object({
   teamName: optionalAgentLabelSchema,
   name: optionalAgentLabelSchema,
   taskKind: optionalIdentifierSchema,
+  workflowPhase: optionalAgentLabelSchema,
   isFork: z.boolean().optional()
 })
 

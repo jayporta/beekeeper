@@ -17,4 +17,9 @@ export { timestampSchema } from './timestamp'
 export { toolResultBlockSchema, type ToolResultBlock } from './toolResultBlock'
 export { toolUseBlockSchema, type ToolUseBlock } from './toolUseBlock'
 export { usageSchema, type Usage, type UsageEntry } from './usage'
+export {
+  MAX_WORKFLOW_PHASES,
+  workflowRunRecordSchema,
+  type WorkflowRunRecord
+} from './workflowRunRecord'
 export { writeToolUseResultSchema, type WriteToolUseResult } from './writeToolUseResult'

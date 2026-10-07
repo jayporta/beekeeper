@@ -123,6 +123,16 @@ describe('discoverSessions', () => {
     expect(sessions[0]?.subagents).toEqual({ ok: true, value: [] })
   })
 
+  it('reports the absolute session folder beside the transcript, whether or not it exists', async () => {
+    const id = '88888888-1111-1111-1111-111111111111'
+    tree = await buildDiscoveryTree({ files: { [`project/${id}.jsonl`]: '' } })
+    const relativeProjectPath = relative(process.cwd(), join(tree.root, 'project'))
+
+    const sessions = await discoverSessions(relativeProjectPath)
+
+    expect(sessions[0]?.sessionDir).toBe(join(tree.root, 'project', id))
+  })
+
   it('resolves a relative projectPath into an absolute transcript path', async () => {
     const id = '77777777-4040-4040-4040-404040404040'
     tree = await buildDiscoveryTree({ files: { [`project/${id}.jsonl`]: '' } })

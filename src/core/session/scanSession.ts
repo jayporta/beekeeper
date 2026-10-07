@@ -132,7 +132,11 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
     )
 
     const metaStatus = await resolveSubagentMeta(subagent.metaPath)
-    treeInputs.push({ agentId: subagent.agentId, metaStatus })
+    treeInputs.push({
+      agentId: subagent.agentId,
+      metaStatus,
+      workflowRunId: subagent.workflowRunId
+    })
   }
 
   const leadSpawnsResult = leadSpawns.result()

@@ -1,6 +1,6 @@
-import { chmod, rm, utimes } from 'node:fs/promises'
+import { chmod, mkdir, rename, rm, utimes, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { getSessionHandler } from '../getSessionHandler'
 import type { IpcDeps } from '../ipcDeps'
 import { NO_SCAN_CACHE, TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
@@ -101,6 +101,55 @@ describe('getSessionHandler scan sharing', () => {
     await rm(metaPath)
     await getSessionHandler(deps, request)
     expect(keys[0]).not.toBe(keys[1])
+  })
+
+  describe('with a workflow agent', () => {
+    const workflowsDir = (): string =>
+      join(dirname(ctx.tree.sessionPath), TEST_SESSION_ID, 'subagents', 'workflows')
+
+    beforeEach(async () => {
+      await mkdir(join(workflowsDir(), 'wf_a'), { recursive: true })
+      await writeFile(join(workflowsDir(), 'wf_a', 'agent-w1.jsonl'), '{}\n')
+    })
+
+    it('uses a different scan key once a workflow agent transcript changes', async () => {
+      const keys: string[] = []
+      const deps = {
+        projectsRoot: ctx.deps.projectsRoot,
+        scans: recordKeys(keys),
+        scanCache: NO_SCAN_CACHE
+      }
+      await getSessionHandler(deps, request)
+      await utimes(join(workflowsDir(), 'wf_a', 'agent-w1.jsonl'), new Date(), new Date(1_000_000))
+      await getSessionHandler(deps, request)
+      expect(keys[0]).not.toBe(keys[1])
+    })
+
+    it('uses a different scan key once a workflow agent joins a run', async () => {
+      const keys: string[] = []
+      const deps = {
+        projectsRoot: ctx.deps.projectsRoot,
+        scans: recordKeys(keys),
+        scanCache: NO_SCAN_CACHE
+      }
+      await getSessionHandler(deps, request)
+      await writeFile(join(workflowsDir(), 'wf_a', 'agent-w2.jsonl'), '{}\n')
+      await getSessionHandler(deps, request)
+      expect(keys[0]).not.toBe(keys[1])
+    })
+
+    it('uses a different scan key once a workflow agent moves to another run', async () => {
+      const keys: string[] = []
+      const deps = {
+        projectsRoot: ctx.deps.projectsRoot,
+        scans: recordKeys(keys),
+        scanCache: NO_SCAN_CACHE
+      }
+      await getSessionHandler(deps, request)
+      await rename(join(workflowsDir(), 'wf_a'), join(workflowsDir(), 'wf_b'))
+      await getSessionHandler(deps, request)
+      expect(keys[0]).not.toBe(keys[1])
+    })
   })
 
   it('serves a repeat request from the scan cache without scanning again', async () => {

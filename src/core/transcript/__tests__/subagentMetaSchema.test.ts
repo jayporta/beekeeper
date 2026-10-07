@@ -70,47 +70,50 @@ describe('subagentMetaSchema', () => {
     }
   })
 
-  describe.each(['teamName', 'name', 'description'] as const)('%s label', (field) => {
-    it.each([
-      ['an oversized value', 'x'.repeat(MAX_LABEL_CODE_UNITS + 1)],
-      // Each U+0344 is one code unit that NFC expands to two: 200 fit the cap, 400 do not.
-      ['a value NFC expands past the cap', '̈́'.repeat(200)],
-      ['a value with a newline', 'sc\nout'],
-      ['a value with a bidi override', 'sc‮out'],
-      ['a blank value', '   ']
-    ])('keeps the meta and reads %s as absent', (_label, bad) => {
-      const parsed = subagentMetaSchema.safeParse({
-        ...buildMinimalSubagentMeta('reviewer'),
-        [field]: bad
+  describe.each(['teamName', 'name', 'description', 'workflowPhase'] as const)(
+    '%s label',
+    (field) => {
+      it.each([
+        ['an oversized value', 'x'.repeat(MAX_LABEL_CODE_UNITS + 1)],
+        // Each U+0344 is one code unit that NFC expands to two: 200 fit the cap, 400 do not.
+        ['a value NFC expands past the cap', '̈́'.repeat(200)],
+        ['a value with a newline', 'sc\nout'],
+        ['a value with a bidi override', 'sc‮out'],
+        ['a blank value', '   ']
+      ])('keeps the meta and reads %s as absent', (_label, bad) => {
+        const parsed = subagentMetaSchema.safeParse({
+          ...buildMinimalSubagentMeta('reviewer'),
+          [field]: bad
+        })
+
+        expect(parsed.success).toBe(true)
+        if (!parsed.success) return
+        expect(parsed.data.agentType).toBe('reviewer')
+        expect(parsed.data[field]).toBeUndefined()
       })
 
-      expect(parsed.success).toBe(true)
-      if (!parsed.success) return
-      expect(parsed.data.agentType).toBe('reviewer')
-      expect(parsed.data[field]).toBeUndefined()
-    })
+      it('keeps the meta and reads a non-string value as absent', () => {
+        const parsed = subagentMetaSchema.safeParse({
+          ...buildMinimalSubagentMeta('reviewer'),
+          [field]: 7
+        })
 
-    it('keeps the meta and reads a non-string value as absent', () => {
-      const parsed = subagentMetaSchema.safeParse({
-        ...buildMinimalSubagentMeta('reviewer'),
-        [field]: 7
+        expect(parsed.success).toBe(true)
+        if (!parsed.success) return
+        expect(parsed.data.agentType).toBe('reviewer')
+        expect(parsed.data[field]).toBeUndefined()
       })
 
-      expect(parsed.success).toBe(true)
-      if (!parsed.success) return
-      expect(parsed.data.agentType).toBe('reviewer')
-      expect(parsed.data[field]).toBeUndefined()
-    })
+      it('trims the value and normalizes it to NFC', () => {
+        const parsed = subagentMetaSchema.parse({
+          ...buildMinimalSubagentMeta('reviewer'),
+          [field]: '  café '
+        })
 
-    it('trims the value and normalizes it to NFC', () => {
-      const parsed = subagentMetaSchema.parse({
-        ...buildMinimalSubagentMeta('reviewer'),
-        [field]: '  café '
+        expect(parsed[field]).toBe('café')
       })
-
-      expect(parsed[field]).toBe('café')
-    })
-  })
+    }
+  )
 
   describe.each(['toolUseId', 'parentAgentId', 'model', 'taskKind'] as const)(
     '%s identifier',
