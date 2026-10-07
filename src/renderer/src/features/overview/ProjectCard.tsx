@@ -1,5 +1,6 @@
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
+import { CardOpenButton } from '@renderer/components/CardOpenButton'
 import { PartialMarker } from '@renderer/components/PartialMarker'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import type { ProjectGroup } from '@renderer/features/projects/groupProjects'
@@ -63,17 +64,16 @@ export function ProjectCard({ group, totals, share }: ProjectCardProps): React.J
     <li className={styles.card} data-updating={refreshing}>
       <div className={styles.titleRow}>
         <h2 className={styles.name}>
-          <button
-            type="button"
+          <CardOpenButton
             className={styles.open}
-            aria-describedby={describedBy}
+            describedBy={describedBy}
             onClick={() => {
               select(project.dirName)
               showSessions()
             }}
           >
             {projectTitle(project)}
-          </button>
+          </CardOpenButton>
         </h2>
         {worktrees.length > 0 && (
           <span className={styles.muted}>{t('card.worktrees', { count: worktrees.length })}</span>

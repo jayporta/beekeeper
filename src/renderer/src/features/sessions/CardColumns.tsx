@@ -1,3 +1,4 @@
+import { withClassName } from '@renderer/components/withClassName'
 import styles from './CardColumns.module.css'
 
 /** Props for {@link CardColumns}. */
@@ -35,10 +36,7 @@ export function CardColumns({
   decorative = false
 }: CardColumnsProps): React.JSX.Element {
   return (
-    <div
-      className={className === undefined ? styles.columns : `${styles.columns} ${className}`}
-      aria-hidden={decorative || undefined}
-    >
+    <div className={withClassName(styles.columns, className)} aria-hidden={decorative || undefined}>
       {children}
     </div>
   )

@@ -1,3 +1,4 @@
+import { withClassName } from '@renderer/components/withClassName'
 import styles from './InspectorList.module.css'
 
 /** Props for {@link InspectorList}. */
@@ -21,9 +22,5 @@ interface InspectorListProps {
  * </InspectorList>
  */
 export function InspectorList({ children, className }: InspectorListProps): React.JSX.Element {
-  return (
-    <ul className={className === undefined ? styles.list : `${styles.list} ${className}`}>
-      {children}
-    </ul>
-  )
+  return <ul className={withClassName(styles.list, className)}>{children}</ul>
 }

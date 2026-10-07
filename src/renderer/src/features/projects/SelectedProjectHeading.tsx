@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { TitleRow } from '@renderer/components/TitleRow'
 import { Breadcrumb, type BreadcrumbSegment } from '@renderer/features/navigation/Breadcrumb'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { parentProject } from './parentProject'
@@ -63,7 +64,7 @@ export function SelectedProjectHeading({
   return (
     <header className={styles.header}>
       {project !== null && <Breadcrumb segments={segments} />}
-      <div className={styles.titleRow}>
+      <TitleRow>
         <div className={styles.heading}>
           <h1 id={headingId} className={styles.title}>
             {title}
@@ -71,7 +72,7 @@ export function SelectedProjectHeading({
           {project !== null && <p className={styles.folder}>{project.dirName}</p>}
         </div>
         <div className={styles.actions}>{actions}</div>
-      </div>
+      </TitleRow>
     </header>
   )
 }

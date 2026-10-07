@@ -1,0 +1,21 @@
+/* A button that reads as a link: underlined, and still a full-size target. */
+.link {
+  align-self: flex-start;
+  min-height: var(--size-target-min);
+  padding: 0;
+  font: inherit;
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.strong {
+  color: var(--color-accent-strong);
+  font-size: var(--font-size-sm);
+}
+
+.quiet {
+  color: var(--color-text);
+  font-size: var(--font-size-xs);
+}

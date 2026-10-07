@@ -4,13 +4,6 @@
   gap: var(--space-1);
 }
 
-.label {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-2xs);
-  letter-spacing: var(--letter-spacing-caps);
-  text-transform: uppercase;
-}
-
 .rows {
   display: flex;
   flex-direction: column;

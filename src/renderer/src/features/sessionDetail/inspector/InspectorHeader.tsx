@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import type { AgentReportDto } from '../../../../../shared/ipc/agentDto'
+import { CapsText } from '@renderer/components/CapsText'
 import { formatDuration } from '@renderer/features/sessions/formatDuration'
 import { SeparatedText } from '@renderer/features/sessions/SeparatedText'
 import type { AgentGraphNode } from '../graph/agentGraphNode'
@@ -42,9 +43,9 @@ export function InspectorHeader({ node, report }: InspectorHeaderProps): React.J
 
   return (
     <header className={styles.header}>
-      <p className={styles.kicker}>
+      <CapsText accent>
         <bdi>{inspectorKicker(node, t)}</bdi>
-      </p>
+      </CapsText>
       <h2 className={styles.name}>
         <bdi>{node.name}</bdi>
       </h2>

@@ -4,13 +4,6 @@
   gap: var(--space-1);
 }
 
-.kicker {
-  color: var(--color-accent-strong);
-  font-size: var(--font-size-2xs);
-  letter-spacing: var(--letter-spacing-caps);
-  text-transform: uppercase;
-}
-
 .name {
   font-family: var(--font-heading);
   font-size: var(--font-size-3xl);

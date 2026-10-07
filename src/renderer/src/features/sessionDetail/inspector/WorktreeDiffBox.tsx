@@ -9,6 +9,7 @@ import { useWorktreeDiffs } from '../useWorktreeDiffs'
 import { diffsOlderThanDetail } from './diffsOlderThanDetail'
 import { InspectorHeading } from './InspectorHeading'
 import { InspectorNote } from './InspectorNote'
+import { LinkButton } from './LinkButton'
 import { useAnnounceSharedWorktree } from './useAnnounceSharedWorktree'
 import { WorktreeDiffResult } from './WorktreeDiffResult'
 import styles from './WorktreeDiffBox.module.css'
@@ -66,6 +67,11 @@ export function WorktreeDiffBox({
   )
   if (agentId === null && shared === null) return <>{status}</>
 
+  const showShared = (): void => {
+    if (shared === null) return
+    showSession(shared.lead, { kind: 'subagent', ownerRef: shared.lead, agentId: shared.agentId })
+  }
+
   return (
     <>
       {status}
@@ -89,15 +95,14 @@ export function WorktreeDiffBox({
         )}
         {agentId !== null && branch !== null && hasChanges && (
           <>
-            <button
-              type="button"
-              className={styles.open}
+            <LinkButton
+              strong
               onClick={() => {
                 setPatchOpen(true)
               }}
             >
               {t('inspector.patch.open')}
-            </button>
+            </LinkButton>
             <WorktreePatchDialog
               open={patchOpen}
               onClose={() => {
@@ -112,19 +117,9 @@ export function WorktreeDiffBox({
         {shared !== null && (
           <>
             <InspectorNote>{sharedNote}</InspectorNote>
-            <button
-              type="button"
-              className={styles.show}
-              onClick={() => {
-                showSession(shared.lead, {
-                  kind: 'subagent',
-                  ownerRef: shared.lead,
-                  agentId: shared.agentId
-                })
-              }}
-            >
+            <LinkButton onClick={showShared}>
               {t('inspector.worktree.showShared', { agent: shortId(shared.agentId) })}
-            </button>
+            </LinkButton>
           </>
         )}
       </section>

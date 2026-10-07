@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { CardOpenButton } from '@renderer/components/CardOpenButton'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { formatLastActive } from './formatLastActive'
 import { lastActiveMs } from './lastActiveMs'
@@ -48,16 +49,13 @@ export function SessionCell({
   return (
     <div className={styles.cell}>
       <h2 className={styles.title}>
-        <button
-          type="button"
-          className={styles.open}
-          data-card-open=""
+        <CardOpenButton
           onClick={() => {
             showSession({ projectDirName: item.projectDirName, sessionId: item.sessionId })
           }}
         >
           {label.text}
-        </button>
+        </CardOpenButton>
       </h2>
       {label.idHint !== null && <p className={styles.muted}>{label.idHint}</p>}
       <p className={styles.muted}>

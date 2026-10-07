@@ -1,3 +1,4 @@
+import { CapsText } from '@renderer/components/CapsText'
 import styles from './InspectorHeading.module.css'
 
 /** Props for {@link InspectorHeading}. */
@@ -13,5 +14,9 @@ interface InspectorHeadingProps {
  * <InspectorHeading>Phases</InspectorHeading>
  */
 export function InspectorHeading({ children }: InspectorHeadingProps): React.JSX.Element {
-  return <h3 className={styles.heading}>{children}</h3>
+  return (
+    <CapsText as="h3" className={styles.heading}>
+      {children}
+    </CapsText>
+  )
 }
