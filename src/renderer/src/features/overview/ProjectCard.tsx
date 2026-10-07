@@ -1,6 +1,7 @@
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CardOpenButton } from '@renderer/components/CardOpenButton'
+import { MutedText } from '@renderer/components/MutedText'
 import { PartialMarker } from '@renderer/components/PartialMarker'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import type { ProjectGroup } from '@renderer/features/projects/groupProjects'
@@ -76,7 +77,9 @@ export function ProjectCard({ group, totals, share }: ProjectCardProps): React.J
           </CardOpenButton>
         </h2>
         {worktrees.length > 0 && (
-          <span className={styles.muted}>{t('card.worktrees', { count: worktrees.length })}</span>
+          <MutedText as="span" wrapAnywhere>
+            {t('card.worktrees', { count: worktrees.length })}
+          </MutedText>
         )}
       </div>
       {/* Hidden from view and the name; aria-describedby still exposes it, so same-named cards differ. */}
@@ -108,14 +111,14 @@ export function ProjectCard({ group, totals, share }: ProjectCardProps): React.J
         </p>
       )}
       {status === 'loading' && (
-        <p id={statusId} className={styles.muted}>
+        <MutedText id={statusId} wrapAnywhere>
           <FigurePlaceholder loading />
-        </p>
+        </MutedText>
       )}
       {status === 'error' && (
-        <p id={statusId} className={styles.muted}>
+        <MutedText id={statusId} wrapAnywhere>
           {t('card.error')}
-        </p>
+        </MutedText>
       )}
       <div className={styles.track} aria-hidden="true">
         {status === 'ready' && (
@@ -123,7 +126,7 @@ export function ProjectCard({ group, totals, share }: ProjectCardProps): React.J
         )}
       </div>
       {status === 'ready' && (
-        <p className={styles.muted}>
+        <MutedText wrapAnywhere>
           {latest === null
             ? t('card.noLatest')
             : latest.title === null
@@ -132,7 +135,7 @@ export function ProjectCard({ group, totals, share }: ProjectCardProps): React.J
                   title: `${FIRST_STRONG_ISOLATE}${latest.title}${POP_DIRECTIONAL_ISOLATE}`,
                   when: latest.latestMs
                 })}
-        </p>
+        </MutedText>
       )}
     </li>
   )

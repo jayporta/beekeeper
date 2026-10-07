@@ -58,6 +58,4 @@
 
 .meta {
   flex: none;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
 }

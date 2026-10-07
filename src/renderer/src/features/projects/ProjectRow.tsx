@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { MutedText } from '@renderer/components/MutedText'
 import styles from './ProjectRow.module.css'
 
 /** Props for {@link ProjectRow}. */
@@ -53,7 +54,9 @@ export function ProjectRow({
         {meta !== undefined && (
           <>
             {/* The space keeps the label and note apart in the accessible name. */}{' '}
-            <span className={styles.meta}>{meta}</span>
+            <MutedText as="span" className={styles.meta}>
+              {meta}
+            </MutedText>
           </>
         )}
         {/* Hidden from view and the name; aria-describedby still exposes it as the description. */}

@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { MutedText } from '@renderer/components/MutedText'
 import { ProjectList } from '@renderer/features/projects/ProjectList'
 import styles from './SidebarContent.module.css'
 
@@ -17,7 +18,9 @@ export function SidebarContent(): React.JSX.Element {
       <p className={styles.name}>{t('appName')}</p>
       <ProjectList />
       <div className={styles.footer}>
-        <p className={styles.note}>{t('localOnly')}</p>
+        <MutedText smaller className={styles.note}>
+          {t('localOnly')}
+        </MutedText>
       </div>
     </div>
   )

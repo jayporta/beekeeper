@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { MutedText } from '@renderer/components/MutedText'
 import { TitleRow } from '@renderer/components/TitleRow'
 import { Breadcrumb, type BreadcrumbSegment } from '@renderer/features/navigation/Breadcrumb'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
@@ -69,7 +70,7 @@ export function SelectedProjectHeading({
           <h1 id={headingId} className={styles.title}>
             {title}
           </h1>
-          {project !== null && <p className={styles.folder}>{project.dirName}</p>}
+          {project !== null && <MutedText wrapAnywhere>{project.dirName}</MutedText>}
         </div>
         <div className={styles.actions}>{actions}</div>
       </TitleRow>

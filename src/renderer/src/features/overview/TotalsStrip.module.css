@@ -32,17 +32,6 @@
   line-height: 1.1;
 }
 
-.label {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-}
-
-/* The note that the figures are updating, sat under the strip so it doesn't move the figures. */
-.updating {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-}
-
 /* Narrow: the cells stack, so the dividers run between rows instead. */
 @container (max-width: 40rem) {
   .strip {
