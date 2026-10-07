@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { FolderTotalsState } from '../folderTotalsState'
-import { isPartialFor, partialReasonsOf, type PartialFigure } from '../partialReasons'
+import { partialFiguresOf, partialReasonsOf, type PartialFigure } from '../partialReasons'
 import { sumTotals } from '../sumTotals'
 import { readyTotals, testTotals } from '../testTotals'
 
@@ -47,13 +47,11 @@ describe('partialReasonsOf', () => {
 
 /** Which of the figures a sum marks as partial, in the order tokens, cost, sessions, agents. */
 function markedFigures(states: readonly FolderTotalsState[]): readonly PartialFigure[] {
-  const totals = sumTotals(states)
-  return (['tokens', 'cost', 'sessions', 'agents'] as const).filter((figure) =>
-    isPartialFor(totals, figure)
-  )
+  const marks = partialFiguresOf(sumTotals(states))
+  return (['tokens', 'cost', 'sessions', 'agents'] as const).filter((figure) => marks[figure])
 }
 
-describe('isPartialFor', () => {
+describe('partialFiguresOf', () => {
   it('marks no figure of complete totals, zero or not', () => {
     expect(markedFigures([readyTotals({ tokens: 5 }), readyTotals()])).toEqual([])
   })

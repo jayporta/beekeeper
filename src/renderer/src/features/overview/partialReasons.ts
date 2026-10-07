@@ -67,14 +67,23 @@ export function partialReasonsOf(totals: AggregateTotals): readonly PartialReaso
 }
 
 /**
- * Whether one figure of a sum may be low, so it gets the partial marker. A
- * reason marks only the figures it affects: a session with no recorded cost
- * leaves the tokens complete.
+ * Which figures of a sum may be low, so each gets the partial marker. A reason
+ * marks only the figures it affects: a session with no recorded cost leaves
+ * the tokens complete.
  *
  * @param totals - The sum.
- * @param figure - The figure to check.
- * @returns `true` when a reason that applies leaves the figure low.
+ * @returns For each figure, `true` when a reason that applies leaves it low.
  */
-export function isPartialFor(totals: AggregateTotals, figure: PartialFigure): boolean {
-  return partialReasonsOf(totals).some((reason) => FIGURES_AFFECTED[reason].includes(figure))
+export function partialFiguresOf(
+  totals: AggregateTotals
+): Readonly<Record<PartialFigure, boolean>> {
+  const reasons = partialReasonsOf(totals)
+  const marks = (figure: PartialFigure): boolean =>
+    reasons.some((reason) => FIGURES_AFFECTED[reason].includes(figure))
+  return {
+    tokens: marks('tokens'),
+    cost: marks('cost'),
+    sessions: marks('sessions'),
+    agents: marks('agents')
+  }
 }

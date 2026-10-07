@@ -9,7 +9,7 @@ import { formatUsd } from '@renderer/i18n/formatUsd'
 import { FigurePlaceholder } from './FigurePlaceholder'
 import styles from './ProjectCard.module.css'
 import { OVERVIEW_FOOTNOTE_ID } from './overviewFootnoteId'
-import { isPartialFor, partialReasonsOf } from './partialReasons'
+import { partialFiguresOf, partialReasonsOf } from './partialReasons'
 import { totalsStatus, type AggregateTotals } from './sumTotals'
 
 /** Marks the start of text whose direction is its own, so it doesn't reorder the text around it. */
@@ -47,10 +47,7 @@ export function ProjectCard({ group, totals, share }: ProjectCardProps): React.J
   const showSessions = useNavigationStore((state) => state.showSessions)
   const { project, worktrees } = group
   const status = totalsStatus(totals)
-  const tokensPartial = isPartialFor(totals, 'tokens')
-  const costPartial = isPartialFor(totals, 'cost')
-  const sessionsPartial = isPartialFor(totals, 'sessions')
-  const agentsPartial = isPartialFor(totals, 'agents')
+  const partial = partialFiguresOf(totals)
   const { latest, refreshing } = totals
   const partialNote = t('partialNote')
   const id = useId()
@@ -90,19 +87,19 @@ export function ProjectCard({ group, totals, share }: ProjectCardProps): React.J
         <p id={statusId} className={styles.stats}>
           <span className={styles.tokens}>
             {t('tokens', { count: totals.tokens })}
-            {tokensPartial && <PartialMarker note={partialNote} />}
+            {partial.tokens && <PartialMarker note={partialNote} />}
           </span>
           <span>
             {t('apiCost', { value: formatUsd(totals.usd, t) })}
-            {costPartial && <PartialMarker note={partialNote} />}
+            {partial.cost && <PartialMarker note={partialNote} />}
           </span>
           <span>
             {t('card.sessions', { count: totals.sessions })}
-            {sessionsPartial && <PartialMarker note={partialNote} />}
+            {partial.sessions && <PartialMarker note={partialNote} />}
           </span>
           <span>
             {t('card.agents', { count: totals.agents })}
-            {agentsPartial && <PartialMarker note={partialNote} />}
+            {partial.agents && <PartialMarker note={partialNote} />}
           </span>
           <span className="visuallyHidden">
             {t('card.share', { value: Math.round(share * 100) })}
