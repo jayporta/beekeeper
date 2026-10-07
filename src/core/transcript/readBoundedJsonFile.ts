@@ -36,7 +36,8 @@ export interface BoundedJsonError {
  * can legally return fewer bytes than requested and a short read must never
  * be mistaken for the whole file. Filling the buffer completely means the
  * file has grown past the cap, so the cap holds even against a file that
- * grows after the check.
+ * grows after the check. The buffer is allocated uninitialized, and only the
+ * bytes `read` filled are ever decoded.
  *
  * A missing file, a symlink, a non-regular file, an oversized one, and
  * invalid JSON are all reported as an {@link err} rather than thrown. The
@@ -65,7 +66,7 @@ export async function readBoundedJsonFile(
     if (stats.size > maxBytes) return err({ reason: 'too-large' })
 
     const bufferSize = maxBytes + 1
-    const buffer = Buffer.alloc(bufferSize)
+    const buffer = Buffer.allocUnsafe(bufferSize)
     let totalRead = 0
     while (totalRead < bufferSize) {
       const { bytesRead } = await handle.read(buffer, totalRead, bufferSize - totalRead, totalRead)

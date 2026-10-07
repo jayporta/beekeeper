@@ -1,5 +1,6 @@
 import { join } from 'node:path'
 import { err, ok, type Result } from '../shared/result'
+import { isRealDirectory } from './isRealDirectory'
 import { readBoundedJsonFile, type BoundedJsonErrorReason } from './readBoundedJsonFile'
 import { workflowRunRecordSchema, type WorkflowRunRecord } from './schemas/workflowRunRecord'
 import type { WorkflowRunId } from './workflowRunId'
@@ -23,7 +24,9 @@ export interface WorkflowRunRecordError {
  * Reads one workflow run's record, `<sessionDir>/workflows/<runId>.json`.
  *
  * The path is built from a validated {@link WorkflowRunId}, so it can't
- * leave the `workflows` folder. The file is read through
+ * leave the `workflows` folder, and that folder must be a real directory,
+ * not a symlink, since the open only refuses a symlink in the last path
+ * component. The file is read through
  * {@link readBoundedJsonFile} with a {@link MAX_RUN_RECORD_BYTES} cap, then
  * reduced by {@link workflowRunRecordSchema}. A missing, symlinked,
  * non-regular, oversized or malformed record is reported as an {@link err}
@@ -34,8 +37,9 @@ export interface WorkflowRunRecordError {
  * @param runId - The run whose record to read.
  * @returns `ok` with the record, or an `err` describing why it couldn't be
  * read.
- * @throws {Error} When the file exists but can't be read for a reason other
- * than the ones above, such as a permissions error. Callers that must
+ * @throws {Error} When the `workflows` folder can't be stat'd, or the file
+ * exists but can't be read, for a reason other than the ones above, such as
+ * a permissions error. Callers that must
  * isolate this failure to one run should catch it and capture it as a
  * `Result` (see `captureSystemError`).
  */
@@ -43,10 +47,10 @@ export async function readWorkflowRun(
   sessionDir: string,
   runId: WorkflowRunId
 ): Promise<Result<WorkflowRunRecord, WorkflowRunRecordError>> {
-  const raw = await readBoundedJsonFile(
-    join(sessionDir, 'workflows', `${runId}.json`),
-    MAX_RUN_RECORD_BYTES
-  )
+  const workflowsDir = join(sessionDir, 'workflows')
+  if (!(await isRealDirectory(workflowsDir))) return err({ reason: 'missing' })
+
+  const raw = await readBoundedJsonFile(join(workflowsDir, `${runId}.json`), MAX_RUN_RECORD_BYTES)
   if (!raw.ok) return raw
 
   const result = workflowRunRecordSchema.safeParse(raw.value)

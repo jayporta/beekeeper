@@ -11,8 +11,14 @@ import {
 import type { ParentLinkInput } from './resolveParents'
 import type { SubagentMetaStatus } from './subagentMetaStatus'
 
-/** One subagent's id and its resolved meta status, as input to `resolveAgentHierarchy`. */
-export type AgentTreeInput = ParentLinkInput
+/**
+ * One subagent as input to `resolveAgentHierarchy` and {@link buildAgentTree}:
+ * its id and resolved meta status, plus the workflow run it belongs to.
+ */
+export interface AgentTreeInput extends ParentLinkInput {
+  /** The workflow run the subagent belongs to, or `null` for one spawned outside a workflow. */
+  readonly workflowRunId: WorkflowRunId | null
+}
 
 /** One node in a session's agent tree: the lead or a subagent. */
 export interface AgentTreeNode {

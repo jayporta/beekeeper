@@ -19,6 +19,7 @@ describe('readSessionAgentTerms', () => {
     const read = vi.fn<AgentTermsCache['read']>(() => Promise.resolve(NO_AGENT_TERMS))
     const entry: SessionEntry = {
       sessionId: toSessionId('11111111-1111-4111-8111-111111111111'),
+      sessionDir: '/x/s',
       transcript: err({ reason: 'unreadable', code: 'EACCES' }),
       subagents: ok([SUBAGENT])
     }

@@ -23,6 +23,7 @@ function scanned(summary: ListableSession['summary']): ListableSession {
     projectDirName: toProjectDirName('-Users-a-repo'),
     entry: {
       sessionId: toSessionId('11111111-1111-4111-8111-111111111111'),
+      sessionDir: '/x/11111111-1111-4111-8111-111111111111',
       transcript: ok({ path: '/x/s.jsonl', mtimeMs: 10, size: 20 }),
       subagents: ok([])
     },
@@ -141,6 +142,7 @@ describe('mapSessionListItem', () => {
       ...scanned(ok(SUMMARY)),
       entry: {
         sessionId: toSessionId('11111111-1111-4111-8111-111111111111'),
+        sessionDir: '/x/11111111-1111-4111-8111-111111111111',
         transcript: err({ reason: 'unreadable', code: 'ENOENT' }),
         subagents: ok([])
       },
@@ -183,6 +185,7 @@ describe('mapSessionListItem', () => {
         ...scanned(ok(SUMMARY)),
         entry: {
           sessionId: toSessionId('11111111-1111-4111-8111-111111111111'),
+          sessionDir: '/x/11111111-1111-4111-8111-111111111111',
           transcript: err({ reason: 'unreadable', code: 'EIO' }),
           subagents: ok([])
         }

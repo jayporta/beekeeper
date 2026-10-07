@@ -1,16 +1,13 @@
 import type { AgentId } from '../transcript/ids'
-import type { WorkflowRunId } from '../transcript/workflowRunId'
 import { findCycleMembers } from './findCycleMembers'
 import type { SubagentMetaStatus } from './subagentMetaStatus'
 
-/** One subagent's id, resolved meta status and workflow run, as input to {@link resolveParents}. */
+/** One subagent's id and its resolved meta status, as input to {@link resolveParents}. */
 export interface ParentLinkInput {
   /** The subagent's id. */
   readonly agentId: AgentId
   /** The subagent's resolved meta status. */
   readonly metaStatus: SubagentMetaStatus
-  /** The workflow run the subagent belongs to, or `null` for one spawned outside a workflow. */
-  readonly workflowRunId: WorkflowRunId | null
 }
 
 /**

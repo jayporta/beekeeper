@@ -51,6 +51,17 @@ describe('readWorkflowRun', () => {
     )
   })
 
+  it('reports a record as missing when the workflows folder is a symlink', async () => {
+    tree = await buildDiscoveryTree({
+      files: { 'elsewhere/wf_a.json': '{"workflowName":"scan"}' },
+      symlinks: { 'session/workflows': '../elsewhere' }
+    })
+
+    expect(await readWorkflowRun(join(tree.root, 'session'), RUN_ID)).toEqual(
+      err({ reason: 'missing' })
+    )
+  })
+
   it('reports a record just over 2 MiB as too-large', async () => {
     // A JSON string of exactly MAX_RECORD_BYTES + 1 bytes: two quotes around the padding.
     const oversized = `"${'a'.repeat(MAX_RECORD_BYTES - 1)}"`

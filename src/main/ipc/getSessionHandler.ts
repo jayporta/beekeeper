@@ -1,4 +1,3 @@
-import { join } from 'node:path'
 import type { IpcResult } from '../../shared/ipc/ipcResult'
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
 import { findRequestedSession } from './findRequestedSession'
@@ -38,7 +37,7 @@ export async function getSessionHandler(
   // Run records are read per request, outside the cached scan, so a run that
   // finishes after the scan was cached still shows its final record.
   const workflowRuns = subagents.ok
-    ? await readWorkflowRuns(join(found.project.path, sessionId), subagents.value)
+    ? await readWorkflowRuns(found.session.sessionDir, subagents.value)
     : []
   return okResult(mapSessionScan({ sessionId, scan, subagentsError, workflowRuns }))
 }
