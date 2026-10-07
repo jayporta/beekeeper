@@ -28,6 +28,23 @@ function lowercasedTerms(terms: readonly AgentSearchTermDto[]): readonly string[
   return texts
 }
 
+/** The run names lowercased once per array, for the same reason as {@link lowercased}. */
+const lowercasedRunNames = new WeakMap<readonly string[], readonly string[]>()
+
+function lowercasedRuns(names: readonly string[]): readonly string[] {
+  let texts = lowercasedRunNames.get(names)
+  if (texts === undefined) {
+    texts = names.map((name) => name.toLowerCase())
+    lowercasedRunNames.set(names, texts)
+  }
+  return texts
+}
+
+/** The index of the first of a session's workflow runs whose name contains `needle`, or -1. */
+function matchingRunIndex(row: SessionRow, needle: string): number {
+  return lowercasedRuns(row.item.workflowRunNames).findIndex((text) => text.includes(needle))
+}
+
 /** The index of the first of a session's subagents whose name, description or type contains `needle`, or -1. */
 function matchingTermIndex(row: SessionRow, needle: string): number {
   return lowercasedTerms(row.item.agentTerms).findIndex((text) => text.includes(needle))
@@ -39,32 +56,50 @@ function labelMatches(row: SessionRow, needle: string): boolean {
 }
 
 /**
- * Whether a session matches the search text, ignoring case: its own label, or
- * the name, description or type of any of its subagents.
+ * Whether a session matches the search text, ignoring case: its own label,
+ * the name of any of its workflow runs, or the name, description or type of
+ * any of its subagents.
  *
  * @param row - The row to test.
  * @param needle - Search text from {@link normalizeQuery}.
- * @returns `true` when the row's own label or one of its own subagents matches.
- * Its teammates are not considered.
+ * @returns `true` when the row's own label, one of its own workflow runs, or
+ * one of its own subagents matches. Its teammates are not considered.
  */
 export function rowMatches(row: SessionRow, needle: string): boolean {
-  return labelMatches(row, needle) || matchingTermIndex(row, needle) >= 0
+  return (
+    labelMatches(row, needle) ||
+    matchingRunIndex(row, needle) >= 0 ||
+    matchingTermIndex(row, needle) >= 0
+  )
+}
+
+/** What a card says its search matches the session through. */
+export interface SessionMatch {
+  /** Whether a workflow run or a subagent matched. */
+  readonly kind: 'workflow' | 'subagent'
+  /** The workflow's name, or the subagent's name, else its type. */
+  readonly name: string
 }
 
 /**
- * Names the subagent a card should say it matches: the first of the session's
- * own subagents that matches, when nothing else on the card does. A match on
- * the session's label, or on a teammate (which the card's chips show), needs
- * no further note.
+ * Names the workflow or subagent a card should say it matches: the first of
+ * the session's own workflow runs that matches, else the first of its own
+ * subagents, when nothing else on the card does. A run wins over a subagent
+ * because its name stands for the whole run. A match on the session's label,
+ * or on a teammate (which the card's chips show), needs no further note.
  *
  * @param row - The top-level row to test.
  * @param needle - Search text from {@link normalizeQuery}.
- * @returns The subagent's name, else its type, or `null` when the search is blank, the label or a teammate matches, or no subagent does.
+ * @returns The match, or `null` when the search is blank, the label or a
+ * teammate matches, or no workflow run or subagent does.
  */
-export function matchedAgentOf(row: SessionRow, needle: string): string | null {
+export function matchOf(row: SessionRow, needle: string): SessionMatch | null {
   if (needle === '' || labelMatches(row, needle)) return null
   if (row.teammates.some((teammate) => rowMatches(teammate, needle))) return null
 
+  const run = row.item.workflowRunNames[matchingRunIndex(row, needle)]
+  if (run !== undefined) return { kind: 'workflow', name: run }
+
   const term = row.item.agentTerms[matchingTermIndex(row, needle)]
-  return term === undefined ? null : (term.name ?? term.agentType)
+  return term === undefined ? null : { kind: 'subagent', name: term.name ?? term.agentType }
 }

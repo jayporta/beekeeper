@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { AgentSearchTermDto } from '../../../../../shared/ipc/sessionListDto'
 import { groupSessionRows } from '../groupSessionRows'
-import { matchedAgentOf, normalizeQuery, rowMatches } from '../sessionMatches'
+import { matchOf, normalizeQuery, rowMatches } from '../sessionMatches'
 import type { SessionRow } from '../sessionRow'
 import {
   testAgentRole,
@@ -65,11 +65,38 @@ describe('rowMatches', () => {
   })
 })
 
-describe('matchedAgentOf', () => {
+/** The one top-level row of a session with these workflow run names and subagent terms. */
+function rowWithRuns(
+  workflowRunNames: readonly string[],
+  agentTerms: readonly AgentSearchTermDto[] = []
+): SessionRow {
+  const [row] = groupSessionRows(
+    [testSession(1, { title: 'Refactor parser', latestMs: 1, agentTerms, workflowRunNames })],
+    testSessionsT
+  )
+  if (row === undefined) throw new Error('No row')
+  return row
+}
+
+describe('rowMatches workflow runs', () => {
+  it('matches a workflow run by its name, ignoring case', () => {
+    expect(rowMatches(rowWithRuns(['Security Scan']), normalizeQuery(' SCAN '))).toBe(true)
+  })
+
+  it('matches any one of several runs', () => {
+    expect(rowMatches(rowWithRuns(['alpha', 'review']), 'view')).toBe(true)
+  })
+
+  it('does not match a run name that is absent', () => {
+    expect(rowMatches(rowWithRuns(['alpha']), 'scan')).toBe(false)
+  })
+})
+
+describe('matchOf', () => {
   const scout = term({ name: 'scout', description: 'Map the auth flow', agentType: 'Explore' })
 
   it('names the subagent when only a subagent matches', () => {
-    expect(matchedAgentOf(rowWith([scout]), 'auth')).toBe('scout')
+    expect(matchOf(rowWith([scout]), 'auth')).toEqual({ kind: 'subagent', name: 'scout' })
   })
 
   it('names the first of several matching subagents', () => {
@@ -78,25 +105,26 @@ describe('matchedAgentOf', () => {
       term({ name: 'second', agentType: 'Plan' })
     ])
 
-    expect(matchedAgentOf(row, 'plan')).toBe('first')
+    expect(matchOf(row, 'plan')).toEqual({ kind: 'subagent', name: 'first' })
   })
 
   it('names the type when the subagent has no name', () => {
-    expect(matchedAgentOf(rowWith([term({ agentType: 'Explore', description: 'x' })]), 'x')).toBe(
-      'Explore'
-    )
+    expect(matchOf(rowWith([term({ agentType: 'Explore', description: 'x' })]), 'x')).toEqual({
+      kind: 'subagent',
+      name: 'Explore'
+    })
   })
 
   it('names nothing when the session’s label also matches', () => {
-    expect(matchedAgentOf(rowWith([scout], 'Scout the auth flow'), 'auth')).toBeNull()
+    expect(matchOf(rowWith([scout], 'Scout the auth flow'), 'auth')).toBeNull()
   })
 
   it('names nothing when the search is blank', () => {
-    expect(matchedAgentOf(rowWith([scout]), '')).toBeNull()
+    expect(matchOf(rowWith([scout]), '')).toBeNull()
   })
 
   it('names nothing when no subagent matches', () => {
-    expect(matchedAgentOf(rowWith([scout]), 'zzz')).toBeNull()
+    expect(matchOf(rowWith([scout]), 'zzz')).toBeNull()
   })
 
   it('names nothing when a teammate matches, since its chip shows the match', () => {
@@ -112,8 +140,8 @@ describe('matchedAgentOf', () => {
     })
     const [row] = groupSessionRows([lead, mate], testSessionsT)
 
-    expect(matchedAgentOf(row as SessionRow, 'review')).toBeNull()
-    expect(matchedAgentOf(row as SessionRow, 'auth')).toBe('scout')
+    expect(matchOf(row as SessionRow, 'review')).toBeNull()
+    expect(matchOf(row as SessionRow, 'auth')).toEqual({ kind: 'subagent', name: 'scout' })
   })
 
   it('names nothing when a teammate and the session’s own subagent both match', () => {
@@ -130,7 +158,7 @@ describe('matchedAgentOf', () => {
     })
     const [row] = groupSessionRows([lead, mate], testSessionsT)
 
-    expect(matchedAgentOf(row as SessionRow, 'auth')).toBeNull()
+    expect(matchOf(row as SessionRow, 'auth')).toBeNull()
   })
 
   it('names nothing when a teammate’s own subagent matches, since its chip shows the match', () => {
@@ -147,6 +175,46 @@ describe('matchedAgentOf', () => {
     })
     const [row] = groupSessionRows([lead, mate], testSessionsT)
 
-    expect(matchedAgentOf(row as SessionRow, 'checker')).toBeNull()
+    expect(matchOf(row as SessionRow, 'checker')).toBeNull()
+  })
+
+  describe('with workflow runs', () => {
+    it('names the workflow when only a run name matches', () => {
+      expect(matchOf(rowWithRuns(['scan']), 'scan')).toEqual({ kind: 'workflow', name: 'scan' })
+    })
+
+    it('names the first of several matching runs', () => {
+      expect(matchOf(rowWithRuns(['scan a', 'scan b']), 'scan')).toEqual({
+        kind: 'workflow',
+        name: 'scan a'
+      })
+    })
+
+    it('names the workflow, not the subagent, when both match', () => {
+      const row = rowWithRuns(['scan'], [term({ name: 'scanner' })])
+
+      expect(matchOf(row, 'scan')).toEqual({ kind: 'workflow', name: 'scan' })
+    })
+
+    it('names nothing when the session’s label also matches', () => {
+      expect(matchOf(rowWithRuns(['parser pass']), 'parser')).toBeNull()
+    })
+
+    it('names nothing when a teammate’s run name matches, since its chip shows the match', () => {
+      const lead = testSession(1, {
+        title: 'Lead',
+        latestMs: 1,
+        team: testLeadTeam([testRef(2)]),
+        agentTerms: [term({ name: 'scanner' })]
+      })
+      const mate = testSession(2, {
+        role: testAgentRole('reviewer', 'code'),
+        team: testTeammateTeam(testRef(1)),
+        workflowRunNames: ['scan']
+      })
+      const [row] = groupSessionRows([lead, mate], testSessionsT)
+
+      expect(matchOf(row as SessionRow, 'scan')).toBeNull()
+    })
   })
 })

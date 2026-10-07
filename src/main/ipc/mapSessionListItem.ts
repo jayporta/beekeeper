@@ -8,6 +8,7 @@ import type { UnreadableError } from '../../core/transcript/unreadableError'
 import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
 import type { SessionTeamDto } from '../../shared/ipc/sessionTeamDto'
 import type { WorkflowCountsDto } from '../../shared/ipc/workflowRunDto'
+import { distinctRunIds } from './distinctRunIds'
 import { errResult, okResult } from './ipcResults'
 import { mapSessionRole } from './mapSessionRole'
 import { toIpcErrorCode } from './toIpcErrorCode'
@@ -22,10 +23,12 @@ export interface ScannedSession {
   readonly summary: Result<SessionSummary, UnreadableError>
 }
 
-/** A scanned session with the search terms of its subagents, ready to list. */
+/** A scanned session with its search terms, ready to list. */
 export interface ListableSession extends ScannedSession {
   /** The search terms of the session's subagents. */
   readonly agentTerms: readonly AgentSearchTerm[]
+  /** The distinct names of the session's workflow runs. */
+  readonly workflowRunNames: readonly string[]
 }
 
 /**
@@ -34,21 +37,15 @@ export interface ListableSession extends ScannedSession {
  * @returns The distinct run count and the number of subagents that ran in a run.
  */
 function countWorkflows(subagents: readonly SubagentEntry[]): WorkflowCountsDto {
-  const runIds = new Set<string>()
-  let agents = 0
-  for (const { workflowRunId } of subagents) {
-    if (workflowRunId === null) continue
-    runIds.add(workflowRunId)
-    agents += 1
-  }
-  return { runs: runIds.size, agents }
+  const agents = subagents.filter(({ workflowRunId }) => workflowRunId !== null).length
+  return { runs: distinctRunIds(subagents).length, agents }
 }
 
 /**
  * Maps a scanned session to its list item, field by field, so no unknown
  * summary field crosses the bridge.
  *
- * @param scanned - The session, its summary read, and its subagent search terms.
+ * @param scanned - The session, its summary read, and its search terms.
  * @param team - The session's team entry, or `null` when it has none.
  * @returns The item as sent to the renderer. Its `team` is `null` whenever
  * the transcript or summary could not be read.
@@ -69,6 +66,7 @@ export function mapSessionListItem(
       subagentCount,
       workflows,
       agentTerms: [],
+      workflowRunNames: [],
       summary: errResult(toIpcErrorCode(entry.transcript.error)),
       team: null
     }
@@ -87,6 +85,7 @@ export function mapSessionListItem(
       description,
       agentType
     })),
+    workflowRunNames: [...scanned.workflowRunNames],
     summary: summary.ok
       ? okResult({
           title: summary.value.title,

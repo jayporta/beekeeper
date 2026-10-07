@@ -1,9 +1,9 @@
-import { compareCodeUnits } from '../../core/shared/compareCodeUnits'
 import type { SubagentEntry } from '../../core/transcript/discoverSubagents'
 import { captureSystemError } from '../../core/transcript/captureSystemError'
 import { readWorkflowRun } from '../../core/transcript/readWorkflowRun'
 import type { WorkflowRunId } from '../../core/transcript/workflowRunId'
 import type { WorkflowRecordDto, WorkflowRunDto } from '../../shared/ipc/workflowRunDto'
+import { distinctRunIds } from './distinctRunIds'
 
 /**
  * Reads the record of one run, field by field, so no field a record gains
@@ -40,13 +40,8 @@ export async function readWorkflowRuns(
   sessionDir: string,
   entries: readonly SubagentEntry[]
 ): Promise<WorkflowRunDto[]> {
-  const runIds = new Set<WorkflowRunId>()
-  for (const { workflowRunId } of entries) {
-    if (workflowRunId !== null) runIds.add(workflowRunId)
-  }
-
   const runs: WorkflowRunDto[] = []
-  for (const runId of [...runIds].sort(compareCodeUnits)) {
+  for (const runId of distinctRunIds(entries)) {
     runs.push({ runId, record: await readRecord(sessionDir, runId) })
   }
   return runs

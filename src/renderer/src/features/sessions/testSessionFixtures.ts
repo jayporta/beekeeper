@@ -37,6 +37,8 @@ interface TestSessionOptions {
   readonly workflows?: SessionListItemDto['workflows']
   /** What a search matches on for each subagent. Defaults to none. */
   readonly agentTerms?: readonly AgentSearchTermDto[]
+  /** The names of the session's workflow runs. Defaults to none. */
+  readonly workflowRunNames?: readonly string[]
   /** How many transcript lines could not be read. Defaults to `0`. */
   readonly skippedLines?: number
   /** The plan limit the session hit. Defaults to `null`. */
@@ -67,6 +69,7 @@ export function testSession(n: number, options: TestSessionOptions = {}): Sessio
     subagentCount = 0,
     workflows = subagentCount === null ? null : { runs: 0, agents: 0 },
     agentTerms = [],
+    workflowRunNames = [],
     skippedLines = 0,
     limitHit = null,
     unreadable = false
@@ -93,6 +96,7 @@ export function testSession(n: number, options: TestSessionOptions = {}): Sessio
     subagentCount,
     workflows,
     agentTerms,
+    workflowRunNames,
     summary: unreadable
       ? { ok: false, error: { code: 'unreadable' } }
       : { ok: true, value: summary },

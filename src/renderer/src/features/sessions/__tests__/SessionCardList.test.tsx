@@ -84,6 +84,22 @@ describe('SessionCardList rendering', () => {
     expect(screen.getByText('matching subagent scout')).toBeTruthy()
   })
 
+  it('names the workflow a search matches, and re-renders the card only when its note changes', () => {
+    const running = testSession(5, {
+      title: 'Runs a workflow',
+      latestMs: 0,
+      workflowRunNames: ['security scan']
+    })
+    const withRun = groupSessionRows([running], testSessionsT)
+    const { rerender } = render(list('', withRun))
+
+    rerender(list('sec', [...withRun]))
+    expect(screen.getByText('matching workflow security scan')).toBeTruthy()
+    expect(renders.get('Runs a workflow')).toBe(2)
+    rerender(list('secu', [...withRun]))
+    expect(renders.get('Runs a workflow')).toBe(2)
+  })
+
   it('re-renders no card when the same rows come again with the same search', () => {
     const { rerender } = render(list(''))
 

@@ -70,6 +70,58 @@ const card = async (name: string): Promise<HTMLElement> => {
   return item
 }
 
+const scanning = testSession(6, {
+  projectDirName: DIR,
+  title: 'Audit deps',
+  latestMs: 4,
+  workflowRunNames: ['security scan']
+})
+
+describe('session search by workflow run', () => {
+  it('shows a session whose workflow run matches, naming the workflow', async () => {
+    await search('SCAN', [scanning, refactor])
+
+    const shown = await card('Audit deps')
+    expect(within(shown).getByText('matching workflow security scan')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Refactor parser' })).toBeNull()
+  })
+
+  it('names the workflow rather than a subagent when both match', async () => {
+    const both = testSession(7, {
+      projectDirName: DIR,
+      title: 'Both',
+      latestMs: 1,
+      workflowRunNames: ['explore sweep'],
+      agentTerms: [SCOUT]
+    })
+
+    await search('explore', [both])
+
+    const shown = await card('Both')
+    expect(within(shown).getByText('matching workflow explore sweep')).toBeTruthy()
+    expect(within(shown).queryByText(/^matching subagent/)).toBeNull()
+  })
+
+  it('shows a workflow name as plain text', async () => {
+    const markup = testSession(8, {
+      projectDirName: DIR,
+      title: 'Plain',
+      latestMs: 1,
+      workflowRunNames: ['<b>bold</b>']
+    })
+
+    await search('bold', [markup])
+
+    expect(within(await card('Plain')).getByText('matching workflow <b>bold</b>')).toBeTruthy()
+  })
+
+  it('shows no "matching workflow" line without a search', async () => {
+    await search('', [scanning])
+
+    expect(within(await card('Audit deps')).queryByText(/^matching workflow/)).toBeNull()
+  })
+})
+
 describe('session search by subagent', () => {
   it.each([
     ['name', 'SCOUT'],

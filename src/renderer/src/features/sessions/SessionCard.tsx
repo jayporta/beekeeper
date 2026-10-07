@@ -28,11 +28,11 @@ interface SessionCardProps {
   /** Whether the card's figures are partial, which adds a marker that the footnote explains. */
   readonly partial: boolean
   /**
-   * The subagent the search matches this session through, when its label and
-   * teammates don't match, or `null`. A primitive, so a card without chips
-   * re-renders only when it changes.
+   * The translated note naming the workflow or subagent the search matches
+   * this session through, when its label and teammates don't match, or
+   * `null`. A string, so a card without chips re-renders only when it changes.
    */
-  readonly matchedAgent: string | null
+  readonly matchNote: string | null
 }
 
 /**
@@ -42,14 +42,14 @@ interface SessionCardProps {
  * empty markers that say what is missing.
  *
  * @example
- * <SessionCard row={row} selectedDirName="-Users-me-repo" needle="" partial={false} matchedAgent={null} />
+ * <SessionCard row={row} selectedDirName="-Users-me-repo" needle="" partial={false} matchNote={null} />
  */
 export const SessionCard = memo(function SessionCard({
   row,
   selectedDirName,
   needle,
   partial,
-  matchedAgent
+  matchNote
 }: SessionCardProps): React.JSX.Element {
   const { t } = useTranslation('sessions')
   const { item, label, teammates } = row
@@ -62,7 +62,7 @@ export const SessionCard = memo(function SessionCard({
   return (
     <li className={styles.card}>
       <CardColumns className={styles.grid}>
-        <SessionCell row={row} selectedDirName={selectedDirName} matchedAgent={matchedAgent} />
+        <SessionCell row={row} selectedDirName={selectedDirName} matchNote={matchNote} />
         <div>
           <AgentStrip item={item} />
           <MutedText>

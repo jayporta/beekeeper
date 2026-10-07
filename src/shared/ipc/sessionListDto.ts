@@ -75,6 +75,12 @@ export interface SessionListItemDto {
    * length. Empty when it has no subagents or none has a readable meta.
    */
   readonly agentTerms: readonly AgentSearchTermDto[]
+  /**
+   * The distinct names of the session's workflow runs, in run id order, capped
+   * in number. Transcript-derived: render it as plain text. Empty when it has
+   * no runs or no run's record gave a name.
+   */
+  readonly workflowRunNames: readonly string[]
   /** The session's summary, or why it is unavailable. */
   readonly summary: IpcResult<SessionSummaryDto>
   /**
