@@ -20,8 +20,9 @@ export interface IpcDeps {
   readonly workflowRunNames: WorkflowRunNamesCache
   /**
    * Shares and caps the summary reads behind a session listing, one per
-   * transcript, and the agent term reads that follow them. Bulk reads nobody
-   * waits on, such as project totals, take its background lane.
+   * transcript, and the agent term and workflow run name reads that follow
+   * them. Bulk reads nobody waits on, such as project totals, take its
+   * background lane.
    */
   readonly summaries: LaneScanScheduler
   /** Shares and caps full session scans. */
