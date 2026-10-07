@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import styles from './PartialFootnote.module.css'
+import { Footnote } from '@renderer/components/Footnote'
 import { PARTIAL_FOOTNOTE_ID } from './partialFootnoteId'
 import type { PartialReason } from './partialReasons'
 
@@ -36,13 +36,9 @@ export function PartialFootnote({
   overrides
 }: PartialFootnoteProps): React.JSX.Element | null {
   const { t } = useTranslation('sessions')
-  const shown = REASON_ORDER.filter((reason) => reasons.has(reason))
-  if (shown.length === 0) return null
-
-  return (
-    <p id={PARTIAL_FOOTNOTE_ID} className={styles.footnote}>
-      {t('footnote.label')}{' '}
-      {shown.map((reason) => overrides?.[reason] ?? t(`footnote.${reason}`)).join(' ')}
-    </p>
+  const sentences = REASON_ORDER.filter((reason) => reasons.has(reason)).map(
+    (reason) => overrides?.[reason] ?? t(`footnote.${reason}`)
   )
+
+  return <Footnote id={PARTIAL_FOOTNOTE_ID} label={t('footnote.label')} sentences={sentences} />
 }

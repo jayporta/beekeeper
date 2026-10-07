@@ -1,5 +1,7 @@
 import { Component, createRef } from 'react'
 import { Translation } from 'react-i18next'
+import { MAIN_HEADING_ID } from '@renderer/components/mainHeading'
+import { StatusMessage } from '@renderer/components/StatusMessage'
 import styles from './AppErrorBoundary.module.css'
 
 /** Props for {@link AppErrorBoundary}. */
@@ -63,11 +65,10 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
 
     const { onReload = reloadWindow } = this.props
     return (
-      <main className={styles.main}>
+      <main className={styles.main} aria-labelledby={MAIN_HEADING_ID}>
         <Translation ns="common">
           {(t) => (
-            <div className={styles.fallback} role="alert">
-              <h1 className={styles.heading}>{t('error.heading')}</h1>
+            <StatusMessage heading={t('error.heading')} role="alert">
               <p>{t('error.unexpected')}</p>
               <button
                 ref={this.reloadButton}
@@ -77,7 +78,7 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
               >
                 {t('error.reload')}
               </button>
-            </div>
+            </StatusMessage>
           )}
         </Translation>
       </main>

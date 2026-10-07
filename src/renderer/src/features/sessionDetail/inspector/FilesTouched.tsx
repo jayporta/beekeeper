@@ -4,6 +4,7 @@ import type { AgentReportDto } from '../../../../../shared/ipc/agentDto'
 import styles from './FilesTouched.module.css'
 import { groupFileTouches } from './groupFileTouches'
 import { InspectorMarker } from './InspectorMarker'
+import { InspectorList } from './InspectorList'
 import { InspectorNote } from './InspectorNote'
 import { InspectorSection } from './InspectorSection'
 
@@ -43,7 +44,7 @@ export function FilesTouched({ report }: FilesTouchedProps): React.JSX.Element {
           {fileListIncomplete ? t('inspector.noEditsRecorded') : t('inspector.readOnly')}
         </InspectorNote>
       ) : (
-        <ul className={styles.files}>
+        <InspectorList>
           {files.map(({ filePath, operations, touches }) => (
             <li key={filePath} className={styles.file}>
               <span className={styles.path}>
@@ -68,7 +69,7 @@ export function FilesTouched({ report }: FilesTouchedProps): React.JSX.Element {
               </span>
             </li>
           ))}
-        </ul>
+        </InspectorList>
       )}
     </InspectorSection>
   )

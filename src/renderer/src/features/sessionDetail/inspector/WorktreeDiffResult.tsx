@@ -6,7 +6,8 @@ import type {
 import { diffFailureKey } from './diffFailureKey'
 import { summarizeNumstat } from './summarizeNumstat'
 import { uncommittedNoteKey } from './uncommittedNoteKey'
-import styles from './WorktreeDiffBox.module.css'
+import { InspectorNote } from './InspectorNote'
+import styles from './WorktreeDiffResult.module.css'
 
 /** Props for {@link WorktreeDiffResult}. */
 interface WorktreeDiffResultProps {
@@ -30,19 +31,19 @@ export function WorktreeDiffResult({ diffs, entry }: WorktreeDiffResultProps): R
   const { t } = useTranslation('sessionDetail')
 
   if (diffs.git === 'git-not-found') {
-    return <p className={styles.note}>{t('inspector.worktree.gitNotFound')}</p>
+    return <InspectorNote>{t('inspector.worktree.gitNotFound')}</InspectorNote>
   }
   if (diffs.git === 'git-too-old') {
-    return <p className={styles.note}>{t('inspector.worktree.gitTooOld')}</p>
+    return <InspectorNote>{t('inspector.worktree.gitTooOld')}</InspectorNote>
   }
   if (entry === undefined) {
-    return <p className={styles.note}>{t('inspector.worktree.failure.failed')}</p>
+    return <InspectorNote>{t('inspector.worktree.failure.failed')}</InspectorNote>
   }
   if (!entry.result.ok) {
     return (
-      <p className={styles.note}>
+      <InspectorNote>
         {t(`inspector.worktree.failure.${diffFailureKey(entry.result.code)}`)}
-      </p>
+      </InspectorNote>
     )
   }
 
@@ -57,7 +58,7 @@ export function WorktreeDiffResult({ diffs, entry }: WorktreeDiffResultProps): R
           <> {t('inspector.worktree.untracked', { count: untracked.length })}</>
         )}
       </p>
-      {noteKey !== null && <p className={styles.note}>{t(`inspector.worktree.${noteKey}`)}</p>}
+      {noteKey !== null && <InspectorNote>{t(`inspector.worktree.${noteKey}`)}</InspectorNote>}
     </>
   )
 }

@@ -1,3 +1,4 @@
+import { InspectorHeading } from './InspectorHeading'
 import styles from './InspectorSection.module.css'
 
 /** Props for {@link InspectorSection}. */
@@ -20,7 +21,7 @@ interface InspectorSectionProps {
 export function InspectorSection({ heading, children }: InspectorSectionProps): React.JSX.Element {
   return (
     <section className={styles.section}>
-      <h3 className={styles.heading}>{heading}</h3>
+      <InspectorHeading>{heading}</InspectorHeading>
       {children}
     </section>
   )

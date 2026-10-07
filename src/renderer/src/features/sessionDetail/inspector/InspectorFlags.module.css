@@ -1,10 +1,5 @@
 .flags {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1-5);
   align-items: flex-start;
-  padding: 0;
-  list-style: none;
 }
 
 .flag {

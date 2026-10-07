@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import styles from './InspectorFootnote.module.css'
+import { Footnote } from '@renderer/components/Footnote'
 import { INSPECTOR_FOOTNOTE_ID } from './inspectorFootnoteId'
 import type { InspectorReason } from './inspectorReasons'
 
@@ -31,13 +31,15 @@ interface InspectorFootnoteProps {
  */
 export function InspectorFootnote({ reasons }: InspectorFootnoteProps): React.JSX.Element | null {
   const { t } = useTranslation('sessionDetail')
-  const shown = REASON_ORDER.filter((reason) => reasons.has(reason))
-  if (shown.length === 0) return null
+  const sentences = REASON_ORDER.filter((reason) => reasons.has(reason)).map((reason) =>
+    t(`inspector.footnote.${reason}`)
+  )
 
   return (
-    <p id={INSPECTOR_FOOTNOTE_ID} className={styles.footnote}>
-      {t('inspector.footnote.label')}{' '}
-      {shown.map((reason) => t(`inspector.footnote.${reason}`)).join(' ')}
-    </p>
+    <Footnote
+      id={INSPECTOR_FOOTNOTE_ID}
+      label={t('inspector.footnote.label')}
+      sentences={sentences}
+    />
   )
 }

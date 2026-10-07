@@ -7,6 +7,8 @@ import { shortId } from '@renderer/features/sessions/sessionLabel'
 import { WorktreePatchDialog } from '../patch/WorktreePatchDialog'
 import { useWorktreeDiffs } from '../useWorktreeDiffs'
 import { diffsOlderThanDetail } from './diffsOlderThanDetail'
+import { InspectorHeading } from './InspectorHeading'
+import { InspectorNote } from './InspectorNote'
 import { useAnnounceSharedWorktree } from './useAnnounceSharedWorktree'
 import { WorktreeDiffResult } from './WorktreeDiffResult'
 import styles from './WorktreeDiffBox.module.css'
@@ -68,7 +70,7 @@ export function WorktreeDiffBox({
     <>
       {status}
       <section className={styles.box}>
-        <h3 className={styles.label}>{t('inspector.worktree.label')}</h3>
+        <InspectorHeading>{t('inspector.worktree.label')}</InspectorHeading>
         {branch !== null && (
           <p className={styles.branch}>
             <bdi>{branch}</bdi>
@@ -77,9 +79,9 @@ export function WorktreeDiffBox({
         {agentId !== null && (
           <div role="status" className={styles.result}>
             {diffs === undefined ? (
-              <p className={styles.note}>
+              <InspectorNote>
                 {isError ? t('inspector.worktree.loadFailed') : t('inspector.worktree.loading')}
-              </p>
+              </InspectorNote>
             ) : (
               <WorktreeDiffResult diffs={diffs} entry={entry} />
             )}
@@ -109,7 +111,7 @@ export function WorktreeDiffBox({
         )}
         {shared !== null && (
           <>
-            <p className={styles.note}>{sharedNote}</p>
+            <InspectorNote>{sharedNote}</InspectorNote>
             <button
               type="button"
               className={styles.show}
