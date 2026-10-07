@@ -3,13 +3,14 @@ import { afterEach, describe, expect, it } from 'vitest'
 import type { IpcResult } from '../../../../../shared/ipc/ipcResult'
 import type { ProjectTotalsDto } from '../../../../../shared/ipc/projectTotalsDto'
 import { useSelectedProjectStore } from '@renderer/features/projects/state/useSelectedProjectStore'
-import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
+import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
 import {
   createQueryWrapper,
   createTestQueryClient,
   refetchAndSettle
 } from '@renderer/testQueryWrapper'
 import { useTotalsWindowStore } from '../state/useTotalsWindowStore'
+import { listing } from '../testProjectListing'
 import { testTotals } from '../testTotals'
 import { useProjectTotals } from '../useProjectTotals'
 
@@ -29,11 +30,6 @@ function deferred(): { promise: Promise<Reply>; settle: (reply: Reply) => void }
   })
   return { promise, settle }
 }
-
-const listing =
-  (...dirs: string[]): (() => Promise<IpcResult<ReturnType<typeof testProject>[]>>) =>
-  () =>
-    Promise.resolve({ ok: true, value: dirs.map((dir) => testProject(dir)) })
 
 describe('useProjectTotals', () => {
   it('has no folders until the project list loads', () => {

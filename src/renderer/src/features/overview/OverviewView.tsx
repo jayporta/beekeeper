@@ -1,20 +1,16 @@
-import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { StatusMessage } from '@renderer/components/StatusMessage'
-import { groupProjects } from '@renderer/features/projects/groupProjects'
-import { useProjects } from '@renderer/features/projects/useProjects'
 import { OverviewFootnote } from './OverviewFootnote'
 import { OverviewHeader } from './OverviewHeader'
 import styles from './OverviewView.module.css'
 import { partialReasonsOf } from './partialReasons'
 import { ProjectCard } from './ProjectCard'
-import { overviewTotals, projectTotalsOf } from './projectTotalsOf'
 import { shareOfLargest } from './shareOfLargest'
 import { totalsStatus } from './sumTotals'
 import { TotalsAnnouncement } from './TotalsAnnouncement'
 import { TotalsStrip } from './TotalsStrip'
 import type { TotalsOutcome } from './useTotalsAnnouncement'
-import { useProjectTotals } from './useProjectTotals'
+import { useProjectGroupTotals } from './useProjectGroupTotals'
 
 /**
  * The all-projects overview: a header with the 7 or 30 day window, the totals
@@ -34,15 +30,7 @@ import { useProjectTotals } from './useProjectTotals'
  */
 export function OverviewView(): React.JSX.Element {
   const { t } = useTranslation('overview')
-  const { data: projects } = useProjects()
-  const { window: range, byFolder } = useProjectTotals()
-
-  const groups = useMemo(() => groupProjects(projects ?? []), [projects])
-  const cards = useMemo(
-    () => groups.map((group) => ({ group, totals: projectTotalsOf(group, byFolder) })),
-    [groups, byFolder]
-  )
-  const overall = useMemo(() => overviewTotals(groups, byFolder), [groups, byFolder])
+  const { window: range, items: cards, overall } = useProjectGroupTotals()
 
   const largest = Math.max(
     0,
@@ -67,7 +55,7 @@ export function OverviewView(): React.JSX.Element {
     <div className={styles.view}>
       <OverviewHeader />
       <TotalsAnnouncement range={range} settled={settled} outcome={outcome} />
-      {groups.length > 0 && <TotalsStrip totals={overall} range={range} />}
+      {cards.length > 0 && <TotalsStrip totals={overall} range={range} />}
       {idle && (
         <StatusMessage
           headingLevel={2}

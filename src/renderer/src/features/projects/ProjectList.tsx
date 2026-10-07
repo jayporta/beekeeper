@@ -1,20 +1,17 @@
-import { useId, useMemo } from 'react'
+import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
-import { overviewTotals, projectTotalsOf } from '@renderer/features/overview/projectTotalsOf'
 import { showsMayBeLow } from '@renderer/features/overview/showsMayBeLow'
 import { SidebarMayBeLowNote } from '@renderer/features/overview/SidebarMayBeLowNote'
 import { SidebarTotal } from '@renderer/features/overview/SidebarTotal'
-import { useProjectTotals } from '@renderer/features/overview/useProjectTotals'
-import { groupProjects } from './groupProjects'
+import { useProjectGroupTotals } from '@renderer/features/overview/useProjectGroupTotals'
 import { hasProjectsToShow } from './hasProjectsToShow'
 import { ProjectRow } from './ProjectRow'
 import styles from './ProjectList.module.css'
 import { projectTitle } from './projectTitle'
 import { useSelectedProjectDirName } from './state/useSelectedProjectDirName'
 import { useSelectedProjectStore } from './state/useSelectedProjectStore'
-import { useProjects } from './useProjects'
 
 /**
  * The sidebar's project navigation: an "All projects" row, then a row for
@@ -31,8 +28,7 @@ import { useProjects } from './useProjects'
  */
 export function ProjectList(): React.JSX.Element | null {
   const { t } = useTranslation('projects')
-  const { data } = useProjects()
-  const { byFolder } = useProjectTotals()
+  const { projects: data, items: rows, overall } = useProjectGroupTotals()
   const selected = useSelectedProjectDirName()
   const select = useSelectedProjectStore((state) => state.select)
   const isOverview = useNavigationStore((state) => state.view === 'overview')
@@ -40,13 +36,6 @@ export function ProjectList(): React.JSX.Element | null {
   const showSessions = useNavigationStore((state) => state.showSessions)
   const dismissFirstRun = useFirstRunStore((state) => state.dismiss)
   const labelId = useId()
-
-  const groups = useMemo(() => groupProjects(data ?? []), [data])
-  const rows = useMemo(
-    () => groups.map((group) => ({ group, totals: projectTotalsOf(group, byFolder) })),
-    [groups, byFolder]
-  )
-  const overall = useMemo(() => overviewTotals(groups, byFolder), [groups, byFolder])
 
   if (data === undefined || !hasProjectsToShow(data)) return null
 

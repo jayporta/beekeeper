@@ -1,4 +1,4 @@
-import { isPartialFor } from './partialReasons'
+import { partialFiguresOf } from './partialReasons'
 import { totalsStatus, type AggregateTotals } from './sumTotals'
 
 /**
@@ -8,5 +8,5 @@ import { totalsStatus, type AggregateTotals } from './sumTotals'
  * @returns `true` when the figure is on screen and its tokens may be low.
  */
 export function showsMayBeLow(totals: AggregateTotals): boolean {
-  return totalsStatus(totals) === 'ready' && isPartialFor(totals, 'tokens')
+  return totalsStatus(totals) === 'ready' && partialFiguresOf(totals).tokens
 }

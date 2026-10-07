@@ -1,9 +1,9 @@
-import { discoverProjects } from '../../core/transcript/discoverProjects'
 import type { IpcResult } from '../../shared/ipc/ipcResult'
 import type { ProjectTotalsDto } from '../../shared/ipc/projectTotalsDto'
 import { getProjectTotalsRequestSchema } from '../../shared/ipc/requestSchemas'
 import { folderTotals, type TotalsSession } from '../overview/folderTotals'
 import { mayCountInWindow, TOTALS_WINDOW_MS } from '../overview/totalsWindow'
+import { findProject } from './findProject'
 import type { IpcDeps } from './ipcDeps'
 import { errResult, okResult } from './ipcResults'
 import { mapProjectTotals } from './mapProjectTotals'
@@ -45,8 +45,7 @@ export async function getProjectTotalsHandler(
   const request = getProjectTotalsRequestSchema.safeParse(payload)
   if (!request.success) return errResult('invalid-request')
 
-  const projects = await discoverProjects(deps.projectsRoot)
-  const project = projects.find((entry) => entry.dirName === request.data.projectDirName)
+  const project = await findProject(deps.projectsRoot, request.data.projectDirName)
   if (project === undefined) return errResult('not-found')
 
   const nowMs = deps.now()
