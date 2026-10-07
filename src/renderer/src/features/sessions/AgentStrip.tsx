@@ -12,8 +12,8 @@ interface AgentStripProps {
 
 /**
  * A row of marks for a session's agents: a filled square for a lead, a solid
- * outlined square for each teammate, and a smaller dashed square for each
- * subagent, then "+N" for any the marks leave out. It is hidden from
+ * outlined square for each teammate, a double-bordered square for each
+ * workflow run, and a smaller dashed square for each subagent, then "+N" for any the marks leave out. It is hidden from
  * assistive technology, since the card's agent count says the same in words.
  *
  * @example

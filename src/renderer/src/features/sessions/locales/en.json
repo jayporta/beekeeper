@@ -15,7 +15,11 @@
     "teammates_other": "{{count, integer}} teammates",
     "subagents_one": "{{count, integer}} subagent",
     "subagents_other": "{{count, integer}} subagents",
-    "both": "{{teammates}}, {{subagents}}",
+    "separator": ", ",
+    "workflows_one": "{{count, integer}} workflow ({{agents}})",
+    "workflows_other": "{{count, integer}} workflows ({{agents}})",
+    "workflowAgents_one": "{{count, integer}} agent",
+    "workflowAgents_other": "{{count, integer}} agents",
     "none": "None"
   },
   "duration": {
@@ -81,6 +85,7 @@
   "legend": {
     "lead": "Lead",
     "teammate": "Teammate",
+    "workflow": "Workflow",
     "subagent": "Subagent"
   },
   "chip": {

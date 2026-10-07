@@ -10,7 +10,12 @@ import { SessionCard } from './SessionCard'
 import styles from './SessionCardList.module.css'
 import type { SessionRow } from './sessionRow'
 
-const KIND_ORDER = ['lead', 'teammate', 'subagent'] as const satisfies readonly AgentMarkKind[]
+const KIND_ORDER = [
+  'lead',
+  'teammate',
+  'workflow',
+  'subagent'
+] as const satisfies readonly AgentMarkKind[]
 
 /** The kinds of mark that the cards' agent strips draw, in the legend's order. */
 function kindsDrawn(rows: readonly SessionRow[]): readonly AgentMarkKind[] {

@@ -93,3 +93,19 @@ describe('SessionCardList rendering', () => {
     expect(renders.get('No chips')).toBe(1)
   })
 })
+
+describe('SessionCardList legend', () => {
+  it('lists the workflow mark between the teammate and subagent marks, as the strips draw them', () => {
+    const withRun = testSession(4, {
+      title: 'With a run',
+      subagentCount: 3,
+      workflows: { runs: 1, agents: 2 }
+    })
+
+    render(list('', groupSessionRows([withRun], testSessionsT)))
+
+    expect(screen.getByText('Workflow').parentElement?.textContent?.trim()).toBe(
+      'Lead Workflow Subagent'
+    )
+  })
+})

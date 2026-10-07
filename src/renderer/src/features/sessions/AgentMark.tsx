@@ -9,8 +9,8 @@ interface AgentMarkProps {
 
 /**
  * One mark of the agent strip and its legend: a filled square for a lead, a
- * solid outlined square for a teammate, and a smaller dashed square for a
- * subagent. It is decorative, so it has no text of its own.
+ * solid outlined square for a teammate, a double-bordered square for a
+ * workflow run, and a smaller dashed square for a subagent. It is decorative, so it has no text of its own.
  *
  * @example
  * <AgentMark kind="teammate" />

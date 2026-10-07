@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { PartialMarker } from '@renderer/components/PartialMarker'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import type { SessionRefDto } from '../../../../shared/ipc/sessionRefDto'
+import { agentCounts } from './agentCounts'
+import { workflowsText } from './agentCountLabel'
 import { EmptyCell } from './EmptyCell'
 import { formatTokens } from './formatTokens'
 import { folderNote, stoppedNote } from './itemNotes'
@@ -26,7 +28,7 @@ interface TeammateChipProps {
 
 /**
  * A button for one teammate under a lead's card: its name, a muted note
- * (stopped, its subagent count, or the folder it lives in), and its own
+ * (stopped, its subagent and workflow counts, or the folder it lives in), and its own
  * tokens. Pressing it opens the lead's session with the teammate selected.
  * It is memoized so a search change re-renders only the chips whose match changes.
  *
@@ -43,10 +45,11 @@ export const TeammateChip = memo(function TeammateChip({
   const showSession = useNavigationStore((state) => state.showSession)
   const { item, label } = teammate
   const { tokens, tokensPartial } = sessionUsage(item).session
-  const subagents = item.subagentCount ?? 0
+  const counts = agentCounts(item)
   const notes = [
     stoppedNote(item, t),
-    subagents > 0 ? t('agents.subagents', { count: subagents }) : null,
+    counts.subagents > 0 ? t('agents.subagents', { count: counts.subagents }) : null,
+    workflowsText(counts, t),
     folderNote(item, selectedDirName, t)
   ].filter((note) => note !== null)
   const formatted = formatTokens(tokens, t)
