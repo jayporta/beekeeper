@@ -1,7 +1,7 @@
 import type { AgentKey } from './agentGraphNode'
 import type { GraphT } from './graphT'
 import type { GraphLayout } from './layoutGraph'
-import { workflowLabel } from './workflowLabel'
+import { nodeLabel } from './nodeLabel'
 
 /**
  * Finds each node's parent's name, which a node's accessible name carries
@@ -13,14 +13,7 @@ import { workflowLabel } from './workflowLabel'
  * @returns The parent's name by node key. The root has no entry. Transcript-derived: render as plain text.
  */
 export function parentNames(layout: GraphLayout, t: GraphT): ReadonlyMap<AgentKey, string> {
-  const names = new Map(
-    layout.nodes.map(({ node }) => [
-      node.key,
-      node.kind === 'workflow' && node.workflow !== null
-        ? workflowLabel(node.workflow, t)
-        : node.name
-    ])
-  )
+  const names = new Map(layout.nodes.map(({ node }) => [node.key, nodeLabel(node, t)]))
   const parents = new Map<AgentKey, string>()
   for (const { from, to } of layout.edges) {
     const name = names.get(from)

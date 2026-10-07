@@ -5,6 +5,7 @@ import styles from './GraphCanvas.module.css'
 import { GraphFootnote } from './GraphFootnote'
 import { GraphNode } from './GraphNode'
 import { GraphViewport } from './GraphViewport'
+import { nodeLabel } from './nodeLabel'
 import { parentNames } from './parentNames'
 import type { AgentGraph } from './useAgentGraph'
 import { useGraphAnnouncement } from './useGraphAnnouncement'
@@ -37,7 +38,8 @@ export function GraphCanvas({ graph }: GraphCanvasProps): React.JSX.Element {
 
   const { t } = useTranslation(['sessionDetail', 'sessions'])
   const parents = useMemo(() => parentNames(layout, t), [layout, t])
-  const selectedName = layout.nodes.find(({ node }) => node.key === selectedKey)?.node.name ?? ''
+  const selectedNode = layout.nodes.find(({ node }) => node.key === selectedKey)?.node
+  const selectedName = selectedNode === undefined ? '' : nodeLabel(selectedNode, t)
   const announcement = useGraphAnnouncement({
     root,
     expansions,
