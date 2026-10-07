@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { MutedText } from '@renderer/components/MutedText'
 import { AgentMark } from './AgentMark'
 import type { AgentMarkKind } from './agentMarks'
 import styles from './AgentLegend.module.css'
@@ -22,12 +23,12 @@ export function AgentLegend({ kinds }: AgentLegendProps): React.JSX.Element | nu
   if (kinds.length === 0) return null
 
   return (
-    <div className={styles.legend} aria-hidden="true">
+    <MutedText as="div" smaller decorative className={styles.legend}>
       {kinds.map((kind) => (
         <span key={kind} className={styles.item}>
           <AgentMark kind={kind} /> {t(`legend.${kind}`)}
         </span>
       ))}
-    </div>
+    </MutedText>
   )
 }

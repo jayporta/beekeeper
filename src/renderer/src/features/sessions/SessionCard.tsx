@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { MutedText } from '@renderer/components/MutedText'
 import { agentCountLabel } from './agentCountLabel'
 import { AgentStrip } from './AgentStrip'
 import { CardColumns } from './CardColumns'
@@ -64,10 +65,10 @@ export const SessionCard = memo(function SessionCard({
         <SessionCell row={row} selectedDirName={selectedDirName} matchedAgent={matchedAgent} />
         <div>
           <AgentStrip item={item} />
-          <p className={styles.muted}>
+          <MutedText>
             <span className="visuallyHidden">{t('columns.agents')} </span>
             {agents ?? <EmptyCell />}
-          </p>
+          </MutedText>
         </div>
         <p>
           <span className="visuallyHidden">{t('columns.duration')} </span>

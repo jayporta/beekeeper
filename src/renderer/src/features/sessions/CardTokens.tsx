@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { MutedText } from '@renderer/components/MutedText'
 import { PartialMarker } from '@renderer/components/PartialMarker'
 import { formatUsd } from '@renderer/i18n/formatUsd'
 import { EmptyCell } from './EmptyCell'
@@ -47,14 +48,14 @@ export function CardTokens({ figures, teamTotal, partial }: CardTokensProps): Re
         {tokens ?? <EmptyCell spokenText={t('emptyCell.tokensNotRecorded')} />}
         {partial && <PartialMarker note={t('partialNote')} />}
       </p>
-      {teamTotal && <p className={styles.sub}>{t('teamTotal')}</p>}
-      <p className={styles.sub}>
+      {teamTotal && <MutedText smaller>{t('teamTotal')}</MutedText>}
+      <MutedText smaller>
         {usd === null ? (
           <EmptyCell spokenText={t('emptyCell.costNotRecorded')} />
         ) : (
           t('apiCost', { value: usd })
         )}
-      </p>
+      </MutedText>
     </div>
   )
 }

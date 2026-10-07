@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { MutedText } from '@renderer/components/MutedText'
 import { AgentMark } from './AgentMark'
 import { agentMarks } from './agentMarks'
 import styles from './AgentStrip.module.css'
@@ -29,9 +30,7 @@ export function AgentStrip({ item }: AgentStripProps): React.JSX.Element {
         // The marks are interchangeable and never reorder, so the position is the identity.
         <AgentMark key={index} kind={kind} />
       ))}
-      {overflow > 0 && (
-        <span className={styles.more}>{t('agentStrip.more', { count: overflow })}</span>
-      )}
+      {overflow > 0 && <MutedText as="span">{t('agentStrip.more', { count: overflow })}</MutedText>}
     </div>
   )
 }
