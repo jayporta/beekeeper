@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createSessionScanDir, type SessionScanDir } from '../../../core/session/testSessionDir'
 import { err, ok } from '../../../core/shared/result'
 import type { SessionEntry } from '../../../core/transcript/discoverSessions'
@@ -14,10 +14,25 @@ import { createDailyUsageCache } from '../dailyUsageCache'
 import { createDayKeyOf } from '../localDayKey'
 import { readSessionDailyUsage } from '../readSessionDailyUsage'
 
+/** How many times the full lead and subagent scan ran. */
+const fullScans = vi.hoisted(() => ({ count: 0 }))
+
+vi.mock('../../../core/usage/scanSessionDailyUsage', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../core/usage/scanSessionDailyUsage')>()
+  return {
+    ...actual,
+    scanSessionDailyUsage: (options: Parameters<typeof actual.scanSessionDailyUsage>[0]) => {
+      fullScans.count += 1
+      return actual.scanSessionDailyUsage(options)
+    }
+  }
+})
+
 let dir: SessionScanDir
 
 beforeEach(() => {
   dir = createSessionScanDir()
+  fullScans.count = 0
 })
 
 afterEach(() => {
@@ -136,6 +151,7 @@ describe('readSessionDailyUsage', () => {
     const result = await readSessionDailyUsage(session, deps)
 
     expect(scanKeys).toHaveLength(1)
+    expect(fullScans.count).toBe(0)
     expect(result).toMatchObject({
       ok: true,
       value: {
@@ -174,6 +190,7 @@ describe('readSessionDailyUsage', () => {
     const result = await readSessionDailyUsage(session, past)
 
     expect(scanKeys).toHaveLength(1)
+    expect(fullScans.count).toBe(1)
     expect(result).toMatchObject({
       ok: true,
       value: {
