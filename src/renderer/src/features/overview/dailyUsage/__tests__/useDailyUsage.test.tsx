@@ -121,6 +121,69 @@ describe('useDailyUsage', () => {
     expect(api.getProjectDailyUsage).toHaveBeenCalledWith('-a', '30d')
   })
 
+  it('keeps the other window’s figures, marked refreshing, until the new window’s arrive', async () => {
+    const thirty = deferred()
+    installBeekeeperApi({
+      listProjects: listing('-a'),
+      getProjectDailyUsage: (_dir, window) =>
+        window === '7d' ? Promise.resolve(replyOf(1)) : thirty.promise
+    })
+    const { result } = renderHook(() => useDailyUsage(), { wrapper: createQueryWrapper() })
+    await waitFor(() => {
+      expect(result.current.summary.total).toBe(7)
+    })
+    expect(result.current.summary.refreshing).toBe(false)
+
+    act(() => {
+      useTotalsWindowStore.getState().setWindow('30d')
+    })
+
+    expect(result.current.summary).toMatchObject({ total: 7, refreshing: true, loading: 0 })
+    act(() => {
+      thirty.settle(replyOf(1, 30))
+    })
+    await waitFor(() => {
+      expect(result.current.summary).toMatchObject({ total: 30, refreshing: false })
+    })
+  })
+
+  it('is loading, not another window’s figures, for a window nothing was ever loaded for', async () => {
+    const seven = deferred()
+    installBeekeeperApi({ listProjects: listing('-a'), getProjectDailyUsage: () => seven.promise })
+    const { result } = renderHook(() => useDailyUsage(), { wrapper: createQueryWrapper() })
+    await waitFor(() => {
+      expect(result.current.summary.loading).toBe(1)
+    })
+
+    act(() => {
+      useTotalsWindowStore.getState().setWindow('30d')
+    })
+
+    expect(result.current.summary).toMatchObject({ days: [], loading: 1, refreshing: false })
+  })
+
+  it('keeps yesterday’s figures, marked refreshing, while the new day loads', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 2, 10, 23, 0))
+    const today = deferred()
+    let calls = 0
+    installBeekeeperApi({
+      listProjects: listing('-a'),
+      getProjectDailyUsage: () => (calls++ === 0 ? Promise.resolve(replyOf(1)) : today.promise)
+    })
+    const { result, rerender } = renderHook(() => useDailyUsage(), {
+      wrapper: createQueryWrapper()
+    })
+    await waitFor(() => {
+      expect(result.current.summary.total).toBe(7)
+    })
+
+    vi.setSystemTime(new Date(2026, 2, 11, 0, 1))
+    rerender()
+
+    expect(result.current.summary).toMatchObject({ total: 7, refreshing: true })
+  })
+
   it('asks again when the local day changes', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(2026, 2, 10, 23, 0))

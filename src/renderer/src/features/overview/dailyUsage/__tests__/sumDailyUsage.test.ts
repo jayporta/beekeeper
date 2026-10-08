@@ -4,7 +4,13 @@ import { testDailyUsage } from '../testDailyUsage'
 
 const ready = (...args: Parameters<typeof testDailyUsage>): FolderDailyUsageState => ({
   status: 'ready',
-  usage: testDailyUsage(...args)
+  usage: testDailyUsage(...args),
+  refreshing: false
+})
+const refreshingReady = (): FolderDailyUsageState => ({
+  status: 'ready',
+  usage: testDailyUsage({ '2026-03-10': { a: 1 } }),
+  refreshing: true
 })
 const LOADING: FolderDailyUsageState = { status: 'loading' }
 const FAILED: FolderDailyUsageState = { status: 'error' }
@@ -86,6 +92,16 @@ describe('sumDailyUsage', () => {
       undated: 4,
       unreadableSubagents: 3
     })
+  })
+
+  it('is refreshing when any ready folder shows the previous window’s figures', () => {
+    expect(sumDailyUsage([ready({ '2026-03-10': {} }), refreshingReady()], 1).refreshing).toBe(true)
+  })
+
+  it('is not refreshing when no ready folder is, whatever else is loading or failed', () => {
+    const summary = sumDailyUsage([ready({ '2026-03-10': {} }), LOADING, FAILED], 1)
+
+    expect(summary.refreshing).toBe(false)
   })
 
   it('has no days when no folder is ready', () => {

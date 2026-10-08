@@ -1,0 +1,24 @@
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3-5);
+  padding: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  list-style: none;
+}
+
+.item {
+  display: inline-flex;
+  gap: var(--space-1-5);
+  align-items: center;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.swatch {
+  display: inline-block;
+  flex: none;
+  inline-size: var(--size-mark);
+  block-size: var(--size-mark);
+}

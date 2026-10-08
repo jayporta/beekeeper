@@ -6,6 +6,7 @@ import { unwrapIpcResult } from '@renderer/ipc/unwrapIpcResult'
 import { useProjects } from '@renderer/features/projects/useProjects'
 import { useTotalsWindowStore } from '../state/useTotalsWindowStore'
 import { dailyUsageLimiterFor } from './dailyUsageLimiter'
+import { newestDailyUsage } from './newestDailyUsage'
 import { useTodayKey } from './useTodayKey'
 import { sumDailyUsage, type DailyUsageSummary, type FolderDailyUsageState } from './sumDailyUsage'
 
@@ -13,7 +14,9 @@ const DAY_COUNT: Readonly<Record<TotalsWindowDto, number>> = { '7d': 7, '30d': 3
 
 function stateOf(result: UseQueryResult<ProjectDailyUsageDto>): FolderDailyUsageState {
   // Data wins over a failed background refresh, so figures on screen stay on screen.
-  if (result.data !== undefined) return { status: 'ready', usage: result.data }
+  if (result.data !== undefined) {
+    return { status: 'ready', usage: result.data, refreshing: result.isPlaceholderData }
+  }
   return result.isError ? { status: 'error' } : { status: 'loading' }
 }
 
@@ -31,7 +34,10 @@ export interface DailyUsage {
  *
  * @remarks
  * The query key holds today's local day, so a new day asks again and a
- * persisted result from another day is never mixed in. Requests go through
+ * persisted result from another day is never mixed in. While a folder's usage
+ * for a window or day loads, its newest cached usage, if any, shows in its
+ * place and is marked refreshing, so switching windows or passing midnight
+ * never empties the chart. Requests go through
  * their own limiter, one folder at a time in list order, separate from the
  * totals' limiter; a request still waiting when nothing shows it any more
  * never starts. The queries take the defaults of their persisted root: they
@@ -60,7 +66,8 @@ export function useDailyUsage(): DailyUsage {
         dailyUsageLimiterFor(client).run(
           async () => unwrapIpcResult(await window.beekeeper.getProjectDailyUsage(dirName, range)),
           signal
-        )
+        ),
+      placeholderData: () => newestDailyUsage(client, dirName)
     })),
     combine
   })

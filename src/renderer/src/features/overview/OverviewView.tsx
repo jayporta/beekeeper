@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { StatusMessage } from '@renderer/components/StatusMessage'
+import { DailyUsageSection } from './dailyUsage/DailyUsageSection'
 import { OverviewFootnote } from './OverviewFootnote'
 import { OverviewHeader } from './OverviewHeader'
 import styles from './OverviewView.module.css'
@@ -23,7 +24,8 @@ import { useProjectGroupTotals } from './useProjectGroupTotals'
  * are marked busy and the empty message waits. A status region announces once
  * when the window's totals have all arrived (noting when some may be low), that
  * the window is empty, or that none could be loaded, and again if that outcome
- * later changes.
+ * later changes. Under the totals, unless the window is empty, a chart shows
+ * the tokens per day by model.
  *
  * @example
  * <main><OverviewView /></main>
@@ -56,6 +58,7 @@ export function OverviewView(): React.JSX.Element {
       <OverviewHeader />
       <TotalsAnnouncement range={range} settled={settled} outcome={outcome} />
       {cards.length > 0 && <TotalsStrip totals={overall} range={range} />}
+      {!idle && <DailyUsageSection />}
       {idle && (
         <StatusMessage
           headingLevel={2}

@@ -1,0 +1,19 @@
+.series0 {
+  background: var(--color-series-1);
+}
+
+.series1 {
+  background: var(--color-series-2);
+}
+
+.series2 {
+  background: var(--color-series-3);
+}
+
+.series3 {
+  background: var(--color-series-4);
+}
+
+.series4 {
+  background: var(--color-series-other);
+}

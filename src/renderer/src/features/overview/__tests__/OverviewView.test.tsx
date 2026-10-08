@@ -2,6 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react'
 import type { QueryClient } from '@tanstack/react-query'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import type { BeekeeperApi } from '../../../../../shared/ipc/beekeeperApi'
 import type { IpcResult } from '../../../../../shared/ipc/ipcResult'
 import type { ProjectDto } from '../../../../../shared/ipc/projectDto'
 import type { ProjectTotalsDto } from '../../../../../shared/ipc/projectTotalsDto'
@@ -17,6 +18,7 @@ import {
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
 import { OverviewView } from '../OverviewView'
 import { useTotalsWindowStore } from '../state/useTotalsWindowStore'
+import { testDailyUsage } from '../dailyUsage/testDailyUsage'
 import { testTotals } from '../testTotals'
 
 const ALPHA = '-Users-a-alpha'
@@ -70,14 +72,16 @@ function renderOverview(
   options: {
     projects?: readonly ProjectDto[]
     totals?: (dirName: string, window: string) => Promise<TotalsReply>
+    dailyUsage?: BeekeeperApi['getProjectDailyUsage']
     client?: QueryClient
   } = {}
 ): ReturnType<typeof installBeekeeperApi> {
-  const { projects = PROJECTS, totals = normal, client } = options
+  const { projects = PROJECTS, totals = normal, dailyUsage, client } = options
   const api = installBeekeeperApi({
     listProjects: () => Promise.resolve({ ok: true, value: projects }),
     listSessions: () => Promise.resolve({ ok: true, value: [] }),
-    getProjectTotals: totals
+    getProjectTotals: totals,
+    ...(dailyUsage !== undefined && { getProjectDailyUsage: dailyUsage })
   })
   renderApp(client)
   return api
@@ -825,6 +829,45 @@ describe('OverviewView empty window', () => {
 
     expect(await within(main()).findByText('No agent ran in the last 30 days.')).toBeTruthy()
     expect(main().textContent).not.toContain('Choose 30 days')
+  })
+})
+
+describe('OverviewView tokens per day', () => {
+  const usage: BeekeeperApi['getProjectDailyUsage'] = () =>
+    Promise.resolve({ ok: true, value: testDailyUsage({ '2026-03-10': { 'claude-opus-5': 5 } }) })
+  const section = (): HTMLElement =>
+    within(main()).getByRole('region', { name: 'Tokens per day, by model' })
+
+  it('shows the section between the totals and the project cards', async () => {
+    renderOverview({ dailyUsage: usage })
+
+    const heading = await within(main()).findByRole('heading', {
+      level: 2,
+      name: 'Tokens per day, by model'
+    })
+    const strip = within(main()).getByRole('list', { name: /^Totals/ })
+    const cards = within(main()).getAllByRole('list').at(-1)
+    expect(strip.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(
+      heading.compareDocumentPosition(cards as Node) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+    expect(await within(section()).findByRole('img', { name: /15 in all/ })).toBeTruthy()
+  })
+
+  it('is absent when nothing ran in the window', async () => {
+    renderOverview({ totals: () => Promise.resolve(ok({})), dailyUsage: usage })
+
+    expect(await within(main()).findByText('No activity in this window')).toBeTruthy()
+    expect(within(main()).queryByRole('region', { name: 'Tokens per day, by model' })).toBeNull()
+  })
+
+  it('is absent when there are no projects', async () => {
+    installBeekeeperApi({ listProjects: () => Promise.resolve({ ok: true, value: [] }) })
+    render(<OverviewView />, { wrapper: createQueryWrapper() })
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'All projects' })).toBeTruthy()
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(screen.queryByRole('region', { name: 'Tokens per day, by model' })).toBeNull()
   })
 })
 

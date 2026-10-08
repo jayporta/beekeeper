@@ -96,6 +96,29 @@ describe.each(Object.entries(schemes))('%s color scheme graph edges', (_scheme, 
   })
 })
 
+/** The chart's series colors, in the order the chart draws them. */
+const SERIES_TOKENS = [
+  '--color-series-1',
+  '--color-series-2',
+  '--color-series-3',
+  '--color-series-4',
+  '--color-series-other'
+]
+
+describe.each(Object.entries(schemes))('%s color scheme chart series', (_scheme, tokens) => {
+  it.each(SERIES_TOKENS)('%s is at least 3:1 against the ground (WCAG 1.4.11)', (series) => {
+    expect(
+      contrastRatio(token(tokens, series), token(tokens, '--color-bg'))
+    ).toBeGreaterThanOrEqual(3)
+  })
+
+  it('gives every series its own color', () => {
+    const colors = SERIES_TOKENS.map((series) => token(tokens, series).toLowerCase())
+
+    expect(new Set(colors).size).toBe(SERIES_TOKENS.length)
+  })
+})
+
 describe.each(Object.entries(schemes))('%s color scheme hover tint', (_scheme, tokens) => {
   it('is text at --opacity-hover, the opacity the hover grounds are checked at', () => {
     expect(token(tokens, '--color-hover')).toMatch(

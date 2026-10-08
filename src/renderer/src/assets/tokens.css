@@ -52,6 +52,13 @@
   /* The fill for anything that carries text, and the accent used as text. The plain accent is too light for either in light mode. */
   --color-accent-strong: #36516b;
 
+  /* The chart's series, in the order the chart draws them. Each holds 3:1 on the ground (WCAG 1.4.11). Two blues from the accent ramp, an amber and a teal so the middle series differ by hue as well as lightness, and a neutral for the rest. */
+  --color-series-1: var(--color-accent-800);
+  --color-series-2: var(--color-accent-600);
+  --color-series-3: #9a6112;
+  --color-series-4: #1f7a73;
+  --color-series-other: var(--color-border-strong);
+
   --focus-ring-color: var(--color-accent-strong);
   --focus-ring-width: 2px;
   --focus-ring-offset: 2px;
@@ -135,6 +142,14 @@
   --size-inspector-label: 5rem;
   --size-inspector-value: 3rem;
   --size-bar: 0.375rem;
+  /* The tokens-per-day chart: the plot is 200px tall under a 48px axis column, and a bar is at most 40px wide. */
+  --size-chart-height: 12.5rem;
+  --size-chart-axis: 3rem;
+  --size-chart-bar-max: 2.5rem;
+  /* The gap between a bar's segments, so each meets the ground. */
+  --size-hairline: 1px;
+  /* A figure that belongs to the previous window until the current one arrives. */
+  --opacity-updating: 0.55;
   /* The inspector's headline figure: 34px. */
   --font-size-inspector-figure: 2.125rem;
 
@@ -166,6 +181,8 @@
     --color-accent-800: #d6ebff;
     --color-accent-900: #eef6ff;
     --color-accent-strong: #c8daec;
+    --color-series-3: #e0a84a;
+    --color-series-4: #5fc4bb;
     --color-diff-add: #9cdeaa;
     --color-diff-remove: #f6c3c3;
   }
