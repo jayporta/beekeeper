@@ -1,0 +1,115 @@
+.chart {
+  display: grid;
+  grid-template-columns: var(--size-chart-axis) minmax(0, 1fr);
+  grid-template-rows: var(--size-chart-height) auto;
+  column-gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+/* The axis, the gridlines, and the bars share one plot height. Each tick and line has no height of its own, so the ends of the column land exactly on the plot's top and bottom. */
+.axis,
+.gridlines {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.tick {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  block-size: 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+
+  /* With no tokens the axis is zero alone, which sits at the bottom of the plot. */
+  &:only-child {
+    margin-block-start: auto;
+  }
+}
+
+.plot {
+  position: relative;
+}
+
+.gridlines {
+  position: absolute;
+  inset: 0;
+}
+
+.gridline {
+  block-size: 0;
+  border-block-start: 1px solid var(--color-divider);
+
+  &:only-child {
+    margin-block-start: auto;
+  }
+}
+
+.columns,
+.days {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  column-gap: var(--space-1);
+}
+
+.columns {
+  position: relative;
+  block-size: 100%;
+}
+
+.column {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  block-size: 100%;
+}
+
+/*
+ * A bar: its segments stack from the bottom and share its height by their tokens. A segment above
+ * another cuts a hairline of ground out of its own bottom edge, so the separators take no height
+ * and a short bar keeps its fill. The bar never falls below its minimum, so a day with tokens shows.
+ */
+.stack {
+  display: flex;
+  flex-direction: column-reverse;
+  inline-size: min(100%, var(--size-chart-bar-max));
+  min-block-size: var(--size-chart-bar-min);
+
+  & > * {
+    flex-basis: 0;
+    min-block-size: var(--size-hairline);
+  }
+
+  /* Two hairlines, so at least one of color shows beside the separator. A tiny bar may draw a few pixels over its true height. */
+  & > * + * {
+    min-block-size: calc(2 * var(--size-hairline));
+    box-shadow: inset 0 calc(-1 * var(--size-hairline)) 0 var(--color-bg);
+  }
+
+  /* Forced colors edge every segment with a hairline outline, so each needs three to show its color inside it. */
+  @media (forced-colors: active) {
+    /* Last in source and of equal specificity, so it overrides both minimums above. */
+    & > * {
+      min-block-size: calc(3 * var(--size-hairline));
+    }
+  }
+}
+
+.days {
+  grid-column: 2;
+  margin-block-start: var(--space-1-5);
+}
+
+/* A label may be wider than its day, so it spreads over the days beside it. */
+.dayLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-inline: -100%;
+  line-height: 1.3;
+  text-align: center;
+  white-space: nowrap;
+}

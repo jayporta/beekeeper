@@ -24,6 +24,8 @@ const api: BeekeeperApi = {
     ipcRenderer.invoke(IPC_CHANNELS.getWorktreeDiffs, { projectDirName, sessionId }),
   getProjectTotals: (projectDirName, window) =>
     ipcRenderer.invoke(IPC_CHANNELS.getProjectTotals, { projectDirName, window }),
+  getProjectDailyUsage: (projectDirName, window) =>
+    ipcRenderer.invoke(IPC_CHANNELS.getProjectDailyUsage, { projectDirName, window }),
   getWorktreePatch: (projectDirName, sessionId, agentId) =>
     ipcRenderer.invoke(IPC_CHANNELS.getWorktreePatch, { projectDirName, sessionId, agentId }),
   // The renderer learns only that About was requested, never the event.

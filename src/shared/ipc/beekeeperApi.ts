@@ -1,5 +1,6 @@
 import type { IpcResult } from './ipcResult'
 import type { ProjectDto } from './projectDto'
+import type { ProjectDailyUsageDto } from './projectDailyUsageDto'
 import type { ProjectTotalsDto, TotalsWindowDto } from './projectTotalsDto'
 import type { SessionDetailDto } from './sessionDetailDto'
 import type { SessionListItemDto } from './sessionListDto'
@@ -47,6 +48,18 @@ export interface BeekeeperApi {
     projectDirName: string,
     window: TotalsWindowDto
   ): Promise<IpcResult<ProjectTotalsDto>>
+
+  /**
+   * Adds up one project folder's own tokens by local day and model over a window.
+   * Each message counts on the day it ran, so only the messages inside the window count.
+   * @param projectDirName - A folder name from {@link BeekeeperApi.listProjects}.
+   * @param window - How far back to count: `7d` or `30d`.
+   * @returns The folder's usage for every day of the window, or `not-found` for an unknown project. A worktree folder is its own project here.
+   */
+  getProjectDailyUsage(
+    projectDirName: string,
+    window: TotalsWindowDto
+  ): Promise<IpcResult<ProjectDailyUsageDto>>
 
   /**
    * Reads the patch of what one worktree agent changed, from git. Read-only.

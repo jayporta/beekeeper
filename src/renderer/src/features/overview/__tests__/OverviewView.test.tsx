@@ -1,9 +1,11 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import type { QueryClient } from '@tanstack/react-query'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { BeekeeperApi } from '../../../../../shared/ipc/beekeeperApi'
 import type { IpcResult } from '../../../../../shared/ipc/ipcResult'
 import type { ProjectDto } from '../../../../../shared/ipc/projectDto'
+import type { ProjectDailyUsageDto } from '../../../../../shared/ipc/projectDailyUsageDto'
 import type { ProjectTotalsDto } from '../../../../../shared/ipc/projectTotalsDto'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
@@ -17,6 +19,7 @@ import {
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
 import { OverviewView } from '../OverviewView'
 import { useTotalsWindowStore } from '../state/useTotalsWindowStore'
+import { testDailyUsage } from '../dailyUsage/testDailyUsage'
 import { testTotals } from '../testTotals'
 
 const ALPHA = '-Users-a-alpha'
@@ -50,6 +53,7 @@ beforeEach(() => {
 })
 
 afterEach(async () => {
+  vi.useRealTimers()
   useNavigationStore.getState().reset()
   useTotalsWindowStore.setState({ window: '7d' })
   useSelectedProjectStore.setState({ selectedDirName: null })
@@ -65,19 +69,25 @@ const failed: TotalsReply = { ok: false, error: { code: 'not-found' } }
 const never = (): Promise<TotalsReply> => new Promise(() => undefined)
 const normal = (dirName: string): Promise<TotalsReply> => Promise.resolve(ok(TOTALS[dirName] ?? {}))
 
+/** Daily usage that comes back at once, with nothing in it, so a test about something else need not wait for it. */
+const quietUsage: BeekeeperApi['getProjectDailyUsage'] = () =>
+  Promise.resolve({ ok: true, value: testDailyUsage({ '2026-03-10': {} }) })
+
 /** Renders the whole app on the overview. `totals` answers each folder's request. */
 function renderOverview(
   options: {
     projects?: readonly ProjectDto[]
     totals?: (dirName: string, window: string) => Promise<TotalsReply>
+    dailyUsage?: BeekeeperApi['getProjectDailyUsage']
     client?: QueryClient
   } = {}
 ): ReturnType<typeof installBeekeeperApi> {
-  const { projects = PROJECTS, totals = normal, client } = options
+  const { projects = PROJECTS, totals = normal, dailyUsage = quietUsage, client } = options
   const api = installBeekeeperApi({
     listProjects: () => Promise.resolve({ ok: true, value: projects }),
     listSessions: () => Promise.resolve({ ok: true, value: [] }),
-    getProjectTotals: totals
+    getProjectTotals: totals,
+    getProjectDailyUsage: dailyUsage
   })
   renderApp(client)
   return api
@@ -86,9 +96,9 @@ function renderOverview(
 const main = (): HTMLElement => screen.getByRole('main')
 
 /** A reply held back until `release` is called. */
-function gate(): { reply: Promise<TotalsReply>; release: (reply: TotalsReply) => void } {
-  let release: (reply: TotalsReply) => void = () => undefined
-  const reply = new Promise<TotalsReply>((resolve) => {
+function gate<T = TotalsReply>(): { reply: Promise<T>; release: (reply: T) => void } {
+  let release: (reply: T) => void = () => undefined
+  const reply = new Promise<T>((resolve) => {
     release = resolve
   })
   return { reply, release }
@@ -115,13 +125,18 @@ function stripArea(name: string): HTMLElement {
   return area
 }
 
-/** The overview's own status region, which is mounted before it has anything to say. */
-function statusRegion(): HTMLElement {
+/** The overview itself: the view around its header. */
+function overviewView(): HTMLElement {
   const view = screen
     .getByRole('heading', { level: 1, name: 'All projects' })
     .closest('header')?.parentElement
   if (view === null || view === undefined) throw new Error('The overview has no view around it')
-  return within(view).getByRole('status')
+  return view
+}
+
+/** The overview's one status region, which is mounted before it has anything to say. */
+function statusRegion(): HTMLElement {
+  return within(overviewView()).getByRole('status')
 }
 
 /** The card of the project named `name`, once it is on screen. */
@@ -652,7 +667,7 @@ describe('OverviewView announcements', () => {
     })
 
     await waitFor(() => {
-      expect(region.textContent).toBe('Totals for the last 7 days updated')
+      expect(region.textContent).toBe('Totals for the last 7 days updated.')
     })
   })
 
@@ -665,7 +680,7 @@ describe('OverviewView announcements', () => {
     await totalsLoaded()
     const region = statusRegion()
     await waitFor(() => {
-      expect(region.textContent).toBe('Totals for the last 7 days updated')
+      expect(region.textContent).toBe('Totals for the last 7 days updated.')
     })
 
     await userEvent.click(within(main()).getByRole('radio', { name: '30 days' }))
@@ -675,7 +690,7 @@ describe('OverviewView announcements', () => {
     })
 
     await waitFor(() => {
-      expect(region.textContent).toBe('Totals for the last 30 days updated')
+      expect(region.textContent).toBe('Totals for the last 30 days updated.')
     })
   })
 
@@ -684,14 +699,222 @@ describe('OverviewView announcements', () => {
     await totalsLoaded()
     await userEvent.click(within(main()).getByRole('radio', { name: '30 days' }))
     await waitFor(() => {
-      expect(statusRegion().textContent).toBe('Totals for the last 30 days updated')
+      expect(statusRegion().textContent).toBe('Totals for the last 30 days updated.')
     })
 
     await userEvent.click(within(main()).getByRole('radio', { name: '7 days' }))
 
     await waitFor(() => {
-      expect(statusRegion().textContent).toBe('Totals for the last 7 days updated')
+      expect(statusRegion().textContent).toBe('Totals for the last 7 days updated.')
     })
+  })
+
+  it('has one status region for the totals and the tokens per day together', async () => {
+    renderOverview()
+    await within(main()).findByRole('img', { name: /tokens/i })
+
+    expect(within(overviewView()).getAllByRole('status')).toHaveLength(1)
+  })
+
+  it('waits for the tokens per day too before it says the totals are in', async () => {
+    const usage = gate<IpcResult<ProjectDailyUsageDto>>()
+    renderOverview({ dailyUsage: () => usage.reply })
+    await totalsLoaded()
+    await new Promise((resolve) => setTimeout(resolve, 30))
+    expect(statusRegion().textContent).toBe('')
+
+    act(() => {
+      usage.release({ ok: true, value: testDailyUsage({ '2026-03-10': { a: 1 } }) })
+    })
+
+    await waitFor(() => {
+      expect(statusRegion().textContent).toBe('Totals for the last 7 days updated.')
+    })
+  })
+
+  it('holds back the new window’s announcement until its tokens per day arrive', async () => {
+    const thirtyDays = gate<IpcResult<ProjectDailyUsageDto>>()
+    renderOverview({
+      dailyUsage: (dirName, window) =>
+        window === '30d' ? thirtyDays.reply : quietUsage(dirName, window)
+    })
+    await waitFor(() => {
+      expect(statusRegion().textContent).toBe('Totals for the last 7 days updated.')
+    })
+
+    await userEvent.click(within(main()).getByRole('radio', { name: '30 days' }))
+    await waitFor(() => {
+      expect(within(main()).getByRole('list', { name: /^Totals, last 30 days/ })).toBeTruthy()
+    })
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(statusRegion().textContent).not.toContain('30 days')
+    act(() => {
+      thirtyDays.release({ ok: true, value: testDailyUsage({ '2026-03-10': {} }) })
+    })
+
+    await waitFor(() => {
+      expect(statusRegion().textContent).toBe('Totals for the last 30 days updated.')
+    })
+  })
+
+  it('does not announce again when midnight passes and the day’s tokens per day load', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 2, 10, 23, 59))
+    let afterMidnight = false
+    const nextDay = gate<IpcResult<ProjectDailyUsageDto>>()
+    renderOverview({
+      dailyUsage: (dirName, window) => (afterMidnight ? nextDay.reply : quietUsage(dirName, window))
+    })
+    await screen.findByRole('heading', { level: 1, name: 'All projects' })
+    const region = statusRegion()
+    const announced: string[] = []
+    new MutationObserver(() => {
+      if (region.textContent !== '') announced.push(region.textContent ?? '')
+    }).observe(region, { childList: true, characterData: true, subtree: true })
+    await waitFor(() => {
+      expect(region.textContent).toBe('Totals for the last 7 days updated.')
+    })
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    const before = announced.length
+
+    afterMidnight = true
+    vi.setSystemTime(new Date(2026, 2, 11, 0, 1))
+    act(() => {
+      window.dispatchEvent(new Event('focus'))
+    })
+    await within(main()).findByText('Updating')
+    act(() => {
+      nextDay.release({ ok: true, value: testDailyUsage({ '2026-03-11': {} }) })
+    })
+    await waitFor(() => {
+      expect(within(main()).queryByText('Updating')).toBeNull()
+    })
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    expect(announced.length).toBe(before)
+    vi.useRealTimers()
+  })
+
+  it('does not announce again at midnight, using the 7 day figures as the stand-in, after the 30 day window was shown that day', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 2, 10, 23, 59))
+    let afterMidnight = false
+    const nextDay = gate<IpcResult<ProjectDailyUsageDto>>()
+    renderOverview({
+      dailyUsage: (dirName, window) => (afterMidnight ? nextDay.reply : quietUsage(dirName, window))
+    })
+    await screen.findByRole('heading', { level: 1, name: 'All projects' })
+    const region = statusRegion()
+    const announced: string[] = []
+    new MutationObserver(() => {
+      if (region.textContent !== '') announced.push(region.textContent ?? '')
+    }).observe(region, { childList: true, characterData: true, subtree: true })
+    await waitFor(() => {
+      expect(region.textContent).toBe('Totals for the last 7 days updated.')
+    })
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    // The 30 day window was shown and the 7 day window chosen again, so the 30 day figures are the newer.
+    vi.setSystemTime(new Date(2026, 2, 10, 23, 59, 30))
+    await userEvent.click(within(main()).getByRole('radio', { name: '30 days' }))
+    await waitFor(() => {
+      expect(region.textContent).toBe('Totals for the last 30 days updated.')
+    })
+    await userEvent.click(within(main()).getByRole('radio', { name: '7 days' }))
+    await waitFor(() => {
+      expect(within(main()).getByRole('list', { name: /^Totals, last 7 days/ })).toBeTruthy()
+    })
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    const before = announced.length
+
+    afterMidnight = true
+    vi.setSystemTime(new Date(2026, 2, 11, 0, 1))
+    act(() => {
+      window.dispatchEvent(new Event('focus'))
+    })
+    await within(main()).findByText('Updating')
+    act(() => {
+      nextDay.release({ ok: true, value: testDailyUsage({ '2026-03-11': {} }) })
+    })
+    await waitFor(() => {
+      expect(within(main()).queryByText('Updating')).toBeNull()
+    })
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    expect(announced.length).toBe(before)
+    vi.useRealTimers()
+  })
+
+  it('adds that tokens per day could not be loaded', async () => {
+    renderOverview({
+      dailyUsage: () => Promise.resolve({ ok: false, error: { code: 'unreadable' } })
+    })
+
+    await waitFor(() => {
+      expect(statusRegion().textContent).toBe(
+        "Totals for the last 7 days updated. Couldn't load tokens per day."
+      )
+    })
+  })
+
+  it('adds that tokens per day may be low, when they are partial', async () => {
+    renderOverview({
+      dailyUsage: () =>
+        Promise.resolve({
+          ok: true,
+          value: testDailyUsage({ '2026-03-10': { a: 1 } }, { skippedLines: 1 })
+        })
+    })
+
+    await waitFor(() => {
+      expect(statusRegion().textContent).toBe(
+        'Totals for the last 7 days updated. Tokens per day may be low, see the note under the chart.'
+      )
+    })
+  })
+
+  it('joins the totals being partial and the tokens per day being partial in one message', async () => {
+    renderOverview({
+      totals: withPartial('unreadable'),
+      dailyUsage: () =>
+        Promise.resolve({
+          ok: true,
+          value: testDailyUsage({ '2026-03-10': { a: 1 } }, { skippedLines: 1 })
+        })
+    })
+
+    await waitFor(() => {
+      expect(statusRegion().textContent).toBe(
+        'Totals for the last 7 days updated. Some may be low, see the note below. Tokens per day may be low, see the note under the chart.'
+      )
+    })
+  })
+
+  it('holds the empty message and the announcement until tokens per day settle', async () => {
+    renderOverview({
+      totals: () => Promise.resolve(ok({})),
+      dailyUsage: () => new Promise(() => undefined)
+    })
+    await findCard('acme-web')
+    await waitFor(() => {
+      expect(within(main()).getAllByRole('list').at(-1)?.getAttribute('aria-busy')).toBe('false')
+    })
+    await new Promise((resolve) => setTimeout(resolve, 30))
+
+    expect(within(main()).queryByText('No activity in this window')).toBeNull()
+    expect(statusRegion().textContent).toBe('')
+  })
+
+  it('says nothing about tokens per day for an empty window, even when they could not be loaded', async () => {
+    renderOverview({
+      totals: () => Promise.resolve(ok({})),
+      dailyUsage: () => Promise.resolve({ ok: false, error: { code: 'unreadable' } })
+    })
+
+    await waitFor(() => {
+      expect(statusRegion().textContent).toContain('No activity in this window')
+    })
+    await new Promise((resolve) => setTimeout(resolve, 30))
+    expect(statusRegion().textContent).not.toContain('tokens per day')
   })
 
   it('says there is no activity when the window comes back empty', async () => {
@@ -708,7 +931,7 @@ describe('OverviewView announcements', () => {
     renderOverview({ totals: () => Promise.resolve(failed) })
 
     await waitFor(() => {
-      expect(statusRegion().textContent).toBe("Couldn't load the totals for the last 7 days")
+      expect(statusRegion().textContent).toBe("Couldn't load the totals for the last 7 days.")
     })
   })
 
@@ -738,14 +961,14 @@ describe('OverviewView announcements', () => {
       totals: (dirName) => (failing ? Promise.resolve(failed) : normal(dirName))
     })
     await waitFor(() => {
-      expect(statusRegion().textContent).toBe("Couldn't load the totals for the last 7 days")
+      expect(statusRegion().textContent).toBe("Couldn't load the totals for the last 7 days.")
     })
 
     failing = false
     await refetchAndSettle(client, ['projectTotals'])
 
     await waitFor(() => {
-      expect(statusRegion().textContent).toBe('Totals for the last 7 days updated')
+      expect(statusRegion().textContent).toBe('Totals for the last 7 days updated.')
     })
   })
 
@@ -825,6 +1048,86 @@ describe('OverviewView empty window', () => {
 
     expect(await within(main()).findByText('No agent ran in the last 30 days.')).toBeTruthy()
     expect(main().textContent).not.toContain('Choose 30 days')
+  })
+})
+
+describe('OverviewView tokens per day', () => {
+  const usage: BeekeeperApi['getProjectDailyUsage'] = () =>
+    Promise.resolve({ ok: true, value: testDailyUsage({ '2026-03-10': { 'claude-opus-5': 5 } }) })
+  const section = (): HTMLElement =>
+    within(main()).getByRole('region', { name: 'Tokens per day, by model' })
+
+  it('shows the section between the totals and the project cards', async () => {
+    renderOverview({ dailyUsage: usage })
+
+    const heading = await within(main()).findByRole('heading', {
+      level: 2,
+      name: 'Tokens per day, by model'
+    })
+    const strip = within(main()).getByRole('list', { name: /^Totals/ })
+    const cards = within(main()).getAllByRole('list').at(-1)
+    expect(strip.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(
+      heading.compareDocumentPosition(cards as Node) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+    expect(await within(section()).findByRole('img', { name: /15 in all/ })).toBeTruthy()
+  })
+
+  it('is absent when nothing ran in the window', async () => {
+    renderOverview({ totals: () => Promise.resolve(ok({})) })
+
+    expect(await within(main()).findByText('No activity in this window')).toBeTruthy()
+    expect(within(main()).queryByRole('region', { name: 'Tokens per day, by model' })).toBeNull()
+  })
+
+  it('is shown with no empty message when the totals are idle but the days hold tokens', async () => {
+    renderOverview({ totals: () => Promise.resolve(ok({})), dailyUsage: usage })
+
+    expect(await within(main()).findByRole('img', { name: /15 in all/ })).toBeTruthy()
+    expect(within(main()).queryByText('No activity in this window')).toBeNull()
+    expect(statusRegion().textContent).not.toContain('No activity')
+  })
+
+  it('announces no empty window when the totals are idle but the days hold tokens', async () => {
+    renderOverview({ totals: () => Promise.resolve(ok({})), dailyUsage: usage })
+    await within(main()).findByRole('img', { name: /15 in all/ })
+
+    await waitFor(() => {
+      expect(statusRegion().textContent).toBe('Totals for the last 7 days updated.')
+    })
+  })
+
+  it('shows no empty message or announcement between idle totals and tokens per day that arrive later', async () => {
+    const days = gate<IpcResult<ProjectDailyUsageDto>>()
+    renderOverview({ totals: () => Promise.resolve(ok({})), dailyUsage: () => days.reply })
+    await findCard('acme-web')
+    await waitFor(() => {
+      expect(within(main()).getAllByRole('list').at(-1)?.getAttribute('aria-busy')).toBe('false')
+    })
+    await new Promise((resolve) => setTimeout(resolve, 30))
+
+    expect(within(main()).queryByText('No activity in this window')).toBeNull()
+    expect(statusRegion().textContent).toBe('')
+
+    await act(async () => {
+      days.release({ ok: true, value: testDailyUsage({ '2026-03-10': { 'claude-opus-5': 5 } }) })
+      await Promise.resolve()
+    })
+
+    expect(await within(main()).findByRole('img', { name: /15 in all/ })).toBeTruthy()
+    await waitFor(() => {
+      expect(statusRegion().textContent).toBe('Totals for the last 7 days updated.')
+    })
+    expect(within(main()).queryByText('No activity in this window')).toBeNull()
+  })
+
+  it('is absent when there are no projects', async () => {
+    installBeekeeperApi({ listProjects: () => Promise.resolve({ ok: true, value: [] }) })
+    render(<OverviewView />, { wrapper: createQueryWrapper() })
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'All projects' })).toBeTruthy()
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(screen.queryByRole('region', { name: 'Tokens per day, by model' })).toBeNull()
   })
 })
 

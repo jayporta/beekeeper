@@ -1,0 +1,40 @@
+.series0 {
+  background: var(--color-series-1);
+}
+
+.series1 {
+  background: var(--color-series-2);
+}
+
+.series2 {
+  background: var(--color-series-3);
+}
+
+.series3 {
+  background: var(--color-series-4);
+}
+
+/* The other series is hatched as well as grey, so it is told apart without color. */
+.series4 {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--color-series-other) 0 var(--size-hatch),
+    transparent var(--size-hatch) calc(2 * var(--size-hatch))
+  );
+}
+
+/*
+ * Forced colors would replace each fill with a system color, so the series could not be told apart.
+ * Each keeps its own color, edged in the system text color so it shows on any high-contrast ground.
+ */
+.series0,
+.series1,
+.series2,
+.series3,
+.series4 {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+    outline: var(--size-hairline) solid CanvasText;
+    outline-offset: calc(-1 * var(--size-hairline));
+  }
+}

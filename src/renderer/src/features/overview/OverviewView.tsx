@@ -1,5 +1,8 @@
 import { useTranslation } from 'react-i18next'
 import { StatusMessage } from '@renderer/components/StatusMessage'
+import { DailyUsageSection } from './dailyUsage/DailyUsageSection'
+import { dailyUsageStatusOf } from './dailyUsage/dailyUsageStatus'
+import { useDailyUsage } from './dailyUsage/useDailyUsage'
 import { OverviewFootnote } from './OverviewFootnote'
 import { OverviewHeader } from './OverviewHeader'
 import styles from './OverviewView.module.css'
@@ -9,7 +12,7 @@ import { shareOfLargest } from './shareOfLargest'
 import { totalsStatus } from './sumTotals'
 import { TotalsAnnouncement } from './TotalsAnnouncement'
 import { TotalsStrip } from './TotalsStrip'
-import type { TotalsOutcome } from './useTotalsAnnouncement'
+import type { DailyAnnouncement, TotalsOutcome } from './useTotalsAnnouncement'
 import { useProjectGroupTotals } from './useProjectGroupTotals'
 
 /**
@@ -17,13 +20,14 @@ import { useProjectGroupTotals } from './useProjectGroupTotals'
  * across every project, a card for each project, and a note on any figure
  * that may be low. Each project loads on its own, so a card fills in as its
  * totals arrive and a project that can't be read doesn't hold up the rest.
- * With nothing in the window, and no session it couldn't read, it says so,
- * above cards that show zero. While a
- * window's totals load, or show the other window's until they arrive, the cards
- * are marked busy and the empty message waits. A status region announces once
+ * With nothing in the window, no tokens per day, and no session it couldn't read,
+ * it says so, above cards that show zero. While a window's totals load, or show
+ * the other window's until they arrive, the cards are marked busy. The empty
+ * message and the announcement also wait for the tokens per day. A status region announces once
  * when the window's totals have all arrived (noting when some may be low), that
  * the window is empty, or that none could be loaded, and again if that outcome
- * later changes.
+ * later changes. Under the totals, unless the window is empty, a chart shows
+ * the tokens per day by model.
  *
  * @example
  * <main><OverviewView /></main>
@@ -31,6 +35,7 @@ import { useProjectGroupTotals } from './useProjectGroupTotals'
 export function OverviewView(): React.JSX.Element {
   const { t } = useTranslation('overview')
   const { window: range, items: cards, overall } = useProjectGroupTotals()
+  const dailyUsage = useDailyUsage()
 
   const largest = Math.max(
     0,
@@ -46,17 +51,31 @@ export function OverviewView(): React.JSX.Element {
     overall.sessions === 0 &&
     overall.agents === 0
   const reasons = partialReasonsOf(overall)
+  const daily = dailyUsageStatusOf(dailyUsage.summary)
+  // Idle totals are empty only once tokens per day have settled with none, since the days may hold
+  // what the totals missed. With no project listed there are no days to wait for.
+  const dailyDone = daily.settled || cards.length === 0
+  const empty = idle && dailyDone && dailyUsage.summary.total === 0
+  // The section is shown unless the window is empty, and only then does its usage count.
+  let dailyAnnouncement: DailyAnnouncement = 'none'
+  if (!empty && daily.outcome !== 'updated') dailyAnnouncement = daily.outcome
   let outcome: TotalsOutcome = 'updated'
   if (totalsStatus(overall) === 'error') outcome = 'failed'
-  else if (idle) outcome = 'empty'
+  else if (empty) outcome = 'empty'
   else if (reasons.length > 0) outcome = 'partial'
 
   return (
     <div className={styles.view}>
       <OverviewHeader />
-      <TotalsAnnouncement range={range} settled={settled} outcome={outcome} />
+      <TotalsAnnouncement
+        range={range}
+        settled={settled && dailyDone}
+        outcome={outcome}
+        daily={dailyAnnouncement}
+      />
       {cards.length > 0 && <TotalsStrip totals={overall} range={range} />}
-      {idle && (
+      {!empty && <DailyUsageSection usage={dailyUsage} />}
+      {empty && (
         <StatusMessage
           headingLevel={2}
           heading={t('empty.heading')}

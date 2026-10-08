@@ -45,6 +45,25 @@ describe('registered formats', () => {
   })
 })
 
+describe('date part formats', () => {
+  const noon = new Date(2026, 9, 7, 12).getTime()
+  const format = (name: string, lng: string): string =>
+    i18n.t('unregistered.key', { defaultValue: `{{value, ${name}}}`, value: noon, lng })
+
+  it.each([
+    ['weekday', 'en-US', 'Wed'],
+    ['monthDay', 'en-US', 'Oct 7'],
+    ['weekday', 'en-GB', 'Wed'],
+    ['monthDay', 'en-GB', '7 Oct']
+  ])('format %s for %s as a short name', (name, lng, expected) => {
+    expect(format(name, lng)).toBe(expected)
+  })
+
+  it('are registered', () => {
+    expect(FORMAT_NAMES).toEqual(expect.arrayContaining(['weekday', 'monthDay']))
+  })
+})
+
 describe('format caching', () => {
   const distinct = Array.from({ length: 50 }, (_, i) => i + 1)
 
@@ -65,6 +84,23 @@ describe('format caching', () => {
 
     expect(spy).toHaveBeenCalledTimes(1)
   })
+
+  it.each(['weekday', 'monthDay'])(
+    'builds one %s formatter per language, however many days it formats',
+    (name) => {
+      const spy = vi.spyOn(Intl, 'DateTimeFormat')
+
+      for (const n of distinct) {
+        i18n.t('unregistered.key', {
+          defaultValue: `{{value, ${name}}}`,
+          value: n * 86_400_000,
+          lng: 'en-NZ'
+        })
+      }
+
+      expect(spy).toHaveBeenCalledTimes(1)
+    }
+  )
 
   it('builds one count formatter per language, however many counts it formats', () => {
     const t = i18n.getFixedT('en-CA', 'sessions')

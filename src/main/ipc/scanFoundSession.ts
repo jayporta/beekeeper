@@ -2,6 +2,7 @@ import { scanSession, type SessionScan } from '../../core/session/scanSession'
 import type { TranscriptFileInfo } from '../../core/transcript/statTranscriptFile'
 import type { FoundSession } from './findProject'
 import type { IpcDeps } from './ipcDeps'
+import { sessionFilesKey } from './sessionFilesKey'
 
 /** Options for {@link scanFoundSession}. */
 export interface ScanFoundSessionOptions {
@@ -11,28 +12,6 @@ export interface ScanFoundSessionOptions {
   readonly found: FoundSession
   /** The session's transcript, already checked readable. */
   readonly transcript: TranscriptFileInfo
-}
-
-function buildScanKey(options: ScanFoundSessionOptions): string {
-  const { found, transcript } = options
-  const { subagents } = found.session
-  const entries = subagents.ok
-    ? subagents.value.map((entry) => [
-        entry.agentId,
-        entry.transcript.mtimeMs,
-        entry.transcript.size,
-        entry.metaPath !== null,
-        entry.workflowRunId
-      ])
-    : []
-  return JSON.stringify([
-    found.project.dirName,
-    found.session.sessionId,
-    transcript.mtimeMs,
-    transcript.size,
-    subagents.ok,
-    entries
-  ])
 }
 
 /**
@@ -46,7 +25,11 @@ function buildScanKey(options: ScanFoundSessionOptions): string {
 export async function scanFoundSession(options: ScanFoundSessionOptions): Promise<SessionScan> {
   const { deps, found, transcript } = options
   const { subagents } = found.session
-  const key = buildScanKey(options)
+  const key = sessionFilesKey({
+    projectDirName: found.project.dirName,
+    session: found.session,
+    transcript
+  })
   const cached = deps.scanCache.get(key)
   if (cached !== undefined) return cached
 

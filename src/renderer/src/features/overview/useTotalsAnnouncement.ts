@@ -1,6 +1,5 @@
-import { useReducer } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useAnnouncement } from '@renderer/components/useAnnouncement'
+import { useSettledAnnouncement } from '@renderer/components/useSettledAnnouncement'
 import type { TotalsWindowDto } from '../../../../shared/ipc/projectTotalsDto'
 
 /**
@@ -9,43 +8,19 @@ import type { TotalsWindowDto } from '../../../../shared/ipc/projectTotalsDto'
  */
 export type TotalsOutcome = 'updated' | 'partial' | 'empty' | 'failed'
 
+/** What the tokens per day section adds to the announcement: nothing, that they may be low, or that they couldn't be loaded. */
+export type DailyAnnouncement = 'none' | 'partial' | 'failed'
+
 /** What {@link useTotalsAnnouncement} reports on. */
 interface TotalsAnnouncementInput {
   /** The window the totals cover. */
   readonly range: TotalsWindowDto
-  /** Whether every folder's totals for the window have arrived, with none showing the other window's. */
+  /** Whether every folder's totals for the window have arrived, with none showing the other window's, and the tokens per day too when the section is shown. */
   readonly settled: boolean
+  /** What the tokens per day came to, to add to the message, or `none` when there is nothing to add: they updated, or the section isn't shown. */
+  readonly daily: DailyAnnouncement
   /** What the totals came to: figures, figures that may be low, no activity (the overview shows its empty message), or every project failed. */
   readonly outcome: TotalsOutcome
-}
-
-/** What the hook remembers between renders. */
-interface AnnouncementState {
-  /** Whether the window's totals are still to be announced, because they are loading or the window changed. */
-  readonly pending: boolean
-  /** The window the state is for. */
-  readonly range: TotalsWindowDto
-  /** The outcome last announced, or the one showing when the overview opened. */
-  readonly outcome: TotalsOutcome
-}
-
-type AnnouncementAction =
-  | { readonly type: 'rangeChanged'; readonly range: TotalsWindowDto }
-  | { readonly type: 'unsettled' }
-  | { readonly type: 'announced'; readonly outcome: TotalsOutcome }
-
-function announcementReducer(
-  state: AnnouncementState,
-  action: AnnouncementAction
-): AnnouncementState {
-  switch (action.type) {
-    case 'rangeChanged':
-      return { ...state, range: action.range, pending: true }
-    case 'unsettled':
-      return { ...state, pending: true }
-    case 'announced':
-      return { ...state, pending: false, outcome: action.outcome }
-  }
 }
 
 /**
@@ -57,37 +32,36 @@ function announcementReducer(
  * after a failure, and says nothing for a refresh that leaves the outcome as
  * it was. Totals that were already in when the overview opened say nothing.
  *
- * @param input - The window, whether its totals have settled, and what they came to.
+ * The tokens per day add a sentence when they may be low or couldn't be loaded.
+ *
+ * @param input - The window, whether its data has settled, and what it came to.
  * @returns The text to show in the region. It is empty until there is news, and again after the hidden live copy's clear delay.
  */
 export function useTotalsAnnouncement({
   range,
   settled,
-  outcome
+  outcome,
+  daily
 }: TotalsAnnouncementInput): string {
   const { t } = useTranslation('overview')
-  const { message, announce } = useAnnouncement()
-  const [state, dispatch] = useReducer(announcementReducer, {
-    pending: !settled,
-    range,
-    outcome
-  })
 
-  if (range !== state.range) {
-    dispatch({ type: 'rangeChanged', range })
-  } else if (!settled && !state.pending) {
-    dispatch({ type: 'unsettled' })
-  } else if (settled && (state.pending || outcome !== state.outcome)) {
-    dispatch({ type: 'announced', outcome })
-    const rangeName = t(`range.${range}`)
-    announce(
-      outcome === 'empty'
-        ? t('announce.empty', {
-            heading: t('empty.heading'),
-            body: t(`empty.body.${range}`, { range: rangeName })
-          })
-        : t(`announce.${outcome}`, { range: rangeName })
-    )
-  }
-  return message
+  return useSettledAnnouncement({
+    scope: range,
+    settled,
+    // Both parts, so a change in either is news.
+    outcome: `${outcome}:${daily}`,
+    say: (_spoken, window) => {
+      const rangeName = t(`range.${window}`)
+      const totals =
+        outcome === 'empty'
+          ? t('announce.empty', {
+              heading: t('empty.heading'),
+              body: t(`empty.body.${window}`, { range: rangeName })
+            })
+          : t(`announce.${outcome}`, { range: rangeName })
+      return daily === 'none'
+        ? totals
+        : t('announce.withDaily', { totals, daily: t(`announce.daily.${daily}`) })
+    }
+  })
 }

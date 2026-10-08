@@ -1,5 +1,5 @@
 import { combineTokenCounts, type TokenCounts } from '../../pricing/tokenCounts'
-import { tokenClasses } from '../../pricing/tokenClasses'
+import { totalTokenCount } from '../../pricing/totalTokenCount'
 import { messageTokens } from '../messageTokens'
 import { assistantRecordSchema } from '../schemas'
 
@@ -65,9 +65,7 @@ export function createTranscriptTokenObserver(): TranscriptTokenObserver {
     total() {
       if (byMessageId.size === 0) return null
       let total = 0
-      for (const counts of byMessageId.values()) {
-        for (const tokenClass of tokenClasses) total += counts[tokenClass]
-      }
+      for (const counts of byMessageId.values()) total += totalTokenCount(counts)
       return Number.isFinite(total) ? total : null
     }
   }

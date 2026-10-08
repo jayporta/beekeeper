@@ -1,5 +1,6 @@
 import { IPC_CHANNELS, type IpcChannel } from '../../shared/ipc/channels'
 import type { IpcResult } from '../../shared/ipc/ipcResult'
+import { getProjectDailyUsageHandler } from './getProjectDailyUsageHandler'
 import { getProjectTotalsHandler } from './getProjectTotalsHandler'
 import { getSessionHandler } from './getSessionHandler'
 import { getWorktreeDiffsHandler } from './getWorktreeDiffsHandler'
@@ -42,6 +43,7 @@ export function registerIpcHandlers(options: RegisterIpcHandlersOptions): void {
     [IPC_CHANNELS.getSession]: (payload) => getSessionHandler(deps, payload),
     [IPC_CHANNELS.getWorktreeDiffs]: (payload) => getWorktreeDiffsHandler(deps, payload),
     [IPC_CHANNELS.getProjectTotals]: (payload) => getProjectTotalsHandler(deps, payload),
+    [IPC_CHANNELS.getProjectDailyUsage]: (payload) => getProjectDailyUsageHandler(deps, payload),
     [IPC_CHANNELS.getWorktreePatch]: (payload) => getWorktreePatchHandler(deps, payload)
   }
   for (const channel of Object.values(IPC_CHANNELS)) {

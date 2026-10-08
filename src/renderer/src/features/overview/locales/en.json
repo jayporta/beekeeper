@@ -38,10 +38,15 @@
     }
   },
   "announce": {
-    "updated": "Totals for the {{range}} updated",
+    "updated": "Totals for the {{range}} updated.",
     "partial": "Totals for the {{range}} updated. Some may be low, see the note below.",
-    "failed": "Couldn't load the totals for the {{range}}",
-    "empty": "{{heading}}. {{body}}"
+    "failed": "Couldn't load the totals for the {{range}}.",
+    "empty": "{{heading}}. {{body}}",
+    "daily": {
+      "partial": "Tokens per day may be low, see the note under the chart.",
+      "failed": "Couldn't load tokens per day."
+    },
+    "withDaily": "{{totals}} {{daily}}"
   },
   "card": {
     "worktrees_one": "{{count, integer}} worktree",
@@ -79,5 +84,38 @@
     "undated": "Some sessions have no timestamps, so they count by when their file was last written.",
     "mayBeLow": "A total may be low."
   },
-  "updating": "Updating"
+  "updating": "Updating",
+  "dailyUsage": {
+    "heading": "Tokens per day, by model",
+    "note": "Tokens count on the day each message ran, so this can differ from the totals above.",
+    "legendLabel": "Models",
+    "otherModels": "Other models",
+    "chartLabel": "Tokens per day, {{range}}: {{total, compactInteger}} in all, most on {{busiestDay}} with {{busiestTotal, compactInteger}}",
+    "chartLabelEmpty": "No tokens in the {{range}}",
+    "segmentTitle": "{{day}}: {{series}}, {{value, integer}} tokens",
+    "figure": "{{value, compactInteger}}",
+    "exact": "{{value, integer}}",
+    "dayShort": "{{value, weekday}}",
+    "dayDate": "{{value, monthDay}}",
+    "dayFull": "{{weekday}}, {{date}}",
+    "table": {
+      "caption": "Tokens per day, by model, {{range}}",
+      "day": "Day",
+      "total": "Total"
+    },
+    "loading": "Loading tokens per day",
+    "error": "Couldn't load tokens per day.",
+    "partialNote": "partial, see the note under the chart",
+    "footnote": {
+      "label": "¹ Partial:",
+      "loading": "Some projects are still loading.",
+      "failed": "Some projects couldn't be read.",
+      "unreadable": "Some sessions couldn't be read.",
+      "skippedLines": "Some sessions have unreadable lines.",
+      "undated": "Some sessions have messages with no timestamp, so those messages are on no day.",
+      "unreadableSubagents": "Some sessions have subagent files that couldn't be read.",
+      "mayBeLow": "A day's total may be low."
+    },
+    "tableToggle": "Tokens per day as a table"
+  }
 }

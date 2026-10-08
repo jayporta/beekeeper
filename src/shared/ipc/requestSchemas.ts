@@ -55,6 +55,9 @@ export const getProjectTotalsRequestSchema = z.strictObject({
   window: z.enum(TOTALS_WINDOWS)
 })
 
+/** The payload of a `getProjectDailyUsage` call: the same folder and window as `getProjectTotals`. */
+export const getProjectDailyUsageRequestSchema = getProjectTotalsRequestSchema
+
 /** The payload of a `getWorktreePatch` call. */
 export const getWorktreePatchRequestSchema = z.strictObject({
   projectDirName: projectDirNameSchema,
@@ -70,6 +73,9 @@ export type GetSessionRequest = z.infer<typeof getSessionRequestSchema>
 
 /** A validated `getProjectTotals` payload. */
 export type GetProjectTotalsRequest = z.infer<typeof getProjectTotalsRequestSchema>
+
+/** A validated `getProjectDailyUsage` payload. */
+export type GetProjectDailyUsageRequest = z.infer<typeof getProjectDailyUsageRequestSchema>
 
 /** A validated `getWorktreePatch` payload. */
 export type GetWorktreePatchRequest = z.infer<typeof getWorktreePatchRequestSchema>

@@ -1,0 +1,45 @@
+.scroll {
+  overflow-x: auto;
+
+  &:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+}
+
+.table {
+  inline-size: 100%;
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  border-collapse: collapse;
+
+  & th,
+  & td {
+    padding: var(--space-1-5) var(--space-2-5);
+    text-align: end;
+    border-block-end: 1px solid var(--color-divider);
+  }
+
+  & thead th {
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-caps);
+    overflow-wrap: anywhere;
+  }
+
+  & th[scope='row'] {
+    font-weight: inherit;
+    text-align: start;
+  }
+
+  & thead th:first-child {
+    text-align: start;
+  }
+
+  & tfoot :is(th, td) {
+    font-weight: var(--font-weight-semibold);
+    border-block-end: 0;
+  }
+}
