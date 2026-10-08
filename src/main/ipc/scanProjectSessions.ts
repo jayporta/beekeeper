@@ -26,6 +26,23 @@ export function readSessionSummary(
   return deps.summaries.run(summaryKey(file), () => deps.summaryCache.read(file))
 }
 
+/**
+ * Reads a transcript's summary through the summary cache, in the summaries
+ * scheduler's background lane, for bulk reads no one is waiting on. It shares
+ * the key of {@link readSessionSummary}, so a request for the same transcript
+ * state in either lane shares one read.
+ *
+ * @param file - The transcript's location and stat.
+ * @param deps - The summary cache and the summaries scheduler.
+ * @returns The summary, or why it could not be read.
+ */
+export function readSessionSummaryInBackground(
+  file: TranscriptFileInfo,
+  deps: ScanDeps
+): Promise<ScannedSession['summary']> {
+  return deps.summaries.runInBackground(summaryKey(file), () => deps.summaryCache.read(file))
+}
+
 function summaryKey(file: TranscriptFileInfo): string {
   return `${file.path}\0${file.mtimeMs}\0${file.size}`
 }
@@ -75,8 +92,7 @@ export async function scanProjectSessions(
   const { project, keep = () => true, background = false } = scan
   const sessions = (await discoverSessions(project.path)).filter(keep)
   const readSummary = background
-    ? (file: TranscriptFileInfo) =>
-        deps.summaries.runInBackground(summaryKey(file), () => deps.summaryCache.read(file))
+    ? (file: TranscriptFileInfo) => readSessionSummaryInBackground(file, deps)
     : (file: TranscriptFileInfo) => readSessionSummary(file, deps)
   return Promise.all(
     sessions.map((entry) => scanSession({ projectDirName: project.dirName, entry }, readSummary))

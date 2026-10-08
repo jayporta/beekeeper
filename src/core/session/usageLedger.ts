@@ -1,4 +1,5 @@
 import { combineTokenCounts, type TokenCounts } from '../pricing/tokenCounts'
+import { earlierTimestamp, laterTimestamp } from '../shared/optionalTimestamps'
 import { agentIdentityEquals, type AgentIdentity } from './agentIdentity'
 
 /** One message's usage as tracked by the ledger. */
@@ -56,16 +57,6 @@ export interface UsageLedger {
   /** Every message the ledger has seen, in first-reported order. */
   entries(): readonly LedgerEntry[]
 }
-
-/** Lifts `pick` to optional timestamps: a `null` gives way to the other value. */
-function ignoringNull(
-  pick: (a: number, b: number) => number
-): (a: number | null, b: number | null) => number | null {
-  return (a, b) => (a === null ? b : b === null ? a : pick(a, b))
-}
-
-const earlierTimestamp = ignoringNull(Math.min)
-const laterTimestamp = ignoringNull(Math.max)
 
 /**
  * Creates an empty {@link UsageLedger}.

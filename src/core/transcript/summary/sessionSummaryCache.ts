@@ -45,15 +45,17 @@ export interface SessionSummaryCacheOptions {
 
 /**
  * The default bound on a summary cache's total weight, in UTF-16 code units.
- * A real entry weighs under about a thousand (the per-entry overhead plus a
- * few hundred code units of labels), so this holds several thousand of
- * them, where the largest real folder has about five hundred transcripts.
- * A crafted entry can weigh about 200 thousand (128 spawns of four strings
- * and 128 stops of two, each up to 256 code units), so the bound holds
- * about twenty of those. The strings it accounts for take at most 8 MB, at
- * two bytes per code unit.
+ * A real entry weighs about two thousand on average (the per-entry overhead,
+ * its labels, and its lead usage's message ids and slots), and the largest
+ * real one about 50 thousand, so this holds about five thousand average
+ * entries. A crafted entry can weigh about 200 thousand in labels (128
+ * spawns of four strings and 128 stops of two, each up to 256 code units)
+ * plus up to about 14 million in message ids (50,000 ids of up to 256 code
+ * units, each with its overhead); one heavier than the bound is served but
+ * not kept. What it accounts for takes at most 20 MB, at two bytes per code
+ * unit.
  */
-export const SUMMARY_CACHE_MAX_WEIGHT = 4_000_000
+export const SUMMARY_CACHE_MAX_WEIGHT = 10_000_000
 
 /**
  * Creates a summary cache keyed by transcript path. Entries are evicted

@@ -22,8 +22,8 @@ export interface IpcDeps {
   /**
    * Shares and caps the summary reads behind a session listing, one per
    * transcript, and the agent term and workflow run name reads that follow
-   * them. Bulk reads nobody waits on, such as project totals, take its
-   * background lane.
+   * them. Bulk reads nobody waits on, such as project totals and the leads
+   * behind the tokens-per-day chart, take its background lane.
    */
   readonly summaries: LaneScanScheduler
   /** Shares and caps full session scans. */
@@ -31,9 +31,11 @@ export interface IpcDeps {
   /** Recent completed session scans, shared by every handler that scans. */
   readonly scanCache: SessionScanCache
   /**
-   * Shares and caps the daily usage scans, one per session. They are kept apart
-   * from `summaries` so a folder's backlog of them never holds a summary
-   * read's slot.
+   * Shares and caps the daily usage scans, one per session: a session with
+   * subagents reads its lead summary (through `summaries`, in its background
+   * lane) and its subagents in one slot here, and a lead too long for its
+   * summary to hold is read in full here. A session with no subagents whose
+   * lead fits in its summary never queues here.
    */
   readonly dailyUsageScans: ScanScheduler
   /** Complete per-session daily usage, shared by every folder's daily usage read. */

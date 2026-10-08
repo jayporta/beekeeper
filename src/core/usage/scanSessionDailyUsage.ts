@@ -1,12 +1,12 @@
 import { leadIdentity } from '../session/agentIdentity'
 import { collectMessageReports } from '../session/collectMessageReports'
-import { readSubagentMessageReports } from '../session/readSubagentMessageReports'
 import { createUsageLedger } from '../session/usageLedger'
 import type { SubagentEntry } from '../transcript/discoverSubagents'
 import type { ReadJsonlLinesOptions } from '../transcript/readJsonlLines'
 import { readRecords } from '../transcript/readRecords'
 import { bucketDailyUsage } from './bucketDailyUsage'
 import type { DayKey, SessionDailyUsage } from './dailyUsage'
+import { reportSubagentUsage } from './reportSubagentUsage'
 
 /** Options for {@link scanSessionDailyUsage}. */
 export interface ScanSessionDailyUsageOptions extends ReadJsonlLinesOptions {
@@ -35,19 +35,11 @@ export async function scanSessionDailyUsage(
 
   const lead = await collectMessageReports(readRecords(leadPath, readOptions), leadIdentity)
   for (const report of lead.reports) ledger.report(report)
-  let skippedLines = lead.skippedLines
-  let unreadableSubagents = 0
+  const subagentRead = await reportSubagentUsage({ subagents, ledger, readOptions })
 
-  for (const subagent of subagents) {
-    const read = await readSubagentMessageReports({ subagent, readOptions })
-    if (!read.ok) {
-      unreadableSubagents += 1
-      continue
-    }
-    // Applied only after the whole transcript has been read, as scanSession does.
-    for (const report of read.value.reports) ledger.report(report)
-    skippedLines += read.value.skippedLines
+  return {
+    ...bucketDailyUsage(ledger.entries(), dayKeyOf),
+    skippedLines: lead.skippedLines + subagentRead.skippedLines,
+    unreadableSubagents: subagentRead.unreadableSubagents
   }
-
-  return { ...bucketDailyUsage(ledger.entries(), dayKeyOf), skippedLines, unreadableSubagents }
 }
