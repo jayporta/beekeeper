@@ -10,6 +10,8 @@ import type { DailyUsageDay } from './sumDailyUsage'
 interface DailyUsageTableProps {
   /** The window's days, oldest first. */
   readonly days: readonly DailyUsageDay[]
+  /** The tokens over every day, from the summary. */
+  readonly total: number
   /** The chart's series, from `seriesOf`. */
   readonly series: readonly Series[]
   /** The window the days cover, to name the table. */
@@ -22,9 +24,14 @@ interface DailyUsageTableProps {
  * the chart's compact axis.
  *
  * @example
- * <DailyUsageTable days={summary.days} series={seriesOf(summary.days)} range="7d" />
+ * <DailyUsageTable days={summary.days} total={summary.total} series={seriesOf(summary.days)} range="7d" />
  */
-export function DailyUsageTable({ days, series, range }: DailyUsageTableProps): React.JSX.Element {
+export function DailyUsageTable({
+  days,
+  total,
+  series,
+  range
+}: DailyUsageTableProps): React.JSX.Element {
   const { t } = useTranslation('overview')
   const otherModels = t('dailyUsage.otherModels')
   const exact = (value: number): string => t('dailyUsage.exact', { value })
@@ -62,7 +69,7 @@ export function DailyUsageTable({ days, series, range }: DailyUsageTableProps): 
           {series.map((entry) => (
             <td key={entry.index}>{exact(entry.total)}</td>
           ))}
-          <td>{exact(days.reduce((sum, day) => sum + day.total, 0))}</td>
+          <td>{exact(total)}</td>
         </tr>
       </tfoot>
     </table>

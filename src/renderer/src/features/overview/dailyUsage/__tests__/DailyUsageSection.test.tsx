@@ -70,18 +70,18 @@ describe('DailyUsageSection', () => {
 })
 
 describe('DailyUsageSection table', () => {
-  it('opens and closes a table with a button that says what it controls', async () => {
+  it('opens and closes a table with a button whose name stays the same and whose state is aria-expanded', async () => {
     const user = userEvent.setup()
     renderSection(() => Promise.resolve(week()))
     await chart()
-    const button = screen.getByRole('button', { name: 'Show as a table' })
+    const button = screen.getByRole('button', { name: 'Tokens per day as a table' })
     expect(button.getAttribute('aria-expanded')).toBe('false')
     expect(screen.queryByRole('table')).toBeNull()
 
     await user.click(button)
 
     expect(button.getAttribute('aria-expanded')).toBe('true')
-    expect(button.textContent).toBe('Hide the table')
+    expect(button.textContent).toBe('Tokens per day as a table')
     const table = screen.getByRole('table')
     const controlled = document.getElementById(button.getAttribute('aria-controls') ?? '')
     expect(controlled?.contains(table)).toBe(true)
@@ -94,7 +94,7 @@ describe('DailyUsageSection table', () => {
     const user = userEvent.setup()
     renderSection((_dir, window) => Promise.resolve(window === '7d' ? week() : month()))
     await chart()
-    await user.click(screen.getByRole('button', { name: 'Show as a table' }))
+    await user.click(screen.getByRole('button', { name: 'Tokens per day as a table' }))
     // One row per day, a total row, and the header row.
     expect(screen.getAllByRole('row')).toHaveLength(7 + 2)
 
@@ -111,7 +111,7 @@ describe('DailyUsageSection table', () => {
     const user = userEvent.setup()
     renderSection(() => Promise.resolve(week()))
     await chart()
-    await user.click(screen.getByRole('button', { name: 'Show as a table' }))
+    await user.click(screen.getByRole('button', { name: 'Tokens per day as a table' }))
 
     const footer = screen.getByRole('row', { name: /^Total/ })
     const cells = within(footer).getAllByRole('cell')
@@ -140,7 +140,7 @@ describe('DailyUsageSection while loading and when partial', () => {
 
     expect(await screen.findByText("Couldn't load tokens per day.")).toBeTruthy()
     expect(screen.queryByRole('img')).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Show as a table' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Tokens per day as a table' })).toBeNull()
   })
 
   it('keeps the chart and explains it when one folder failed', async () => {
@@ -174,7 +174,7 @@ describe('DailyUsageSection while loading and when partial', () => {
     expect(screen.queryByText(/Partial:/)).toBeNull()
   })
 
-  it('keeps the chart, muted and marked as updating, while the other window’s figures stand in', async () => {
+  it('keeps the chart at full contrast and says it is updating while the other window’s figures stand in', async () => {
     const thirty = new Promise<Reply>(() => undefined)
     renderSection((_dir, window) => (window === '7d' ? Promise.resolve(week()) : thirty))
     await chart()
@@ -186,5 +186,74 @@ describe('DailyUsageSection while loading and when partial', () => {
     await screen.findByText('Updating')
     expect(screen.getByRole('region').getAttribute('aria-busy')).toBe('true')
     expect(screen.getByRole('img', { name: /41\.2M in all/ })).toBeTruthy()
+  })
+})
+
+describe('DailyUsageSection announcements', () => {
+  const status = (): HTMLElement => within(screen.getByRole('region')).getByRole('status')
+
+  it('says nothing while the usage loads', async () => {
+    renderSection(never)
+
+    await screen.findByText('Loading tokens per day')
+
+    expect(status().textContent).toBe('')
+  })
+
+  it('says once that the usage arrived, when every folder has', async () => {
+    renderSection(() => Promise.resolve(week()), ['-a', '-b'])
+
+    await waitFor(() => {
+      expect(status().textContent).toBe('Tokens per day for the last 7 days updated')
+    })
+  })
+
+  it('says some days may be low when the usage is partial', async () => {
+    renderSection(() => Promise.resolve(week({ skippedLines: 1 })))
+
+    await waitFor(() => {
+      expect(status().textContent).toBe(
+        'Tokens per day for the last 7 days updated. Some days may be low, see the note under the chart.'
+      )
+    })
+  })
+
+  it('says it could not load when every folder failed', async () => {
+    renderSection(() => Promise.resolve(failed))
+
+    await waitFor(() => {
+      expect(status().textContent).toBe("Couldn't load tokens per day for the last 7 days")
+    })
+  })
+
+  it('says nothing about the new window until its usage has arrived', async () => {
+    const thirty = new Promise<Reply>(() => undefined)
+    renderSection((_dir, window) => (window === '7d' ? Promise.resolve(week()) : thirty))
+    await waitFor(() => {
+      expect(status().textContent).toBe('Tokens per day for the last 7 days updated')
+    })
+
+    act(() => {
+      useTotalsWindowStore.getState().setWindow('30d')
+    })
+    await screen.findByText('Updating')
+    await new Promise((resolve) => setTimeout(resolve, 30))
+
+    expect(status().textContent).not.toContain('30 days')
+  })
+
+  it('says it again when the window changes and the new usage arrives', async () => {
+    renderSection((_dir, window) => Promise.resolve(window === '7d' ? week() : month()))
+    await waitFor(() => {
+      expect(status().textContent).toBe('Tokens per day for the last 7 days updated')
+    })
+
+    act(() => {
+      useTotalsWindowStore.getState().setWindow('30d')
+    })
+
+    await waitFor(() => {
+      expect(status().textContent).toBe('Tokens per day for the last 30 days updated')
+    })
   })
 })

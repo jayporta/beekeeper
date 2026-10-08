@@ -20,18 +20,18 @@ import { errResult, okResult } from './ipcResults'
  * the window count, even for a session that began before it. A session whose
  * lead and subagent files are all older than the window's first day, by more
  * than a day of slack, is skipped without being read. The rest are read
- * through the daily usage cache and the summaries scheduler's background lane.
+ * through the daily usage cache and the daily usage scheduler.
  * Like the totals, only the folder's own sessions are read.
  *
- * @param deps - The projects root, the daily usage cache, the summaries
- * scheduler, the clock, and the time zone that decides where a day begins.
+ * @param deps - The projects root, the daily usage cache and scheduler, the
+ * clock, and the time zone that decides where a day begins, read once per request.
  * @param payload - The renderer's payload, validated here.
  * @returns The usage, `invalid-request` for a bad payload, or `not-found` for
  * an unknown project. A folder that can't be read comes back as the code of
  * its system error, through the IPC guard.
  */
 export async function getProjectDailyUsageHandler(
-  deps: Pick<IpcDeps, 'projectsRoot' | 'summaries' | 'dailyUsageCache' | 'now' | 'timeZone'>,
+  deps: Pick<IpcDeps, 'projectsRoot' | 'dailyUsageScans' | 'dailyUsageCache' | 'now' | 'timeZone'>,
   payload: unknown
 ): Promise<IpcResult<ProjectDailyUsageDto>> {
   const request = getProjectDailyUsageRequestSchema.safeParse(payload)
@@ -42,7 +42,9 @@ export async function getProjectDailyUsageHandler(
 
   const { window } = request.data
   const nowMs = deps.now()
-  const days = windowDays({ todayKey: createDayKeyOf(deps.timeZone())(nowMs), window })
+  const timeZone = deps.timeZone()
+  const dayKeyOf = createDayKeyOf(timeZone)
+  const days = windowDays({ todayKey: dayKeyOf(nowMs), window })
   const windowMs = TOTALS_WINDOW_MS[window]
   const sessions = (await discoverSessions(project.path)).filter((entry) =>
     mayHaveDailyUsage(entry, { nowMs, windowMs })
@@ -53,7 +55,12 @@ export async function getProjectDailyUsageHandler(
       if (!session.transcript.ok) return { ok: false }
       const read = await readSessionDailyUsage(
         { projectDirName: project.dirName, session, transcript: session.transcript.value },
-        deps
+        {
+          dailyUsageScans: deps.dailyUsageScans,
+          dailyUsageCache: deps.dailyUsageCache,
+          timeZone,
+          dayKeyOf
+        }
       )
       return read.ok
         ? { ok: true, usage: read.value, subagentsListed: session.subagents.ok }

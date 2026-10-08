@@ -52,12 +52,12 @@
   /* The fill for anything that carries text, and the accent used as text. The plain accent is too light for either in light mode. */
   --color-accent-strong: #36516b;
 
-  /* The chart's series, in the order the chart draws them. Each holds 3:1 on the ground (WCAG 1.4.11). Two blues from the accent ramp, an amber and a teal so the middle series differ by hue as well as lightness, and a neutral for the rest. */
+  /* The chart's series, in the order the chart draws them. Each holds 3:1 on the ground (WCAG 1.4.11), and each pair of neighbours is 1.5:1 apart, so they differ in lightness as well as hue for a reader with color blindness. A blue, a brown, a teal and a neutral; the neutral also carries a hatch. */
   --color-series-1: var(--color-accent-800);
-  --color-series-2: var(--color-accent-600);
-  --color-series-3: #9a6112;
-  --color-series-4: #1f7a73;
-  --color-series-other: var(--color-border-strong);
+  --color-series-2: #6d93ba;
+  --color-series-3: #7a4a08;
+  --color-series-4: #2a8c83;
+  --color-series-other: #47494b;
 
   --focus-ring-color: var(--color-accent-strong);
   --focus-ring-width: 2px;
@@ -148,8 +148,8 @@
   --size-chart-bar-max: 2.5rem;
   /* The gap between a bar's segments, so each meets the ground. */
   --size-hairline: 1px;
-  /* A figure that belongs to the previous window until the current one arrives. */
-  --opacity-updating: 0.55;
+  /* The stripes of the hatch that marks the other series: 3px of color, then 3px of ground. */
+  --size-hatch: 0.1875rem;
   /* The inspector's headline figure: 34px. */
   --font-size-inspector-figure: 2.125rem;
 
@@ -181,8 +181,10 @@
     --color-accent-800: #d6ebff;
     --color-accent-900: #eef6ff;
     --color-accent-strong: #c8daec;
-    --color-series-3: #e0a84a;
-    --color-series-4: #5fc4bb;
+    --color-series-2: #7fa7d3;
+    --color-series-3: #a8691a;
+    --color-series-4: #66d0c5;
+    --color-series-other: #8a8d90;
     --color-diff-add: #9cdeaa;
     --color-diff-remove: #f6c3c3;
   }

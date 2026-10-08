@@ -7,6 +7,7 @@ import { useProjects } from '@renderer/features/projects/useProjects'
 import { useTotalsWindowStore } from '../state/useTotalsWindowStore'
 import { dailyUsageLimiterFor } from './dailyUsageLimiter'
 import { newestDailyUsage } from './newestDailyUsage'
+import { pruneStaleDailyUsage } from './pruneStaleDailyUsage'
 import { useTodayKey } from './useTodayKey'
 import { sumDailyUsage, type DailyUsageSummary, type FolderDailyUsageState } from './sumDailyUsage'
 
@@ -42,7 +43,8 @@ export interface DailyUsage {
  * totals' limiter; a request still waiting when nothing shows it any more
  * never starts. The queries take the defaults of their persisted root: they
  * stay fresh for five minutes, refetch on window focus once stale, and are
- * cached across launches.
+ * cached across launches. When a folder's usage arrives, its usage for other
+ * days is dropped.
  *
  * @returns The window and the summed usage.
  */
@@ -62,11 +64,14 @@ export function useDailyUsage(): DailyUsage {
   const states = useQueries({
     queries: folders.map((dirName) => ({
       queryKey: ['projectDailyUsage', dirName, range, todayKey],
-      queryFn: ({ signal }: { signal: AbortSignal }) =>
-        dailyUsageLimiterFor(client).run(
+      queryFn: async ({ signal }: { signal: AbortSignal }) => {
+        const usage = await dailyUsageLimiterFor(client).run(
           async () => unwrapIpcResult(await window.beekeeper.getProjectDailyUsage(dirName, range)),
           signal
-        ),
+        )
+        pruneStaleDailyUsage(client, { dirName, todayKey })
+        return usage
+      },
       placeholderData: () => newestDailyUsage(client, dirName)
     })),
     combine

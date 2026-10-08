@@ -15,6 +15,8 @@ const LABEL_EVERY_DAYS = 5
 interface DailyUsageChartProps {
   /** The window's days, oldest first. */
   readonly days: readonly DailyUsageDay[]
+  /** The tokens over every day, from the summary. */
+  readonly total: number
   /** The chart's series, from `seriesOf`. */
   readonly series: readonly Series[]
   /** The window the days cover, to name the chart. */
@@ -29,12 +31,16 @@ interface DailyUsageChartProps {
  * pointer users.
  *
  * @example
- * <DailyUsageChart days={summary.days} series={seriesOf(summary.days)} range="7d" />
+ * <DailyUsageChart days={summary.days} total={summary.total} series={seriesOf(summary.days)} range="7d" />
  */
-export function DailyUsageChart({ days, series, range }: DailyUsageChartProps): React.JSX.Element {
+export function DailyUsageChart({
+  days,
+  total,
+  series,
+  range
+}: DailyUsageChartProps): React.JSX.Element {
   const { t } = useTranslation('overview')
   const scale = chartScale(Math.max(0, ...days.map((day) => day.total)))
-  const total = days.reduce((sum, day) => sum + day.total, 0)
   const busiest = days.reduce<DailyUsageDay | undefined>(
     (best, day) => (best === undefined || day.total > best.total ? day : best),
     undefined

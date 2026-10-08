@@ -11,13 +11,6 @@
   font-weight: var(--font-weight-semibold);
 }
 
-.chart {
-  /* The previous window's or day's figures, until the current one arrives. */
-  &[data-updating='true'] {
-    opacity: var(--opacity-updating);
-  }
-}
-
 .toggle {
   align-self: flex-start;
   padding: var(--space-1) 0;

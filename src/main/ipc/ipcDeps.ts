@@ -30,6 +30,12 @@ export interface IpcDeps {
   readonly scans: ScanScheduler
   /** Recent completed session scans, shared by every handler that scans. */
   readonly scanCache: SessionScanCache
+  /**
+   * Shares and caps the daily usage scans, one per session. They are kept apart
+   * from `summaries` so a folder's backlog of them never holds a summary
+   * read's slot.
+   */
+  readonly dailyUsageScans: ScanScheduler
   /** Complete per-session daily usage, shared by every folder's daily usage read. */
   readonly dailyUsageCache: DailyUsageCache
   /**

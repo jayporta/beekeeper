@@ -5,8 +5,8 @@ import { seriesOf } from '../seriesOf'
 import { OCTOBER_WEEK, testSummary } from '../testDailyUsage'
 
 function tableFor(days: Parameters<typeof testSummary>[0]): React.JSX.Element {
-  const { days: summed } = testSummary(days)
-  return <DailyUsageTable days={summed} series={seriesOf(summed)} range="7d" />
+  const { days: summed, total } = testSummary(days)
+  return <DailyUsageTable days={summed} total={total} series={seriesOf(summed)} range="7d" />
 }
 
 describe('DailyUsageTable', () => {
@@ -68,6 +68,15 @@ describe('DailyUsageTable', () => {
         .getAllByRole('cell')
         .map((c) => c.textContent)
     ).toEqual(['33,200,000', '8,000,000', '41,200,000'])
+  })
+
+  it('ends with the total it is given rather than adding the days again', () => {
+    const { days } = testSummary(OCTOBER_WEEK)
+
+    render(<DailyUsageTable days={days} total={123} series={seriesOf(days)} range="7d" />)
+
+    const footer = screen.getByRole('row', { name: /^Total/ })
+    expect(within(footer).getAllByRole('cell').at(-1)?.textContent).toBe('123')
   })
 
   it('shows a very long model id as text in its header', () => {

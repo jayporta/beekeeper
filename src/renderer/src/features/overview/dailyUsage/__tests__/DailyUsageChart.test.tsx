@@ -8,8 +8,8 @@ function chartFor(
   days: Parameters<typeof testSummary>[0],
   range: '7d' | '30d' = '7d'
 ): React.JSX.Element {
-  const { days: summed } = testSummary(days)
-  return <DailyUsageChart days={summed} series={seriesOf(summed)} range={range} />
+  const { days: summed, total } = testSummary(days)
+  return <DailyUsageChart days={summed} total={total} series={seriesOf(summed)} range={range} />
 }
 
 describe('DailyUsageChart', () => {
@@ -21,6 +21,14 @@ describe('DailyUsageChart', () => {
         name: 'Tokens per day, last 7 days: 41.2M in all, most on Wed, Oct 7 with 9.8M'
       })
     ).toBeTruthy()
+  })
+
+  it('names the total it is given rather than adding the days again', () => {
+    const { days } = testSummary(OCTOBER_WEEK)
+
+    render(<DailyUsageChart days={days} total={7} series={seriesOf(days)} range="7d" />)
+
+    expect(screen.getByRole('img').getAttribute('aria-label')).toContain('7 in all')
   })
 
   it('says there were no tokens when the window is empty', () => {

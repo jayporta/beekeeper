@@ -1,6 +1,5 @@
-import { useReducer } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useAnnouncement } from '@renderer/components/useAnnouncement'
+import { useSettledAnnouncement } from '@renderer/components/useSettledAnnouncement'
 import type { TotalsWindowDto } from '../../../../shared/ipc/projectTotalsDto'
 
 /**
@@ -17,35 +16,6 @@ interface TotalsAnnouncementInput {
   readonly settled: boolean
   /** What the totals came to: figures, figures that may be low, no activity (the overview shows its empty message), or every project failed. */
   readonly outcome: TotalsOutcome
-}
-
-/** What the hook remembers between renders. */
-interface AnnouncementState {
-  /** Whether the window's totals are still to be announced, because they are loading or the window changed. */
-  readonly pending: boolean
-  /** The window the state is for. */
-  readonly range: TotalsWindowDto
-  /** The outcome last announced, or the one showing when the overview opened. */
-  readonly outcome: TotalsOutcome
-}
-
-type AnnouncementAction =
-  | { readonly type: 'rangeChanged'; readonly range: TotalsWindowDto }
-  | { readonly type: 'unsettled' }
-  | { readonly type: 'announced'; readonly outcome: TotalsOutcome }
-
-function announcementReducer(
-  state: AnnouncementState,
-  action: AnnouncementAction
-): AnnouncementState {
-  switch (action.type) {
-    case 'rangeChanged':
-      return { ...state, range: action.range, pending: true }
-    case 'unsettled':
-      return { ...state, pending: true }
-    case 'announced':
-      return { ...state, pending: false, outcome: action.outcome }
-  }
 }
 
 /**
@@ -66,28 +36,19 @@ export function useTotalsAnnouncement({
   outcome
 }: TotalsAnnouncementInput): string {
   const { t } = useTranslation('overview')
-  const { message, announce } = useAnnouncement()
-  const [state, dispatch] = useReducer(announcementReducer, {
-    pending: !settled,
-    range,
-    outcome
-  })
 
-  if (range !== state.range) {
-    dispatch({ type: 'rangeChanged', range })
-  } else if (!settled && !state.pending) {
-    dispatch({ type: 'unsettled' })
-  } else if (settled && (state.pending || outcome !== state.outcome)) {
-    dispatch({ type: 'announced', outcome })
-    const rangeName = t(`range.${range}`)
-    announce(
-      outcome === 'empty'
+  return useSettledAnnouncement({
+    scope: range,
+    settled,
+    outcome,
+    say: (spoken, window) => {
+      const rangeName = t(`range.${window}`)
+      return spoken === 'empty'
         ? t('announce.empty', {
             heading: t('empty.heading'),
-            body: t(`empty.body.${range}`, { range: rangeName })
+            body: t(`empty.body.${window}`, { range: rangeName })
           })
-        : t(`announce.${outcome}`, { range: rangeName })
-    )
-  }
-  return message
+        : t(`announce.${spoken}`, { range: rangeName })
+    }
+  })
 }

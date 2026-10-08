@@ -184,6 +184,43 @@ describe('useDailyUsage', () => {
     expect(result.current.summary).toMatchObject({ total: 7, refreshing: true })
   })
 
+  it('drops the previous day’s usage once the new day’s arrives, not before', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 2, 10, 23, 0))
+    const client = createTestQueryClient()
+    const today = deferred()
+    let calls = 0
+    installBeekeeperApi({
+      listProjects: listing('-a'),
+      getProjectDailyUsage: () => (calls++ === 0 ? Promise.resolve(replyOf(1)) : today.promise)
+    })
+    const { result, rerender } = renderHook(() => useDailyUsage(), {
+      wrapper: createQueryWrapper(client)
+    })
+    await waitFor(() => {
+      expect(result.current.summary.total).toBe(7)
+    })
+    const days = (): unknown[] =>
+      client
+        .getQueryCache()
+        .findAll({ queryKey: ['projectDailyUsage', '-a'] })
+        .map((q) => q.queryKey[3])
+    vi.setSystemTime(new Date(2026, 2, 11, 0, 1))
+    rerender()
+    await waitFor(() => {
+      expect(days()).toHaveLength(2)
+    })
+    expect(days().sort()).toEqual(['2026-03-10', '2026-03-11'])
+
+    act(() => {
+      today.settle(replyOf(2))
+    })
+
+    await waitFor(() => {
+      expect(days()).toEqual(['2026-03-11'])
+    })
+  })
+
   it('asks again when the local day changes', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(2026, 2, 10, 23, 0))

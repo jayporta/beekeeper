@@ -13,14 +13,13 @@ export function newestDailyUsage(
   client: QueryClient,
   dirName: string
 ): ProjectDailyUsageDto | undefined {
-  let newest: { readonly at: number; readonly data: ProjectDailyUsageDto } | undefined
-  for (const query of client
-    .getQueryCache()
-    .findAll({ queryKey: ['projectDailyUsage', dirName] })) {
-    const data = query.state.data as ProjectDailyUsageDto | undefined
-    if (data !== undefined && (newest === undefined || query.state.dataUpdatedAt > newest.at)) {
-      newest = { at: query.state.dataUpdatedAt, data }
-    }
+  let newest: { readonly at: number; readonly usage: ProjectDailyUsageDto } | undefined
+  const cached = client.getQueriesData<ProjectDailyUsageDto>({
+    queryKey: ['projectDailyUsage', dirName]
+  })
+  for (const [queryKey, usage] of cached) {
+    const at = client.getQueryState(queryKey)?.dataUpdatedAt ?? 0
+    if (usage !== undefined && (newest === undefined || at > newest.at)) newest = { at, usage }
   }
-  return newest?.data
+  return newest?.usage
 }

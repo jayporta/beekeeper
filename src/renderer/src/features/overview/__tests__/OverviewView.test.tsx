@@ -119,13 +119,16 @@ function stripArea(name: string): HTMLElement {
   return area
 }
 
-/** The overview's own status region, which is mounted before it has anything to say. */
+/** The overview's own status region, which is mounted before it has anything to say. The tokens per day section has one too, inside it. */
 function statusRegion(): HTMLElement {
   const view = screen
     .getByRole('heading', { level: 1, name: 'All projects' })
     .closest('header')?.parentElement
   if (view === null || view === undefined) throw new Error('The overview has no view around it')
-  return within(view).getByRole('status')
+  // The tokens per day section has a status region of its own, further down.
+  const region = view.querySelector<HTMLElement>(':scope > [role="status"]')
+  if (region === null) throw new Error('The overview has no status region')
+  return region
 }
 
 /** The card of the project named `name`, once it is on screen. */

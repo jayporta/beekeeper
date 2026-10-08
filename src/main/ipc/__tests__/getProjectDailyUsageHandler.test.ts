@@ -84,23 +84,26 @@ async function removeTreeSession(): Promise<void> {
   await rm(join(ctx.tree.home, '.claude', 'projects', TEST_PROJECT, `${TEST_SESSION_ID}.jsonl`))
 }
 
-/** `ctx.deps` with the clock stopped, a fixed zone, and a background lane that records its keys. */
-function depsAt(timeZone = 'UTC'): { deps: IpcDeps; backgroundKeys: string[] } {
-  const backgroundKeys: string[] = []
-  const { summaries } = ctx.deps
+/** `ctx.deps` with the clock stopped, a fixed zone, and a daily usage scheduler that records its keys. */
+function depsAt(timeZone = 'UTC'): { deps: IpcDeps; scanKeys: string[]; zoneReads: () => number } {
+  const scanKeys: string[] = []
+  let zoneReads = 0
+  const { dailyUsageScans } = ctx.deps
   const deps: IpcDeps = {
     ...ctx.deps,
     now: () => NOW,
-    timeZone: () => timeZone,
-    summaries: {
-      run: summaries.run,
-      runInBackground: (key, task) => {
-        backgroundKeys.push(key)
-        return summaries.runInBackground(key, task)
+    timeZone: () => {
+      zoneReads += 1
+      return timeZone
+    },
+    dailyUsageScans: {
+      run: (key, task) => {
+        scanKeys.push(key)
+        return dailyUsageScans.run(key, task)
       }
     }
   }
-  return { deps, backgroundKeys }
+  return { deps, scanKeys, zoneReads: () => zoneReads }
 }
 
 type Usage = ProjectDailyUsageDto
@@ -122,13 +125,13 @@ describe('getProjectDailyUsageHandler request validation', () => {
     ['a project name that is a path', { ...request, projectDirName: '../x' }],
     ['no payload', undefined]
   ])('refuses %s, reading nothing', async (_label, payload) => {
-    const { deps, backgroundKeys } = depsAt()
+    const { deps, scanKeys } = depsAt()
 
     expect(await getProjectDailyUsageHandler(deps, payload)).toEqual({
       ok: false,
       error: { code: 'invalid-request' }
     })
-    expect(backgroundKeys).toEqual([])
+    expect(scanKeys).toEqual([])
   })
 
   it('finds no project that is not listed', async () => {
@@ -141,6 +144,18 @@ describe('getProjectDailyUsageHandler request validation', () => {
 })
 
 describe('getProjectDailyUsageHandler usage', () => {
+  it('reads the time zone once for the request, however many sessions it reads', async () => {
+    await removeTreeSession()
+    await writeSession(1, [{ at: '2026-03-05T10:00:00Z' }])
+    await writeSession(2, [{ at: '2026-03-06T10:00:00Z' }])
+    await writeSession(3, [{ at: '2026-03-07T10:00:00Z' }])
+    const { deps, zoneReads } = depsAt()
+
+    await usageOf(deps)
+
+    expect(zoneReads()).toBe(1)
+  })
+
   it('lists every day of the window, oldest first', async () => {
     await removeTreeSession()
 
@@ -244,11 +259,11 @@ describe('getProjectDailyUsageHandler reading only what can count', () => {
     await writeSession(1, [{ at: '2026-02-01T10:00:00Z' }], stale)
     await writeSubagent(1, [{ at: '2026-02-01T10:00:00Z' }], stale)
     await writeSession(2, [{ at: '2026-03-05T10:00:00Z', tokens: 8 }])
-    const { deps, backgroundKeys } = depsAt()
+    const { deps, scanKeys } = depsAt()
 
     const usage = await usageOf(deps)
 
-    expect(backgroundKeys).toHaveLength(1)
+    expect(scanKeys).toHaveLength(1)
     expect(tokensOn(usage, '2026-03-05')).toBe(8)
   })
 })
@@ -258,12 +273,12 @@ describe('getProjectDailyUsageHandler cache', () => {
     await removeTreeSession()
     await writeSession(1, [{ at: '2026-03-05T10:00:00Z', tokens: 8 }])
     await writeSubagent(1, [{ at: '2026-03-05T11:00:00Z', tokens: 2 }])
-    const { deps, backgroundKeys } = depsAt()
+    const { deps, scanKeys } = depsAt()
     const first = await usageOf(deps)
 
     const second = await usageOf(deps)
 
-    expect(backgroundKeys).toHaveLength(1)
+    expect(scanKeys).toHaveLength(1)
     expect(second).toEqual(first)
   })
 
@@ -271,13 +286,13 @@ describe('getProjectDailyUsageHandler cache', () => {
     await removeTreeSession()
     await writeSession(1, [{ at: '2026-03-05T10:00:00Z', tokens: 8 }])
     const subagent = await writeSubagent(1, [{ at: '2026-03-05T11:00:00Z', tokens: 2 }])
-    const { deps, backgroundKeys } = depsAt()
+    const { deps, scanKeys } = depsAt()
     await usageOf(deps)
 
     await utimes(subagent, new Date(NOW - 1000), new Date(NOW - 1000))
     await usageOf(deps)
 
-    expect(backgroundKeys).toHaveLength(2)
+    expect(scanKeys).toHaveLength(2)
   })
 
   it.skipIf(process.getuid?.() === 0)(
@@ -286,14 +301,14 @@ describe('getProjectDailyUsageHandler cache', () => {
       await removeTreeSession()
       await writeSession(1, [{ at: '2026-03-05T10:00:00Z', tokens: 8 }])
       const subagent = await writeSubagent(1, [{ at: '2026-03-05T11:00:00Z', tokens: 2 }])
-      const { deps, backgroundKeys } = depsAt()
+      const { deps, scanKeys } = depsAt()
       await chmod(subagent, 0o000)
       try {
         const first = await usageOf(deps)
         await usageOf(deps)
 
         expect(first.partial.unreadableSubagents).toBe(1)
-        expect(backgroundKeys).toHaveLength(2)
+        expect(scanKeys).toHaveLength(2)
       } finally {
         await chmod(subagent, 0o644)
       }

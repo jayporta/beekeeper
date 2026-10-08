@@ -2,9 +2,11 @@ import type { QueryClient } from '@tanstack/react-query'
 import { createLimiter, type Limiter } from '../totalsLimiter'
 
 /**
- * How many folders' daily usage the renderer asks main for at once. Main reads
- * every session of a folder twice over (its summaries, then its daily usage),
- * so one at a time keeps the sidebar's totals from queuing behind this.
+ * How many folders' daily usage the renderer asks main for at once. Main runs
+ * one daily scan at a time, so a second request would only wait there; asking
+ * for one at a time means a request still waiting when nothing shows the chart
+ * any more never reaches main. It is a separate limiter from the totals', so
+ * the chart's requests never take the totals' slots.
  */
 export const MAX_DAILY_USAGE_IN_FLIGHT = 1
 

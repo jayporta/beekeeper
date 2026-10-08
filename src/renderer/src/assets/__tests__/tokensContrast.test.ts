@@ -112,6 +112,15 @@ describe.each(Object.entries(schemes))('%s color scheme chart series', (_scheme,
     ).toBeGreaterThanOrEqual(3)
   })
 
+  // Neighbouring segments differ in lightness, so they stay apart for a reader who can't tell their hues apart.
+  const NEIGHBOURS = SERIES_TOKENS.slice(1).map((series, i) => [SERIES_TOKENS[i], series] as const)
+
+  it.each(NEIGHBOURS)('%s and %s are at least 1.5:1 apart', (first, second) => {
+    expect(contrastRatio(token(tokens, first ?? ''), token(tokens, second))).toBeGreaterThanOrEqual(
+      1.5
+    )
+  })
+
   it('gives every series its own color', () => {
     const colors = SERIES_TOKENS.map((series) => token(tokens, series).toLowerCase())
 

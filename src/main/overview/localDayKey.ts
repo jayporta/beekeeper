@@ -10,10 +10,14 @@ export function hostTimeZone(): string {
   return new Intl.DateTimeFormat().resolvedOptions().timeZone
 }
 
+/** A quarter hour, in milliseconds. Every UTC offset is a whole number of them, so no local midnight falls inside one. */
+const SLOT_MS = 15 * 60 * 1000
+
 /**
  * Builds a mapping from an instant to its calendar day in a time zone. The
  * day is assembled from the formatter's parts, so it doesn't depend on a
- * locale's field order.
+ * locale's field order. The last quarter hour and its day are remembered, so
+ * a run of instants close together formats once.
  *
  * @param timeZone - An IANA time zone name. Defaults to the host's.
  * @returns A function from epoch milliseconds to the local `YYYY-MM-DD`.
@@ -26,8 +30,15 @@ export function createDayKeyOf(timeZone?: string): (epochMs: number) => DayKey {
     month: '2-digit',
     day: '2-digit'
   })
+  let lastSlot = Number.NaN
+  let lastDay = ''
   return (epochMs) => {
-    const parts = new Map(format.formatToParts(epochMs).map(({ type, value }) => [type, value]))
-    return `${parts.get('year')}-${parts.get('month')}-${parts.get('day')}`
+    const slot = Math.floor(epochMs / SLOT_MS)
+    if (slot !== lastSlot) {
+      const parts = new Map(format.formatToParts(epochMs).map(({ type, value }) => [type, value]))
+      lastDay = `${parts.get('year')}-${parts.get('month')}-${parts.get('day')}`
+      lastSlot = slot
+    }
+    return lastDay
   }
 }

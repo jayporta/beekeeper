@@ -8,6 +8,7 @@ import { buildAssistantRecord, buildJsonlText } from '../../../core/transcript/t
 import type { SessionFilesKeyOptions } from '../../ipc/sessionFilesKey'
 import { createScanScheduler } from '../../ipc/scanScheduler'
 import { createDailyUsageCache } from '../dailyUsageCache'
+import { createDayKeyOf } from '../localDayKey'
 import { readSessionDailyUsage } from '../readSessionDailyUsage'
 
 let dir: SessionScanDir
@@ -20,22 +21,22 @@ afterEach(() => {
   dir.cleanup()
 })
 
-/** Deps whose background lane records the keys it is asked to run. */
 type Deps = Parameters<typeof readSessionDailyUsage>[1]
 
-function spyingDeps(timeZone = 'UTC'): { deps: Deps; backgroundKeys: string[] } {
-  const summaries = createScanScheduler({ maxConcurrent: 2 })
-  const backgroundKeys: string[] = []
+/** Deps for a time zone, with a scheduler that records the keys it is asked to run. */
+function spyingDeps(timeZone = 'UTC'): { deps: Deps; scanKeys: string[] } {
+  const dailyUsageScans = createScanScheduler({ maxConcurrent: 1 })
+  const scanKeys: string[] = []
   return {
-    backgroundKeys,
+    scanKeys,
     deps: {
-      timeZone: () => timeZone,
+      timeZone,
+      dayKeyOf: createDayKeyOf(timeZone),
       dailyUsageCache: createDailyUsageCache(),
-      summaries: {
-        run: summaries.run,
-        runInBackground: <T>(key: string, task: () => Promise<T>): Promise<T> => {
-          backgroundKeys.push(key)
-          return summaries.runInBackground(key, task)
+      dailyUsageScans: {
+        run: <T>(key: string, task: () => Promise<T>): Promise<T> => {
+          scanKeys.push(key)
+          return dailyUsageScans.run(key, task)
         }
       }
     }
@@ -67,29 +68,33 @@ describe('readSessionDailyUsage', () => {
     expect(result).toMatchObject({ ok: true, value: { buckets: [{ day: '2026-02-28' }] } })
   })
 
-  it('reads in the background lane, once, and serves the second read from the cache', async () => {
-    const { deps, backgroundKeys } = spyingDeps()
+  it('reads once through the daily usage scheduler, and serves the second read from the cache', async () => {
+    const { deps, scanKeys } = spyingDeps()
     const session = await located(lead('2026-03-01T02:00:00Z'))
 
     const first = await readSessionDailyUsage(session, deps)
     const second = await readSessionDailyUsage(session, deps)
 
-    expect(backgroundKeys).toHaveLength(1)
+    expect(scanKeys).toHaveLength(1)
     expect(second).toEqual(first)
   })
 
   it('reads again when the time zone differs', async () => {
-    const { deps, backgroundKeys } = spyingDeps()
+    const { deps, scanKeys } = spyingDeps()
     const session = await located(lead('2026-03-01T02:00:00Z'))
     await readSessionDailyUsage(session, deps)
 
-    await readSessionDailyUsage(session, { ...deps, timeZone: () => 'Asia/Kolkata' })
+    await readSessionDailyUsage(session, {
+      ...deps,
+      timeZone: 'Asia/Kolkata',
+      dayKeyOf: createDayKeyOf('Asia/Kolkata')
+    })
 
-    expect(backgroundKeys).toHaveLength(2)
+    expect(scanKeys).toHaveLength(2)
   })
 
   it('returns the unreadable code of a lead transcript that cannot be read, and does not cache it', async () => {
-    const { deps, backgroundKeys } = spyingDeps()
+    const { deps, scanKeys } = spyingDeps()
     const session = await located(lead('2026-03-01T02:00:00Z'))
     dir.cleanup()
 
@@ -97,6 +102,37 @@ describe('readSessionDailyUsage', () => {
     await readSessionDailyUsage(session, deps)
 
     expect(first).toEqual({ ok: false, error: { reason: 'unreadable', code: 'ENOENT' } })
-    expect(backgroundKeys).toHaveLength(2)
+    expect(scanKeys).toHaveLength(2)
+  })
+
+  it('takes no slot from the summaries scheduler, so a full one does not hold it up', async () => {
+    const summaries = createScanScheduler({ maxConcurrent: 1 })
+    let release = (): void => {}
+    void summaries.run('held', () => new Promise<void>((resolve) => (release = resolve)))
+    const { deps } = spyingDeps()
+
+    const result = await readSessionDailyUsage(await located(lead('2026-03-01T02:00:00Z')), deps)
+
+    expect(result.ok).toBe(true)
+    release()
+  })
+
+  it('waits for a slot in the daily usage scheduler', async () => {
+    const dailyUsageScans = createScanScheduler({ maxConcurrent: 1 })
+    const { deps } = spyingDeps()
+    const first = await located(lead('2026-03-01T02:00:00Z'))
+    let release = (): void => {}
+    void dailyUsageScans.run('other', () => new Promise<void>((resolve) => (release = resolve)))
+    let finished = false
+
+    const pending = readSessionDailyUsage(first, { ...deps, dailyUsageScans }).then(() => {
+      finished = true
+    })
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(finished).toBe(false)
+    release()
+    await pending
+
+    expect(finished).toBe(true)
   })
 })
