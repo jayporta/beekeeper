@@ -16,13 +16,34 @@ function store(
 }
 
 describe('newestDailyUsage', () => {
-  it('is the most recently fetched usage of the folder, whatever its window or day', () => {
+  it('is the most recently fetched usage of the folder for the window, across days', () => {
+    const client = new QueryClient()
+    store(client, ['projectDailyUsage', '-a', '7d', '2026-03-08'], 1, 1000)
+    store(client, ['projectDailyUsage', '-a', '7d', '2026-03-09'], 3, 2000)
+
+    expect(newestDailyUsage(client, { dirName: '-a', range: '7d' })).toEqual({
+      usage: usage(3),
+      range: '7d'
+    })
+  })
+
+  it('prefers the window’s own usage to a newer one from the other window', () => {
     const client = new QueryClient()
     store(client, ['projectDailyUsage', '-a', '7d', '2026-03-09'], 1, 1000)
-    store(client, ['projectDailyUsage', '-a', '30d', '2026-03-10'], 2, 3000)
-    store(client, ['projectDailyUsage', '-a', '7d', '2026-03-10'], 3, 2000)
+    store(client, ['projectDailyUsage', '-a', '30d', '2026-03-09'], 2, 3000)
 
-    expect(newestDailyUsage(client, '-a')).toEqual({ usage: usage(2), range: '30d' })
+    expect(newestDailyUsage(client, { dirName: '-a', range: '7d' })?.range).toBe('7d')
+  })
+
+  it('falls back to the other window’s newest usage when the window has none', () => {
+    const client = new QueryClient()
+    store(client, ['projectDailyUsage', '-a', '30d', '2026-03-08'], 1, 1000)
+    store(client, ['projectDailyUsage', '-a', '30d', '2026-03-09'], 2, 2000)
+
+    expect(newestDailyUsage(client, { dirName: '-a', range: '7d' })).toEqual({
+      usage: usage(2),
+      range: '30d'
+    })
   })
 
   it('ignores other folders and other queries', () => {
@@ -31,14 +52,14 @@ describe('newestDailyUsage', () => {
     store(client, ['projectTotals', '-a', '7d'], 9, 5000)
     store(client, ['projectDailyUsage', '-a', '7d', '2026-03-10'], 1, 1000)
 
-    expect(newestDailyUsage(client, '-a')?.usage).toEqual(usage(1))
+    expect(newestDailyUsage(client, { dirName: '-a', range: '7d' })?.usage).toEqual(usage(1))
   })
 
   it('is undefined when the folder has none', () => {
     const client = new QueryClient()
     store(client, ['projectDailyUsage', '-b', '7d', '2026-03-10'], 1, 1000)
 
-    expect(newestDailyUsage(client, '-a')).toBeUndefined()
+    expect(newestDailyUsage(client, { dirName: '-a', range: '7d' })).toBeUndefined()
   })
 
   it('skips a query that holds no data yet', () => {
@@ -49,6 +70,6 @@ describe('newestDailyUsage', () => {
     })
     store(client, ['projectDailyUsage', '-a', '7d', '2026-03-10'], 1, 1000)
 
-    expect(newestDailyUsage(client, '-a')?.usage).toEqual(usage(1))
+    expect(newestDailyUsage(client, { dirName: '-a', range: '7d' })?.usage).toEqual(usage(1))
   })
 })

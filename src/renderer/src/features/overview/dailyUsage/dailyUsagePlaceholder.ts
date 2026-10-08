@@ -1,7 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query'
 import type { ProjectDailyUsageDto } from '../../../../../shared/ipc/projectDailyUsageDto'
 import type { TotalsWindowDto } from '../../../../../shared/ipc/projectTotalsDto'
-import { newestDailyUsage } from './newestDailyUsage'
+import { newestDailyUsage, type NewestDailyUsageQuery } from './newestDailyUsage'
 
 /** The window each placeholder usage belongs to, by the usage itself. */
 const sourceRanges = new WeakMap<ProjectDailyUsageDto, TotalsWindowDto>()
@@ -18,23 +18,23 @@ export function placeholderRange(usage: ProjectDailyUsageDto): TotalsWindowDto |
 
 /**
  * Creates the placeholder for one folder's daily usage query: the folder's
- * newest cached usage, which shows until the query's own usage arrives. A
+ * newest cached usage, preferring the query's own window, which shows until the query's own usage arrives. A
  * search that finds nothing is remembered, so a folder with nothing cached
  * is not searched for again on every render. Make a new one when the window
  * or day changes, so the next search sees what has been cached since.
  *
  * @param client - The query client holding the usage queries.
- * @param dirName - The folder's name.
+ * @param query - The folder and the window the query is for.
  * @returns The placeholder function to give the query.
  */
 export function createDailyUsagePlaceholder(
   client: QueryClient,
-  dirName: string
+  query: NewestDailyUsageQuery
 ): () => ProjectDailyUsageDto | undefined {
   let missed = false
   return () => {
     if (missed) return undefined
-    const newest = newestDailyUsage(client, dirName)
+    const newest = newestDailyUsage(client, query)
     if (newest === undefined) {
       missed = true
       return undefined

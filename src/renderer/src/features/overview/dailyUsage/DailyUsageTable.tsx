@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { memo, useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TotalsWindowDto } from '../../../../../shared/ipc/projectTotalsDto'
 import styles from './DailyUsageTable.module.css'
@@ -21,14 +21,15 @@ interface DailyUsageTableProps {
 
 /**
  * The chart's figures as a table, in a labelled region the keyboard can scroll
- * sideways when it is wider than the space it has: a row for each day, a column for each
+ * sideways when it is wider than the space it has. It renders again only when
+ * its props change, since it formats a label for every cell: a row for each day, a column for each
  * series and the day's total, and a row of totals. Numbers are exact, unlike
  * the chart's compact axis.
  *
  * @example
  * <DailyUsageTable days={summary.days} total={summary.total} series={seriesOf(summary.days)} range="7d" />
  */
-export function DailyUsageTable({
+export const DailyUsageTable = memo(function DailyUsageTable({
   days,
   total,
   series,
@@ -81,4 +82,4 @@ export function DailyUsageTable({
       </table>
     </div>
   )
-}
+})

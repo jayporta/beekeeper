@@ -10,28 +10,43 @@ export interface NewestDailyUsage {
   readonly range: TotalsWindowDto
 }
 
+/** Which folder's usage to look for, and for which window. */
+export interface NewestDailyUsageQuery {
+  /** The folder's name. */
+  readonly dirName: string
+  /** The window the usage is wanted for. */
+  readonly range: TotalsWindowDto
+}
+
 /**
- * Finds the newest daily usage the cache holds for a folder, under any window
- * or day, to show in place of the usage that is loading.
+ * Finds the newest daily usage the cache holds for a folder, to show in place
+ * of the usage that is loading. Usage fetched for the wanted window comes
+ * first, from any day, so passing midnight keeps showing that window; only a
+ * folder with none for it falls back to the other window's newest.
  *
  * @param client - The query client holding the usage queries.
- * @param dirName - The folder's name.
+ * @param query - The folder and the window.
  * @returns The folder's most recently fetched usage and its window, or `undefined` when none was fetched.
  */
 export function newestDailyUsage(
   client: QueryClient,
-  dirName: string
+  query: NewestDailyUsageQuery
 ): NewestDailyUsage | undefined {
   let newest: (NewestDailyUsage & { readonly at: number }) | undefined
   const cached = client.getQueriesData<ProjectDailyUsageDto>({
-    queryKey: ['projectDailyUsage', dirName]
+    queryKey: ['projectDailyUsage', query.dirName]
   })
   for (const [queryKey, usage] of cached) {
     const range = TOTALS_WINDOWS.find((window) => window === queryKey[2])
+    if (usage === undefined || range === undefined) continue
     const at = client.getQueryState(queryKey)?.dataUpdatedAt ?? 0
-    if (usage !== undefined && range !== undefined && (newest === undefined || at > newest.at)) {
-      newest = { usage, range, at }
-    }
+    const wanted = range === query.range
+    // The wanted window's usage beats the other's; within the same window the newer one wins.
+    const better =
+      newest === undefined ||
+      (wanted && newest.range !== query.range) ||
+      (wanted === (newest.range === query.range) && at > newest.at)
+    if (better) newest = { usage, range, at }
   }
   return newest === undefined ? undefined : { usage: newest.usage, range: newest.range }
 }

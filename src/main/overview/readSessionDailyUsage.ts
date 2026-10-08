@@ -20,7 +20,9 @@ export interface ReadSessionDailyUsageDeps extends Pick<
 /**
  * Reads one session's tokens by day and model, through the daily usage cache
  * and its own scheduler, so neither a person's session list nor the totals
- * wait behind it. Concurrent reads of the same files share one scan.
+ * wait behind it. Concurrent reads of the same files share one scan. The
+ * cache holds one entry per session and time zone, so a session that keeps
+ * being written to does not leave an entry behind for each state of its files.
  *
  * @param located - The project, the listed session, and its readable transcript.
  * @param deps - The scheduler, the cache, and the time zone and day mapping to bucket days in.
@@ -34,12 +36,18 @@ export async function readSessionDailyUsage(
   deps: ReadSessionDailyUsageDeps
 ): Promise<Result<SessionDailyUsage, UnreadableError>> {
   const { session, transcript } = located
-  const key = ['dailyUsage', deps.timeZone, sessionFilesKey(located)].join('\0')
-  const cached = deps.dailyUsageCache.get(key)
+  const filesKey = sessionFilesKey(located)
+  // The cache holds one entry per session and time zone, which a changed session replaces.
+  const cacheKey = ['dailyUsage', deps.timeZone, located.projectDirName, session.sessionId].join(
+    '\0'
+  )
+  const cached = deps.dailyUsageCache.get({ key: cacheKey, filesKey })
   if (cached !== undefined) return { ok: true, value: cached }
 
+  // Reads of the same files in the same zone share one scan.
+  const scanKey = ['dailyUsage', deps.timeZone, filesKey].join('\0')
   const result = await captureSystemError(() =>
-    deps.dailyUsageScans.run(key, () =>
+    deps.dailyUsageScans.run(scanKey, () =>
       scanSessionDailyUsage({
         leadPath: transcript.path,
         subagents: session.subagents.ok ? session.subagents.value : [],
@@ -48,7 +56,12 @@ export async function readSessionDailyUsage(
     )
   )
   if (result.ok) {
-    deps.dailyUsageCache.set({ key, usage: result.value, subagentsListed: session.subagents.ok })
+    deps.dailyUsageCache.set({
+      key: cacheKey,
+      filesKey,
+      usage: result.value,
+      subagentsListed: session.subagents.ok
+    })
   }
   return result
 }

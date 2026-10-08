@@ -85,7 +85,7 @@ export function useDailyUsage(): DailyUsage {
           if (!signal.aborted) pruneStaleDailyUsage(client, { dirName, todayKey })
           return usage
         },
-        placeholderData: createDailyUsagePlaceholder(client, dirName)
+        placeholderData: createDailyUsagePlaceholder(client, { dirName, range })
       })),
     [client, folders, range, todayKey]
   )

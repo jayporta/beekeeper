@@ -9,7 +9,8 @@ export interface DailyUsageStatus {
   /**
    * Whether every folder has answered, with no other window's figures standing in, and there
    * is something to say: usage, or that none could be loaded. Moving on to the next day does not
-   * unsettle it, since the window and its totals did not change.
+   * unsettle it as long as every folder has cached usage to show in the meantime. A folder with
+   * none, such as one whose request failed, loads the new day with no stand-in, and that does.
    */
   readonly settled: boolean
   /** What the usage came to. It is only final once `settled`. */

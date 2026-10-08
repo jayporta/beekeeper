@@ -795,6 +795,55 @@ describe('OverviewView announcements', () => {
     vi.useRealTimers()
   })
 
+  it('does not announce again at midnight, using the 7 day figures as the stand-in, after the 30 day window was shown that day', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 2, 10, 23, 59))
+    let afterMidnight = false
+    const nextDay = gate<IpcResult<ProjectDailyUsageDto>>()
+    renderOverview({
+      dailyUsage: (dirName, window) => (afterMidnight ? nextDay.reply : quietUsage(dirName, window))
+    })
+    await screen.findByRole('heading', { level: 1, name: 'All projects' })
+    const region = statusRegion()
+    const announced: string[] = []
+    new MutationObserver(() => {
+      if (region.textContent !== '') announced.push(region.textContent ?? '')
+    }).observe(region, { childList: true, characterData: true, subtree: true })
+    await waitFor(() => {
+      expect(region.textContent).toBe('Totals for the last 7 days updated.')
+    })
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    // The 30 day window was shown and the 7 day window chosen again, so the 30 day figures are the newer.
+    vi.setSystemTime(new Date(2026, 2, 10, 23, 59, 30))
+    await userEvent.click(within(main()).getByRole('radio', { name: '30 days' }))
+    await waitFor(() => {
+      expect(region.textContent).toBe('Totals for the last 30 days updated.')
+    })
+    await userEvent.click(within(main()).getByRole('radio', { name: '7 days' }))
+    await waitFor(() => {
+      expect(within(main()).getByRole('list', { name: /^Totals, last 7 days/ })).toBeTruthy()
+    })
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    const before = announced.length
+
+    afterMidnight = true
+    vi.setSystemTime(new Date(2026, 2, 11, 0, 1))
+    act(() => {
+      window.dispatchEvent(new Event('focus'))
+    })
+    await within(main()).findByText('Updating')
+    act(() => {
+      nextDay.release({ ok: true, value: testDailyUsage({ '2026-03-11': {} }) })
+    })
+    await waitFor(() => {
+      expect(within(main()).queryByText('Updating')).toBeNull()
+    })
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    expect(announced.length).toBe(before)
+    vi.useRealTimers()
+  })
+
   it('adds that tokens per day could not be loaded', async () => {
     renderOverview({
       dailyUsage: () => Promise.resolve({ ok: false, error: { code: 'unreadable' } })

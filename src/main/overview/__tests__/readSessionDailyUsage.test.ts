@@ -135,4 +135,42 @@ describe('readSessionDailyUsage', () => {
 
     expect(finished).toBe(true)
   })
+
+  it('keeps one cache entry for a session whose files keep changing', async () => {
+    const { deps, scanKeys } = spyingDeps()
+    const first = await located(lead('2026-03-01T02:00:00Z'))
+    await readSessionDailyUsage(first, deps)
+
+    const written = await located(lead('2026-03-02T02:00:00Z') + lead('2026-03-03T02:00:00Z'))
+    const second = await readSessionDailyUsage(written, deps)
+
+    expect(scanKeys).toHaveLength(2)
+    expect(deps.dailyUsageCache.size).toBe(1)
+    expect(second).toMatchObject({ ok: true, value: { buckets: [{ day: '2026-03-02' }] } })
+  })
+
+  it('serves the unchanged session again from its one entry', async () => {
+    const { deps, scanKeys } = spyingDeps()
+    const session = await located(lead('2026-03-01T02:00:00Z'))
+    await readSessionDailyUsage(session, deps)
+
+    await readSessionDailyUsage(session, deps)
+
+    expect(scanKeys).toHaveLength(1)
+    expect(deps.dailyUsageCache.size).toBe(1)
+  })
+
+  it('keeps an entry for each time zone a session was read in', async () => {
+    const { deps } = spyingDeps()
+    const session = await located(lead('2026-03-01T02:00:00Z'))
+    await readSessionDailyUsage(session, deps)
+
+    await readSessionDailyUsage(session, {
+      ...deps,
+      timeZone: 'Asia/Kolkata',
+      dayKeyOf: createDayKeyOf('Asia/Kolkata')
+    })
+
+    expect(deps.dailyUsageCache.size).toBe(2)
+  })
 })
