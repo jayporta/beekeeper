@@ -202,6 +202,21 @@ describe('readSessionDailyUsage', () => {
     })
   })
 
+  it('takes the full scan through the daily usage scheduler for a lead alone with no lead usage', async () => {
+    const { deps, scanKeys } = spyingDeps()
+    const past = {
+      ...deps,
+      summaryCache: { read: async () => ok(buildSessionSummary({ leadUsage: null })) }
+    }
+    const session = await located(lead('2026-03-01T02:00:00Z'))
+
+    const result = await readSessionDailyUsage(session, past)
+
+    expect(scanKeys).toHaveLength(1)
+    expect(fullScans.count).toBe(1)
+    expect(result).toMatchObject({ ok: true, value: { buckets: [{ day: '2026-03-01' }] } })
+  })
+
   it('reads again when the time zone differs', async () => {
     const { deps, summaryReads } = spyingDeps()
     const session = await located(lead('2026-03-01T02:00:00Z'))
