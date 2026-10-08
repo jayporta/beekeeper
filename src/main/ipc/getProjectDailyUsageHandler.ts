@@ -20,18 +20,29 @@ import { errResult, okResult } from './ipcResults'
  * the window count, even for a session that began before it. A session whose
  * lead and subagent files are all older than the window's first day, by more
  * than a day of slack, is skipped without being read. The rest are read
- * through the daily usage cache and the daily usage scheduler.
+ * through the daily usage cache, the shared summary cache and its background
+ * lane for each lead, and the daily usage scheduler for subagents.
  * Like the totals, only the folder's own sessions are read.
  *
- * @param deps - The projects root, the daily usage cache and scheduler, the
- * clock, and the time zone that decides where a day begins, read once per request.
+ * @param deps - The projects root, the daily usage and summary caches and
+ * schedulers, the clock, and the time zone that decides where a day begins,
+ * read once per request.
  * @param payload - The renderer's payload, validated here.
  * @returns The usage, `invalid-request` for a bad payload, or `not-found` for
  * an unknown project. A folder that can't be read comes back as the code of
  * its system error, through the IPC guard.
  */
 export async function getProjectDailyUsageHandler(
-  deps: Pick<IpcDeps, 'projectsRoot' | 'dailyUsageScans' | 'dailyUsageCache' | 'now' | 'timeZone'>,
+  deps: Pick<
+    IpcDeps,
+    | 'projectsRoot'
+    | 'dailyUsageScans'
+    | 'dailyUsageCache'
+    | 'summaryCache'
+    | 'summaries'
+    | 'now'
+    | 'timeZone'
+  >,
   payload: unknown
 ): Promise<IpcResult<ProjectDailyUsageDto>> {
   const request = getProjectDailyUsageRequestSchema.safeParse(payload)
@@ -58,6 +69,8 @@ export async function getProjectDailyUsageHandler(
         {
           dailyUsageScans: deps.dailyUsageScans,
           dailyUsageCache: deps.dailyUsageCache,
+          summaryCache: deps.summaryCache,
+          summaries: deps.summaries,
           timeZone,
           dayKeyOf
         }

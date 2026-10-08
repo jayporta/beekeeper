@@ -31,9 +31,10 @@ export interface IpcDeps {
   /** Recent completed session scans, shared by every handler that scans. */
   readonly scanCache: SessionScanCache
   /**
-   * Shares and caps the daily usage scans, one per session. They are kept apart
-   * from `summaries` so a folder's backlog of them never holds a summary
-   * read's slot.
+   * Shares and caps the daily usage scans, one per session: the subagent
+   * reads, and the full read of a lead too long for its summary to hold. A
+   * lead's own usage comes from its summary, read through `summaries` in its
+   * background lane, so a session with no subagents never queues here.
    */
   readonly dailyUsageScans: ScanScheduler
   /** Complete per-session daily usage, shared by every folder's daily usage read. */

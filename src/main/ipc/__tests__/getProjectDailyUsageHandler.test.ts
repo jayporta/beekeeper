@@ -5,6 +5,7 @@ import type { ProjectDailyUsageDto } from '../../../shared/ipc/projectDailyUsage
 import { buildAssistantRecord } from '../../../core/transcript/testFixtures'
 import { SKIP_UNREAD_SLACK_MS, TOTALS_WINDOW_MS } from '../../overview/totalsWindow'
 import { getProjectDailyUsageHandler } from '../getProjectDailyUsageHandler'
+import { getProjectTotalsHandler } from '../getProjectTotalsHandler'
 import type { IpcDeps } from '../ipcDeps'
 import { writeTranscript } from '../testFamilyFixtures'
 import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
@@ -84,11 +85,27 @@ async function removeTreeSession(): Promise<void> {
   await rm(join(ctx.tree.home, '.claude', 'projects', TEST_PROJECT, `${TEST_SESSION_ID}.jsonl`))
 }
 
-/** `ctx.deps` with the clock stopped, a fixed zone, and a daily usage scheduler that records its keys. */
-function depsAt(timeZone = 'UTC'): { deps: IpcDeps; scanKeys: string[]; zoneReads: () => number } {
+/** What {@link depsAt} returns. */
+interface SpyingDeps {
+  readonly deps: IpcDeps
+  /** The keys the daily usage scheduler was asked to run. */
+  readonly scanKeys: string[]
+  /** How many times the time zone was read. */
+  readonly zoneReads: () => number
+  /** How many times the summary cache was asked to read a transcript. */
+  readonly summaryReads: () => number
+}
+
+/**
+ * `ctx.deps` with the clock stopped, a fixed zone, a daily usage scheduler
+ * that records its keys, and a summary cache that counts its reads. Each
+ * summary read takes a moment, so reads started together overlap.
+ */
+function depsAt(timeZone = 'UTC'): SpyingDeps {
   const scanKeys: string[] = []
   let zoneReads = 0
-  const { dailyUsageScans } = ctx.deps
+  let summaryReads = 0
+  const { dailyUsageScans, summaryCache } = ctx.deps
   const deps: IpcDeps = {
     ...ctx.deps,
     now: () => NOW,
@@ -101,9 +118,16 @@ function depsAt(timeZone = 'UTC'): { deps: IpcDeps; scanKeys: string[]; zoneRead
         scanKeys.push(key)
         return dailyUsageScans.run(key, task)
       }
+    },
+    summaryCache: {
+      read: async (file) => {
+        summaryReads += 1
+        await new Promise((resolve) => setTimeout(resolve, 20))
+        return summaryCache.read(file)
+      }
     }
   }
-  return { deps, scanKeys, zoneReads: () => zoneReads }
+  return { deps, scanKeys, zoneReads: () => zoneReads, summaryReads: () => summaryReads }
 }
 
 type Usage = ProjectDailyUsageDto
@@ -259,11 +283,11 @@ describe('getProjectDailyUsageHandler reading only what can count', () => {
     await writeSession(1, [{ at: '2026-02-01T10:00:00Z' }], stale)
     await writeSubagent(1, [{ at: '2026-02-01T10:00:00Z' }], stale)
     await writeSession(2, [{ at: '2026-03-05T10:00:00Z', tokens: 8 }])
-    const { deps, scanKeys } = depsAt()
+    const { deps, summaryReads } = depsAt()
 
     const usage = await usageOf(deps)
 
-    expect(scanKeys).toHaveLength(1)
+    expect(summaryReads()).toBe(1)
     expect(tokensOn(usage, '2026-03-05')).toBe(8)
   })
 })
@@ -273,12 +297,13 @@ describe('getProjectDailyUsageHandler cache', () => {
     await removeTreeSession()
     await writeSession(1, [{ at: '2026-03-05T10:00:00Z', tokens: 8 }])
     await writeSubagent(1, [{ at: '2026-03-05T11:00:00Z', tokens: 2 }])
-    const { deps, scanKeys } = depsAt()
+    const { deps, scanKeys, summaryReads } = depsAt()
     const first = await usageOf(deps)
 
     const second = await usageOf(deps)
 
     expect(scanKeys).toHaveLength(1)
+    expect(summaryReads()).toBe(1)
     expect(second).toEqual(first)
   })
 
@@ -364,5 +389,24 @@ describe('getProjectDailyUsageHandler partial results', () => {
       'unreadable',
       'unreadableSubagents'
     ])
+  })
+})
+
+describe('getProjectDailyUsageHandler with the project totals', () => {
+  it('reads each lead once when the totals and the chart are asked for together', async () => {
+    await removeTreeSession()
+    await writeSession(1, [{ at: '2026-03-05T10:00:00Z' }])
+    await writeSession(2, [{ at: '2026-03-06T10:00:00Z' }])
+    await writeSubagent(2, [{ at: '2026-03-06T11:00:00Z' }])
+    const { deps, summaryReads } = depsAt()
+
+    const [totals, usage] = await Promise.all([
+      getProjectTotalsHandler(deps, request),
+      getProjectDailyUsageHandler(deps, request)
+    ])
+
+    expect(totals.ok).toBe(true)
+    expect(usage.ok).toBe(true)
+    expect(summaryReads()).toBe(2)
   })
 })
