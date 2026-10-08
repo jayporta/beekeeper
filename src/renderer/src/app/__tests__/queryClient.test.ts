@@ -40,14 +40,17 @@ describe('createQueryClient', () => {
     )
   })
 
-  it('keeps a folder’s totals fresh for the totals stale time, longer than a list', () => {
-    const { staleTime } = createQueryClient().defaultQueryOptions({
-      queryKey: ['projectTotals', 'x', '7d']
-    })
+  it.each([['projectTotals'], ['projectDailyUsage']])(
+    'keeps a folder’s %s fresh for the totals stale time, longer than a list',
+    (root) => {
+      const { staleTime } = createQueryClient().defaultQueryOptions({
+        queryKey: [root, 'x', '7d']
+      })
 
-    expect(staleTime).toBe(TOTALS_STALE_TIME_MS)
-    expect(TOTALS_STALE_TIME_MS).toBeGreaterThan(LISTS_STALE_TIME_MS)
-  })
+      expect(staleTime).toBe(TOTALS_STALE_TIME_MS)
+      expect(TOTALS_STALE_TIME_MS).toBeGreaterThan(LISTS_STALE_TIME_MS)
+    }
+  )
 
   describe('on window focus', () => {
     afterEach(() => {
@@ -119,8 +122,8 @@ describe('createQueryClient', () => {
       })
     })
 
-    describe('a stale folder’s totals', () => {
-      const key = ['projectTotals', 'x', '7d']
+    describe.each([['projectTotals'], ['projectDailyUsage']])('a stale folder’s %s', (root) => {
+      const key = [root, 'x', '7d']
 
       it('refetches when it loaded', async () => {
         expect(await refetchesOnFocus(key, [['total']])).toBe(1)

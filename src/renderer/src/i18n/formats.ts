@@ -41,6 +41,10 @@ const FORMATS = {
   ),
   shortDateTime: cachedByLanguage(
     (language) => new Intl.DateTimeFormat(language, { dateStyle: 'medium', timeStyle: 'short' })
+  ),
+  weekday: cachedByLanguage((language) => new Intl.DateTimeFormat(language, { weekday: 'short' })),
+  monthDay: cachedByLanguage(
+    (language) => new Intl.DateTimeFormat(language, { month: 'short', day: 'numeric' })
   )
 }
 
@@ -54,8 +58,9 @@ export const FORMAT_NAMES: readonly string[] = Object.keys(FORMATS)
  * Registers Beekeeper's formats on an initialized i18next instance: `integer`
  * (a whole number with the language's grouping), `compactInteger` (a whole
  * number in short compact notation, such as 12.4M), `usd` (a US dollar amount),
- * and `shortDateTime` (a medium date and a short time). Each builds one `Intl`
- * object per language.
+ * `shortDateTime` (a medium date and a short time), `weekday` (a short weekday
+ * name, such as Wed), and `monthDay` (a short month and the day, such as Oct 7).
+ * Each builds one `Intl` object per language.
  *
  * @param instance - An instance that has finished `init`.
  * @throws {Error} When the instance has no formatter, because it has not been initialized.

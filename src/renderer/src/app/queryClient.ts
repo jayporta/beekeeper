@@ -71,7 +71,7 @@ const LIST_DEFAULTS = {
 } as const
 
 /**
- * What a folder's totals get: they refetch on window focus once older than
+ * What a folder's totals and daily usage get: they refetch on window focus once older than
  * {@link TOTALS_STALE_TIME_MS}, which also retries one that failed with nothing
  * to show, since no error screen holds a Retry button that a refetch would
  * replace. Each totals request reads a whole folder, hence the longer stale
@@ -81,6 +81,9 @@ const TOTALS_DEFAULTS = {
   refetchOnWindowFocus: true,
   staleTime: TOTALS_STALE_TIME_MS
 } as const
+
+/** The persisted roots that hold a folder's whole-folder reads, which take {@link TOTALS_DEFAULTS}. */
+const TOTALS_ROOTS: readonly unknown[] = ['projectTotals', 'projectDailyUsage']
 
 /**
  * Creates the app's query client. Queries run whether or not the OS reports a
@@ -119,7 +122,7 @@ export function createQueryClient(): QueryClient {
   for (const root of PERSISTED_QUERY_ROOTS) {
     client.setQueryDefaults([root], {
       gcTime: PERSIST_MAX_AGE_MS,
-      ...(root === 'projectTotals' ? TOTALS_DEFAULTS : LIST_DEFAULTS),
+      ...(TOTALS_ROOTS.includes(root) ? TOTALS_DEFAULTS : LIST_DEFAULTS),
       ...(root === 'projects' && { refetchOnWindowFocus: refetchProjectsOnFocus })
     })
   }

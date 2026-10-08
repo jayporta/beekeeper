@@ -22,11 +22,16 @@ const query = (
 } => ({ queryKey, state: { data: ['some', 'list'], dataUpdatedAt: NOW, ...state } })
 
 describe('shouldPersistQuery', () => {
-  it('persists the two lists and each folder’s totals', () => {
-    expect(PERSISTED_QUERY_ROOTS).toEqual(['projects', 'sessions', 'projectTotals'])
+  it('persists the two lists and each folder’s totals and daily usage', () => {
+    expect(PERSISTED_QUERY_ROOTS).toEqual([
+      'projects',
+      'sessions',
+      'projectTotals',
+      'projectDailyUsage'
+    ])
   })
 
-  it.each([['projects'], ['sessions'], ['projectTotals']])(
+  it.each([['projects'], ['sessions'], ['projectTotals'], ['projectDailyUsage']])(
     'persists a successful %s query',
     (root) => {
       expect(shouldPersistQuery(query([root, 'some-project']))).toBe(true)
