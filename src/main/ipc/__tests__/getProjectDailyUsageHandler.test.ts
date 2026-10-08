@@ -398,7 +398,7 @@ describe('getProjectDailyUsageHandler with the project totals', () => {
     await writeSession(1, [{ at: '2026-03-05T10:00:00Z' }])
     await writeSession(2, [{ at: '2026-03-06T10:00:00Z' }])
     await writeSubagent(2, [{ at: '2026-03-06T11:00:00Z' }])
-    const { deps, summaryReads } = depsAt()
+    const { deps, summaryReads, scanKeys } = depsAt()
 
     const [totals, usage] = await Promise.all([
       getProjectTotalsHandler(deps, request),
@@ -408,5 +408,7 @@ describe('getProjectDailyUsageHandler with the project totals', () => {
     expect(totals.ok).toBe(true)
     expect(usage.ok).toBe(true)
     expect(summaryReads()).toBe(2)
+    // Only the session with a subagent schedules a daily scan, and never the full-scan kind.
+    expect(scanKeys.map((key) => key.split('\0')[0])).toEqual(['dailyUsageSubagents'])
   })
 })

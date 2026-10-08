@@ -229,25 +229,31 @@ describe('readSessionDailyUsage', () => {
     expect(summaryReads()).toBe(2)
   })
 
-  it('waits behind a foreground summary read, since the lead is read in the background lane', async () => {
+  it('reads the lead in the background lane, so a foreground summary read queued after it goes first', async () => {
     const summaries = createScanScheduler({ maxConcurrent: 1 })
     let release = (): void => {}
     void summaries.run('held', () => new Promise<void>((resolve) => (release = resolve)))
     const { deps } = spyingDeps()
-    let finished = false
+    const order: string[] = []
+    const session = await located(lead('2026-03-01T02:00:00Z'))
 
-    const pending = readSessionDailyUsage(await located(lead('2026-03-01T02:00:00Z')), {
+    const pending = readSessionDailyUsage(session, {
       ...deps,
-      summaries
-    }).then(() => {
-      finished = true
+      summaries,
+      summaryCache: {
+        read: (file) => {
+          order.push('chart lead')
+          return deps.summaryCache.read(file)
+        }
+      }
     })
-    await new Promise((resolve) => setTimeout(resolve, 20))
-    expect(finished).toBe(false)
+    const foreground = summaries.run('later', async () => {
+      order.push('foreground')
+    })
     release()
-    await pending
+    await Promise.all([pending, foreground])
 
-    expect(finished).toBe(true)
+    expect(order).toEqual(['foreground', 'chart lead'])
   })
 
   it('waits for a slot in the daily usage scheduler to read its subagents', async () => {

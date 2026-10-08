@@ -5,15 +5,18 @@ import { messageTokens } from '../messageTokens'
 import { assistantRecordSchema } from '../schemas'
 import { buildLeadUsage, type TrackedMessage } from './buildLeadUsage'
 import type { LeadUsage } from './leadUsage'
-import { recordTimestampMs } from './recordTimestampMs'
 
 /** The most distinct message ids an observer tracks before it gives up on a transcript. */
 export const MAX_MESSAGE_IDS = 50_000
 
 /** Totals and slots the tokens a transcript's own assistant records report. */
 export interface TranscriptTokenObserver {
-  /** Feeds one parsed record; anything but a valid `assistant` record is ignored. */
-  observe(record: Record<string, unknown>): void
+  /**
+   * Feeds one parsed record; anything but a valid `assistant` record is ignored.
+   * @param record - The parsed record.
+   * @param timestampMs - The record's own timestamp in epoch milliseconds, or `null` when it has none.
+   */
+  observe(record: Record<string, unknown>, timestampMs: number | null): void
   /**
    * The total across every token class, or `null` when no valid assistant
    * usage was seen, the sum is not finite, or the transcript held more than
@@ -61,7 +64,7 @@ export function createTranscriptTokenObserver(): TranscriptTokenObserver {
   let overflowed = false
 
   return {
-    observe(record) {
+    observe(record, timestampMs) {
       if (overflowed || record.type !== 'assistant') return
       const parsed = assistantRecordSchema.safeParse(record)
       if (!parsed.success) {
@@ -77,7 +80,6 @@ export function createTranscriptTokenObserver(): TranscriptTokenObserver {
         return
       }
       const tokens = messageTokens(message.usage)
-      const timestampMs = recordTimestampMs(record)
       byMessageId.set(
         message.id,
         existing === undefined
