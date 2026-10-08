@@ -86,6 +86,127 @@ describe('createTranscriptTokenObserver', () => {
     expect(observer.total()).toBeNull()
   })
 
+  describe('leadUsage', () => {
+    const SLOT_MS = 15 * 60 * 1000
+    const slotOf = (iso: string): number => Math.floor(Date.parse(iso) / SLOT_MS)
+
+    it('places a message in the slot of its earliest record even when the later line is earlier', () => {
+      const observer = createTranscriptTokenObserver()
+      observer.observe(
+        buildAssistantRecord({ messageId: 'msg_a', timestamp: '2026-01-01T12:20:00.000Z' })
+      )
+      observer.observe(
+        buildAssistantRecord({ messageId: 'msg_a', timestamp: '2026-01-01T12:05:00.000Z' })
+      )
+
+      expect(observer.leadUsage()?.slots.map((s) => s.slot)).toEqual([
+        slotOf('2026-01-01T12:00:00.000Z')
+      ])
+    })
+
+    it('ignores a record with no timestamp when finding the earliest', () => {
+      const observer = createTranscriptTokenObserver()
+      observer.observe(
+        buildAssistantRecord({ messageId: 'msg_a', timestamp: '2026-01-01T12:20:00.000Z' })
+      )
+      observer.observe({ ...buildAssistantRecord({ messageId: 'msg_a' }), timestamp: undefined })
+
+      expect(observer.leadUsage()?.undatedMessages).toBe(0)
+      expect(observer.leadUsage()?.slots).toHaveLength(1)
+    })
+
+    it('counts a message none of whose records has a timestamp as undated', () => {
+      const observer = createTranscriptTokenObserver()
+      observer.observe({ ...buildAssistantRecord({ messageId: 'msg_a' }), timestamp: undefined })
+
+      expect(observer.leadUsage()?.undatedMessages).toBe(1)
+    })
+
+    it('uses the model of the first record that carried the id', () => {
+      const observer = createTranscriptTokenObserver()
+      observer.observe(buildAssistantRecord({ messageId: 'msg_a', model: 'model-first' }))
+      observer.observe(buildAssistantRecord({ messageId: 'msg_a', model: 'model-second' }))
+
+      expect(observer.leadUsage()?.slots.map((s) => s.model)).toEqual(['model-first'])
+    })
+
+    it('takes each token class at its maximum across a message records', () => {
+      const observer = createTranscriptTokenObserver()
+      observer.observe(
+        buildAssistantRecord({ messageId: 'msg_a', inputTokens: 10, outputTokens: 1 })
+      )
+      observer.observe(
+        buildAssistantRecord({ messageId: 'msg_a', inputTokens: 2, outputTokens: 25 })
+      )
+
+      expect(observer.leadUsage()?.slots.map((s) => s.tokens)).toEqual([35])
+    })
+
+    it('lists every valid message id', () => {
+      const observer = createTranscriptTokenObserver()
+      observer.observe(buildAssistantRecord({ messageId: 'msg_a' }))
+      observer.observe(buildAssistantRecord({ messageId: 'msg_b' }))
+
+      expect([...(observer.leadUsage()?.messageIds ?? [])]).toEqual(['msg_a', 'msg_b'])
+    })
+
+    it('counts an assistant record that fails the schema', () => {
+      const observer = createTranscriptTokenObserver()
+      observer.observe({ type: 'assistant', message: { id: 'msg_x', model: 'm' } })
+
+      expect(observer.leadUsage()?.invalidAssistantRecords).toBe(1)
+    })
+
+    it('does not count a record that is not an assistant record', () => {
+      const observer = createTranscriptTokenObserver()
+      observer.observe({ type: 'user' })
+
+      expect(observer.leadUsage()?.invalidAssistantRecords).toBe(0)
+    })
+
+    it('is empty and not null when no assistant record was seen', () => {
+      const observer = createTranscriptTokenObserver()
+      observer.observe({ type: 'user' })
+
+      expect(observer.leadUsage()).toEqual({
+        slots: [],
+        undatedMessages: 0,
+        invalidAssistantRecords: 0,
+        messageIds: new Set()
+      })
+    })
+
+    it('is empty with the invalid records counted when every assistant record is invalid', () => {
+      const observer = createTranscriptTokenObserver()
+      observer.observe({ type: 'assistant', message: { id: 'msg_x', model: 'm' } })
+
+      expect(observer.leadUsage()).toEqual({
+        slots: [],
+        undatedMessages: 0,
+        invalidAssistantRecords: 1,
+        messageIds: new Set()
+      })
+    })
+
+    it('is null once a distinct id past the cap arrives', () => {
+      const observer = createTranscriptTokenObserver()
+      for (let i = 0; i <= MAX_MESSAGE_IDS; i += 1) {
+        observer.observe(buildAssistantRecord({ messageId: `msg_${i}`, inputTokens: 1 }))
+      }
+
+      expect(observer.leadUsage()).toBeNull()
+    })
+
+    it('is still available when the distinct ids are exactly the cap', () => {
+      const observer = createTranscriptTokenObserver()
+      for (let i = 0; i < MAX_MESSAGE_IDS; i += 1) {
+        observer.observe(buildAssistantRecord({ messageId: `msg_${i}`, inputTokens: 1 }))
+      }
+
+      expect(observer.leadUsage()?.messageIds.size).toBe(MAX_MESSAGE_IDS)
+    })
+  })
+
   describe('with more distinct message ids than the cap', () => {
     const observeIds = (observer: TranscriptTokenObserver, count: number): void => {
       for (let i = 0; i < count; i += 1) {

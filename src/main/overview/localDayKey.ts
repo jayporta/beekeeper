@@ -1,3 +1,4 @@
+import { QUARTER_HOUR_MS } from '../../core/shared/quarterHour'
 import type { DayKey } from '../../core/usage/dailyUsage'
 
 /**
@@ -9,9 +10,6 @@ import type { DayKey } from '../../core/usage/dailyUsage'
 export function hostTimeZone(): string {
   return new Intl.DateTimeFormat().resolvedOptions().timeZone
 }
-
-/** A quarter hour, in milliseconds. Every UTC offset is a whole number of them, so no local midnight falls inside one. */
-const SLOT_MS = 15 * 60 * 1000
 
 /**
  * Builds a mapping from an instant to its calendar day in a time zone. The
@@ -33,7 +31,7 @@ export function createDayKeyOf(timeZone?: string): (epochMs: number) => DayKey {
   let lastSlot = Number.NaN
   let lastDay = ''
   return (epochMs) => {
-    const slot = Math.floor(epochMs / SLOT_MS)
+    const slot = Math.floor(epochMs / QUARTER_HOUR_MS)
     if (slot !== lastSlot) {
       const parts = new Map(format.formatToParts(epochMs).map(({ type, value }) => [type, value]))
       lastDay = `${parts.get('year')}-${parts.get('month')}-${parts.get('day')}`

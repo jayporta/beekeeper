@@ -17,7 +17,7 @@ import { truncateTitle } from './truncateTitle'
  * its title, its recorded usage, the tokens its own assistant records
  * report, the span its records cover, its model, and whether it is a lead or
  * a teammate agent session, and which teammates it spawned and stopped, and
- * the plan limit it hit, if any.
+ * the plan limit it hit, if any, and its own assistant usage by 15-minute slot.
  *
  * Every line is parsed. The title and the cost state are the last valid
  * record of their type by line order, since neither carries a timestamp
@@ -101,6 +101,7 @@ export async function scanSessionSummary(
     teamSpawns: teammateObserver.result(),
     model: modelObserver.model(),
     limitHit: limitHitObserver.latest(),
-    transcriptTokens: tokenObserver.total()
+    transcriptTokens: tokenObserver.total(),
+    leadUsage: tokenObserver.leadUsage()
   }
 }

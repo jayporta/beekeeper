@@ -1,12 +1,16 @@
-import { combineTokenCounts, type TokenCounts } from '../../pricing/tokenCounts'
+import { combineTokenCounts } from '../../pricing/tokenCounts'
 import { totalTokenCount } from '../../pricing/totalTokenCount'
+import { earlierTimestamp } from '../../shared/optionalTimestamps'
 import { messageTokens } from '../messageTokens'
 import { assistantRecordSchema } from '../schemas'
+import { buildLeadUsage, type TrackedMessage } from './buildLeadUsage'
+import type { LeadUsage } from './leadUsage'
+import { recordTimestampMs } from './recordTimestampMs'
 
 /** The most distinct message ids an observer tracks before it gives up on a transcript. */
 export const MAX_MESSAGE_IDS = 50_000
 
-/** Totals the tokens a transcript's own assistant records report. */
+/** Totals and slots the tokens a transcript's own assistant records report. */
 export interface TranscriptTokenObserver {
   /** Feeds one parsed record; anything but a valid `assistant` record is ignored. */
   observe(record: Record<string, unknown>): void
@@ -16,6 +20,13 @@ export interface TranscriptTokenObserver {
    * {@link MAX_MESSAGE_IDS} distinct message ids.
    */
   total(): number | null
+  /**
+   * The transcript's usage by 15-minute slot and model, its message ids and
+   * its invalid assistant record count. Empty, not `null`, when the
+   * transcript held no valid assistant record, and `null` only when it held
+   * more than {@link MAX_MESSAGE_IDS} distinct message ids.
+   */
+  leadUsage(): LeadUsage | null
 }
 
 /**
@@ -31,23 +42,32 @@ export interface TranscriptTokenObserver {
  * session spent: a resumed or forked transcript can hold copied records,
  * which the full scan counts per file the same way.
  *
+ * Each message also keeps the model of the first record that carried its id
+ * and the earliest record timestamp, which `leadUsage()` groups by slot. An
+ * `assistant` record that fails schema validation is counted in
+ * `invalidAssistantRecords` for the full scan's skipped-line rule.
+ *
  * Holds at most {@link MAX_MESSAGE_IDS} entries, one per distinct message id,
  * each id capped by the schema's identifier bound, and lives only for one
  * scan. A transcript with more distinct ids is not totaled: the observer
- * drops what it holds, ignores the rest of the records, and `total()` returns
- * `null`.
+ * drops what it holds, ignores the rest of the records, and both `total()`
+ * and `leadUsage()` return `null`.
  *
  * @returns An observer ready to `observe` a transcript's records.
  */
 export function createTranscriptTokenObserver(): TranscriptTokenObserver {
-  const byMessageId = new Map<string, TokenCounts>()
+  const byMessageId = new Map<string, TrackedMessage>()
+  let invalidAssistantRecords = 0
   let overflowed = false
 
   return {
     observe(record) {
       if (overflowed || record.type !== 'assistant') return
       const parsed = assistantRecordSchema.safeParse(record)
-      if (!parsed.success) return
+      if (!parsed.success) {
+        invalidAssistantRecords += 1
+        return
+      }
 
       const { message } = parsed.data
       const existing = byMessageId.get(message.id)
@@ -57,16 +77,26 @@ export function createTranscriptTokenObserver(): TranscriptTokenObserver {
         return
       }
       const tokens = messageTokens(message.usage)
+      const timestampMs = recordTimestampMs(record)
       byMessageId.set(
         message.id,
-        existing === undefined ? tokens : combineTokenCounts([existing, tokens], Math.max)
+        existing === undefined
+          ? { model: message.model, tokens, earliestMs: timestampMs }
+          : {
+              model: existing.model,
+              tokens: combineTokenCounts([existing.tokens, tokens], Math.max),
+              earliestMs: earlierTimestamp(existing.earliestMs, timestampMs)
+            }
       )
     },
     total() {
       if (byMessageId.size === 0) return null
       let total = 0
-      for (const counts of byMessageId.values()) total += totalTokenCount(counts)
+      for (const message of byMessageId.values()) total += totalTokenCount(message.tokens)
       return Number.isFinite(total) ? total : null
+    },
+    leadUsage() {
+      return overflowed ? null : buildLeadUsage({ messages: byMessageId, invalidAssistantRecords })
     }
   }
 }

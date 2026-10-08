@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { SessionSummary } from '../sessionSummary'
-import { SUMMARY_ENTRY_OVERHEAD, summaryWeight } from '../summaryWeight'
+import type { LeadUsage } from '../leadUsage'
+import {
+  LEAD_ID_OVERHEAD,
+  LEAD_SLOT_OVERHEAD,
+  SUMMARY_ENTRY_OVERHEAD,
+  summaryWeight
+} from '../summaryWeight'
 import { buildSessionSummary } from '../testSessionSummary'
 
 const EMPTY_SUMMARY: SessionSummary = buildSessionSummary()
@@ -55,5 +61,48 @@ describe('summaryWeight', () => {
 
     // Spawns: 2 + 3 + 1 + 4 and 1. Stop: 2 + 1.
     expect(summaryWeight(summary)).toBe(SUMMARY_ENTRY_OVERHEAD + 14)
+  })
+
+  describe('lead usage', () => {
+    const leadUsage = (overrides: Partial<LeadUsage>): LeadUsage => ({
+      slots: [],
+      undatedMessages: 0,
+      invalidAssistantRecords: 0,
+      messageIds: new Set(),
+      ...overrides
+    })
+
+    it('adds an overhead and the length for each message id', () => {
+      const summary = {
+        ...EMPTY_SUMMARY,
+        leadUsage: leadUsage({ messageIds: new Set(['ab', 'cde']) })
+      }
+
+      expect(summaryWeight(summary)).toBe(SUMMARY_ENTRY_OVERHEAD + 2 * LEAD_ID_OVERHEAD + 5)
+    })
+
+    it('adds an overhead and the model length for each slot', () => {
+      const summary = {
+        ...EMPTY_SUMMARY,
+        leadUsage: leadUsage({
+          slots: [
+            { slot: 1, model: 'abc', tokens: 1 },
+            { slot: 2, model: 'de', tokens: 1 }
+          ]
+        })
+      }
+
+      expect(summaryWeight(summary)).toBe(SUMMARY_ENTRY_OVERHEAD + 2 * LEAD_SLOT_OVERHEAD + 5)
+    })
+
+    it('adds nothing for an empty lead usage', () => {
+      expect(summaryWeight({ ...EMPTY_SUMMARY, leadUsage: leadUsage({}) })).toBe(
+        SUMMARY_ENTRY_OVERHEAD
+      )
+    })
+
+    it('adds nothing for a null lead usage', () => {
+      expect(summaryWeight({ ...EMPTY_SUMMARY, leadUsage: null })).toBe(SUMMARY_ENTRY_OVERHEAD)
+    })
   })
 })

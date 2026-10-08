@@ -1,9 +1,7 @@
-import { normalizeModelId } from '../pricing/normalizeModelId'
-import { totalTokenCount } from '../pricing/totalTokenCount'
+import { countedUsage } from '../pricing/countedUsage'
 import type { LedgerEntry } from '../session/usageLedger'
+import { compareDailyUsageBuckets } from './compareDailyUsageBuckets'
 import type { DailyUsageBucket, DayKey, SessionDailyUsage } from './dailyUsage'
-
-const SYNTHETIC_MODEL = '<synthetic>'
 
 /**
  * Groups usage ledger entries into (day, model) buckets, counting each
@@ -25,24 +23,20 @@ export function bucketDailyUsage(
   let undatedMessages = 0
 
   for (const entry of entries) {
-    const model = normalizeModelId(entry.model)
-    if (model === SYNTHETIC_MODEL) continue
-    const tokens = totalTokenCount(entry.tokens)
-    if (!Number.isFinite(tokens) || tokens <= 0) continue
+    const counted = countedUsage(entry)
+    if (counted === null) continue
     if (entry.earliestMs === null) {
       undatedMessages += 1
       continue
     }
 
     const day = dayKeyOf(entry.earliestMs)
-    const key = `${day}\0${model}`
+    const key = `${day}\0${counted.model}`
     const bucket = byKey.get(key)
-    if (bucket === undefined) byKey.set(key, { day, model, tokens })
-    else bucket.tokens += tokens
+    if (bucket === undefined) byKey.set(key, { day, model: counted.model, tokens: counted.tokens })
+    else bucket.tokens += counted.tokens
   }
 
-  const buckets: DailyUsageBucket[] = [...byKey.values()].sort(
-    (a, b) => a.day.localeCompare(b.day) || a.model.localeCompare(b.model)
-  )
+  const buckets: DailyUsageBucket[] = [...byKey.values()].sort(compareDailyUsageBuckets)
   return { buckets, undatedMessages }
 }

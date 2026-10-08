@@ -247,7 +247,13 @@ describe('scanSessionSummary', () => {
       teamSpawns: { spawns: [], stops: [], truncated: false },
       model: null,
       limitHit: null,
-      transcriptTokens: null
+      transcriptTokens: null,
+      leadUsage: {
+        slots: [],
+        undatedMessages: 0,
+        invalidAssistantRecords: 0,
+        messageIds: new Set()
+      }
     })
   })
 
@@ -273,8 +279,56 @@ describe('scanSessionSummary', () => {
       teamSpawns: { spawns: [], stops: [], truncated: false },
       model: 'claude-opus-5',
       limitHit: null,
-      transcriptTokens: 15
+      transcriptTokens: 15,
+      leadUsage: {
+        slots: [
+          {
+            slot: Math.floor(Date.parse('2026-01-01T00:02:00.000Z') / 900_000),
+            model: 'claude-opus-5',
+            tokens: 15
+          }
+        ],
+        undatedMessages: 0,
+        invalidAssistantRecords: 0,
+        messageIds: new Set(['msg_1'])
+      }
     })
+  })
+
+  it('reports lead usage for two assistant messages and an invalid assistant record', async () => {
+    const filePath = writeTranscript(
+      buildJsonlText([
+        buildAssistantRecord({ messageId: 'msg_a', timestamp: '2026-01-01T00:02:00.000Z' }),
+        buildAssistantRecord({
+          messageId: 'msg_b',
+          timestamp: '2026-01-01T00:20:00.000Z',
+          inputTokens: 1,
+          outputTokens: 1
+        }),
+        { type: 'assistant', message: { id: 'msg_bad', model: 'm' } }
+      ])
+    )
+
+    const summary = await scanSessionSummary(filePath)
+
+    expect(summary.leadUsage).toEqual({
+      slots: [
+        {
+          slot: Math.floor(Date.parse('2026-01-01T00:00:00.000Z') / 900_000),
+          model: 'claude-opus-5',
+          tokens: 15
+        },
+        {
+          slot: Math.floor(Date.parse('2026-01-01T00:15:00.000Z') / 900_000),
+          model: 'claude-opus-5',
+          tokens: 2
+        }
+      ],
+      undatedMessages: 0,
+      invalidAssistantRecords: 1,
+      messageIds: new Set(['msg_a', 'msg_b'])
+    })
+    expect(summary.skippedLines).toBe(0)
   })
 
   it('counts a line that is not valid JSON and keeps scanning', async () => {

@@ -1,5 +1,6 @@
 import type { SessionRole } from '../sessionRole'
 import type { TranscriptTeamSpawns } from '../teammateSpawn'
+import type { LeadUsage } from './leadUsage'
 
 /**
  * The window a transcript's records cover, taken as the smallest and
@@ -92,4 +93,11 @@ export interface SessionSummary {
    * or the transcript held more distinct messages than the scan keeps.
    */
   readonly transcriptTokens: number | null
+  /**
+   * The transcript's own assistant usage by 15-minute slot and model, for
+   * usage over time. Empty when the transcript has no valid assistant
+   * record, and `null` only when it held more distinct messages than the
+   * scan keeps.
+   */
+  readonly leadUsage: LeadUsage | null
 }
