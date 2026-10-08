@@ -3,8 +3,15 @@ import { describe, expect, it } from 'vitest'
 
 describe('the series fills’ stylesheet', () => {
   const css = readFileSync(new URL('../SeriesFill.module.css', import.meta.url), 'utf8')
-  const rule = (name: string): string =>
-    new RegExp(`\\.${name}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? ''
+  const rule = (name: string): string => {
+    const body = new RegExp(`\\.${name}\\s*\\{([^}]*)\\}`).exec(css)?.[1]
+    if (body === undefined) throw new Error(`No .${name} rule in the stylesheet`)
+    return body
+  }
+
+  it('fails to find a rule that is not there, so a missing rule cannot pass a check', () => {
+    expect(() => rule('series9')).toThrow('No .series9 rule')
+  })
 
   it('hatches the other series, so it is told apart without color', () => {
     expect(rule('series4')).toContain('repeating-linear-gradient')
@@ -24,5 +31,11 @@ describe('the series fills’ stylesheet', () => {
     )
 
     expect(css).toMatch(group)
+  })
+
+  it('edges every series in the system text color in forced-colors mode, so a fill shows on any ground', () => {
+    const forced = /@media\s*\(forced-colors:\s*active\)\s*\{([^}]*)\}/.exec(css)?.[1] ?? ''
+
+    expect(forced).toMatch(/outline:\s*var\(--size-hairline\)\s+solid\s+CanvasText/)
   })
 })

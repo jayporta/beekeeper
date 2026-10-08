@@ -5,12 +5,14 @@ import { testDailyUsage } from '../testDailyUsage'
 const ready = (...args: Parameters<typeof testDailyUsage>): FolderDailyUsageState => ({
   status: 'ready',
   usage: testDailyUsage(...args),
-  refreshing: false
+  refreshing: false,
+  otherWindow: false
 })
-const refreshingReady = (): FolderDailyUsageState => ({
+const refreshingReady = (otherWindow: boolean): FolderDailyUsageState => ({
   status: 'ready',
   usage: testDailyUsage({ '2026-03-10': { a: 1 } }),
-  refreshing: true
+  refreshing: true,
+  otherWindow
 })
 const LOADING: FolderDailyUsageState = { status: 'loading' }
 const FAILED: FolderDailyUsageState = { status: 'error' }
@@ -94,14 +96,22 @@ describe('sumDailyUsage', () => {
     })
   })
 
-  it('is refreshing when any ready folder shows the previous window’s figures', () => {
-    expect(sumDailyUsage([ready({ '2026-03-10': {} }), refreshingReady()], 1).refreshing).toBe(true)
+  it('is refreshing when any ready folder shows a previous window’s or day’s figures', () => {
+    const summary = sumDailyUsage([ready({ '2026-03-10': {} }), refreshingReady(false)], 1)
+
+    expect(summary).toMatchObject({ refreshing: true, awaitingWindow: false })
+  })
+
+  it('is awaiting the window when any ready folder shows the other window’s figures', () => {
+    const summary = sumDailyUsage([ready({ '2026-03-10': {} }), refreshingReady(true)], 1)
+
+    expect(summary).toMatchObject({ refreshing: true, awaitingWindow: true })
   })
 
   it('is not refreshing when no ready folder is, whatever else is loading or failed', () => {
     const summary = sumDailyUsage([ready({ '2026-03-10': {} }), LOADING, FAILED], 1)
 
-    expect(summary.refreshing).toBe(false)
+    expect(summary).toMatchObject({ refreshing: false, awaitingWindow: false })
   })
 
   it('has no days when no folder is ready', () => {

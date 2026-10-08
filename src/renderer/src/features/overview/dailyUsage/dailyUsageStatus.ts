@@ -6,7 +6,11 @@ export type DailyUsageOutcome = 'updated' | 'partial' | 'failed'
 
 /** Where the window's daily usage stands. */
 export interface DailyUsageStatus {
-  /** Whether every folder has answered, with no figures standing in from a previous window or day, and there is something to say: usage, or that none could be loaded. */
+  /**
+   * Whether every folder has answered, with no other window's figures standing in, and there
+   * is something to say: usage, or that none could be loaded. Moving on to the next day does not
+   * unsettle it, since the window and its totals did not change.
+   */
   readonly settled: boolean
   /** What the usage came to. It is only final once `settled`. */
   readonly outcome: DailyUsageOutcome
@@ -22,7 +26,7 @@ export interface DailyUsageStatus {
 export function dailyUsageStatusOf(summary: DailyUsageSummary): DailyUsageStatus {
   const hasDays = summary.days.length > 0
   const failedOutright = !hasDays && summary.failed > 0 && summary.loading === 0
-  const settled = summary.loading === 0 && !summary.refreshing && (hasDays || failedOutright)
+  const settled = summary.loading === 0 && !summary.awaitingWindow && (hasDays || failedOutright)
   if (failedOutright) return { settled, outcome: 'failed' }
   return { settled, outcome: dailyUsageReasonsOf(summary).length > 0 ? 'partial' : 'updated' }
 }

@@ -28,8 +28,16 @@ describe('dailyUsageStatusOf', () => {
     expect(dailyUsageStatusOf(withDays({ loading: 1 })).settled).toBe(false)
   })
 
-  it('is not settled while the figures are the previous window’s or day’s', () => {
-    expect(dailyUsageStatusOf(withDays({ refreshing: true })).settled).toBe(false)
+  it('is not settled while the figures are the other window’s', () => {
+    expect(dailyUsageStatusOf(withDays({ refreshing: true, awaitingWindow: true })).settled).toBe(
+      false
+    )
+  })
+
+  it('is settled while only the next day’s figures are on their way, since the window did not change', () => {
+    expect(dailyUsageStatusOf(withDays({ refreshing: true, awaitingWindow: false })).settled).toBe(
+      true
+    )
   })
 
   it('is not settled before any folder is listed, with nothing to show', () => {

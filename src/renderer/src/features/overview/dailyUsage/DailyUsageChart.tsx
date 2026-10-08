@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TotalsWindowDto } from '../../../../../shared/ipc/projectTotalsDto'
 import { chartScale } from './chartScale'
@@ -28,12 +29,13 @@ interface DailyUsageChartProps {
  * each model, drawn in HTML and CSS so its text stays crisp at any width. It
  * is an image named by its range, total and busiest day; the table beside it
  * gives every figure. Each segment has a tooltip with its exact figure for
- * pointer users.
+ * pointer users. It renders again only when its props change, since it formats
+ * a label for every day and segment.
  *
  * @example
  * <DailyUsageChart days={summary.days} total={summary.total} series={seriesOf(summary.days)} range="7d" />
  */
-export function DailyUsageChart({
+export const DailyUsageChart = memo(function DailyUsageChart({
   days,
   total,
   series,
@@ -120,4 +122,4 @@ export function DailyUsageChart({
       </div>
     </div>
   )
-}
+})

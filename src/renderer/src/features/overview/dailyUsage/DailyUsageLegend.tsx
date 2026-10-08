@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import styles from './DailyUsageLegend.module.css'
 import { seriesLabel } from './seriesLabel'
@@ -17,7 +18,9 @@ interface DailyUsageLegendProps {
  * @example
  * <DailyUsageLegend series={seriesOf(days)} />
  */
-export function DailyUsageLegend({ series }: DailyUsageLegendProps): React.JSX.Element | null {
+export const DailyUsageLegend = memo(function DailyUsageLegend({
+  series
+}: DailyUsageLegendProps): React.JSX.Element | null {
   const { t } = useTranslation('overview')
   if (series.length === 0) return null
 
@@ -31,4 +34,4 @@ export function DailyUsageLegend({ series }: DailyUsageLegendProps): React.JSX.E
       ))}
     </ul>
   )
-}
+})

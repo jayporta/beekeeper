@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import type { QueryClient } from '@tanstack/react-query'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { BeekeeperApi } from '../../../../../shared/ipc/beekeeperApi'
 import type { IpcResult } from '../../../../../shared/ipc/ipcResult'
 import type { ProjectDto } from '../../../../../shared/ipc/projectDto'
@@ -53,6 +53,7 @@ beforeEach(() => {
 })
 
 afterEach(async () => {
+  vi.useRealTimers()
   useNavigationStore.getState().reset()
   useTotalsWindowStore.setState({ window: '7d' })
   useSelectedProjectStore.setState({ selectedDirName: null })
@@ -666,7 +667,7 @@ describe('OverviewView announcements', () => {
     })
 
     await waitFor(() => {
-      expect(region.textContent).toBe('Totals for the last 7 days updated')
+      expect(region.textContent).toBe('Totals for the last 7 days updated.')
     })
   })
 
@@ -679,7 +680,7 @@ describe('OverviewView announcements', () => {
     await totalsLoaded()
     const region = statusRegion()
     await waitFor(() => {
-      expect(region.textContent).toBe('Totals for the last 7 days updated')
+      expect(region.textContent).toBe('Totals for the last 7 days updated.')
     })
 
     await userEvent.click(within(main()).getByRole('radio', { name: '30 days' }))
@@ -689,7 +690,7 @@ describe('OverviewView announcements', () => {
     })
 
     await waitFor(() => {
-      expect(region.textContent).toBe('Totals for the last 30 days updated')
+      expect(region.textContent).toBe('Totals for the last 30 days updated.')
     })
   })
 
@@ -698,13 +699,13 @@ describe('OverviewView announcements', () => {
     await totalsLoaded()
     await userEvent.click(within(main()).getByRole('radio', { name: '30 days' }))
     await waitFor(() => {
-      expect(statusRegion().textContent).toBe('Totals for the last 30 days updated')
+      expect(statusRegion().textContent).toBe('Totals for the last 30 days updated.')
     })
 
     await userEvent.click(within(main()).getByRole('radio', { name: '7 days' }))
 
     await waitFor(() => {
-      expect(statusRegion().textContent).toBe('Totals for the last 7 days updated')
+      expect(statusRegion().textContent).toBe('Totals for the last 7 days updated.')
     })
   })
 
@@ -727,8 +728,71 @@ describe('OverviewView announcements', () => {
     })
 
     await waitFor(() => {
-      expect(statusRegion().textContent).toBe('Totals for the last 7 days updated')
+      expect(statusRegion().textContent).toBe('Totals for the last 7 days updated.')
     })
+  })
+
+  it('holds back the new window’s announcement until its tokens per day arrive', async () => {
+    const thirtyDays = gate<IpcResult<ProjectDailyUsageDto>>()
+    renderOverview({
+      dailyUsage: (dirName, window) =>
+        window === '30d' ? thirtyDays.reply : quietUsage(dirName, window)
+    })
+    await waitFor(() => {
+      expect(statusRegion().textContent).toBe('Totals for the last 7 days updated.')
+    })
+
+    await userEvent.click(within(main()).getByRole('radio', { name: '30 days' }))
+    await waitFor(() => {
+      expect(within(main()).getByRole('list', { name: /^Totals, last 30 days/ })).toBeTruthy()
+    })
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(statusRegion().textContent).not.toContain('30 days')
+    act(() => {
+      thirtyDays.release({ ok: true, value: testDailyUsage({ '2026-03-10': {} }) })
+    })
+
+    await waitFor(() => {
+      expect(statusRegion().textContent).toBe('Totals for the last 30 days updated.')
+    })
+  })
+
+  it('does not announce again when midnight passes and the day’s tokens per day load', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 2, 10, 23, 59))
+    let afterMidnight = false
+    const nextDay = gate<IpcResult<ProjectDailyUsageDto>>()
+    renderOverview({
+      dailyUsage: (dirName, window) => (afterMidnight ? nextDay.reply : quietUsage(dirName, window))
+    })
+    await screen.findByRole('heading', { level: 1, name: 'All projects' })
+    const region = statusRegion()
+    const announced: string[] = []
+    new MutationObserver(() => {
+      if (region.textContent !== '') announced.push(region.textContent ?? '')
+    }).observe(region, { childList: true, characterData: true, subtree: true })
+    await waitFor(() => {
+      expect(region.textContent).toBe('Totals for the last 7 days updated.')
+    })
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    const before = announced.length
+
+    afterMidnight = true
+    vi.setSystemTime(new Date(2026, 2, 11, 0, 1))
+    act(() => {
+      window.dispatchEvent(new Event('focus'))
+    })
+    await within(main()).findByText('Updating')
+    act(() => {
+      nextDay.release({ ok: true, value: testDailyUsage({ '2026-03-11': {} }) })
+    })
+    await waitFor(() => {
+      expect(within(main()).queryByText('Updating')).toBeNull()
+    })
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    expect(announced.length).toBe(before)
+    vi.useRealTimers()
   })
 
   it('adds that tokens per day could not be loaded', async () => {
@@ -815,7 +879,7 @@ describe('OverviewView announcements', () => {
     renderOverview({ totals: () => Promise.resolve(failed) })
 
     await waitFor(() => {
-      expect(statusRegion().textContent).toBe("Couldn't load the totals for the last 7 days")
+      expect(statusRegion().textContent).toBe("Couldn't load the totals for the last 7 days.")
     })
   })
 
@@ -845,14 +909,14 @@ describe('OverviewView announcements', () => {
       totals: (dirName) => (failing ? Promise.resolve(failed) : normal(dirName))
     })
     await waitFor(() => {
-      expect(statusRegion().textContent).toBe("Couldn't load the totals for the last 7 days")
+      expect(statusRegion().textContent).toBe("Couldn't load the totals for the last 7 days.")
     })
 
     failing = false
     await refetchAndSettle(client, ['projectTotals'])
 
     await waitFor(() => {
-      expect(statusRegion().textContent).toBe('Totals for the last 7 days updated')
+      expect(statusRegion().textContent).toBe('Totals for the last 7 days updated.')
     })
   })
 

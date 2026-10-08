@@ -139,12 +139,21 @@ describe('useDailyUsage', () => {
       useTotalsWindowStore.getState().setWindow('30d')
     })
 
-    expect(result.current.summary).toMatchObject({ total: 7, refreshing: true, loading: 0 })
+    expect(result.current.summary).toMatchObject({
+      total: 7,
+      refreshing: true,
+      awaitingWindow: true,
+      loading: 0
+    })
     act(() => {
       thirty.settle(replyOf(1, 30))
     })
     await waitFor(() => {
-      expect(result.current.summary).toMatchObject({ total: 30, refreshing: false })
+      expect(result.current.summary).toMatchObject({
+        total: 30,
+        refreshing: false,
+        awaitingWindow: false
+      })
     })
   })
 
@@ -182,7 +191,11 @@ describe('useDailyUsage', () => {
     vi.setSystemTime(new Date(2026, 2, 11, 0, 1))
     rerender()
 
-    expect(result.current.summary).toMatchObject({ total: 7, refreshing: true })
+    expect(result.current.summary).toMatchObject({
+      total: 7,
+      refreshing: true,
+      awaitingWindow: false
+    })
   })
 
   it('drops the previous day’s usage once the new day’s arrives, not before', async () => {
@@ -324,6 +337,45 @@ describe('useDailyUsage', () => {
     for (let i = 0; i < 5; i += 1) rerender()
 
     expect(reads.mock.calls.length).toBe(readsWhileLoading)
+  })
+
+  it('does not search the cache again on each render for a folder with nothing cached', async () => {
+    const client = createTestQueryClient()
+    const reads = vi.spyOn(client, 'getQueriesData')
+    installBeekeeperApi({
+      listProjects: listing('-a'),
+      getProjectDailyUsage: () => new Promise(() => undefined)
+    })
+    const { result, rerender } = renderHook(() => useDailyUsage(), {
+      wrapper: createQueryWrapper(client)
+    })
+    await waitFor(() => {
+      expect(result.current.summary.loading).toBe(1)
+    })
+    await settleMicrotasks()
+    const readsWhileLoading = reads.mock.calls.length
+
+    for (let i = 0; i < 5; i += 1) rerender()
+
+    expect(reads.mock.calls.length).toBe(readsWhileLoading)
+  })
+
+  it('returns the same object while nothing it holds has changed', async () => {
+    installBeekeeperApi({
+      listProjects: listing('-a'),
+      getProjectDailyUsage: () => Promise.resolve(replyOf(1))
+    })
+    const { result, rerender } = renderHook(() => useDailyUsage(), {
+      wrapper: createQueryWrapper()
+    })
+    await waitFor(() => {
+      expect(result.current.summary.total).toBe(7)
+    })
+    const settled = result.current
+
+    rerender()
+
+    expect(result.current).toBe(settled)
   })
 
   it('asks again when the local day changes', async () => {

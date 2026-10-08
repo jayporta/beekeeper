@@ -22,7 +22,7 @@ describe('newestDailyUsage', () => {
     store(client, ['projectDailyUsage', '-a', '30d', '2026-03-10'], 2, 3000)
     store(client, ['projectDailyUsage', '-a', '7d', '2026-03-10'], 3, 2000)
 
-    expect(newestDailyUsage(client, '-a')).toEqual(usage(2))
+    expect(newestDailyUsage(client, '-a')).toEqual({ usage: usage(2), range: '30d' })
   })
 
   it('ignores other folders and other queries', () => {
@@ -31,7 +31,7 @@ describe('newestDailyUsage', () => {
     store(client, ['projectTotals', '-a', '7d'], 9, 5000)
     store(client, ['projectDailyUsage', '-a', '7d', '2026-03-10'], 1, 1000)
 
-    expect(newestDailyUsage(client, '-a')).toEqual(usage(1))
+    expect(newestDailyUsage(client, '-a')?.usage).toEqual(usage(1))
   })
 
   it('is undefined when the folder has none', () => {
@@ -49,6 +49,6 @@ describe('newestDailyUsage', () => {
     })
     store(client, ['projectDailyUsage', '-a', '7d', '2026-03-10'], 1, 1000)
 
-    expect(newestDailyUsage(client, '-a')).toEqual(usage(1))
+    expect(newestDailyUsage(client, '-a')?.usage).toEqual(usage(1))
   })
 })

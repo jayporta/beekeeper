@@ -49,20 +49,19 @@ export function useTotalsAnnouncement({
     scope: range,
     settled,
     // Both parts, so a change in either is news.
-    outcome: `${outcome}:${daily}` as const,
-    say: (spoken, window) => {
-      const [totals, extra] = spoken.split(':') as [TotalsOutcome, DailyAnnouncement]
+    outcome: `${outcome}:${daily}`,
+    say: (_spoken, window) => {
       const rangeName = t(`range.${window}`)
-      const message =
-        totals === 'empty'
+      const totals =
+        outcome === 'empty'
           ? t('announce.empty', {
               heading: t('empty.heading'),
               body: t(`empty.body.${window}`, { range: rangeName })
             })
-          : t(`announce.${totals}`, { range: rangeName })
-      if (extra === 'none') return message
-      const joiner = message.endsWith('.') ? ' ' : '. '
-      return `${message}${joiner}${t(`announce.daily.${extra}`)}`
+          : t(`announce.${outcome}`, { range: rangeName })
+      return daily === 'none'
+        ? totals
+        : t('announce.withDaily', { totals, daily: t(`announce.daily.${daily}`) })
     }
   })
 }

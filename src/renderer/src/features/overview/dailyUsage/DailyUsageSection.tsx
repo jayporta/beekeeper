@@ -46,7 +46,11 @@ export function DailyUsageSection({ usage }: DailyUsageSectionProps): React.JSX.
   const failedOutright = status.outcome === 'failed'
 
   return (
-    <section className={styles.section} aria-labelledby={headingId} aria-busy={!status.settled}>
+    <section
+      className={styles.section}
+      aria-labelledby={headingId}
+      aria-busy={!status.settled || summary.refreshing}
+    >
       <h2 id={headingId} className={styles.heading}>
         {t('dailyUsage.heading')}
       </h2>

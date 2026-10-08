@@ -20,6 +20,8 @@ export type FolderDailyUsageState =
       readonly usage: ProjectDailyUsageDto
       /** Whether this is the previous window's or day's usage, shown until the current one arrives. */
       readonly refreshing: boolean
+      /** Whether the stand-in is the other window's usage, not just an earlier day's. */
+      readonly otherWindow: boolean
     }
 
 /** The tokens of every folder on one day. */
@@ -44,6 +46,8 @@ export interface DailyUsageSummary {
   readonly failed: number
   /** Whether any ready folder's usage is the previous window's or day's, shown until the current one arrives. */
   readonly refreshing: boolean
+  /** Whether any ready folder's usage is the other window's, shown until this window's arrives. Moving on to the next day does not set it. */
+  readonly awaitingWindow: boolean
   /** Sessions that leave a day's total incomplete, added over the ready folders, by reason. */
   readonly partial: ProjectDailyUsagePartialDto
 }
@@ -67,12 +71,14 @@ export function sumDailyUsage(
   let loading = 0
   let failed = 0
   let refreshing = false
+  let awaitingWindow = false
 
   for (const state of states) {
     if (state.status === 'loading') loading += 1
     else if (state.status === 'error') failed += 1
     else {
       if (state.refreshing) refreshing = true
+      if (state.otherWindow) awaitingWindow = true
       partial.unreadable += state.usage.partial.unreadable
       partial.skippedLines += state.usage.partial.skippedLines
       partial.undated += state.usage.partial.undated
@@ -98,6 +104,7 @@ export function sumDailyUsage(
     loading,
     failed,
     refreshing,
+    awaitingWindow,
     partial
   }
 }

@@ -60,7 +60,7 @@ export function testSummary(
   overrides: Partial<DailyUsageSummary> = {}
 ): DailyUsageSummary {
   const summary = sumDailyUsage(
-    [{ status: 'ready', usage: testDailyUsage(days), refreshing: false }],
+    [{ status: 'ready', usage: testDailyUsage(days), refreshing: false, otherWindow: false }],
     Object.keys(days).length
   )
   return { ...summary, ...overrides }

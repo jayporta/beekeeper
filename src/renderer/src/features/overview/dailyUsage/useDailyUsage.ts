@@ -6,17 +6,25 @@ import { unwrapIpcResult } from '@renderer/ipc/unwrapIpcResult'
 import { useProjects } from '@renderer/features/projects/useProjects'
 import { useTotalsWindowStore } from '../state/useTotalsWindowStore'
 import { dailyUsageLimiterFor } from './dailyUsageLimiter'
-import { newestDailyUsage } from './newestDailyUsage'
+import { createDailyUsagePlaceholder, placeholderRange } from './dailyUsagePlaceholder'
 import { pruneStaleDailyUsage } from './pruneStaleDailyUsage'
 import { useTodayKey } from './useTodayKey'
 import { sumDailyUsage, type DailyUsageSummary, type FolderDailyUsageState } from './sumDailyUsage'
 
 const DAY_COUNT: Readonly<Record<TotalsWindowDto, number>> = { '7d': 7, '30d': 30 }
 
-function stateOf(result: UseQueryResult<ProjectDailyUsageDto>): FolderDailyUsageState {
+function stateOf(
+  result: UseQueryResult<ProjectDailyUsageDto>,
+  range: TotalsWindowDto
+): FolderDailyUsageState {
   // Data wins over a failed background refresh, so figures on screen stay on screen.
   if (result.data !== undefined) {
-    return { status: 'ready', usage: result.data, refreshing: result.isPlaceholderData }
+    return {
+      status: 'ready',
+      usage: result.data,
+      refreshing: result.isPlaceholderData,
+      otherWindow: result.isPlaceholderData && placeholderRange(result.data) !== range
+    }
   }
   return result.isError ? { status: 'error' } : { status: 'loading' }
 }
@@ -57,36 +65,32 @@ export function useDailyUsage(): DailyUsage {
   const folders = useMemo(() => (projects ?? []).map((project) => project.dirName), [projects])
   const combine = useCallback(
     (results: UseQueryResult<ProjectDailyUsageDto>[]): FolderDailyUsageState[] =>
-      results.map(stateOf),
-    []
+      results.map((result) => stateOf(result, range)),
+    [range]
   )
 
-  // One function per folder for as long as the folders are the same, so the query observer can
-  // tell a placeholder it already computed and not read the cache again on every render.
-  const placeholders = useMemo(
+  // The queries are rebuilt only when the folders, window or day change. Until then each folder
+  // keeps one placeholder function, so the query observer can tell a placeholder it already
+  // computed and not read the cache on every render; a new one searches the cache afresh.
+  const queries = useMemo(
     () =>
-      new Map(
-        folders.map((dirName) => [dirName, () => newestDailyUsage(client, dirName)] as const)
-      ),
-    [client, folders]
+      folders.map((dirName) => ({
+        queryKey: ['projectDailyUsage', dirName, range, todayKey],
+        queryFn: async ({ signal }: { signal: AbortSignal }) => {
+          const usage = await dailyUsageLimiterFor(client).run(
+            async () =>
+              unwrapIpcResult(await window.beekeeper.getProjectDailyUsage(dirName, range)),
+            signal
+          )
+          if (!signal.aborted) pruneStaleDailyUsage(client, { dirName, todayKey })
+          return usage
+        },
+        placeholderData: createDailyUsagePlaceholder(client, dirName)
+      })),
+    [client, folders, range, todayKey]
   )
-
-  const states = useQueries({
-    queries: folders.map((dirName) => ({
-      queryKey: ['projectDailyUsage', dirName, range, todayKey],
-      queryFn: async ({ signal }: { signal: AbortSignal }) => {
-        const usage = await dailyUsageLimiterFor(client).run(
-          async () => unwrapIpcResult(await window.beekeeper.getProjectDailyUsage(dirName, range)),
-          signal
-        )
-        if (!signal.aborted) pruneStaleDailyUsage(client, { dirName, todayKey })
-        return usage
-      },
-      placeholderData: placeholders.get(dirName)
-    })),
-    combine
-  })
+  const states = useQueries({ queries, combine })
 
   const summary = useMemo(() => sumDailyUsage(states, DAY_COUNT[range]), [states, range])
-  return { window: range, summary }
+  return useMemo(() => ({ window: range, summary }), [range, summary])
 }
