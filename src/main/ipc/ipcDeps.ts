@@ -34,7 +34,8 @@ export interface IpcDeps {
    * Shares and caps the daily usage scans, one per session: the subagent
    * reads, and the full read of a lead too long for its summary to hold. A
    * lead's own usage comes from its summary, read through `summaries` in its
-   * background lane, so a session with no subagents never queues here.
+   * background lane, so a session with no subagents whose lead fits in its
+   * summary never queues here.
    */
   readonly dailyUsageScans: ScanScheduler
   /** Complete per-session daily usage, shared by every folder's daily usage read. */

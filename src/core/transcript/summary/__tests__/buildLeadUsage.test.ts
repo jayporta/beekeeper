@@ -32,17 +32,14 @@ describe('buildLeadUsage', () => {
     expect(slots).toEqual([{ slot: slotOf('2026-01-01T12:00:00.000Z'), model: MODEL, tokens: 15 }])
   })
 
-  it('puts a message at 14:59:59.999 and one at 15:00:00.000 in adjacent slots', () => {
+  it('puts a message at 12:14:59.999 and one at 12:15:00.000 in adjacent slots', () => {
     const { slots } = build([
       ['a', tracked({ earliestMs: Date.parse('2026-01-01T12:15:00.000Z') })],
       ['b', tracked({ earliestMs: Date.parse('2026-01-01T12:14:59.999Z') })]
     ])
 
-    expect(slots.map((s) => s.slot)).toEqual([
-      slotOf('2026-01-01T12:14:59.999Z'),
-      slotOf('2026-01-01T12:15:00.000Z')
-    ])
-    expect(slotOf('2026-01-01T12:15:00.000Z') - slotOf('2026-01-01T12:14:59.999Z')).toBe(1)
+    // Quarter hours since the Unix epoch.
+    expect(slots.map((s) => s.slot)).toEqual([1_963_632, 1_963_633])
   })
 
   it('keeps separate models in one slot apart, sorted by model', () => {
