@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { MAX_IDENTIFIER_CODE_UNITS } from '../../transcript/schemas/boundedIdentifier'
 import { reconcileUsage } from '../reconcileUsage'
 import { agent, costState, group } from '../testReconcileFixtures'
 
@@ -110,6 +111,27 @@ describe('reconcileUsage', () => {
     })
 
     expect(result.totals).toMatchObject({ transcriptUSD: 0, transcriptPartial: false })
+  })
+
+  it.each([
+    ['an unprintable key', 'claude\u202Eopus'],
+    ['an over-cap key', 'x'.repeat(MAX_IDENTIFIER_CODE_UNITS + 1)]
+  ])('gives %s no row and keeps a valid sibling row', (_label, badKey) => {
+    const result = reconcileUsage({
+      unreadableAgents: 0,
+      agents: [],
+      costState: costState({
+        modelUsage: {
+          [badKey]: { inputTokens: 5, costUSD: 1 },
+          'claude-opus-5': { inputTokens: 10, costUSD: 0.25 }
+        },
+        totalCostUSD: 1.25
+      })
+    })
+
+    expect(result.models.map((row) => row.model)).toEqual(['claude-opus-5'])
+    expect(result.models[0]?.recorded).toMatchObject({ input: 10, costUSD: 0.25 })
+    expect(result.totals.recordedUSD).toBe(1.25)
   })
 
   it('sums several recorded raw keys under one normalized model', () => {

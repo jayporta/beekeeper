@@ -1,7 +1,5 @@
-import { hasUnprintable } from '../hasUnprintable'
 import { isRecordObject } from '../isRecordObject'
-import { MAX_IDENTIFIER_CODE_UNITS } from '../schemas/boundedIdentifier'
-import { isWithinCodeUnits } from '../../shared/isWithinCodeUnits'
+import { isBoundedIdentifier } from '../schemas/boundedIdentifier'
 import { SYNTHETIC_MODEL_ID } from '../../shared/syntheticModelId'
 
 /** Tracks the model of the latest assistant record among the records it observes. */
@@ -24,11 +22,12 @@ export interface LatestModelObserver {
  *
  * A record qualifies when it is an `assistant` record outside a sidechain,
  * since a subagent's record is not the lead's, with a timestamp and a
- * `message.model` that is a printable string, not blank, with no leading or
- * trailing space (an identifier is kept as written, never trimmed), within
- * the identifier cap, and not `<synthetic>`. A record without a timestamp never
- * qualifies, since it can't be placed in time. On a tie the first record seen
- * wins. Only the current best model and its timestamp are held.
+ * `message.model` that is a bounded identifier (printable and within the
+ * identifier cap), not blank, with no leading or trailing space (an
+ * identifier is kept as written, never trimmed), and not `<synthetic>`. A
+ * record without a timestamp never qualifies, since it can't be placed in
+ * time. On a tie the first record seen wins. Only the current best model and
+ * its timestamp are held.
  *
  * @returns An observer ready to `observe` a transcript's records.
  */
@@ -43,10 +42,9 @@ export function createLatestModelObserver(): LatestModelObserver {
       if (latestMs !== null && timestampMs <= latestMs) return
 
       const candidate = record.message.model
-      if (!isWithinCodeUnits(candidate, MAX_IDENTIFIER_CODE_UNITS)) return
+      if (!isBoundedIdentifier(candidate)) return
       if (candidate === '' || candidate.trim() !== candidate) return
       if (candidate === SYNTHETIC_MODEL_ID) return
-      if (hasUnprintable(candidate)) return
 
       latestMs = timestampMs
       model = candidate

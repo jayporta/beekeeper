@@ -144,8 +144,7 @@ describe('subagentMetaSchema', () => {
 
       it.each([
         ['surrounding spaces', '  id-1 '],
-        ['a decomposed accent', 'café'],
-        ['a newline', 'id\n1']
+        ['a decomposed accent', 'café']
       ])('keeps a value with %s exactly as written', (_label, value) => {
         const parsed = subagentMetaSchema.parse({
           ...buildMinimalSubagentMeta('reviewer'),
@@ -153,6 +152,23 @@ describe('subagentMetaSchema', () => {
         })
 
         expect(parsed[field]).toBe(value)
+      })
+
+      it.each([
+        ['a newline', 'id\n1'],
+        ['a bidi override', 'id\u202E1'],
+        ['a line separator', 'id\u20281'],
+        ['a control character', 'id\u00071']
+      ])('keeps the meta and reads a value with %s as absent', (_label, value) => {
+        const parsed = subagentMetaSchema.safeParse({
+          ...buildMinimalSubagentMeta('reviewer'),
+          [field]: value
+        })
+
+        expect(parsed.success).toBe(true)
+        if (!parsed.success) return
+        expect(parsed.data.agentType).toBe('reviewer')
+        expect(parsed.data[field]).toBeUndefined()
       })
     }
   )

@@ -9,12 +9,13 @@ export interface TeammateSpawn {
   /**
    * The id of the `Agent` call that spawned it, exactly as the transcript
    * wrote it, or `null` when the record carried no `tool_result` block or
-   * several, or when its id was empty or longer than the block cap, which
-   * drops the whole block.
+   * several, or when its id was empty, longer than the block cap, or held an
+   * unprintable character (the block then fails `boundedIdentifierSchema`),
+   * which drops the whole block.
    *
-   * Kept byte for byte because it joins a teammate to its spawning call, so
-   * unlike the labels beside it, it is not sanitized: a consumer that shows
-   * one has to make it safe to display.
+   * A non-null value is printable but otherwise kept byte for byte, since it
+   * joins a teammate to its spawning call, so unlike the labels beside it, it
+   * is not cleaned: a consumer that shows one has to make it safe to display.
    */
   readonly rawToolUseId: string | null
 }

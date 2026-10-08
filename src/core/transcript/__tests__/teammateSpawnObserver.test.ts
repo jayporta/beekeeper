@@ -91,9 +91,15 @@ describe('createTeammateSpawnObserver spawns', () => {
   })
 
   it('keeps a rawToolUseId verbatim, since it joins a spawn rather than labelling it', () => {
-    const record = buildTeammateSpawnRecord({ toolUseId: ' toolu\nabc ' })
+    const record = buildTeammateSpawnRecord({ toolUseId: ' toolu abc ' })
 
-    expect(collect([record]).spawns[0]?.rawToolUseId).toBe(' toolu\nabc ')
+    expect(collect([record]).spawns[0]?.rawToolUseId).toBe(' toolu abc ')
+  })
+
+  it('records a null rawToolUseId for an id with an unprintable character', () => {
+    const record = buildTeammateSpawnRecord({ toolUseId: 'toolu\nabc' })
+
+    expect(collect([record]).spawns[0]?.rawToolUseId).toBeNull()
   })
 
   it('records a null rawToolUseId for an empty id', () => {

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { MAX_IDENTIFIER_CODE_UNITS } from '../schemas/boundedIdentifier'
 import { costStateRecordSchema } from '../schemas/costStateRecord'
 import { buildCostStateRecord } from '../testFixtures'
 
@@ -79,5 +80,20 @@ describe('costStateRecordSchema', () => {
     const record = { ...buildCostStateRecord(), type: 'assistant' }
 
     expect(costStateRecordSchema.safeParse(record).success).toBe(false)
+  })
+
+  it.each([
+    ['an unprintable key', 'claude\u202Eopus'],
+    ['an over-cap key', 'x'.repeat(MAX_IDENTIFIER_CODE_UNITS + 1)]
+  ])('keeps an entry with %s, since the recorded totals count every entry', (_label, key) => {
+    const usage = { inputTokens: 1, outputTokens: 1, costUSD: 0.5 }
+    const record = buildCostStateRecord({ modelUsage: { [key]: usage }, totalCostUSD: 2.5 })
+
+    const result = costStateRecordSchema.safeParse(record)
+
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(Object.keys(result.data.modelUsage ?? {})).toEqual([key])
+    expect(result.data.totalCostUSD).toBe(2.5)
   })
 })

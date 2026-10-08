@@ -13,7 +13,9 @@ export const costStateRecordSchema = z
     /**
      * Usage per model, keyed by the raw model id as written (for example
      * `claude-opus-5[1m]`), never normalized or reduced to a fixed set of
-     * keys.
+     * keys. The keys are raw and not checked here, because the recorded token
+     * total counts every entry; a consumer that shows a key has to check it
+     * (see `isBoundedIdentifier`).
      */
     modelUsage: z.record(z.string(), modelUsageSchema).optional(),
     totalCostUSD: z.number().nonnegative().optional()

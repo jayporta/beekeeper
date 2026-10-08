@@ -37,6 +37,13 @@ describe('recordedTokenTotal', () => {
     expect(recordedTokenTotal(state)).toBe(5)
   })
 
+  it('counts an entry whose model key is unprintable', () => {
+    const state = costState({
+      modelUsage: { 'claude\u202Eopus': { inputTokens: 7 }, b: { inputTokens: 3 } }
+    })
+    expect(recordedTokenTotal(state)).toBe(10)
+  })
+
   it('reports an empty model usage as zero tokens', () => {
     expect(recordedTokenTotal(costState({ modelUsage: {} }))).toBe(0)
   })
