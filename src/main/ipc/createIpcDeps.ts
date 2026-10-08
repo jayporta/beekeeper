@@ -1,6 +1,8 @@
 import { join } from 'node:path'
 import { createSessionSummaryCache } from '../../core/transcript/summary/sessionSummaryCache'
 import { createGitLocator } from '../git/gitLocator'
+import { createDailyUsageCache } from '../overview/dailyUsageCache'
+import { hostTimeZone } from '../overview/localDayKey'
 import { createAgentTermsCache } from './agentTermsCache'
 import type { IpcDeps } from './ipcDeps'
 import { createProjectLabelCache } from './projectLabelCache'
@@ -24,7 +26,7 @@ export const SCAN_CACHE_CAPACITY = 4
  * Builds the handlers' dependencies for the app's lifetime: the projects
  * root under the user's home, one summary cache, one agent terms cache, one
  * workflow run names cache, and the schedulers that share and cap summary reads and full scans, a small scan
- * cache, the clock, and a lazy git locator. Worktree diffs are never cached, since a worktree can
+ * cache, a daily usage cache, the host's time zone, the clock, and a lazy git locator. Worktree diffs are never cached, since a worktree can
  * change while its transcript doesn't.
  *
  * @param homeDir - The user's home directory.
@@ -40,6 +42,8 @@ export function createIpcDeps(homeDir: string): IpcDeps {
     summaries: createScanScheduler({ maxConcurrent: MAX_CONCURRENT_SUMMARIES }),
     scans: createScanScheduler({ maxConcurrent: MAX_CONCURRENT_SCANS }),
     scanCache: createSessionScanCache({ capacity: SCAN_CACHE_CAPACITY }),
+    dailyUsageCache: createDailyUsageCache(),
+    timeZone: hostTimeZone,
     diffs: createScanScheduler({ maxConcurrent: MAX_CONCURRENT_DIFFS }),
     now: Date.now,
     git: createGitLocator()

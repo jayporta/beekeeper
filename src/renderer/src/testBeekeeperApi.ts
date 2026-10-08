@@ -56,6 +56,9 @@ export function installBeekeeperApi(overrides: Partial<BeekeeperApi> = {}): Test
     getSession: vi.fn(overrides.getSession ?? unstubbed('getSession')),
     getWorktreeDiffs: vi.fn(overrides.getWorktreeDiffs ?? unstubbed('getWorktreeDiffs')),
     getProjectTotals: vi.fn(overrides.getProjectTotals ?? unstubbed('getProjectTotals')),
+    getProjectDailyUsage: vi.fn(
+      overrides.getProjectDailyUsage ?? ((): Promise<never> => new Promise(() => undefined))
+    ),
     getWorktreePatch: vi.fn(overrides.getWorktreePatch ?? unstubbed('getWorktreePatch')),
     onOpenAbout: vi.fn(
       overrides.onOpenAbout ??

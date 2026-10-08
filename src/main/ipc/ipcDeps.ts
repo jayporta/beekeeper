@@ -1,5 +1,6 @@
 import type { SessionSummaryCache } from '../../core/transcript/summary/sessionSummaryCache'
 import type { GitLocation } from '../git/gitLocator'
+import type { DailyUsageCache } from '../overview/dailyUsageCache'
 import type { AgentTermsCache } from './agentTermsCache'
 import type { ProjectLabelCache } from './projectLabelCache'
 import type { LaneScanScheduler, ScanScheduler } from './scanScheduler'
@@ -29,6 +30,14 @@ export interface IpcDeps {
   readonly scans: ScanScheduler
   /** Recent completed session scans, shared by every handler that scans. */
   readonly scanCache: SessionScanCache
+  /** Complete per-session daily usage, shared by every folder's daily usage read. */
+  readonly dailyUsageCache: DailyUsageCache
+  /**
+   * The IANA time zone that decides where a day begins, read on each daily
+   * usage call so a changed system zone is followed. Injectable so tests can
+   * fix the zone.
+   */
+  readonly timeZone: () => string
   /** Shares in-flight worktree diffs and caps how many run at once. Results are never cached. */
   readonly diffs: ScanScheduler
   /** The current time in epoch milliseconds. Injectable so tests can stop the clock. */

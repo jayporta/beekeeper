@@ -5,6 +5,7 @@ export const IPC_CHANNELS = {
   getSession: 'beekeeper:get-session',
   getWorktreeDiffs: 'beekeeper:get-worktree-diffs',
   getProjectTotals: 'beekeeper:get-project-totals',
+  getProjectDailyUsage: 'beekeeper:get-project-daily-usage',
   getWorktreePatch: 'beekeeper:get-worktree-patch'
 } as const
 

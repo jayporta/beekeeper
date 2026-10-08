@@ -1,0 +1,33 @@
+import type { DayKey } from '../../core/usage/dailyUsage'
+
+/**
+ * The IANA name of the time zone this process runs in, read each time since
+ * the system's zone can change while the app runs.
+ *
+ * @returns The host's time zone, such as `America/Los_Angeles`.
+ */
+export function hostTimeZone(): string {
+  return new Intl.DateTimeFormat().resolvedOptions().timeZone
+}
+
+/**
+ * Builds a mapping from an instant to its calendar day in a time zone. The
+ * day is assembled from the formatter's parts, so it doesn't depend on a
+ * locale's field order.
+ *
+ * @param timeZone - An IANA time zone name. Defaults to the host's.
+ * @returns A function from epoch milliseconds to the local `YYYY-MM-DD`.
+ * @throws {RangeError} When `timeZone` is not a valid time zone.
+ */
+export function createDayKeyOf(timeZone?: string): (epochMs: number) => DayKey {
+  const format = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  })
+  return (epochMs) => {
+    const parts = new Map(format.formatToParts(epochMs).map(({ type, value }) => [type, value]))
+    return `${parts.get('year')}-${parts.get('month')}-${parts.get('day')}`
+  }
+}
