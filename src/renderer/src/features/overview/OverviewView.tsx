@@ -21,9 +21,9 @@ import { useProjectGroupTotals } from './useProjectGroupTotals'
  * that may be low. Each project loads on its own, so a card fills in as its
  * totals arrive and a project that can't be read doesn't hold up the rest.
  * With nothing in the window, no tokens per day, and no session it couldn't read,
- * it says so, above cards that show zero. While a
- * window's totals or tokens per day load, or show the other window's until they
- * arrive, the cards are marked busy and the empty message waits. A status region announces once
+ * it says so, above cards that show zero. While a window's totals load, or show
+ * the other window's until they arrive, the cards are marked busy. The empty
+ * message and the announcement also wait for the tokens per day. A status region announces once
  * when the window's totals have all arrived (noting when some may be low), that
  * the window is empty, or that none could be loaded, and again if that outcome
  * later changes. Under the totals, unless the window is empty, a chart shows

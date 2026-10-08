@@ -88,6 +88,14 @@
     min-block-size: calc(2 * var(--size-hairline));
     box-shadow: inset 0 calc(-1 * var(--size-hairline)) 0 var(--color-bg);
   }
+
+  /* Forced colors edge every segment with a hairline outline, so each needs three to show its color inside it. */
+  @media (forced-colors: active) {
+    & > *,
+    & > * + * {
+      min-block-size: calc(3 * var(--size-hairline));
+    }
+  }
 }
 
 .days {
