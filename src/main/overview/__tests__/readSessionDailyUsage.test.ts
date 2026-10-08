@@ -276,6 +276,23 @@ describe('readSessionDailyUsage', () => {
     expect(finished).toBe(true)
   })
 
+  it('reads the lead of a session with subagents only once its daily scan has a slot, so a queued session holds no lead usage', async () => {
+    const dailyUsageScans = createScanScheduler({ maxConcurrent: 1 })
+    const { deps, summaryReads } = spyingDeps()
+    const subagent = subagentWith('a1', [{ messageId: 'sub_1' }])
+    const session = await located(lead('2026-03-01T02:00:00Z'), { subagents: ok([subagent]) })
+    let release = (): void => {}
+    void dailyUsageScans.run('other', () => new Promise<void>((resolve) => (release = resolve)))
+
+    const pending = readSessionDailyUsage(session, { ...deps, dailyUsageScans })
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(summaryReads()).toBe(0)
+    release()
+    await pending
+
+    expect(summaryReads()).toBe(1)
+  })
+
   it('keeps one cache entry for a session whose files keep changing', async () => {
     const { deps, summaryReads } = spyingDeps()
     const first = await located(lead('2026-03-01T02:00:00Z'))

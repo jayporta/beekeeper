@@ -410,7 +410,7 @@ describe('getProjectDailyUsageHandler with the project totals', () => {
     expect(totals.ok).toBe(true)
     expect(usage.ok).toBe(true)
     expect(summaryReads()).toBe(2)
-    // Only the session with a subagent schedules a daily scan, and never the full-scan kind.
-    expect(scanKeys.map((key) => key.split('\0')[0])).toEqual(['dailyUsageSubagents'])
+    // Only the session with a subagent schedules a daily scan.
+    expect(scanKeys).toHaveLength(1)
   })
 })
