@@ -1,28 +1,18 @@
 import type { Result } from '../shared/result'
 import type { SkippedLineError } from '../transcript/readRecords'
-import { messageTokens } from '../transcript/messageTokens'
-import { assistantRecordSchema } from '../transcript/schemas'
-import { recordTimestampMs } from '../transcript/summary/recordTimestampMs'
 import type { AgentIdentity } from './agentIdentity'
+import { collectMessageReports, type MessageReports } from './collectMessageReports'
 import { createFileTouchCollector, type FileTouch } from './fileTouchCollector'
-import type { MessageReport } from './usageLedger'
+import { tapRecords } from './tapRecords'
 
 /** One agent's transcript, read into its message reports, file touches, and a skipped-line count. */
-export interface AgentReports {
-  /** Every valid assistant message this agent reported, in file order. */
-  readonly reports: readonly MessageReport[]
+export interface AgentReports extends MessageReports {
   /** Every file this agent's `Edit`/`Write` calls and Bash results touched, in file order. */
   readonly fileTouches: readonly FileTouch[]
   /** The `tool_use_id` of each Bash result whose changed-file list may be missing files, in file order. */
   readonly incompleteToolUseIds: readonly string[]
   /** Whether an incomplete Bash result arrived after the id list was full, so the agent's list is incomplete outright. */
   readonly incompleteOverflowed: boolean
-  /**
-   * The number of lines that couldn't contribute a valid assistant
-   * record: too long to buffer, not valid JSON, not an object, or an
-   * `assistant` record that failed schema validation.
-   */
-  readonly skippedLines: number
 }
 
 /**
@@ -47,37 +37,11 @@ export async function collectAgentReports(
   records: AsyncIterable<Result<Record<string, unknown>, SkippedLineError>>,
   identity: AgentIdentity
 ): Promise<AgentReports> {
-  const reports: MessageReport[] = []
   const fileTouchCollector = createFileTouchCollector()
-  let skippedLines = 0
-
-  for await (const result of records) {
-    if (!result.ok) {
-      skippedLines += 1
-      continue
-    }
-
-    const record = result.value
-    fileTouchCollector.observe(record)
-
-    if (record.type !== 'assistant') continue
-
-    const parsed = assistantRecordSchema.safeParse(record)
-    if (!parsed.success) {
-      skippedLines += 1
-      continue
-    }
-
-    const { message } = parsed.data
-    reports.push({
-      identity,
-      messageId: message.id,
-      model: message.model,
-      speed: message.usage.speed,
-      tokens: messageTokens(message.usage),
-      timestampMs: recordTimestampMs(record)
-    })
-  }
+  const { reports, skippedLines } = await collectMessageReports(
+    tapRecords(records, fileTouchCollector.observe),
+    identity
+  )
 
   return {
     reports,
