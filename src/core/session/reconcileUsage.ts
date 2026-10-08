@@ -1,6 +1,7 @@
 import { normalizeModelId } from '../pricing/normalizeModelId'
 import type { PriceTokensResult } from '../pricing/priceTokens'
 import { compareCodeUnits } from '../shared/compareCodeUnits'
+import { isBoundedIdentifier } from '../transcript/schemas/boundedIdentifier'
 import type { CostStateRecord, ModelUsage } from '../transcript/schemas'
 import type { AgentUsage } from './agentUsage'
 
@@ -99,6 +100,11 @@ export interface ReconcileUsageInput {
  * unpriced, an agent's transcript skipped lines, or a subagent transcript
  * was unreadable.
  *
+ * A recorded entry whose raw model key is not a bounded identifier (it holds
+ * an unprintable character or is over the identifier cap) gets no row, so
+ * such a key never reaches the UI. The recorded USD total still comes from
+ * the `cost-state`'s `totalCostUSD`.
+ *
  * @param input - The agents' usage and the lead's cost-state.
  * @returns The per-model rows and session totals.
  */
@@ -171,6 +177,7 @@ function sumRecorded(costState: CostStateRecord | null): Map<string, RecordedMod
   const byModel = new Map<string, RecordedModelUsage>()
 
   for (const [rawModel, usage] of Object.entries(costState?.modelUsage ?? {})) {
+    if (!isBoundedIdentifier(rawModel)) continue
     const model = normalizeModelId(rawModel)
     const previous = byModel.get(model)
     byModel.set(model, addRecorded(previous, usage))
