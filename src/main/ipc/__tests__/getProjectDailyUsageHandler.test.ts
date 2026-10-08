@@ -92,19 +92,21 @@ interface SpyingDeps {
   readonly scanKeys: string[]
   /** How many times the time zone was read. */
   readonly zoneReads: () => number
-  /** How many times the summary cache was asked to read a transcript. */
+  /**
+   * How many transcript summaries were scanned. A read the cache serves, or one
+   * shared with a read in flight, returns the same summary, so it isn't counted again.
+   */
   readonly summaryReads: () => number
 }
 
 /**
  * `ctx.deps` with the clock stopped, a fixed zone, a daily usage scheduler
- * that records its keys, and a summary cache that counts its reads. Each
- * summary read takes a moment, so reads started together overlap.
+ * that records its keys, and a summary cache that counts the summaries it scans.
  */
 function depsAt(timeZone = 'UTC'): SpyingDeps {
   const scanKeys: string[] = []
   let zoneReads = 0
-  let summaryReads = 0
+  const scanned = new Set<object>()
   const { dailyUsageScans, summaryCache } = ctx.deps
   const deps: IpcDeps = {
     ...ctx.deps,
@@ -121,13 +123,13 @@ function depsAt(timeZone = 'UTC'): SpyingDeps {
     },
     summaryCache: {
       read: async (file) => {
-        summaryReads += 1
-        await new Promise((resolve) => setTimeout(resolve, 20))
-        return summaryCache.read(file)
+        const summary = await summaryCache.read(file)
+        if (summary.ok) scanned.add(summary.value)
+        return summary
       }
     }
   }
-  return { deps, scanKeys, zoneReads: () => zoneReads, summaryReads: () => summaryReads }
+  return { deps, scanKeys, zoneReads: () => zoneReads, summaryReads: () => scanned.size }
 }
 
 type Usage = ProjectDailyUsageDto

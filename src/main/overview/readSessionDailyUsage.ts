@@ -27,8 +27,8 @@ export interface ReadSessionDailyUsageDeps extends Pick<
  * Reads one session's tokens by day and model, through the daily usage cache.
  * The lead's usage comes from its summary, read through the shared summary
  * cache in the summaries scheduler's background lane, so a lead the totals
- * already read is not read again and a person's session list never waits
- * behind it. Only the subagent transcripts are read for the chart, in the
+ * already read is not read again, and a queued read gives way to a person's
+ * session list (one already running still holds its slot until it ends). Only the subagent transcripts are read for the chart, in the
  * daily usage scheduler. A lead too long for its summary to hold usage is
  * read in full there instead. Concurrent reads of the same files share one
  * scan. The cache holds one entry per session and time zone, so a session

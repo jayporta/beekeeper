@@ -22,8 +22,8 @@ export interface IpcDeps {
   /**
    * Shares and caps the summary reads behind a session listing, one per
    * transcript, and the agent term and workflow run name reads that follow
-   * them. Bulk reads nobody waits on, such as project totals, take its
-   * background lane.
+   * them. Bulk reads nobody waits on, such as project totals and the leads
+   * behind the tokens-per-day chart, take its background lane.
    */
   readonly summaries: LaneScanScheduler
   /** Shares and caps full session scans. */
