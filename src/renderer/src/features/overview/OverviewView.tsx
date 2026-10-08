@@ -1,6 +1,8 @@
 import { useTranslation } from 'react-i18next'
 import { StatusMessage } from '@renderer/components/StatusMessage'
 import { DailyUsageSection } from './dailyUsage/DailyUsageSection'
+import { dailyUsageStatusOf } from './dailyUsage/dailyUsageStatus'
+import { useDailyUsage } from './dailyUsage/useDailyUsage'
 import { OverviewFootnote } from './OverviewFootnote'
 import { OverviewHeader } from './OverviewHeader'
 import styles from './OverviewView.module.css'
@@ -10,7 +12,7 @@ import { shareOfLargest } from './shareOfLargest'
 import { totalsStatus } from './sumTotals'
 import { TotalsAnnouncement } from './TotalsAnnouncement'
 import { TotalsStrip } from './TotalsStrip'
-import type { TotalsOutcome } from './useTotalsAnnouncement'
+import type { DailyAnnouncement, TotalsOutcome } from './useTotalsAnnouncement'
 import { useProjectGroupTotals } from './useProjectGroupTotals'
 
 /**
@@ -33,6 +35,7 @@ import { useProjectGroupTotals } from './useProjectGroupTotals'
 export function OverviewView(): React.JSX.Element {
   const { t } = useTranslation('overview')
   const { window: range, items: cards, overall } = useProjectGroupTotals()
+  const dailyUsage = useDailyUsage()
 
   const largest = Math.max(
     0,
@@ -48,6 +51,10 @@ export function OverviewView(): React.JSX.Element {
     overall.sessions === 0 &&
     overall.agents === 0
   const reasons = partialReasonsOf(overall)
+  const daily = dailyUsageStatusOf(dailyUsage.summary)
+  // The section is shown unless the window is empty, and only then does its usage count.
+  let dailyAnnouncement: DailyAnnouncement = 'none'
+  if (!idle && daily.outcome !== 'updated') dailyAnnouncement = daily.outcome
   let outcome: TotalsOutcome = 'updated'
   if (totalsStatus(overall) === 'error') outcome = 'failed'
   else if (idle) outcome = 'empty'
@@ -56,9 +63,14 @@ export function OverviewView(): React.JSX.Element {
   return (
     <div className={styles.view}>
       <OverviewHeader />
-      <TotalsAnnouncement range={range} settled={settled} outcome={outcome} />
+      <TotalsAnnouncement
+        range={range}
+        settled={settled && (idle || daily.settled)}
+        outcome={outcome}
+        daily={dailyAnnouncement}
+      />
       {cards.length > 0 && <TotalsStrip totals={overall} range={range} />}
-      {!idle && <DailyUsageSection />}
+      {!idle && <DailyUsageSection usage={dailyUsage} />}
       {idle && (
         <StatusMessage
           headingLevel={2}

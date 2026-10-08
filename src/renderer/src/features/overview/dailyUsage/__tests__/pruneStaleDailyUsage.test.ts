@@ -17,7 +17,7 @@ function clientWith(...entries: readonly (readonly unknown[])[]): QueryClient {
 }
 
 describe('pruneStaleDailyUsage', () => {
-  it('removes the folder’s usage for other days and keeps today’s, in both windows', () => {
+  it('removes the folder’s usage for earlier days and keeps today’s, in both windows', () => {
     const client = clientWith(
       ['projectDailyUsage', '-a', '7d', '2026-03-09'],
       ['projectDailyUsage', '-a', '30d', '2026-03-09'],
@@ -30,6 +30,21 @@ describe('pruneStaleDailyUsage', () => {
     expect(keys(client)).toEqual([
       'projectDailyUsage/-a/30d/2026-03-10',
       'projectDailyUsage/-a/7d/2026-03-10'
+    ])
+  })
+
+  it('keeps usage for a later day, so a response that came in late cannot remove what is newer', () => {
+    const client = clientWith(
+      ['projectDailyUsage', '-a', '7d', '2026-03-09'],
+      ['projectDailyUsage', '-a', '7d', '2026-03-10'],
+      ['projectDailyUsage', '-a', '7d', '2026-03-11']
+    )
+
+    pruneStaleDailyUsage(client, { dirName: '-a', todayKey: '2026-03-10' })
+
+    expect(keys(client)).toEqual([
+      'projectDailyUsage/-a/7d/2026-03-10',
+      'projectDailyUsage/-a/7d/2026-03-11'
     ])
   })
 

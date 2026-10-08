@@ -52,12 +52,12 @@
   /* The fill for anything that carries text, and the accent used as text. The plain accent is too light for either in light mode. */
   --color-accent-strong: #36516b;
 
-  /* The chart's series, in the order the chart draws them. Each holds 3:1 on the ground (WCAG 1.4.11), and each pair of neighbours is 1.5:1 apart, so they differ in lightness as well as hue for a reader with color blindness. A blue, a brown, a teal and a neutral; the neutral also carries a hatch. */
-  --color-series-1: var(--color-accent-800);
-  --color-series-2: #6d93ba;
-  --color-series-3: #7a4a08;
-  --color-series-4: #2a8c83;
-  --color-series-other: #47494b;
+  /* The chart's series, in the order the chart draws them: a navy, a dark teal, a brown, a violet, and a grey. They run from the darkest to the lightest, each at least 1.5:1 from every other, so any two segments that touch (a series with no tokens leaves a gap) differ in lightness for a reader with color blindness, and each holds 3:1 on the ground (WCAG 1.4.11). The grey also carries a hatch. */
+  --color-series-1: #0a1623;
+  --color-series-2: #0d3f39;
+  --color-series-3: #7a4911;
+  --color-series-4: #9d54b6;
+  --color-series-other: #8f9397;
 
   --focus-ring-color: var(--color-accent-strong);
   --focus-ring-width: 2px;
@@ -181,10 +181,11 @@
     --color-accent-800: #d6ebff;
     --color-accent-900: #eef6ff;
     --color-accent-strong: #c8daec;
-    --color-series-2: #7fa7d3;
-    --color-series-3: #a8691a;
-    --color-series-4: #66d0c5;
-    --color-series-other: #8a8d90;
+    --color-series-1: #3c699e;
+    --color-series-2: #319386;
+    --color-series-3: #d49955;
+    --color-series-4: #e1bfec;
+    --color-series-other: #f5f6f6;
     --color-diff-add: #9cdeaa;
     --color-diff-remove: #f6c3c3;
   }

@@ -14,4 +14,15 @@ describe('the series fills’ stylesheet', () => {
     expect(rule(name)).not.toContain('gradient')
     expect(rule(name)).toMatch(/background:\s*var\(--color-series-\d\)/)
   })
+
+  it('keeps every series’ own colors in forced-colors mode, which would otherwise drop them', () => {
+    const selectors = ['series0', 'series1', 'series2', 'series3', 'series4']
+      .map((name) => `\\.${name}`)
+      .join(',\\s*')
+    const group = new RegExp(
+      `${selectors}\\s*\\{\\s*@media\\s*\\(forced-colors:\\s*active\\)\\s*\\{[^}]*forced-color-adjust:\\s*none`
+    )
+
+    expect(css).toMatch(group)
+  })
 })

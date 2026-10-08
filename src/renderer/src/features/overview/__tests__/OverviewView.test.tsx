@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { BeekeeperApi } from '../../../../../shared/ipc/beekeeperApi'
 import type { IpcResult } from '../../../../../shared/ipc/ipcResult'
 import type { ProjectDto } from '../../../../../shared/ipc/projectDto'
+import type { ProjectDailyUsageDto } from '../../../../../shared/ipc/projectDailyUsageDto'
 import type { ProjectTotalsDto } from '../../../../../shared/ipc/projectTotalsDto'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
@@ -67,6 +68,10 @@ const failed: TotalsReply = { ok: false, error: { code: 'not-found' } }
 const never = (): Promise<TotalsReply> => new Promise(() => undefined)
 const normal = (dirName: string): Promise<TotalsReply> => Promise.resolve(ok(TOTALS[dirName] ?? {}))
 
+/** Daily usage that comes back at once, with nothing in it, so a test about something else need not wait for it. */
+const quietUsage: BeekeeperApi['getProjectDailyUsage'] = () =>
+  Promise.resolve({ ok: true, value: testDailyUsage({ '2026-03-10': {} }) })
+
 /** Renders the whole app on the overview. `totals` answers each folder's request. */
 function renderOverview(
   options: {
@@ -76,12 +81,12 @@ function renderOverview(
     client?: QueryClient
   } = {}
 ): ReturnType<typeof installBeekeeperApi> {
-  const { projects = PROJECTS, totals = normal, dailyUsage, client } = options
+  const { projects = PROJECTS, totals = normal, dailyUsage = quietUsage, client } = options
   const api = installBeekeeperApi({
     listProjects: () => Promise.resolve({ ok: true, value: projects }),
     listSessions: () => Promise.resolve({ ok: true, value: [] }),
     getProjectTotals: totals,
-    ...(dailyUsage !== undefined && { getProjectDailyUsage: dailyUsage })
+    getProjectDailyUsage: dailyUsage
   })
   renderApp(client)
   return api
@@ -90,9 +95,9 @@ function renderOverview(
 const main = (): HTMLElement => screen.getByRole('main')
 
 /** A reply held back until `release` is called. */
-function gate(): { reply: Promise<TotalsReply>; release: (reply: TotalsReply) => void } {
-  let release: (reply: TotalsReply) => void = () => undefined
-  const reply = new Promise<TotalsReply>((resolve) => {
+function gate<T = TotalsReply>(): { reply: Promise<T>; release: (reply: T) => void } {
+  let release: (reply: T) => void = () => undefined
+  const reply = new Promise<T>((resolve) => {
     release = resolve
   })
   return { reply, release }
@@ -119,16 +124,18 @@ function stripArea(name: string): HTMLElement {
   return area
 }
 
-/** The overview's own status region, which is mounted before it has anything to say. The tokens per day section has one too, inside it. */
-function statusRegion(): HTMLElement {
+/** The overview itself: the view around its header. */
+function overviewView(): HTMLElement {
   const view = screen
     .getByRole('heading', { level: 1, name: 'All projects' })
     .closest('header')?.parentElement
   if (view === null || view === undefined) throw new Error('The overview has no view around it')
-  // The tokens per day section has a status region of its own, further down.
-  const region = view.querySelector<HTMLElement>(':scope > [role="status"]')
-  if (region === null) throw new Error('The overview has no status region')
-  return region
+  return view
+}
+
+/** The overview's one status region, which is mounted before it has anything to say. */
+function statusRegion(): HTMLElement {
+  return within(overviewView()).getByRole('status')
 }
 
 /** The card of the project named `name`, once it is on screen. */
@@ -699,6 +706,99 @@ describe('OverviewView announcements', () => {
     await waitFor(() => {
       expect(statusRegion().textContent).toBe('Totals for the last 7 days updated')
     })
+  })
+
+  it('has one status region for the totals and the tokens per day together', async () => {
+    renderOverview()
+    await within(main()).findByRole('img', { name: /tokens/i })
+
+    expect(within(overviewView()).getAllByRole('status')).toHaveLength(1)
+  })
+
+  it('waits for the tokens per day too before it says the totals are in', async () => {
+    const usage = gate<IpcResult<ProjectDailyUsageDto>>()
+    renderOverview({ dailyUsage: () => usage.reply })
+    await totalsLoaded()
+    await new Promise((resolve) => setTimeout(resolve, 30))
+    expect(statusRegion().textContent).toBe('')
+
+    act(() => {
+      usage.release({ ok: true, value: testDailyUsage({ '2026-03-10': { a: 1 } }) })
+    })
+
+    await waitFor(() => {
+      expect(statusRegion().textContent).toBe('Totals for the last 7 days updated')
+    })
+  })
+
+  it('adds that tokens per day could not be loaded', async () => {
+    renderOverview({
+      dailyUsage: () => Promise.resolve({ ok: false, error: { code: 'unreadable' } })
+    })
+
+    await waitFor(() => {
+      expect(statusRegion().textContent).toBe(
+        "Totals for the last 7 days updated. Couldn't load tokens per day."
+      )
+    })
+  })
+
+  it('adds that tokens per day may be low, when they are partial', async () => {
+    renderOverview({
+      dailyUsage: () =>
+        Promise.resolve({
+          ok: true,
+          value: testDailyUsage({ '2026-03-10': { a: 1 } }, { skippedLines: 1 })
+        })
+    })
+
+    await waitFor(() => {
+      expect(statusRegion().textContent).toBe(
+        'Totals for the last 7 days updated. Tokens per day may be low, see the note under the chart.'
+      )
+    })
+  })
+
+  it('joins the totals being partial and the tokens per day being partial in one message', async () => {
+    renderOverview({
+      totals: withPartial('unreadable'),
+      dailyUsage: () =>
+        Promise.resolve({
+          ok: true,
+          value: testDailyUsage({ '2026-03-10': { a: 1 } }, { skippedLines: 1 })
+        })
+    })
+
+    await waitFor(() => {
+      expect(statusRegion().textContent).toBe(
+        'Totals for the last 7 days updated. Some may be low, see the note below. Tokens per day may be low, see the note under the chart.'
+      )
+    })
+  })
+
+  it('does not wait for tokens per day when the window is empty, since the section is not shown', async () => {
+    renderOverview({
+      totals: () => Promise.resolve(ok({})),
+      dailyUsage: () => new Promise(() => undefined)
+    })
+
+    await waitFor(() => {
+      expect(statusRegion().textContent).toContain('No activity in this window')
+    })
+    expect(statusRegion().textContent).not.toContain('tokens per day')
+  })
+
+  it('says nothing about tokens per day for an empty window, even when they could not be loaded', async () => {
+    renderOverview({
+      totals: () => Promise.resolve(ok({})),
+      dailyUsage: () => Promise.resolve({ ok: false, error: { code: 'unreadable' } })
+    })
+
+    await waitFor(() => {
+      expect(statusRegion().textContent).toContain('No activity in this window')
+    })
+    await new Promise((resolve) => setTimeout(resolve, 30))
+    expect(statusRegion().textContent).not.toContain('tokens per day')
   })
 
   it('says there is no activity when the window comes back empty', async () => {

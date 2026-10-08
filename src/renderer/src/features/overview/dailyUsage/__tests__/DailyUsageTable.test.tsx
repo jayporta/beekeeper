@@ -86,3 +86,13 @@ describe('DailyUsageTable', () => {
     expect(screen.getByRole('columnheader', { name: id })).toBeTruthy()
   })
 })
+
+describe('DailyUsageTable in a narrow space', () => {
+  it('sits in a focusable region named by its caption, so the keyboard can scroll it', () => {
+    render(tableFor(OCTOBER_WEEK))
+
+    const region = screen.getByRole('region', { name: 'Tokens per day, by model, last 7 days' })
+    expect(region.getAttribute('tabindex')).toBe('0')
+    expect(within(region).getByRole('table')).toBeTruthy()
+  })
+})

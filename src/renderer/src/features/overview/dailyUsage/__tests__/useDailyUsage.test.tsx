@@ -1,3 +1,4 @@
+import { QueryObserver } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { IpcResult } from '../../../../../../shared/ipc/ipcResult'
@@ -219,6 +220,110 @@ describe('useDailyUsage', () => {
     await waitFor(() => {
       expect(days()).toEqual(['2026-03-11'])
     })
+  })
+
+  it('leaves the new day’s usage in the cache when a request sent before midnight comes back after it', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 2, 10, 23, 0))
+    const client = createTestQueryClient()
+    // A second reader keeps the day-10 request alive after the key moves on, so it is not aborted.
+    const late = deferred()
+    let calls = 0
+    installBeekeeperApi({
+      listProjects: listing('-a'),
+      getProjectDailyUsage: () => (calls++ === 0 ? late.promise : new Promise(() => undefined))
+    })
+    const keyed = (day: string): unknown[] => ['projectDailyUsage', '-a', '7d', day]
+    const wrapper = createQueryWrapper(client)
+    const { rerender } = renderHook(() => useDailyUsage(), { wrapper })
+    await waitFor(() => {
+      expect(calls).toBe(1)
+    })
+    const observer = new QueryObserver(client, {
+      queryKey: keyed('2026-03-10'),
+      queryFn: () => late.promise
+    })
+    const unsubscribe = observer.subscribe(() => undefined)
+
+    vi.setSystemTime(new Date(2026, 2, 11, 0, 1))
+    rerender()
+    await waitFor(() => {
+      expect(client.getQueryState(keyed('2026-03-11'))).toBeDefined()
+    })
+    act(() => {
+      late.settle(replyOf(1))
+    })
+    await waitFor(() => {
+      expect(client.getQueryState(keyed('2026-03-10'))?.status).toBe('success')
+    })
+
+    expect(client.getQueryState(keyed('2026-03-11'))).toBeDefined()
+    unsubscribe()
+  })
+
+  it('prunes nothing when the request was abandoned before it came back', async () => {
+    const client = createTestQueryClient()
+    const removals = vi.spyOn(client, 'removeQueries')
+    const reply = deferred()
+    const api = installBeekeeperApi({
+      listProjects: listing('-a'),
+      getProjectDailyUsage: () => reply.promise
+    })
+    const { unmount } = renderHook(() => useDailyUsage(), {
+      wrapper: createQueryWrapper(client)
+    })
+    await waitFor(() => {
+      expect(api.getProjectDailyUsage).toHaveBeenCalledTimes(1)
+    })
+
+    unmount()
+    reply.settle(replyOf(1))
+    await settleMicrotasks(30)
+
+    expect(removals).not.toHaveBeenCalled()
+  })
+
+  it('prunes once the usage arrives to a reader still waiting for it', async () => {
+    const client = createTestQueryClient()
+    const removals = vi.spyOn(client, 'removeQueries')
+    installBeekeeperApi({
+      listProjects: listing('-a'),
+      getProjectDailyUsage: () => Promise.resolve(replyOf(1))
+    })
+
+    renderHook(() => useDailyUsage(), { wrapper: createQueryWrapper(client) })
+
+    await waitFor(() => {
+      expect(removals).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  it('reads the cache for a placeholder once, not on every render, while a folder loads', async () => {
+    const client = createTestQueryClient()
+    const reads = vi.spyOn(client, 'getQueriesData')
+    const thirty = deferred()
+    installBeekeeperApi({
+      listProjects: listing('-a'),
+      getProjectDailyUsage: (_dir, window) =>
+        window === '7d' ? Promise.resolve(replyOf(1)) : thirty.promise
+    })
+    const { result, rerender } = renderHook(() => useDailyUsage(), {
+      wrapper: createQueryWrapper(client)
+    })
+    await waitFor(() => {
+      expect(result.current.summary.total).toBe(7)
+    })
+    act(() => {
+      useTotalsWindowStore.getState().setWindow('30d')
+    })
+    await waitFor(() => {
+      expect(result.current.summary.refreshing).toBe(true)
+    })
+    const readsWhileLoading = reads.mock.calls.length
+
+    for (let i = 0; i < 5; i += 1) rerender()
+
+    expect(reads.mock.calls.length).toBe(readsWhileLoading)
   })
 
   it('asks again when the local day changes', async () => {

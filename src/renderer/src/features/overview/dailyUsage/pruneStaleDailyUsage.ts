@@ -4,15 +4,17 @@ import type { QueryClient } from '@tanstack/react-query'
 export interface PruneStaleDailyUsageOptions {
   /** The folder whose usage to prune. */
   readonly dirName: string
-  /** Today's local day, `YYYY-MM-DD`: the one day whose usage stays. */
+  /** The local day, `YYYY-MM-DD`, from which usage stays: the day of the response being stored. */
   readonly todayKey: string
 }
 
 /**
- * Removes a folder's cached daily usage for every day but today, in both
- * windows. Each day's usage is keyed by the day it was fetched, so without
+ * Removes a folder's cached daily usage for every day before `todayKey`, in
+ * both windows. Each day's usage is keyed by the day it was fetched, so without
  * this the cache, and the copy persisted to disk, would gain a result per
- * folder per window every day.
+ * folder per window every day. A later day's usage is never removed, so a
+ * response that arrives after midnight, for a request sent before it, prunes
+ * nothing that is newer than its own day.
  *
  * @param client - The query client holding the usage queries.
  * @param options - The folder and today's day key.
@@ -23,6 +25,6 @@ export function pruneStaleDailyUsage(
 ): void {
   client.removeQueries({
     queryKey: ['projectDailyUsage', options.dirName],
-    predicate: (query) => query.queryKey[3] !== options.todayKey
+    predicate: (query) => String(query.queryKey[3]) < options.todayKey
   })
 }

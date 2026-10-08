@@ -112,13 +112,25 @@ describe.each(Object.entries(schemes))('%s color scheme chart series', (_scheme,
     ).toBeGreaterThanOrEqual(3)
   })
 
-  // Neighbouring segments differ in lightness, so they stay apart for a reader who can't tell their hues apart.
-  const NEIGHBOURS = SERIES_TOKENS.slice(1).map((series, i) => [SERIES_TOKENS[i], series] as const)
+  // Any two segments can touch, since a series with no tokens that day leaves a gap in the stack, so
+  // every pair differs in lightness, which stays visible to a reader who can't tell their hues apart.
+  const PAIRS = SERIES_TOKENS.flatMap((first, i) =>
+    SERIES_TOKENS.slice(i + 1).map((second) => [first, second] as const)
+  )
 
-  it.each(NEIGHBOURS)('%s and %s are at least 1.5:1 apart', (first, second) => {
-    expect(contrastRatio(token(tokens, first ?? ''), token(tokens, second))).toBeGreaterThanOrEqual(
-      1.5
-    )
+  it.each(PAIRS)('%s and %s are at least 1.5:1 apart', (first, second) => {
+    expect(contrastRatio(token(tokens, first), token(tokens, second))).toBeGreaterThanOrEqual(1.5)
+  })
+
+  it('orders the series from darkest to lightest', () => {
+    const ratios = SERIES_TOKENS.slice(1).map((series, i) => {
+      const earlier = token(tokens, SERIES_TOKENS[i] ?? '')
+      const later = token(tokens, series)
+      // Against black, the lighter color has the larger ratio.
+      return contrastRatio(later, '#000000') - contrastRatio(earlier, '#000000')
+    })
+
+    for (const difference of ratios) expect(difference).toBeGreaterThan(0)
   })
 
   it('gives every series its own color', () => {

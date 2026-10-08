@@ -8,6 +8,7 @@ import { createQueryWrapper } from '@renderer/testQueryWrapper'
 import { useTotalsWindowStore } from '../../state/useTotalsWindowStore'
 import { listing } from '../../testProjectListing'
 import { DailyUsageSection } from '../DailyUsageSection'
+import { useDailyUsage } from '../useDailyUsage'
 import { OCTOBER_WEEK, dayKeys, testDailyUsage } from '../testDailyUsage'
 
 afterEach(() => {
@@ -26,12 +27,17 @@ const month = (): Reply => ({
 const failed: Reply = { ok: false, error: { code: 'unreadable' } }
 const never = (): Promise<Reply> => new Promise(() => undefined)
 
+/** Loads the usage as the overview does, and hands it to the section. */
+function Harness(): React.JSX.Element {
+  return <DailyUsageSection usage={useDailyUsage()} />
+}
+
 function renderSection(
   usage: (dirName: string, window: string) => Promise<Reply>,
   dirs: readonly string[] = ['-a']
 ): void {
   installBeekeeperApi({ listProjects: listing(...dirs), getProjectDailyUsage: usage })
-  render(<DailyUsageSection />, { wrapper: createQueryWrapper() })
+  render(<Harness />, { wrapper: createQueryWrapper() })
 }
 
 const chart = (): Promise<HTMLElement> => screen.findByRole('img', { name: /^Tokens per day/ })
@@ -186,74 +192,5 @@ describe('DailyUsageSection while loading and when partial', () => {
     await screen.findByText('Updating')
     expect(screen.getByRole('region').getAttribute('aria-busy')).toBe('true')
     expect(screen.getByRole('img', { name: /41\.2M in all/ })).toBeTruthy()
-  })
-})
-
-describe('DailyUsageSection announcements', () => {
-  const status = (): HTMLElement => within(screen.getByRole('region')).getByRole('status')
-
-  it('says nothing while the usage loads', async () => {
-    renderSection(never)
-
-    await screen.findByText('Loading tokens per day')
-
-    expect(status().textContent).toBe('')
-  })
-
-  it('says once that the usage arrived, when every folder has', async () => {
-    renderSection(() => Promise.resolve(week()), ['-a', '-b'])
-
-    await waitFor(() => {
-      expect(status().textContent).toBe('Tokens per day for the last 7 days updated')
-    })
-  })
-
-  it('says some days may be low when the usage is partial', async () => {
-    renderSection(() => Promise.resolve(week({ skippedLines: 1 })))
-
-    await waitFor(() => {
-      expect(status().textContent).toBe(
-        'Tokens per day for the last 7 days updated. Some days may be low, see the note under the chart.'
-      )
-    })
-  })
-
-  it('says it could not load when every folder failed', async () => {
-    renderSection(() => Promise.resolve(failed))
-
-    await waitFor(() => {
-      expect(status().textContent).toBe("Couldn't load tokens per day for the last 7 days")
-    })
-  })
-
-  it('says nothing about the new window until its usage has arrived', async () => {
-    const thirty = new Promise<Reply>(() => undefined)
-    renderSection((_dir, window) => (window === '7d' ? Promise.resolve(week()) : thirty))
-    await waitFor(() => {
-      expect(status().textContent).toBe('Tokens per day for the last 7 days updated')
-    })
-
-    act(() => {
-      useTotalsWindowStore.getState().setWindow('30d')
-    })
-    await screen.findByText('Updating')
-    await new Promise((resolve) => setTimeout(resolve, 30))
-
-    expect(status().textContent).not.toContain('30 days')
-  })
-
-  it('says it again when the window changes and the new usage arrives', async () => {
-    renderSection((_dir, window) => Promise.resolve(window === '7d' ? week() : month()))
-    await waitFor(() => {
-      expect(status().textContent).toBe('Tokens per day for the last 7 days updated')
-    })
-
-    act(() => {
-      useTotalsWindowStore.getState().setWindow('30d')
-    })
-
-    await waitFor(() => {
-      expect(status().textContent).toBe('Tokens per day for the last 30 days updated')
-    })
   })
 })

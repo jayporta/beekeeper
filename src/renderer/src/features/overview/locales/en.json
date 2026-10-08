@@ -41,7 +41,11 @@
     "updated": "Totals for the {{range}} updated",
     "partial": "Totals for the {{range}} updated. Some may be low, see the note below.",
     "failed": "Couldn't load the totals for the {{range}}",
-    "empty": "{{heading}}. {{body}}"
+    "empty": "{{heading}}. {{body}}",
+    "daily": {
+      "partial": "Tokens per day may be low, see the note under the chart.",
+      "failed": "Couldn't load tokens per day."
+    }
   },
   "card": {
     "worktrees_one": "{{count, integer}} worktree",
@@ -111,11 +115,6 @@
       "unreadableSubagents": "Some sessions have subagent files that couldn't be read.",
       "mayBeLow": "A day's total may be low."
     },
-    "tableToggle": "Tokens per day as a table",
-    "announce": {
-      "updated": "Tokens per day for the {{range}} updated",
-      "partial": "Tokens per day for the {{range}} updated. Some days may be low, see the note under the chart.",
-      "failed": "Couldn't load tokens per day for the {{range}}"
-    }
+    "tableToggle": "Tokens per day as a table"
   }
 }

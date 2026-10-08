@@ -22,3 +22,14 @@
     transparent var(--size-hatch) calc(2 * var(--size-hatch))
   );
 }
+
+/* Forced colors would replace each fill with a system color, so the series could not be told apart. */
+.series0,
+.series1,
+.series2,
+.series3,
+.series4 {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+  }
+}

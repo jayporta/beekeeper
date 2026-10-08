@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TotalsWindowDto } from '../../../../../shared/ipc/projectTotalsDto'
 import styles from './DailyUsageTable.module.css'
@@ -19,7 +20,8 @@ interface DailyUsageTableProps {
 }
 
 /**
- * The chart's figures as a table: a row for each day, a column for each
+ * The chart's figures as a table, in a labelled region the keyboard can scroll
+ * sideways when it is wider than the space it has: a row for each day, a column for each
  * series and the day's total, and a row of totals. Numbers are exact, unlike
  * the chart's compact axis.
  *
@@ -35,43 +37,48 @@ export function DailyUsageTable({
   const { t } = useTranslation('overview')
   const otherModels = t('dailyUsage.otherModels')
   const exact = (value: number): string => t('dailyUsage.exact', { value })
+  const captionId = useId()
 
   return (
-    <table className={styles.table}>
-      <caption className="visuallyHidden">
-        {t('dailyUsage.table.caption', { range: t(`range.${range}`) })}
-      </caption>
-      <thead>
-        <tr>
-          <th scope="col">{t('dailyUsage.table.day')}</th>
-          {series.map((entry) => (
-            <th key={entry.index} scope="col">
-              {seriesLabel(entry, otherModels)}
-            </th>
-          ))}
-          <th scope="col">{t('dailyUsage.table.total')}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {days.map((day) => (
-          <tr key={day.day}>
-            <th scope="row">{dayLabels(t, day.day).full}</th>
+    <div role="region" aria-labelledby={captionId} tabIndex={0} className={styles.scroll}>
+      <table className={styles.table}>
+        <caption id={captionId} className="visuallyHidden">
+          {t('dailyUsage.table.caption', { range: t(`range.${range}`) })}
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">{t('dailyUsage.table.day')}</th>
             {series.map((entry) => (
-              <td key={entry.index}>{exact(seriesTokens({ day, series: entry, all: series }))}</td>
+              <th key={entry.index} scope="col">
+                {seriesLabel(entry, otherModels)}
+              </th>
             ))}
-            <td>{exact(day.total)}</td>
+            <th scope="col">{t('dailyUsage.table.total')}</th>
           </tr>
-        ))}
-      </tbody>
-      <tfoot>
-        <tr>
-          <th scope="row">{t('dailyUsage.table.total')}</th>
-          {series.map((entry) => (
-            <td key={entry.index}>{exact(entry.total)}</td>
+        </thead>
+        <tbody>
+          {days.map((day) => (
+            <tr key={day.day}>
+              <th scope="row">{dayLabels(t, day.day).full}</th>
+              {series.map((entry) => (
+                <td key={entry.index}>
+                  {exact(seriesTokens({ day, series: entry, all: series }))}
+                </td>
+              ))}
+              <td>{exact(day.total)}</td>
+            </tr>
           ))}
-          <td>{exact(total)}</td>
-        </tr>
-      </tfoot>
-    </table>
+        </tbody>
+        <tfoot>
+          <tr>
+            <th scope="row">{t('dailyUsage.table.total')}</th>
+            {series.map((entry) => (
+              <td key={entry.index}>{exact(entry.total)}</td>
+            ))}
+            <td>{exact(total)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
   )
 }

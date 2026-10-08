@@ -43,8 +43,8 @@ export interface DailyUsage {
  * totals' limiter; a request still waiting when nothing shows it any more
  * never starts. The queries take the defaults of their persisted root: they
  * stay fresh for five minutes, refetch on window focus once stale, and are
- * cached across launches. When a folder's usage arrives, its usage for other
- * days is dropped.
+ * cached across launches. When a folder's usage arrives, still wanted, its usage
+ * for earlier days is dropped.
  *
  * @returns The window and the summed usage.
  */
@@ -61,6 +61,16 @@ export function useDailyUsage(): DailyUsage {
     []
   )
 
+  // One function per folder for as long as the folders are the same, so the query observer can
+  // tell a placeholder it already computed and not read the cache again on every render.
+  const placeholders = useMemo(
+    () =>
+      new Map(
+        folders.map((dirName) => [dirName, () => newestDailyUsage(client, dirName)] as const)
+      ),
+    [client, folders]
+  )
+
   const states = useQueries({
     queries: folders.map((dirName) => ({
       queryKey: ['projectDailyUsage', dirName, range, todayKey],
@@ -69,10 +79,10 @@ export function useDailyUsage(): DailyUsage {
           async () => unwrapIpcResult(await window.beekeeper.getProjectDailyUsage(dirName, range)),
           signal
         )
-        pruneStaleDailyUsage(client, { dirName, todayKey })
+        if (!signal.aborted) pruneStaleDailyUsage(client, { dirName, todayKey })
         return usage
       },
-      placeholderData: () => newestDailyUsage(client, dirName)
+      placeholderData: placeholders.get(dirName)
     })),
     combine
   })
