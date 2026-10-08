@@ -27,6 +27,14 @@ describe('newestDailyUsage', () => {
     })
   })
 
+  it('is the most recently fetched usage, not the last one stored', () => {
+    const client = new QueryClient()
+    store(client, ['projectDailyUsage', '-a', '7d', '2026-03-09'], 3, 2000)
+    store(client, ['projectDailyUsage', '-a', '7d', '2026-03-08'], 1, 1000)
+
+    expect(newestDailyUsage(client, { dirName: '-a', range: '7d' })?.usage).toEqual(usage(3))
+  })
+
   it('prefers the window’s own usage to a newer one from the other window', () => {
     const client = new QueryClient()
     store(client, ['projectDailyUsage', '-a', '7d', '2026-03-09'], 1, 1000)

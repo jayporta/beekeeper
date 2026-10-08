@@ -27,7 +27,8 @@ interface DailyUsageTableProps {
  * the chart's compact axis.
  *
  * @example
- * <DailyUsageTable days={summary.days} total={summary.total} series={seriesOf(summary.days)} range="7d" />
+ * const series = useMemo(() => seriesOf(summary.days), [summary.days])
+ * <DailyUsageTable days={summary.days} total={summary.total} series={series} range="7d" />
  */
 export const DailyUsageTable = memo(function DailyUsageTable({
   days,
