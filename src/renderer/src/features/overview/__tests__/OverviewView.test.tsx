@@ -1071,10 +1071,27 @@ describe('OverviewView tokens per day', () => {
   })
 
   it('is absent when nothing ran in the window', async () => {
-    renderOverview({ totals: () => Promise.resolve(ok({})), dailyUsage: usage })
+    renderOverview({ totals: () => Promise.resolve(ok({})) })
 
     expect(await within(main()).findByText('No activity in this window')).toBeTruthy()
     expect(within(main()).queryByRole('region', { name: 'Tokens per day, by model' })).toBeNull()
+  })
+
+  it('is shown with no empty message when the totals are idle but the days hold tokens', async () => {
+    renderOverview({ totals: () => Promise.resolve(ok({})), dailyUsage: usage })
+
+    expect(await within(main()).findByRole('img', { name: /15 in all/ })).toBeTruthy()
+    expect(within(main()).queryByText('No activity in this window')).toBeNull()
+    expect(statusRegion().textContent).not.toContain('No activity')
+  })
+
+  it('announces no empty window when the totals are idle but the days hold tokens', async () => {
+    renderOverview({ totals: () => Promise.resolve(ok({})), dailyUsage: usage })
+    await within(main()).findByRole('img', { name: /15 in all/ })
+
+    await waitFor(() => {
+      expect(statusRegion().textContent).toBe('Totals for the last 7 days updated.')
+    })
   })
 
   it('is absent when there are no projects', async () => {

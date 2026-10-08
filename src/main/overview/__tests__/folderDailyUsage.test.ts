@@ -122,6 +122,18 @@ describe('folderDailyUsage', () => {
     })
   })
 
+  it('counts unreadable lines for a session with no usage at all, since they may hold some in the window', () => {
+    const dto = folderDailyUsage({ days: DAYS, sessions: [readable({ skippedLines: 2 })] })
+
+    expect(dto.partial.skippedLines).toBe(1)
+  })
+
+  it('counts undated messages for a session with no usage at all, since they may belong in the window', () => {
+    const dto = folderDailyUsage({ days: DAYS, sessions: [readable({ undatedMessages: 2 })] })
+
+    expect(dto.partial.undated).toBe(1)
+  })
+
   it('has no models and no partial counts for no sessions', () => {
     expect(folderDailyUsage({ days: DAYS, sessions: [] })).toEqual({
       days: DAYS.map((day) => ({ day, models: [] })),

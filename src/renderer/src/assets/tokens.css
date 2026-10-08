@@ -146,7 +146,9 @@
   --size-chart-height: 12.5rem;
   --size-chart-axis: 3rem;
   --size-chart-bar-max: 2.5rem;
-  /* The gap between a bar's segments, so each meets the ground. */
+  /* The shortest a day's bar is drawn, so a day with tokens is never invisible. */
+  --size-chart-bar-min: 0.125rem;
+  /* The hairline of ground between a bar's segments, so each meets the ground. */
   --size-hairline: 1px;
   /* The stripes of the hatch that marks the other series: 3px of color, then 3px of ground. */
   --size-hatch: 0.1875rem;

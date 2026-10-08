@@ -20,8 +20,8 @@ import { useProjectGroupTotals } from './useProjectGroupTotals'
  * across every project, a card for each project, and a note on any figure
  * that may be low. Each project loads on its own, so a card fills in as its
  * totals arrive and a project that can't be read doesn't hold up the rest.
- * With nothing in the window, and no session it couldn't read, it says so,
- * above cards that show zero. While a
+ * With nothing in the window, no tokens per day, and no session it couldn't read,
+ * it says so, above cards that show zero. While a
  * window's totals load, or show the other window's until they arrive, the cards
  * are marked busy and the empty message waits. A status region announces once
  * when the window's totals have all arrived (noting when some may be low), that
@@ -52,12 +52,14 @@ export function OverviewView(): React.JSX.Element {
     overall.agents === 0
   const reasons = partialReasonsOf(overall)
   const daily = dailyUsageStatusOf(dailyUsage.summary)
+  // Idle totals with tokens per day are not empty: the days hold what the totals missed.
+  const empty = idle && !(daily.settled && dailyUsage.summary.total > 0)
   // The section is shown unless the window is empty, and only then does its usage count.
   let dailyAnnouncement: DailyAnnouncement = 'none'
-  if (!idle && daily.outcome !== 'updated') dailyAnnouncement = daily.outcome
+  if (!empty && daily.outcome !== 'updated') dailyAnnouncement = daily.outcome
   let outcome: TotalsOutcome = 'updated'
   if (totalsStatus(overall) === 'error') outcome = 'failed'
-  else if (idle) outcome = 'empty'
+  else if (empty) outcome = 'empty'
   else if (reasons.length > 0) outcome = 'partial'
 
   return (
@@ -65,13 +67,13 @@ export function OverviewView(): React.JSX.Element {
       <OverviewHeader />
       <TotalsAnnouncement
         range={range}
-        settled={settled && (idle || daily.settled)}
+        settled={settled && (empty || daily.settled)}
         outcome={outcome}
         daily={dailyAnnouncement}
       />
       {cards.length > 0 && <TotalsStrip totals={overall} range={range} />}
-      {!idle && <DailyUsageSection usage={dailyUsage} />}
-      {idle && (
+      {!empty && <DailyUsageSection usage={dailyUsage} />}
+      {empty && (
         <StatusMessage
           headingLevel={2}
           heading={t('empty.heading')}

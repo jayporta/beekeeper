@@ -18,9 +18,9 @@ export interface DailyUsageDayDto {
 export interface ProjectDailyUsagePartialDto {
   /** Sessions whose lead transcript couldn't be read or stat'd. */
   readonly unreadable: number
-  /** Sessions with usage in the window and lines that couldn't be read. */
+  /** Sessions with lines that couldn't be read, other than those whose usage is all outside the window. */
   readonly skippedLines: number
-  /** Sessions with usage in the window and messages that have no timestamp. */
+  /** Sessions with messages that have no timestamp, other than those whose usage is all outside the window. */
   readonly undated: number
   /** Sessions with a subagent transcript, or a subagents folder, that couldn't be read. */
   readonly unreadableSubagents: number
