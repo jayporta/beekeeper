@@ -889,16 +889,19 @@ describe('OverviewView announcements', () => {
     })
   })
 
-  it('does not wait for tokens per day when the window is empty, since the section is not shown', async () => {
+  it('holds the empty message and the announcement until tokens per day settle', async () => {
     renderOverview({
       totals: () => Promise.resolve(ok({})),
       dailyUsage: () => new Promise(() => undefined)
     })
-
+    await findCard('acme-web')
     await waitFor(() => {
-      expect(statusRegion().textContent).toContain('No activity in this window')
+      expect(within(main()).getAllByRole('list').at(-1)?.getAttribute('aria-busy')).toBe('false')
     })
-    expect(statusRegion().textContent).not.toContain('tokens per day')
+    await new Promise((resolve) => setTimeout(resolve, 30))
+
+    expect(within(main()).queryByText('No activity in this window')).toBeNull()
+    expect(statusRegion().textContent).toBe('')
   })
 
   it('says nothing about tokens per day for an empty window, even when they could not be loaded', async () => {
@@ -1092,6 +1095,30 @@ describe('OverviewView tokens per day', () => {
     await waitFor(() => {
       expect(statusRegion().textContent).toBe('Totals for the last 7 days updated.')
     })
+  })
+
+  it('shows no empty message or announcement between idle totals and tokens per day that arrive later', async () => {
+    const days = gate<IpcResult<ProjectDailyUsageDto>>()
+    renderOverview({ totals: () => Promise.resolve(ok({})), dailyUsage: () => days.reply })
+    await findCard('acme-web')
+    await waitFor(() => {
+      expect(within(main()).getAllByRole('list').at(-1)?.getAttribute('aria-busy')).toBe('false')
+    })
+    await new Promise((resolve) => setTimeout(resolve, 30))
+
+    expect(within(main()).queryByText('No activity in this window')).toBeNull()
+    expect(statusRegion().textContent).toBe('')
+
+    await act(async () => {
+      days.release({ ok: true, value: testDailyUsage({ '2026-03-10': { 'claude-opus-5': 5 } }) })
+      await Promise.resolve()
+    })
+
+    expect(await within(main()).findByRole('img', { name: /15 in all/ })).toBeTruthy()
+    await waitFor(() => {
+      expect(statusRegion().textContent).toBe('Totals for the last 7 days updated.')
+    })
+    expect(within(main()).queryByText('No activity in this window')).toBeNull()
   })
 
   it('is absent when there are no projects', async () => {

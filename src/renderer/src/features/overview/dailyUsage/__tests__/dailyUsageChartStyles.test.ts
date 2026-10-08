@@ -38,6 +38,14 @@ describe('the chart’s stylesheet', () => {
     expect(tokens).toMatch(/--size-chart-bar-min:\s*\S+;/)
   })
 
+  it('keeps a segment above another at least two hairlines tall, so a hairline of color shows beside its separator', () => {
+    expect(rule('& > * + *')).toMatch(/min-block-size:\s*calc\(2\s*\*\s*var\(--size-hairline\)\)/)
+  })
+
+  it('keeps the bottom segment at least a hairline tall, so other segments cannot squeeze it out', () => {
+    expect(rule('& > *')).toMatch(/min-block-size:\s*var\(--size-hairline\)/)
+  })
+
   it.each(['.tick', '.gridline'])('pins a lone %s to the bottom, where zero sits', (name) => {
     expect(rule(name)).toMatch(/&:only-child\s*\{[^}]*margin-block-start:\s*auto/)
   })

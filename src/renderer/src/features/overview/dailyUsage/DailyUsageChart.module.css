@@ -80,9 +80,12 @@
 
   & > * {
     flex-basis: 0;
+    min-block-size: var(--size-hairline);
   }
 
+  /* Two hairlines, so at least one of color shows beside the separator. A tiny bar may draw a few pixels over its true height. */
   & > * + * {
+    min-block-size: calc(2 * var(--size-hairline));
     box-shadow: inset 0 calc(-1 * var(--size-hairline)) 0 var(--color-bg);
   }
 }
