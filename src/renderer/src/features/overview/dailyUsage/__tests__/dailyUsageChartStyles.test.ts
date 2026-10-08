@@ -48,8 +48,15 @@ describe('the chart’s stylesheet', () => {
 
   it('keeps every segment three hairlines tall in forced colors, so its color shows inside its outline', () => {
     expect(rule('@media (forced-colors: active)')).toMatch(
-      /&\s*>\s*\*,\s*&\s*>\s*\*\s*\+\s*\*\s*\{[^}]*min-block-size:\s*calc\(3\s*\*\s*var\(--size-hairline\)\)/
+      /&\s*>\s*\*\s*\{[^}]*min-block-size:\s*calc\(3\s*\*\s*var\(--size-hairline\)\)/
     )
+  })
+
+  it('puts the forced-colors minimum after the segment minimums it must override at equal specificity', () => {
+    const forced = css.indexOf('@media (forced-colors: active)')
+
+    expect(forced).toBeGreaterThan(css.indexOf('& > * {'))
+    expect(forced).toBeGreaterThan(css.indexOf('& > * + * {'))
   })
 
   it.each(['.tick', '.gridline'])('pins a lone %s to the bottom, where zero sits', (name) => {

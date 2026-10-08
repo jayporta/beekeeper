@@ -91,8 +91,8 @@
 
   /* Forced colors edge every segment with a hairline outline, so each needs three to show its color inside it. */
   @media (forced-colors: active) {
-    & > *,
-    & > * + * {
+    /* Last in source and of equal specificity, so it overrides both minimums above. */
+    & > * {
       min-block-size: calc(3 * var(--size-hairline));
     }
   }
