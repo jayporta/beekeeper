@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { MAX_IDENTIFIER_CODE_UNITS } from '../schemas/boundedIdentifier'
 import { costStateRecordSchema } from '../schemas/costStateRecord'
 import { buildCostStateRecord } from '../testFixtures'
 
@@ -79,5 +80,36 @@ describe('costStateRecordSchema', () => {
     const record = { ...buildCostStateRecord(), type: 'assistant' }
 
     expect(costStateRecordSchema.safeParse(record).success).toBe(false)
+  })
+
+  describe('modelUsage keys', () => {
+    const usage = { inputTokens: 1, outputTokens: 1, costUSD: 0.5 }
+
+    it.each([
+      ['a bidi override', 'claude\u202Eopus'],
+      ['a line separator', 'claude\u2028opus'],
+      ['a control character', 'claude\u0007opus'],
+      ['an over-cap key', 'x'.repeat(MAX_IDENTIFIER_CODE_UNITS + 1)]
+    ])('drops an entry keyed with %s and keeps its valid sibling and totalCostUSD', (_l, key) => {
+      const record = buildCostStateRecord({
+        modelUsage: { [key]: usage, 'claude-opus-5': usage },
+        totalCostUSD: 2.5
+      })
+
+      const result = costStateRecordSchema.safeParse(record)
+
+      expect(result.success).toBe(true)
+      if (!result.success) return
+      expect(Object.keys(result.data.modelUsage ?? {})).toEqual(['claude-opus-5'])
+      expect(result.data.totalCostUSD).toBe(2.5)
+    })
+
+    it('still rejects a malformed entry under a valid key', () => {
+      const record = buildCostStateRecord({
+        modelUsage: { 'claude-opus-5': { costUSD: 'nope' } }
+      })
+
+      expect(costStateRecordSchema.safeParse(record).success).toBe(false)
+    })
   })
 })

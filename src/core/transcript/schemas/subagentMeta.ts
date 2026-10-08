@@ -19,7 +19,7 @@ const optionalAgentLabelSchema = z
   .optional()
   .catch(undefined)
 
-/** An identifier kept exactly as written, reading as absent when it is over the cap or not a string. */
+/** An identifier kept exactly as written, reading as absent when it is over the cap, unprintable, or not a string. */
 const optionalIdentifierSchema = boundedIdentifierSchema.optional().catch(undefined)
 
 /**
@@ -36,10 +36,11 @@ const optionalIdentifierSchema = boundedIdentifierSchema.optional().catch(undefi
  * the Agent tool's short task description, which fits the label cap.
  *
  * `toolUseId`, `parentAgentId`, `model` and `taskKind` are identifiers,
- * matched or shown as they are: only capped (see
- * {@link boundedIdentifierSchema}), never trimmed or normalized, since
- * cleaning one would change what it matches. An over-cap or non-string value
- * reads as absent, so the subagent is kept.
+ * matched or shown as they are: only bounded (see
+ * {@link boundedIdentifierSchema}) and required to be printable, never
+ * trimmed or normalized, since cleaning one would change what it matches. An
+ * over-cap, unprintable, or non-string value reads as absent, so the subagent
+ * is kept.
  *
  * The worktree fields are hardened because they later reach git: an invalid
  * `worktreePath` (not absolute, or over {@link MAX_PATH_CODE_UNITS} UTF-16

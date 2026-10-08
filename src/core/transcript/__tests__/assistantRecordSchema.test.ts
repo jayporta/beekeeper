@@ -84,4 +84,12 @@ describe('assistantRecordSchema', () => {
 
     expect(assistantRecordSchema.safeParse(record).success).toBe(false)
   })
+
+  it.each([
+    ['a bidi override', 'claude\u202Eopus'],
+    ['a line separator', 'claude\u2028opus'],
+    ['a control character', 'claude\u0007opus']
+  ])('rejects a message.model with %s', (_label, model) => {
+    expect(assistantRecordSchema.safeParse(buildAssistantRecord({ model })).success).toBe(false)
+  })
 })

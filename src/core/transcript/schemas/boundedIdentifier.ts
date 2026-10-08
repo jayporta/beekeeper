@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { isWithinCodeUnits } from '../../shared/isWithinCodeUnits'
+import { hasUnprintable } from '../hasUnprintable'
 
 /**
  * The longest identifier a transcript schema accepts, in UTF-16 code units,
@@ -15,13 +16,25 @@ import { isWithinCodeUnits } from '../../shared/isWithinCodeUnits'
 export const MAX_IDENTIFIER_CODE_UNITS = 256
 
 /**
- * A short identifier, such as an id, a name, a model, or a kind, that is
- * matched or shown exactly as written, never cleaned. Bounded to
- * {@link MAX_IDENTIFIER_CODE_UNITS} UTF-16 code units, rather than by
- * `.max()`, which counts code points.
+ * Whether a value is a printable string of at most
+ * {@link MAX_IDENTIFIER_CODE_UNITS} UTF-16 code units, so it is safe to match
+ * or show exactly as written.
+ *
+ * @param value - A candidate identifier, which need not be a string.
+ * @returns Whether `value` is a string within the cap with no unprintable
+ * character (see {@link hasUnprintable}).
  */
-export const boundedIdentifierSchema = z
-  .string()
-  .refine((value) => isWithinCodeUnits(value, MAX_IDENTIFIER_CODE_UNITS), {
-    message: `must be at most ${MAX_IDENTIFIER_CODE_UNITS} UTF-16 code units`
-  })
+export function isBoundedIdentifier(value: unknown): value is string {
+  return isWithinCodeUnits(value, MAX_IDENTIFIER_CODE_UNITS) && !hasUnprintable(value)
+}
+
+/**
+ * A short identifier, such as an id, a name, a model, or a kind, that is
+ * matched or shown exactly as written, never cleaned. It must be printable
+ * and within {@link MAX_IDENTIFIER_CODE_UNITS} UTF-16 code units (counted that
+ * way rather than by `.max()`, which counts code points). An identifier with
+ * an unprintable character is rejected, not shown.
+ */
+export const boundedIdentifierSchema = z.string().refine(isBoundedIdentifier, {
+  message: `must be printable and at most ${MAX_IDENTIFIER_CODE_UNITS} UTF-16 code units`
+})
