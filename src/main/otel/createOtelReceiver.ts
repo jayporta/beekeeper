@@ -114,9 +114,11 @@ export function createOtelReceiver(options: OtelReceiverOptions): OtelReceiver {
     server = created
     created.on('error', (error: unknown) => {
       console.error(`The telemetry receiver stopped listening (${describeError(error)}).`)
+      void closeServer(created)
+      // A stopped server can still report late. Only the current one's error changes the state.
+      if (server !== created) return
       server = null
       current = { status: 'failed', failure: 'failed' }
-      void closeServer(created)
     })
     current = { status: 'listening', port: result.port }
     return current

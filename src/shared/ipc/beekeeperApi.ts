@@ -79,14 +79,14 @@ export interface BeekeeperApi {
 
   /**
    * Reads the opt-in telemetry receiver, which listens on 127.0.0.1 for Claude Code's own cost reports.
-   * @returns Whether it is turned on, whether it is listening, the port to export to, and, while it is on, the bearer token Claude Code must send.
+   * @returns Whether it is turned on, whether it is listening or failed (with the reason), and, only while it is on, the port to export to and the bearer token Claude Code must send.
    */
   getOtelReceiver(): Promise<IpcResult<OtelReceiverDto>>
 
   /**
-   * Turns the telemetry receiver on or off. Turning it on saves the choice, creates the token the first time, and starts listening.
+   * Turns the telemetry receiver on or off. Turning it on from off binds a new random port with a new token, and saves the choice, port and token only once the receiver is listening. Turning it on while it is on changes nothing. Turning it off deletes the saved port and token, stops listening, and clears the reported costs.
    * @param enabled - Whether the receiver should run.
-   * @returns The receiver afterwards. A receiver that couldn't start comes back `failed` with the reason, and stays turned on.
+   * @returns The receiver afterwards. A turn-on that couldn't bind a port comes back `{ enabled: false, status: 'failed', failure }` with nothing saved.
    */
   setOtelReceiverEnabled(enabled: boolean): Promise<IpcResult<OtelReceiverDto>>
 
