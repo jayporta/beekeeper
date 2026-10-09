@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fakeWindow } from '../testFakeWindow'
+import { fakeWindow } from '../../testFakeWindow'
 import { sendLiveEvent } from '../sendLiveEvent'
 
 describe('sendLiveEvent', () => {

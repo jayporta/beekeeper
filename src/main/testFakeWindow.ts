@@ -7,9 +7,12 @@ export interface FakeWindow {
   readonly window: BrowserWindow
   /** The order of the window calls made, with `send:<argument count>` for each send. */
   readonly calls: string[]
-  /** The web contents' `send`, to assert the event sent. */
+  /** The web contents' `send`, to assert the channel and payload sent. */
   readonly send: ReturnType<typeof vi.fn>
-  /** Finishes the page load, as Electron does by emitting `did-finish-load`. */
+  /**
+   * Finishes a page load. As in Electron, `did-finish-load` handlers run while
+   * the web contents still report loading, which ends just after them.
+   */
   finishLoad(): void
   /** Destroys the window's web contents. */
   destroy(): void
@@ -17,15 +20,33 @@ export interface FakeWindow {
   readonly waitedFor: string[]
 }
 
-/** A window stub that records the order of the calls made on it. */
+/** The starting state of a {@link FakeWindow}. */
+export interface FakeWindowState {
+  /** Whether the window reports itself minimized. */
+  minimized?: boolean
+  /** Whether the web contents are already destroyed. */
+  destroyed?: boolean
+  /** Whether the page is still loading. */
+  loading?: boolean
+}
+
+/**
+ * A window stub that records the order of the calls made on it, with just the
+ * parts the main-process code uses: `isMinimized`, `restore`, `show`, `focus`,
+ * and the web contents' `send`, `isDestroyed`, `isLoading` and `on`/`once`.
+ *
+ * @param state - The window's starting state. Each flag defaults to false.
+ * @returns The stub and handles to drive it.
+ */
 export function fakeWindow({
   minimized = false,
   destroyed = false,
   loading = false
-}: { minimized?: boolean; destroyed?: boolean; loading?: boolean } = {}): FakeWindow {
+}: FakeWindowState = {}): FakeWindow {
   const calls: string[] = []
   const waitedFor: string[] = []
-  const handlers: (() => void)[] = []
+  const handlers = new Set<() => void>()
+  const onceHandlers = new Set<() => void>()
   let isDestroyed = destroyed
   let isLoading = loading
   const send = vi.fn((...args: unknown[]) => {
@@ -39,9 +60,10 @@ export function fakeWindow({
     webContents: {
       isDestroyed: () => isDestroyed,
       isLoading: () => isLoading,
+      on: (_event: string, handler: () => void) => handlers.add(handler),
       once: (event: string, handler: () => void) => {
         waitedFor.push(event)
-        handlers.push(handler)
+        onceHandlers.add(handler)
       },
       send
     }
@@ -52,8 +74,10 @@ export function fakeWindow({
     send,
     waitedFor,
     finishLoad: () => {
+      const once = [...onceHandlers]
+      onceHandlers.clear()
+      for (const handler of [...handlers, ...once]) handler()
       isLoading = false
-      for (const handler of handlers.splice(0)) handler()
     },
     destroy: () => {
       isDestroyed = true
