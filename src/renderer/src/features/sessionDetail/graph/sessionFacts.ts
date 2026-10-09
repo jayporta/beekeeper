@@ -16,7 +16,7 @@ export interface SessionFacts {
   readonly stopped: boolean
   /**
    * The tool error and compaction counts of the session's own transcript, or
-   * `null` when its summary couldn't be read.
+   * `null` when the session isn't in the list or its summary couldn't be read.
    */
   readonly marks: NodeMarks | null
 }
