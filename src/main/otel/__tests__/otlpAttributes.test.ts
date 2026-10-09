@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { collectOtlpAttributes } from '../otlpAttributes'
+import { collectOtlpAttributes, readOtlpNumber } from '../otlpAttributes'
 import { otlpAttributes } from '../testOtlpLogs'
 
 describe('collectOtlpAttributes', () => {
@@ -41,5 +41,35 @@ describe('collectOtlpAttributes', () => {
 
   it.each([undefined, null, 'text', {}])('returns nothing for a list of %j', (list) => {
     expect(collectOtlpAttributes(list, new Set(['model'])).size).toBe(0)
+  })
+})
+
+describe('readOtlpNumber', () => {
+  it.each([
+    ['1', 1],
+    ['-2.5', -2.5],
+    ['+3.', 3],
+    ['.5', 0.5],
+    ['1e3', 1000],
+    ['1.5E-2', 0.015],
+    [' 7 ', 7]
+  ])('reads the decimal string %j', (text, expected) => {
+    expect(readOtlpNumber({ stringValue: text })).toBe(expected)
+  })
+
+  it.each(['', ' ', '0x10', 'Infinity', 'NaN', '1,5', '1e', '--1', '.', '1.2.3', '1 2'])(
+    'rejects the string %j',
+    (text) => {
+      expect(readOtlpNumber({ stringValue: text })).toBeUndefined()
+    }
+  )
+
+  it('rejects a long run of digits that ends in a letter without backtracking', () => {
+    const started = performance.now()
+
+    const result = readOtlpNumber({ stringValue: `${'1'.repeat(30_000)}x` })
+
+    expect(result).toBeUndefined()
+    expect(performance.now() - started).toBeLessThan(250)
   })
 })

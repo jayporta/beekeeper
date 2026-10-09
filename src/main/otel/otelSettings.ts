@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 import { mkdir, readFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import { z } from 'zod'
+import { errorCode } from '../../core/shared/errorCode'
 import { createSerialQueue } from './serialQueue'
 import { writeFileAtomic } from './writeFileAtomic'
 
@@ -44,16 +45,12 @@ const fileSchema = z
   .strictObject({ enabled: z.boolean(), token: tokenSchema.optional() })
   .refine((file) => !file.enabled || file.token !== undefined)
 
-function isMissing(error: unknown): boolean {
-  return error instanceof Error && 'code' in error && error.code === 'ENOENT'
-}
-
 async function readSettings(filePath: string): Promise<OtelSettings> {
   let text: string
   try {
     text = await readFile(filePath, 'utf8')
   } catch (error) {
-    if (isMissing(error)) return DISABLED
+    if (errorCode(error) === 'ENOENT') return DISABLED
     throw error
   }
   let json: unknown

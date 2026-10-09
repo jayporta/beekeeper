@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu } from 'electron'
+import { app, BrowserWindow, clipboard, ipcMain, Menu } from 'electron'
 import { join } from 'path'
 import { optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -85,7 +85,11 @@ app
     registerIpcHandlers({
       ipcMain,
       isTrusted: (event) => isTrustedSender(event, { rendererRoot, devServerUrl }),
-      deps: { ...createIpcDeps(app.getPath('home')), otel }
+      deps: {
+        ...createIpcDeps(app.getPath('home')),
+        otel,
+        copyToClipboard: (text) => clipboard.writeText(text)
+      }
     })
 
     // Set once, before any window: `activate` recreates windows, not the menu.
@@ -106,7 +110,8 @@ app
     })
 
     createWindow()
-    // Listening is asynchronous and a busy port fails at once, so starting here never delays the window.
+    // Not awaited, so the window never waits on it. Reads of the receiver queue behind
+    // it, so the page never sees a receiver that is on but not yet started.
     otel.receiver.startFromSettings().catch((error: unknown) => {
       console.error(`Beekeeper could not start the telemetry receiver (${describeError(error)}).`)
     })

@@ -32,6 +32,7 @@ const api: BeekeeperApi = {
   setOtelReceiverEnabled: (enabled) =>
     ipcRenderer.invoke(IPC_CHANNELS.setOtelReceiverEnabled, { enabled }),
   getReportedCost: (sessionId) => ipcRenderer.invoke(IPC_CHANNELS.getReportedCost, { sessionId }),
+  copyText: (text) => ipcRenderer.invoke(IPC_CHANNELS.copyText, { text }),
   // The renderer learns only that About was requested, never the event.
   onOpenAbout: (listener) => openAbout.subscribe(listener)
 }

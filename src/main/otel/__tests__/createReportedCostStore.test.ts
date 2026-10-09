@@ -5,7 +5,7 @@ import {
   MAX_REQUEST_IDS_PER_SESSION,
   MAX_STORED_SESSIONS
 } from '../createReportedCostStore'
-import type { ReportedApiRequest } from '../parseOtlpLogs'
+import { MAX_OTLP_RECORDS, type ReportedApiRequest } from '../parseOtlpLogs'
 import { TEST_SESSION_ID } from '../testOtlpLogs'
 
 function request(overrides: Partial<ReportedApiRequest> = {}): ReportedApiRequest {
@@ -61,6 +61,45 @@ describe('createReportedCostStore', () => {
     store.record([request({ requestId: 'req_1' })])
 
     expect(store.get(TEST_SESSION_ID)).toMatchObject({ costUsd: 1, requests: 1 })
+  })
+
+  it.each([501, MAX_OTLP_RECORDS])('counts a retried export of %i requests once', (size) => {
+    const store = createReportedCostStore()
+    const batch = Array.from({ length: size }, (_, i) => request({ requestId: `r${i}` }))
+    store.record(batch)
+    const once = store.get(TEST_SESSION_ID)
+
+    store.record(batch)
+
+    expect(store.get(TEST_SESSION_ID)).toEqual(once)
+    expect(once?.requests).toBe(size)
+  })
+
+  it('counts a retried export once when part of it was seen before and the rest is new', () => {
+    const store = createReportedCostStore()
+    const ids = (from: number, to: number): ReportedApiRequest[] =>
+      Array.from({ length: to - from }, (_, i) => request({ requestId: `r${from + i}` }))
+    store.record(ids(0, MAX_REQUEST_IDS_PER_SESSION))
+    // The batch holds the oldest remembered ids and as many new ones as the set can hold beside them.
+    const batch = [
+      ...ids(0, 100),
+      ...ids(MAX_REQUEST_IDS_PER_SESSION, MAX_REQUEST_IDS_PER_SESSION + 4000)
+    ]
+    store.record(batch)
+    const once = store.get(TEST_SESSION_ID)
+
+    store.record(batch)
+
+    expect(store.get(TEST_SESSION_ID)).toEqual(once)
+    expect(once?.requests).toBe(MAX_REQUEST_IDS_PER_SESSION + 4000)
+  })
+
+  it('counts a request id repeated within one export once', () => {
+    const store = createReportedCostStore()
+
+    store.record([request({ requestId: 'same' }), request({ requestId: 'same' })])
+
+    expect(store.get(TEST_SESSION_ID)?.requests).toBe(1)
   })
 
   it('counts a repeated request id again in another session', () => {
@@ -135,8 +174,8 @@ describe('createReportedCostStore', () => {
     ])
   })
 
-  it('remembers 500 request ids per session', () => {
-    expect(MAX_REQUEST_IDS_PER_SESSION).toBe(500)
+  it('remembers at least as many request ids as one export can carry', () => {
+    expect(MAX_REQUEST_IDS_PER_SESSION).toBeGreaterThanOrEqual(MAX_OTLP_RECORDS)
   })
 
   it('evicts the least recently reported session past the session cap', () => {

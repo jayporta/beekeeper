@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   MAX_AGENT_ID_LENGTH,
+  MAX_COPY_TEXT_LENGTH,
   MAX_PROJECT_DIR_NAME_LENGTH,
   agentIdSchema,
+  copyTextRequestSchema,
   getReportedCostRequestSchema,
   getSessionRequestSchema,
   getWorktreePatchRequestSchema,
@@ -154,5 +156,24 @@ describe('getReportedCostRequestSchema', () => {
     ['an extra field', { sessionId: SESSION_ID, projectDirName: 'p' }]
   ])('rejects %s', (_label, payload) => {
     expect(getReportedCostRequestSchema.safeParse(payload).success).toBe(false)
+  })
+})
+
+describe('copyTextRequestSchema', () => {
+  it('caps copied text at 4096 characters', () => {
+    expect(MAX_COPY_TEXT_LENGTH).toBe(4096)
+  })
+
+  it.each(['', 'text', 'x'.repeat(MAX_COPY_TEXT_LENGTH)])('accepts %#', (text) => {
+    expect(copyTextRequestSchema.safeParse({ text }).success).toBe(true)
+  })
+
+  it.each([
+    ['no payload', undefined],
+    ['a non-string', { text: 5 }],
+    ['text past the cap', { text: 'x'.repeat(MAX_COPY_TEXT_LENGTH + 1) }],
+    ['an extra field', { text: 'a', extra: 1 }]
+  ])('rejects %s', (_label, payload) => {
+    expect(copyTextRequestSchema.safeParse(payload).success).toBe(false)
   })
 })

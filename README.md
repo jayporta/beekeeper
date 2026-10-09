@@ -34,7 +34,7 @@ Claude Code can export its own per-request cost estimates over OpenTelemetry. If
 - **Loopback only.** It binds `127.0.0.1` on port 47318, so nothing off your machine can reach it. It never makes an outbound request.
 - **Authenticated.** Claude Code must send a bearer token that beekeeper creates the first time you turn the receiver on and keeps in its app data folder (`otel-receiver.json`, readable only by you). A request without the token is refused.
 - **Narrow.** It accepts only `POST /v1/logs` with a JSON body. It refuses any request that carries an `Origin` header or a `Host` other than `127.0.0.1` or `localhost`, so a web page can't use your browser to reach it. Compressed bodies and bodies over 2 MiB are refused.
-- **Only costs.** From each `claude_code.api_request` event beekeeper reads the session id, the cost, the token counts, the model, and the agent and request ids. It never reads, stores, or logs prompt or response content, headers, or the token, and it keeps what it hears in memory only, so nothing survives a restart.
+- **Only costs.** From each `claude_code.api_request` event beekeeper reads the session id, the cost, the token counts, the model, and the agent and request ids. It never stores or logs prompt or response content, headers, or the token, and it keeps what it hears in memory only, so nothing survives a restart.
 
 Leave Claude Code's content flags (`OTEL_LOG_USER_PROMPTS`, `OTEL_LOG_ASSISTANT_RESPONSES`, `OTEL_LOG_TOOL_CONTENT`, and `OTEL_LOG_RAW_API_BODIES`) off. beekeeper ignores that content, but it has no reason to receive it.
 

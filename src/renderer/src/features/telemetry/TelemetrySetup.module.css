@@ -1,0 +1,30 @@
+.setup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.region {
+  overflow: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.lines {
+  padding: var(--space-3);
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  white-space: pre;
+  user-select: text;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.copyStatus {
+  min-width: 0;
+}

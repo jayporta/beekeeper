@@ -1,5 +1,6 @@
 import { IPC_CHANNELS, type IpcChannel } from '../../shared/ipc/channels'
 import type { IpcResult } from '../../shared/ipc/ipcResult'
+import { copyTextHandler } from './copyTextHandler'
 import { getOtelReceiverHandler } from './getOtelReceiverHandler'
 import { getProjectDailyUsageHandler } from './getProjectDailyUsageHandler'
 import { getProjectTotalsHandler } from './getProjectTotalsHandler'
@@ -51,7 +52,8 @@ export function registerIpcHandlers(options: RegisterIpcHandlersOptions): void {
     [IPC_CHANNELS.getOtelReceiver]: () => getOtelReceiverHandler(deps),
     [IPC_CHANNELS.setOtelReceiverEnabled]: (payload) =>
       setOtelReceiverEnabledHandler(deps, payload),
-    [IPC_CHANNELS.getReportedCost]: (payload) => getReportedCostHandler(deps, payload)
+    [IPC_CHANNELS.getReportedCost]: (payload) => getReportedCostHandler(deps, payload),
+    [IPC_CHANNELS.copyText]: (payload) => copyTextHandler(deps, payload)
   }
   for (const channel of Object.values(IPC_CHANNELS)) {
     ipcMain.handle(channel, guardIpc({ isTrusted, handle: handlers[channel] }))

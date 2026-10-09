@@ -23,8 +23,10 @@ export interface OtelReceiverController {
   setEnabled(enabled: boolean): Promise<OtelReceiverDto>
 
   /**
-   * Starts the server when the saved setting is on. Call it once at launch;
-   * until it has run, a receiver that is on reports `starting`.
+   * Starts the server when the saved setting is on. Call it once at launch, in
+   * the same tick the window is created: it is then queued before any IPC call
+   * can arrive, and reads queue behind it, so the renderer never sees a
+   * receiver that is on but not yet started.
    *
    * @throws When the saved setting can't be read.
    */
@@ -52,11 +54,9 @@ interface DtoParts {
   readonly state: OtelReceiverState
   /** The port to report while the server isn't listening. */
   readonly port: number
-  /** Whether the server has already been asked to start, at launch or by a person. */
-  readonly startAttempted: boolean
 }
 
-function toDto({ settings, state, port, startAttempted }: DtoParts): OtelReceiverDto {
+function toDto({ settings, state, port }: DtoParts): OtelReceiverDto {
   if (!settings.enabled) {
     return { enabled: false, status: 'off', failure: null, port, token: null }
   }
@@ -67,13 +67,7 @@ function toDto({ settings, state, port, startAttempted }: DtoParts): OtelReceive
     case 'failed':
       return { enabled: true, status: 'failed', failure: state.failure, port, token }
     case 'off':
-      return {
-        enabled: true,
-        status: startAttempted ? 'off' : 'starting',
-        failure: null,
-        port,
-        token
-      }
+      return { enabled: true, status: 'off', failure: null, port, token }
   }
 }
 
@@ -89,10 +83,9 @@ export function createOtelReceiverController(
 ): OtelReceiverController {
   const { settings, receiver, port } = options
   const serialize = createSerialQueue()
-  let startAttempted = false
 
   async function read(): Promise<OtelReceiverDto> {
-    return toDto({ settings: await settings.read(), state: receiver.state(), port, startAttempted })
+    return toDto({ settings: await settings.read(), state: receiver.state(), port })
   }
 
   return {
@@ -101,20 +94,13 @@ export function createOtelReceiverController(
       serialize(async () => {
         const saved = await settings.setEnabled(enabled)
         if (!enabled) await receiver.stop()
-        else if (saved.token !== null) {
-          startAttempted = true
-          await receiver.start(saved.token)
-        }
+        else if (saved.token !== null) await receiver.start(saved.token)
         return read()
       }),
     startFromSettings: () =>
       serialize(async () => {
-        try {
-          const saved = await settings.read()
-          if (saved.enabled && saved.token !== null) await receiver.start(saved.token)
-        } finally {
-          startAttempted = true
-        }
+        const saved = await settings.read()
+        if (saved.enabled && saved.token !== null) await receiver.start(saved.token)
       }),
     stop: () => serialize(() => receiver.stop())
   }
