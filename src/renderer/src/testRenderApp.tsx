@@ -1,14 +1,12 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { render, type RenderResult } from '@testing-library/react'
 import App from '@renderer/App'
-import { resetFirstRun } from '@renderer/features/firstRun/testFirstRunReset'
-import { resetProjects } from '@renderer/features/projects/testProjectsReset'
+import { PERSISTED_STORES } from '@renderer/testPersistedStores'
 import { createQueryWrapper } from '@renderer/testQueryWrapper'
 
 /** Returns every persisted store to a fresh install, between tests. */
 export async function resetPersistedState(): Promise<void> {
-  await resetFirstRun()
-  await resetProjects()
+  await Promise.all(PERSISTED_STORES.map((store) => store.reset()))
 }
 
 /**

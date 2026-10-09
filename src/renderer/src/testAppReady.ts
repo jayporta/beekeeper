@@ -1,28 +1,11 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { act, type RenderResult } from '@testing-library/react'
-import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
-import { useSelectedProjectStore } from '@renderer/features/projects/state/useSelectedProjectStore'
+import { PERSISTED_STORES, type PersistedStoreHandle } from '@renderer/testPersistedStores'
 import { createTestQueryClient } from '@renderer/testQueryWrapper'
 import { renderApp } from '@renderer/testRenderApp'
 
-/** The part of a store's `persist` API that loads it from storage and reports when the load is over. */
-interface HydrationSource {
-  /** Loads the store from storage. */
-  rehydrate: () => Promise<void> | void
-  /** Whether the latest load from storage has finished. */
-  hasHydrated: () => boolean
-  /** Calls `listener` once the load in progress finishes, and returns a function that stops listening. */
-  onFinishHydration: (listener: () => void) => () => void
-}
-
-/** Every persisted store the app waits on before it shows anything. */
-const PERSISTED_STORES: readonly { readonly persist: HydrationSource }[] = [
-  useFirstRunStore,
-  useSelectedProjectStore
-]
-
 /** Resolves when the store's load from storage is over: at once when it already is. */
-function hydrated({ persist }: { readonly persist: HydrationSource }): Promise<void> {
+function hydrated({ persist }: PersistedStoreHandle): Promise<void> {
   return new Promise((resolve) => {
     if (persist.hasHydrated()) {
       resolve()
@@ -68,23 +51,24 @@ export async function hydratePersistedStores(): Promise<void> {
  *
  * @param client - The client the app renders with.
  */
-export async function waitForAppReady(client: QueryClient): Promise<void> {
+async function waitForAppReady(client: QueryClient): Promise<void> {
   await act(async () => {
     await Promise.all(PERSISTED_STORES.map(hydrated))
   })
-  // Leaving an `act` renders what the last result unlocked, which starts the next queries.
-  while (client.isFetching() > 0) {
+  // TanStack hands a result to the components on a timer, and leaving an `act` renders what that
+  // result unlocked, which starts the next queries. A timer queued now runs after the one
+  // that delivers the result, so the loop checks for in-flight queries only once both are done.
+  do {
     await act(async () => {
       await idle(client)
+      await new Promise((resolve) => setTimeout(resolve, 0))
     })
-  }
+  } while (client.isFetching() > 0)
 }
 
 /**
  * Renders the whole app and waits until it is ready (see {@link waitForAppReady}).
- * Install the stub `window.beekeeper` first. TanStack hands a settled query's
- * result to the screen on a timer, so a `findBy` query still checks the screen
- * once after this returns.
+ * Install the stub `window.beekeeper` first.
  *
  * @param client - The client to provide. Pass the one a test drives, or omit it for a fresh one.
  * @returns The Testing Library render result.
