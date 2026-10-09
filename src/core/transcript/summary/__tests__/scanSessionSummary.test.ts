@@ -10,8 +10,12 @@ import {
   buildQuotaRejectionRecord,
   buildUserRecord
 } from '../../testFixtures'
+import { buildAssistantToolUseRecord, buildUserToolResultRecord } from '../../testFileTouchFixtures'
+import { MAX_SIGNAL_EVENTS_PER_TRANSCRIPT } from '../../signals/signalObserver'
+import { buildSystemRecord } from '../../signals/testSignalFixtures'
 import { buildTaskStopRecord, buildTeammateSpawnRecord } from '../../testTeammateFixtures'
 import { scanSessionSummary } from '../scanSessionSummary'
+import { EMPTY_SIGNALS } from '../testSessionSummary'
 import { createTranscriptDir, type TranscriptDir } from '../testTranscriptDir'
 
 let dir: TranscriptDir
@@ -42,6 +46,44 @@ describe('scanSessionSummary', () => {
     const summary = await scanSessionSummary(filePath)
 
     expect(summary.title).toBe('What the task turned out to be')
+  })
+
+  it('counts tool errors and compactions in the signals', async () => {
+    const filePath = writeTranscript(
+      buildJsonlText([
+        buildAssistantToolUseRecord({ toolUseId: 'a', toolName: 'Read' }),
+        buildUserToolResultRecord({ toolUseId: 'a', isError: true }),
+        buildAssistantToolUseRecord({ toolUseId: 'b', toolName: 'Read' }),
+        buildUserToolResultRecord({ toolUseId: 'b', isError: true }),
+        buildSystemRecord({ subtype: 'compact_boundary', uuid: 'u1' })
+      ])
+    )
+
+    const summary = await scanSessionSummary(filePath)
+
+    expect(summary.signals).toMatchObject({ toolErrors: 2, compactions: 1, partial: false })
+  })
+
+  it('reports empty signals for a transcript with no tool activity', async () => {
+    const filePath = writeTranscript(buildJsonlText([buildAssistantRecord()]))
+
+    const summary = await scanSessionSummary(filePath)
+
+    expect(summary.signals).toEqual(EMPTY_SIGNALS)
+  })
+
+  it('marks the signals partial when the transcript holds more events than the observer keeps', async () => {
+    const results = Array.from({ length: MAX_SIGNAL_EVENTS_PER_TRANSCRIPT + 1 }, (_, index) =>
+      buildUserToolResultRecord({ toolUseId: `t${index}`, isError: true })
+    )
+    const filePath = writeTranscript(buildJsonlText(results))
+
+    const summary = await scanSessionSummary(filePath)
+
+    expect(summary.signals).toMatchObject({
+      toolErrors: MAX_SIGNAL_EVENTS_PER_TRANSCRIPT,
+      partial: true
+    })
   })
 
   it('reports the plan limit hit with the latest reset', async () => {
@@ -253,7 +295,8 @@ describe('scanSessionSummary', () => {
         undatedMessages: 0,
         invalidAssistantRecords: 0,
         messageIds: new Set()
-      }
+      },
+      signals: EMPTY_SIGNALS
     })
   })
 
@@ -291,7 +334,8 @@ describe('scanSessionSummary', () => {
         undatedMessages: 0,
         invalidAssistantRecords: 0,
         messageIds: new Set(['msg_1'])
-      }
+      },
+      signals: EMPTY_SIGNALS
     })
   })
 

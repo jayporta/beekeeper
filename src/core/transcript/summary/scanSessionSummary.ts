@@ -3,6 +3,8 @@ import type { ReadJsonlLinesOptions } from '../readJsonlLines'
 import { readRecords } from '../readRecords'
 import { aiTitleRecordSchema } from '../schemas'
 import { createSessionRoleObserver } from '../sessionRoleObserver'
+import { createSignalObserver } from '../signals/signalObserver'
+import { summarizeSignals } from '../signals/summarizeSignals'
 import { createTeammateSpawnObserver } from '../teammateSpawnObserver'
 import { createLatestModelObserver } from './latestModelObserver'
 import { createLimitHitObserver } from './limitHitObserver'
@@ -17,7 +19,12 @@ import { truncateTitle } from './truncateTitle'
  * its title, its recorded usage, the tokens its own assistant records
  * report, the span its records cover, its model, and whether it is a lead or
  * a teammate agent session, and which teammates it spawned and stopped, and
- * the plan limit it hit, if any, and its own assistant usage by 15-minute slot.
+ * the plan limit it hit, if any, its own assistant usage by 15-minute slot,
+ * and its off-the-rails signal counts.
+ *
+ * The summary cache is shared with the overview's totals and daily-usage
+ * scans, so the signal observer's per-record work and the signals each cached
+ * summary holds are paid by those scans too.
  *
  * Every line is parsed. The title and the cost state are the last valid
  * record of their type by line order, since neither carries a timestamp
@@ -55,6 +62,7 @@ export async function scanSessionSummary(
   const modelObserver = createLatestModelObserver()
   const limitHitObserver = createLimitHitObserver()
   const tokenObserver = createTranscriptTokenObserver()
+  const signalObserver = createSignalObserver()
   let earliestMs: number | null = null
   let latestMs: number | null = null
   let skippedLines = 0
@@ -78,6 +86,7 @@ export async function scanSessionSummary(
     limitHitObserver.observe(record)
     modelObserver.observe(record, timestampMs)
     tokenObserver.observe(record, timestampMs)
+    signalObserver.observe(record)
     if (record.type === 'ai-title') {
       const aiTitle = aiTitleRecordSchema.safeParse(record)
       if (aiTitle.success) title = truncateTitle(aiTitle.data.aiTitle)
@@ -102,6 +111,7 @@ export async function scanSessionSummary(
     model: modelObserver.model(),
     limitHit: limitHitObserver.latest(),
     transcriptTokens: tokenObserver.total(),
-    leadUsage: tokenObserver.leadUsage()
+    leadUsage: tokenObserver.leadUsage(),
+    signals: summarizeSignals(signalObserver.events(), { partial: signalObserver.capped() })
   }
 }

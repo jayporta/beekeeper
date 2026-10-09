@@ -29,17 +29,21 @@ function lengthOf(value: string | null): number {
 /**
  * Weighs a summary for the cache's memory bound: {@link SUMMARY_ENTRY_OVERHEAD}
  * plus the UTF-16 code units of every string it holds, meaning its title, its
- * model, its role's labels, and each label and tool call id in its spawn and
- * stop lists, plus {@link LEAD_ID_OVERHEAD} and the length of each lead
- * message id, and {@link LEAD_SLOT_OVERHEAD} and the model's length for each
- * lead usage slot.
+ * model, its longest tool wait's tool name, its role's labels, and each label
+ * and tool call id in its spawn and stop lists, plus {@link LEAD_ID_OVERHEAD}
+ * and the length of each lead message id, and {@link LEAD_SLOT_OVERHEAD} and
+ * the model's length for each lead usage slot.
  *
  * @param summary - A session summary.
  * @returns The weight in code units.
  */
 export function summaryWeight(summary: SessionSummary): number {
   const { role, teamSpawns } = summary
-  let weight = SUMMARY_ENTRY_OVERHEAD + lengthOf(summary.title) + lengthOf(summary.model)
+  let weight =
+    SUMMARY_ENTRY_OVERHEAD +
+    lengthOf(summary.title) +
+    lengthOf(summary.model) +
+    lengthOf(summary.signals.longestToolWait?.tool ?? null)
 
   if (role.kind === 'agent') {
     weight += lengthOf(role.agentType) + lengthOf(role.agentName) + lengthOf(role.teamName)
