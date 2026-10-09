@@ -1,6 +1,9 @@
 import { z } from 'zod'
 import { TOTALS_WINDOWS } from './projectTotalsDto'
 
+/** The most characters `copyText` accepts, enough for the telemetry setup lines. */
+export const MAX_COPY_TEXT_LENGTH = 4096
+
 /** The longest project folder name a request may carry. */
 export const MAX_PROJECT_DIR_NAME_LENGTH = 255
 
@@ -64,6 +67,15 @@ export const getWorktreePatchRequestSchema = z.strictObject({
   sessionId: sessionIdSchema,
   agentId: agentIdSchema
 })
+
+/** The payload of a `setOtelReceiverEnabled` call. */
+export const setOtelReceiverEnabledRequestSchema = z.strictObject({ enabled: z.boolean() })
+
+/** The payload of a `getReportedCost` call. */
+export const getReportedCostRequestSchema = z.strictObject({ sessionId: sessionIdSchema })
+
+/** The payload of a `copyText` call. */
+export const copyTextRequestSchema = z.strictObject({ text: z.string().max(MAX_COPY_TEXT_LENGTH) })
 
 /** A validated `listSessions` payload. */
 export type ListSessionsRequest = z.infer<typeof listSessionsRequestSchema>

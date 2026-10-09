@@ -2,7 +2,11 @@ import { vi, type Mock } from 'vitest'
 import type { BeekeeperApi } from '../../shared/ipc/beekeeperApi'
 import type { FilesChangedDto } from '../../shared/ipc/filesChangedDto'
 import type { IpcResult } from '../../shared/ipc/ipcResult'
+import type { OtelReceiverDto } from '../../shared/ipc/otelReceiverDto'
 import type { ProjectDto } from '../../shared/ipc/projectDto'
+
+/** A telemetry receiver that is off, which is what an unstubbed `getOtelReceiver` reports. */
+export const TEST_OTEL_OFF: OtelReceiverDto = { enabled: false, status: 'off', failure: null }
 
 /** What makes a test project a worktree: the folder it belongs to and its name. Set together or not at all. */
 export interface TestWorktree {
@@ -59,8 +63,9 @@ function createListeners<T extends unknown[]>(): {
 
 /**
  * Installs a stub `window.beekeeper`. `listProjects` returns one project by
- * default. Calls to a method the test did not stub reject, so a test can't
- * silently depend on it. `onOpenAbout`, `onFilesChanged` and
+ * default, and `getOtelReceiver` reports an off receiver, since the sidebar
+ * reads it. Calls to any other method the test did not stub reject, so a test
+ * can't silently depend on it. `onOpenAbout`, `onFilesChanged` and
  * `onLiveUpdatesUnavailable` subscriptions are real: each `fire…` helper reaches
  * every listener that has not unsubscribed.
  *
@@ -87,6 +92,16 @@ export function installBeekeeperApi(overrides: Partial<BeekeeperApi> = {}): Test
       overrides.getProjectDailyUsage ?? ((): Promise<never> => new Promise(() => undefined))
     ),
     getWorktreePatch: vi.fn(overrides.getWorktreePatch ?? unstubbed('getWorktreePatch')),
+    getOtelReceiver: vi.fn(
+      overrides.getOtelReceiver ??
+        ((): Promise<IpcResult<OtelReceiverDto>> =>
+          Promise.resolve({ ok: true, value: TEST_OTEL_OFF }))
+    ),
+    setOtelReceiverEnabled: vi.fn(
+      overrides.setOtelReceiverEnabled ?? unstubbed('setOtelReceiverEnabled')
+    ),
+    getReportedCost: vi.fn(overrides.getReportedCost ?? unstubbed('getReportedCost')),
+    copyText: vi.fn(overrides.copyText ?? unstubbed('copyText')),
     onOpenAbout: vi.fn(overrides.onOpenAbout ?? about.subscribe),
     onFilesChanged: vi.fn(overrides.onFilesChanged ?? filesChanged.subscribe),
     onLiveUpdatesUnavailable: vi.fn(overrides.onLiveUpdatesUnavailable ?? unavailable.subscribe),

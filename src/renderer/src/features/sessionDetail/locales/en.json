@@ -115,6 +115,11 @@
     "messages_other": "{{count, integer}} messages",
     "loading": "Loading this agent",
     "unreadable": "beekeeper couldn't read this agent's transcript.",
+    "reportedCost": {
+      "session": "Claude Code's estimate for this session: {{value}}",
+      "agent": "Claude Code's estimate: {{value}}",
+      "unavailable": "Claude Code's estimate isn't available."
+    },
     "rollup": "{{tokens}} incl. {{count, integer}} below",
     "noneBelow": "No agents below",
     "belowUnreadable": "Agents below couldn't be read",

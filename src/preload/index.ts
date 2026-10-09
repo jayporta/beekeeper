@@ -35,6 +35,11 @@ const api: BeekeeperApi = {
     ipcRenderer.invoke(IPC_CHANNELS.getProjectDailyUsage, { projectDirName, window }),
   getWorktreePatch: (projectDirName, sessionId, agentId) =>
     ipcRenderer.invoke(IPC_CHANNELS.getWorktreePatch, { projectDirName, sessionId, agentId }),
+  getOtelReceiver: () => ipcRenderer.invoke(IPC_CHANNELS.getOtelReceiver),
+  setOtelReceiverEnabled: (enabled) =>
+    ipcRenderer.invoke(IPC_CHANNELS.setOtelReceiverEnabled, { enabled }),
+  getReportedCost: (sessionId) => ipcRenderer.invoke(IPC_CHANNELS.getReportedCost, { sessionId }),
+  copyText: (text) => ipcRenderer.invoke(IPC_CHANNELS.copyText, { text }),
   // The renderer learns only that About was requested, never the event.
   onOpenAbout: (listener) => openAbout.subscribe(listener),
   // Each subscription registers its own listener, so unsubscribing removes only that one.

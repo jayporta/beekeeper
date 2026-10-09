@@ -1,6 +1,10 @@
+import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { IPC_CHANNELS } from '../../../shared/ipc/channels'
+import { createOtelRuntime } from '../../otel/createOtelRuntime'
+import { TEST_SESSION_ID } from '../../otel/testOtlpLogs'
 import { createIpcDeps } from '../createIpcDeps'
+import type { IpcDeps } from '../ipcDeps'
 import { registerIpcHandlers, type IpcMainLike } from '../registerIpcHandlers'
 import { isTrustedSender, type SenderEvent } from '../senderValidation'
 import { TEST_INDEX_URL, TEST_ORIGINS } from '../testSender'
@@ -33,12 +37,15 @@ afterEach(async () => {
   await tree.cleanup()
 })
 
-function register(): Map<string, Listener> {
+function register(
+  otel: IpcDeps['otel'] = null,
+  copyToClipboard: IpcDeps['copyToClipboard'] = null
+): Map<string, Listener> {
   const { ipcMain, listeners } = fakeIpcMain()
   registerIpcHandlers({
     ipcMain,
     isTrusted: (event) => isTrustedSender(event, TEST_ORIGINS),
-    deps: createIpcDeps(tree.home)
+    deps: { ...createIpcDeps(tree.home), otel, copyToClipboard }
   })
   return listeners
 }
@@ -53,6 +60,52 @@ describe('registerIpcHandlers', () => {
     expect(await listener?.(trustedEvent)).toEqual({
       ok: true,
       value: [{ dirName: TEST_PROJECT, label: null, worktreeOf: null, worktreeName: null }]
+    })
+  })
+
+  it('serves the telemetry receiver channels from the runtime it is given', async () => {
+    const runtime = createOtelRuntime({
+      settingsPath: join(tree.home, 'otel.json'),
+      pickPort: () => 0
+    })
+    const listeners = register(runtime)
+    const on = await listeners.get(IPC_CHANNELS.setOtelReceiverEnabled)?.(trustedEvent, {
+      enabled: true
+    })
+
+    try {
+      expect(on).toMatchObject({ ok: true, value: { enabled: true, status: 'listening' } })
+      expect(await listeners.get(IPC_CHANNELS.getOtelReceiver)?.(trustedEvent)).toEqual(on)
+      expect(
+        await listeners.get(IPC_CHANNELS.getReportedCost)?.(trustedEvent, {
+          sessionId: TEST_SESSION_ID
+        })
+      ).toEqual({ ok: true, value: null })
+    } finally {
+      await runtime.receiver.stop()
+    }
+  })
+
+  it('copies text for a trusted sender and refuses an untrusted one', async () => {
+    const copied: string[] = []
+    const listener = register(null, (text) => copied.push(text)).get(IPC_CHANNELS.copyText)
+
+    const trusted = await listener?.(trustedEvent, { text: 'a=b' })
+    const foreign = await listener?.({ senderFrame: null }, { text: 'c=d' })
+
+    expect([trusted, foreign, copied]).toEqual([
+      { ok: true, value: null },
+      { ok: false, error: { code: 'untrusted-sender' } },
+      ['a=b']
+    ])
+  })
+
+  it('serves the telemetry receiver channels as off when no runtime is wired', async () => {
+    const listeners = register()
+
+    expect(await listeners.get(IPC_CHANNELS.getOtelReceiver)?.(trustedEvent)).toMatchObject({
+      ok: true,
+      value: { enabled: false, status: 'off' }
     })
   })
 

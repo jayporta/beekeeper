@@ -1,6 +1,7 @@
 import type { SessionSummaryCache } from '../../core/transcript/summary/sessionSummaryCache'
 import type { ArchiveReader, ArchiveWriter } from '../archive/archiveStoreTypes'
 import type { GitLocation } from '../git/gitLocator'
+import type { OtelRuntime } from '../otel/createOtelRuntime'
 import type { DailyUsageCache } from '../overview/dailyUsageCache'
 import type { AgentTermsCache } from './agentTermsCache'
 import type { ProjectLabelCache } from './projectLabelCache'
@@ -53,6 +54,18 @@ export interface IpcDeps {
   readonly now: () => number
   /** Locates git, lazily. Injectable so tests can fake a missing git. */
   readonly git: () => Promise<GitLocation>
+  /**
+   * The opt-in telemetry receiver and what it has heard, or `null` when the
+   * app didn't set one up. The app sets it in `index.ts`, so tests that don't
+   * touch it get `null`.
+   */
+  readonly otel: OtelRuntime | null
+  /**
+   * Writes text to the system clipboard, or `null` when the app didn't set one
+   * up. The app supplies Electron's `clipboard.writeText` in `index.ts`, so
+   * tests that don't touch it get `null` and never reach the real clipboard.
+   */
+  readonly copyToClipboard: ((text: string) => void) | null
   /**
    * Where listed sessions and scanned details are archived, or `null` when
    * the archive is off or couldn't be opened. A write failure never fails the

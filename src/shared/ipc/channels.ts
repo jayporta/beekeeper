@@ -6,7 +6,11 @@ export const IPC_CHANNELS = {
   getWorktreeDiffs: 'beekeeper:get-worktree-diffs',
   getProjectTotals: 'beekeeper:get-project-totals',
   getProjectDailyUsage: 'beekeeper:get-project-daily-usage',
-  getWorktreePatch: 'beekeeper:get-worktree-patch'
+  getWorktreePatch: 'beekeeper:get-worktree-patch',
+  getOtelReceiver: 'beekeeper:get-otel-receiver',
+  setOtelReceiverEnabled: 'beekeeper:set-otel-receiver-enabled',
+  getReportedCost: 'beekeeper:get-reported-cost',
+  copyText: 'beekeeper:copy-text'
 } as const
 
 /** One of the channel names in {@link IPC_CHANNELS}. */

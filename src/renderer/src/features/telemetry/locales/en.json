@@ -1,0 +1,33 @@
+{
+  "footerButton": "Claude Code telemetry",
+  "localOnlyListening": "Local only · read-only · receiving Claude Code telemetry on 127.0.0.1",
+  "heading": "Claude Code telemetry",
+  "close": "Close",
+  "intro": "Claude Code can report its own cost estimate for each request. beekeeper listens for those reports on this computer only and shows them next to its own estimate. It is off until you turn it on, and beekeeper keeps what it hears in memory only.",
+  "enable": "Receive Claude Code's cost estimates",
+  "status": {
+    "loading": "Checking the telemetry setting.",
+    "loadFailed": "beekeeper couldn't read the telemetry setting.",
+    "saveFailed": "beekeeper couldn't save the telemetry setting.",
+    "turningOn": "Turning the receiver on…",
+    "turningOff": "Turning the receiver off…",
+    "off": "Off. Nothing is listening.",
+    "listening": "Listening on 127.0.0.1, port {{port}}.",
+    "failure": {
+      "port-in-use": "Another app is using port {{port}}. Turn the receiver off and on again to get a new port and token.",
+      "failed": "beekeeper couldn't start listening on port {{port}}. Turn the receiver off and on again to get a new port and token."
+    },
+    "turnOnFailure": {
+      "port-in-use": "beekeeper couldn't find a free port, so the receiver stays off.",
+      "failed": "beekeeper couldn't start the receiver, so it stays off."
+    }
+  },
+  "setup": {
+    "label": "Environment variables for Claude Code",
+    "instructions": "Run these lines in the shell before you start Claude Code. The port and token change each time you turn the receiver on, so run them again after that. If you keep them in a file, make it readable only by you (chmod 600), not a shell profile other users can read. Sessions that started before you set them won't report.",
+    "copy": "Copy",
+    "copied": "Copied to clipboard.",
+    "copyFailed": "beekeeper couldn't copy. Select the lines and copy them yourself.",
+    "contentFlags": "Leave OTEL_LOG_USER_PROMPTS, OTEL_LOG_ASSISTANT_RESPONSES, OTEL_LOG_TOOL_CONTENT, and OTEL_LOG_RAW_API_BODIES off. beekeeper ignores that content, but it has no reason to receive it."
+  }
+}

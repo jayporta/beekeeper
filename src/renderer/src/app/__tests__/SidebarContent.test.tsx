@@ -23,6 +23,27 @@ describe('SidebarContent', () => {
     expect(within(sidebar).getByText('Local only · read-only')).toBeTruthy()
   })
 
+  it('shows the telemetry button and, while the receiver listens, says so in the footer', async () => {
+    installBeekeeperApi({
+      listSessions: () => Promise.resolve({ ok: true, value: [] }),
+      getOtelReceiver: () =>
+        Promise.resolve({
+          ok: true,
+          value: { enabled: true, status: 'listening', failure: null, port: 23456, token: 't' }
+        })
+    })
+    renderApp()
+
+    const sidebar = await screen.findByRole('complementary', { name: 'Sidebar' })
+
+    expect(
+      await within(sidebar).findByText(
+        'Local only · read-only · receiving Claude Code telemetry on 127.0.0.1'
+      )
+    ).toBeTruthy()
+    expect(within(sidebar).getByRole('button', { name: 'Claude Code telemetry' })).toBeTruthy()
+  })
+
   it('shows only the name and footer while there are no projects', async () => {
     installBeekeeperApi({ listProjects: () => Promise.resolve({ ok: true, value: [] }) })
     renderApp()

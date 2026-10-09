@@ -1,3 +1,4 @@
+import { DialogButton } from './DialogButton'
 import styles from './DialogHeader.module.css'
 
 /** Props for {@link DialogHeader}. */
@@ -38,9 +39,7 @@ export function DialogHeader({
         </h2>
         {children}
       </div>
-      <button type="button" className={styles.close} onClick={onClose}>
-        {closeLabel}
-      </button>
+      <DialogButton onClick={onClose}>{closeLabel}</DialogButton>
     </header>
   )
 }

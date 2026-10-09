@@ -1,8 +1,10 @@
 import type { FilesChangedDto } from './filesChangedDto'
 import type { IpcResult } from './ipcResult'
+import type { OtelReceiverDto } from './otelReceiverDto'
 import type { ProjectDto } from './projectDto'
 import type { ProjectDailyUsageDto } from './projectDailyUsageDto'
 import type { ProjectTotalsDto, TotalsWindowDto } from './projectTotalsDto'
+import type { ReportedCostDto } from './reportedCostDto'
 import type { SessionDetailDto } from './sessionDetailDto'
 import type { SessionListItemDto } from './sessionListDto'
 import type { WorktreeDiffsDto } from './worktreeDiffDto'
@@ -74,6 +76,33 @@ export interface BeekeeperApi {
     sessionId: string,
     agentId: string
   ): Promise<IpcResult<WorktreePatchDto>>
+
+  /**
+   * Reads the opt-in telemetry receiver, which listens on 127.0.0.1 for Claude Code's own cost reports.
+   * @returns Whether it is turned on, whether it is listening or failed (with the reason), and, only while it is on, the port to export to and the bearer token Claude Code must send.
+   */
+  getOtelReceiver(): Promise<IpcResult<OtelReceiverDto>>
+
+  /**
+   * Turns the telemetry receiver on or off. Turning it on from off binds a new random port with a new token, and saves the choice, port and token only once the receiver is listening. Turning it on while it is on changes nothing. Turning it off deletes the saved port and token, stops listening, and clears the reported costs.
+   * @param enabled - Whether the receiver should run.
+   * @returns The receiver afterwards. A turn-on that couldn't bind a port comes back `{ enabled: false, status: 'failed', failure }` with nothing saved.
+   */
+  setOtelReceiverEnabled(enabled: boolean): Promise<IpcResult<OtelReceiverDto>>
+
+  /**
+   * Reads what Claude Code's telemetry reported for one session since beekeeper started listening.
+   * @param sessionId - A session id from {@link BeekeeperApi.listSessions}.
+   * @returns Claude Code's own cost estimate and token totals, or `null` when the session reported nothing.
+   */
+  getReportedCost(sessionId: string): Promise<IpcResult<ReportedCostDto | null>>
+
+  /**
+   * Copies text to the system clipboard. The renderer's own clipboard access is denied, so the main process writes it.
+   * @param text - The text to copy, at most 4096 characters.
+   * @returns `null` once copied, `invalid-request` for text over the cap, or `internal` when the app has no clipboard writer.
+   */
+  copyText(text: string): Promise<IpcResult<null>>
 
   /**
    * Subscribes to the menu's request to open the About dialog.

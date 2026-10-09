@@ -19,3 +19,7 @@
   color: var(--color-text);
   font-size: var(--font-size-xs);
 }
+
+.padded {
+  padding-inline: var(--space-2);
+}

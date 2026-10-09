@@ -21,11 +21,22 @@ A rough roadmap, in build order:
 
 ## Privacy promise
 
-beekeeper is local-first and read-only. It makes zero network calls and collects zero telemetry. That's not just a claim in this README, it's enforced in a few concrete ways:
+beekeeper is local-first and read-only. It makes zero outbound network calls and collects zero telemetry. The only network listener is an opt-in receiver for Claude Code's own cost reports, described below, and it is off until you turn it on. That's not just a claim in this README, it's enforced in a few concrete ways:
 
 - **A session-level request blocker.** Every outgoing request is checked against an allowlist before it's allowed to leave the process. In production, only the app's own bundled files are allowed through, nothing else, not even to `localhost`. In development, only the Vite dev server's own origin is allowed too, so hot reload keeps working.
 - **A strict Content-Security-Policy.** The renderer runs under a CSP that blocks any script, connection, or resource that isn't bundled with the app.
-- **Lint rules that ban network APIs.** `http`, `https`, `net`, `tls`, `dgram`, `http2`, and Electron's own `net` module are banned imports. `fetch`, `XMLHttpRequest`, `WebSocket`, and `EventSource` are banned globals. If one of these ever creeps into the code, lint fails and CI blocks the merge.
+- **Lint rules that ban network APIs.** `http`, `https`, `net`, `tls`, `dgram`, `http2`, and Electron's own `net` module are banned imports. `fetch`, `XMLHttpRequest`, `WebSocket`, and `EventSource` are banned globals. If one of these ever creeps into the code, lint fails and CI blocks the merge. The one exception is `http`, which the opt-in receiver's folder (`src/main/otel/`) may import, and a lint test checks that the other bans still apply there.
+
+### The opt-in telemetry receiver
+
+Claude Code can export its own per-request cost estimates over OpenTelemetry. If you want beekeeper to show them next to its own estimate, you can turn on a receiver. It is off by default, and nothing listens until you turn it on.
+
+- **Loopback only.** It binds `127.0.0.1` on a random port that beekeeper chooses each time you turn the receiver on, so nothing off your machine can reach it. It never makes an outbound request.
+- **Authenticated.** Claude Code must send a bearer token that beekeeper creates each time you turn the receiver on and keeps, with the port, in its app data folder (`otel-receiver.json`, readable only by you). A request without the token is refused. Turning the receiver off deletes the token and the port, and turning it on again issues a new pair. A random port defeats a process that targets a known port, but not one that could bind the whole range while beekeeper is closed. Rotating the token limits what a captured token can do.
+- **Narrow.** It accepts only `POST /v1/logs` with a JSON body. It refuses any request that carries an `Origin` header or a `Host` other than `127.0.0.1` or `localhost`, so a web page can't use your browser to reach it. Compressed bodies and bodies over 2 MiB are refused.
+- **Only costs.** From each `claude_code.api_request` event beekeeper reads the session id, the cost, the token counts, the model, and the agent and request ids. It never stores or logs prompt or response content, headers, or the token, and it keeps what it hears in memory only, so nothing survives a restart.
+
+Leave Claude Code's content flags (`OTEL_LOG_USER_PROMPTS`, `OTEL_LOG_ASSISTANT_RESPONSES`, `OTEL_LOG_TOOL_CONTENT`, and `OTEL_LOG_RAW_API_BODIES`) off. beekeeper ignores that content, but it has no reason to receive it.
 
 ## What beekeeper reads
 
@@ -51,6 +62,8 @@ beekeeper also keeps two preferences: the selected project and whether you've di
 
 - They live in IndexedDB in beekeeper's own app data folder, never in `~/.claude` or in a repository, and they're never sent anywhere.
 - No cached list is older than 7 days, and an update that changes the data format clears the cache. The two preferences stay until you change them.
+
+If you turn on the telemetry receiver, beekeeper also writes `otel-receiver.json` to its app data folder with your on or off choice and, while it is on, the bearer token and port, readable only by you. Costs the receiver hears about are held in memory and never written to disk.
 
 ## Permissions you may see
 

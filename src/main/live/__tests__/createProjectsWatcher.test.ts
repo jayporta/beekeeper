@@ -9,7 +9,7 @@ import {
   type ProjectsWatcherOptions,
   type WatcherLike
 } from '../createProjectsWatcher'
-import { fakeWindow, type FakeWindow } from '../testFakeWindow'
+import { fakeWindow, type FakeWindow } from '../../testFakeWindow'
 
 const ROOT = '/Users/someone/.claude/projects'
 

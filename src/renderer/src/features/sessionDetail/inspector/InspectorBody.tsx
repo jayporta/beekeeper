@@ -8,6 +8,7 @@ import { InspectorFootnote } from './InspectorFootnote'
 import { inspectorReasons } from './inspectorReasons'
 import { InspectorSignals } from './InspectorSignals'
 import { InspectorTotals } from './InspectorTotals'
+import { ReportedCostNote } from './ReportedCostNote'
 import { reportCost } from './reportCost'
 import { rollupBelow } from './rollupBelow'
 import { TokenRows } from './TokenRows'
@@ -25,7 +26,7 @@ interface InspectorBodyProps {
 
 /**
  * Everything the inspector knows about an agent whose report has loaded: its
- * totals, tokens by class, files touched, worktree diff, signals, flags, and the
+ * totals, Claude Code's own cost estimate when the telemetry receiver has one, tokens by class, files touched, worktree diff, signals, flags, and the
  * footnote that explains each "¹". The worktree box is for a subagent that ran
  * on a worktree branch, and for an agent in a session of its own, which shows
  * one only when it shares a worktree with a subagent of the lead.
@@ -55,6 +56,7 @@ export function InspectorBody({ node, target, inspection }: InspectorBodyProps):
         unreadableLines={report.skippedLines > 0}
         subagentsUnreadable={subagentsUnreadable}
       />
+      <ReportedCostNote sessionId={target.ownerRef.sessionId} agentId={target.agentId} />
       {tokens !== null && <TokenRows report={report} tokens={tokens} />}
       <FilesTouched report={report} />
       {target.agentId === null && node.kind === 'teammate' && (
