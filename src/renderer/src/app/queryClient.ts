@@ -1,8 +1,8 @@
-import { QueryClient, type Query } from '@tanstack/react-query'
+import { QueryClient } from '@tanstack/react-query'
 import { TOTALS_STALE_TIME_MS } from '@renderer/features/overview/totalsStaleTime'
-import { hasProjectsToShow } from '@renderer/features/projects/hasProjectsToShow'
 import { SESSIONS_GC_TIME_MS } from '@renderer/features/sessions/sessionsGcTime'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
+import { refetchListOnFocus, refetchProjectsOnFocus } from './backgroundRefetchRules'
 import { LISTS_STALE_TIME_MS } from './listsStaleTime'
 import { PERSIST_MAX_AGE_MS } from './persistMaxAge'
 import { PERSISTED_QUERY_ROOTS } from './shouldPersistQuery'
@@ -23,41 +23,6 @@ const DEFAULT_RETRY_COUNT = 3
 function shouldRetry(failureCount: number, error: unknown): boolean {
   return IpcCallError.codeOf(error) === 'internal' && failureCount < DEFAULT_RETRY_COUNT
 }
-
-/**
- * Whether a list query refetches when the window regains focus. Not while it
- * is in error status and `showsErrorScreen` says the page shows that failure
- * as an error screen: a refetch would replace that screen, including a Retry
- * button that may hold focus, with a loading message, or announce the same
- * alert again. That failure waits for an explicit Retry or Refresh. Any other
- * list refetches, so it recovers on its own once the files can be read again,
- * including a failed list that keeps showing its data.
- *
- * @param showsErrorScreen - Whether the page shows an error screen for a failed list holding this data and error.
- * @returns A predicate for `refetchOnWindowFocus`.
- */
-function refetchUnlessErrorScreen(
-  showsErrorScreen: (data: unknown, error: unknown) => boolean
-): (query: Query) => boolean {
-  return (query) =>
-    query.state.status !== 'error' || !showsErrorScreen(query.state.data, query.state.error)
-}
-
-/**
- * The focus rule a list gets by default: a failed list with no data shows an
- * error screen, and a failed list with data keeps showing that data, except
- * when its folder is gone (`not-found`), which `SessionsBody` shows as an
- * alert whatever the data.
- */
-const refetchListOnFocus = refetchUnlessErrorScreen(
-  (data, error) => data === undefined || IpcCallError.codeOf(error) === 'not-found'
-)
-
-/**
- * The focus rule for the project list: `ProjectsGate` shows an error screen
- * for a failed list with no projects to show, loaded or not.
- */
-const refetchProjectsOnFocus = refetchUnlessErrorScreen((data) => !hasProjectsToShow(data))
 
 /**
  * What the project and session lists share: they refetch on window focus once

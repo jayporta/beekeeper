@@ -1,6 +1,6 @@
-import { act, screen, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { testDetail } from '@renderer/features/sessionDetail/testSessionDetail'
@@ -24,6 +24,23 @@ afterEach(async () => {
 })
 
 describe('MainView', () => {
+  it('refreshes the sessions list when its project’s files change', async () => {
+    const listSessions = vi.fn(() => Promise.resolve({ ok: true as const, value: [] }))
+    const api = installBeekeeperApi({ listSessions })
+    renderApp()
+    await waitFor(() => {
+      expect(listSessions).toHaveBeenCalledTimes(1)
+    })
+
+    act(() => {
+      api.fireFilesChanged({ dirNames: ['-Users-a-repo'], foldersChanged: false, all: false })
+    })
+
+    await waitFor(() => {
+      expect(listSessions).toHaveBeenCalledTimes(2)
+    })
+  })
+
   it('shows the sessions list by default', async () => {
     renderApp()
 
