@@ -106,7 +106,8 @@ app
     })
 
     createWindow()
-    // Listening is asynchronous and a busy port fails at once, so starting here never delays the window.
+    // Not awaited, so the window never waits on it. Reads of the receiver queue behind
+    // it, so the page never sees a receiver that is on but not yet started.
     otel.receiver.startFromSettings().catch((error: unknown) => {
       console.error(`Beekeeper could not start the telemetry receiver (${describeError(error)}).`)
     })

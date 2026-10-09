@@ -145,33 +145,12 @@ describe('createOtelReceiverController', () => {
     await guarded.stopAll()
   })
 
-  it('reports starting for a saved on setting before the server has started', async () => {
-    const saved = await settings.setEnabled(true)
-
-    expect(await controller.get()).toEqual({
-      enabled: true,
-      status: 'starting',
-      failure: null,
-      port: 0,
-      token: saved.token
-    })
-  })
-
   it('reports listening once the saved setting has been started', async () => {
     await settings.setEnabled(true)
 
     await controller.startFromSettings()
 
     expect((await controller.get()).status).toBe('listening')
-  })
-
-  it('reports off, not starting, after a receiver started at launch is stopped', async () => {
-    await settings.setEnabled(true)
-    await controller.startFromSettings()
-
-    await controller.stop()
-
-    expect((await controller.get()).status).toBe('off')
   })
 
   it('starts from the saved setting when it is on', async () => {
@@ -196,6 +175,50 @@ describe('createOtelReceiverController', () => {
     await controller.startFromSettings()
 
     expect(receiver.state()).toEqual({ status: 'off' })
+  })
+
+  it('answers a read made during a change with the state after it', async () => {
+    const [, during] = await Promise.all([controller.setEnabled(true), controller.get()])
+
+    expect(during).toMatchObject({ enabled: true, status: 'listening' })
+  })
+
+  it('stops listening without changing the saved setting', async () => {
+    await controller.setEnabled(true)
+
+    await controller.stop()
+
+    expect((await settings.read()).enabled).toBe(true)
+    expect(await controller.get()).toMatchObject({ enabled: true, status: 'off' })
+  })
+
+  it('applies overlapping changes in the order they were made, whatever each takes to save', async () => {
+    let saved = { enabled: false, token: null as string | null }
+    const slowToEnable: OtelSettingsStore = {
+      read: () => Promise.resolve(saved),
+      setEnabled: async (enabled) => {
+        await new Promise((resolve) => setTimeout(resolve, enabled ? 40 : 1))
+        saved = { enabled, token: 'tok' }
+        return saved
+      }
+    }
+    let listening = false
+    const fake: OtelReceiver = {
+      start: () => {
+        listening = true
+        return Promise.resolve({ status: 'listening', port: 1 })
+      },
+      stop: () => {
+        listening = false
+        return Promise.resolve()
+      },
+      state: () => (listening ? { status: 'listening', port: 1 } : { status: 'off' })
+    }
+    const racing = createOtelReceiverController({ settings: slowToEnable, receiver: fake, port: 0 })
+
+    await Promise.all([racing.setEnabled(true), racing.setEnabled(false)])
+
+    expect([saved.enabled, listening]).toEqual([false, false])
   })
 
   it('answers a read made during a change with the state after it', async () => {

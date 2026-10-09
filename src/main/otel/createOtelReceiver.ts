@@ -1,4 +1,5 @@
 import { createServer, type Server } from 'node:http'
+import { errorCode } from '../../core/shared/errorCode'
 import type { OtelReceiverFailureDto } from '../../shared/ipc/otelReceiverFailureDto'
 import { describeError } from '../describeError'
 import { createOtlpRequestHandler } from './createOtlpRequestHandler'
@@ -53,9 +54,7 @@ type ListenResult =
   | { readonly ok: false; readonly failure: OtelReceiverFailureDto }
 
 function failureOf(error: unknown): OtelReceiverFailureDto {
-  return error instanceof Error && 'code' in error && error.code === 'EADDRINUSE'
-    ? 'port-in-use'
-    : 'failed'
+  return errorCode(error) === 'EADDRINUSE' ? 'port-in-use' : 'failed'
 }
 
 function listen(server: Server, port: number): Promise<ListenResult> {
