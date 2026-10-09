@@ -1,4 +1,5 @@
 import type { SessionSummaryCache } from '../../core/transcript/summary/sessionSummaryCache'
+import type { ArchiveReader, ArchiveWriter } from '../archive/archiveStoreTypes'
 import type { GitLocation } from '../git/gitLocator'
 import type { OtelRuntime } from '../otel/createOtelRuntime'
 import type { DailyUsageCache } from '../overview/dailyUsageCache'
@@ -65,4 +66,10 @@ export interface IpcDeps {
    * tests that don't touch it get `null` and never reach the real clipboard.
    */
   readonly copyToClipboard: ((text: string) => void) | null
+  /**
+   * Where listed sessions and scanned details are archived, or `null` when
+   * the archive is off or couldn't be opened. A write failure never fails the
+   * request that triggered it.
+   */
+  readonly archive: (ArchiveWriter & ArchiveReader) | null
 }

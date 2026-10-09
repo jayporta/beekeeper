@@ -32,10 +32,10 @@ export const SCAN_CACHE_CAPACITY = 4
  * cache, a scheduler for daily usage scans and their cache, the host's time zone, the clock, and a lazy git locator. Worktree diffs are never cached, since a worktree can
  * change while its transcript doesn't.
  *
- * The telemetry receiver and the clipboard writer are `null`; the app supplies them.
+ * The telemetry receiver, the clipboard writer and the archive are `null`; the app supplies them.
  *
  * @param homeDir - The user's home directory.
- * @returns The dependencies.
+ * @returns The dependencies, with no archive. The app sets `archive` once its database is open.
  */
 export function createIpcDeps(homeDir: string): IpcDeps {
   return {
@@ -54,6 +54,7 @@ export function createIpcDeps(homeDir: string): IpcDeps {
     now: Date.now,
     git: createGitLocator(),
     otel: null,
-    copyToClipboard: null
+    copyToClipboard: null,
+    archive: null
   }
 }

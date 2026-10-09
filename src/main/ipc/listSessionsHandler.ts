@@ -3,10 +3,12 @@ import type { IpcResult } from '../../shared/ipc/ipcResult'
 import { listSessionsRequestSchema } from '../../shared/ipc/requestSchemas'
 import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
 import type { SessionTeamDto } from '../../shared/ipc/sessionTeamDto'
+import { archiveListedSessions, type ListedItem } from './archiveListedSessions'
 import { groupProjectFamily } from './groupProjectFamily'
 import type { IpcDeps } from './ipcDeps'
 import { errResult, okResult } from './ipcResults'
 import { mapSessionListItem, type ScannedSession } from './mapSessionListItem'
+import { readArchivedListItems } from './readArchivedListItems'
 import { readSessionAgentTerms } from './readSessionAgentTerms'
 import { readSessionWorkflowRunNames } from './readSessionWorkflowRunNames'
 import { sessionRefKey } from './sessionRefKey'
@@ -42,10 +44,13 @@ function isListedFor(projectDirName: string, { session, team }: ListedSession): 
  * summaries scheduler. The search terms of subagents and the names of
  * workflow runs are read, through their caches and under the same scheduler,
  * only for the sessions the list holds. See {@link groupProjectFamily} for
- * how an unreadable sibling folder is treated.
+ * how an unreadable sibling folder is treated. The folder's own sessions with
+ * a readable summary are archived, and the archived sessions whose transcripts
+ * are gone from the folder are appended, marked archived and without a team. A
+ * failing archive write or read never changes the live list.
  *
  * @param deps - The projects root, the summary, agent terms and workflow run
- * names caches, and the summaries scheduler.
+ * names caches, the summaries scheduler, and the archive.
  * @param payload - The renderer's payload, validated here.
  * @returns The sessions, `invalid-request` for a bad payload, or
  * `not-found` for an unknown project.
@@ -53,7 +58,7 @@ function isListedFor(projectDirName: string, { session, team }: ListedSession): 
 export async function listSessionsHandler(
   deps: Pick<
     IpcDeps,
-    'projectsRoot' | 'summaryCache' | 'summaries' | 'agentTerms' | 'workflowRunNames'
+    'projectsRoot' | 'summaryCache' | 'summaries' | 'agentTerms' | 'workflowRunNames' | 'archive'
   >,
   payload: unknown
 ): Promise<IpcResult<readonly SessionListItemDto[]>> {
@@ -71,15 +76,32 @@ export async function listSessionsHandler(
     team: teams.get(teamKeyOf(session)) ?? null
   }))
   const listed = items.filter((item) => isListedFor(project.dirName, item))
-  return okResult(
-    await Promise.all(
-      listed.map(async ({ session, team }) => {
-        const [agentTerms, workflowRunNames] = await Promise.all([
-          readSessionAgentTerms(session.entry, deps),
-          readSessionWorkflowRunNames(session.entry, deps)
-        ])
-        return mapSessionListItem({ ...session, agentTerms, workflowRunNames }, team)
-      })
-    )
+  const listedItems = await Promise.all(
+    listed.map(async ({ session, team }): Promise<ListedItem> => {
+      const [agentTerms, workflowRunNames] = await Promise.all([
+        readSessionAgentTerms(session.entry, deps),
+        readSessionWorkflowRunNames(session.entry, deps)
+      ])
+      return {
+        session,
+        item: mapSessionListItem({ ...session, agentTerms, workflowRunNames }, team)
+      }
+    })
   )
+  archiveListedSessions({
+    archive: deps.archive,
+    projectDirName: project.dirName,
+    listed: listedItems
+  })
+  const liveSessionIds = new Set<string>(
+    scanned
+      .filter((session) => session.projectDirName === project.dirName)
+      .map((session) => session.entry.sessionId)
+  )
+  const archived = readArchivedListItems({
+    archive: deps.archive,
+    projectDirName: project.dirName,
+    liveSessionIds
+  })
+  return okResult([...listedItems.map(({ item }) => item), ...archived])
 }

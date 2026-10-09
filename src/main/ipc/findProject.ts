@@ -1,5 +1,5 @@
 import { discoverProjects, type ProjectEntry } from '../../core/transcript/discoverProjects'
-import { discoverSessions, type SessionEntry } from '../../core/transcript/discoverSessions'
+import type { SessionEntry } from '../../core/transcript/discoverSessions'
 
 /**
  * Finds a project by exact match in a fresh directory listing, so no path is
@@ -22,28 +22,4 @@ export interface FoundSession {
   readonly project: ProjectEntry
   /** The session entry from the listing. */
   readonly session: SessionEntry
-}
-
-/** Options for {@link findSession}. */
-export interface FindSessionOptions {
-  /** The `~/.claude/projects` directory. */
-  readonly projectsRoot: string
-  /** A project folder name the renderer sent. */
-  readonly dirName: string
-  /** A session id the renderer sent. */
-  readonly sessionId: string
-}
-
-/**
- * Finds a session by exact match in fresh listings of the projects and the
- * project's sessions.
- * @param options - The projects root and the renderer's names.
- * @returns The listed project and session, or `undefined` when either is gone.
- */
-export async function findSession(options: FindSessionOptions): Promise<FoundSession | undefined> {
-  const project = await findProject(options.projectsRoot, options.dirName)
-  if (project === undefined) return undefined
-  const sessions = await discoverSessions(project.path)
-  const session = sessions.find((entry) => entry.sessionId === options.sessionId)
-  return session === undefined ? undefined : { project, session }
 }

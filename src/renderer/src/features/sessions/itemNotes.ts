@@ -2,6 +2,17 @@ import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
 import type { SessionsT } from './sessionsT'
 
 /**
+ * The note for a session whose transcript is no longer on disk.
+ *
+ * @param item - A session list item.
+ * @param t - The sessions translate function.
+ * @returns "archived", or `null` when the session is read from disk.
+ */
+export function archivedNote(item: SessionListItemDto, t: SessionsT): string | null {
+  return item.archived ? t('notes.archived') : null
+}
+
+/**
  * The note for a teammate session its lead stopped.
  *
  * @param item - A session list item.

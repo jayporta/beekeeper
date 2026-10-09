@@ -208,10 +208,7 @@ describe('getSessionHandler', () => {
     const listener = guardIpc({
       isTrusted: () => true,
       handle: (payload) =>
-        getSessionHandler(
-          { projectsRoot: ctx.deps.projectsRoot, scans: vanishing, scanCache: NO_SCAN_CACHE },
-          payload
-        )
+        getSessionHandler({ ...ctx.deps, scans: vanishing, scanCache: NO_SCAN_CACHE }, payload)
     })
     expect(await listener({}, request)).toEqual(notFound)
   })
@@ -245,14 +242,8 @@ describe('getSessionHandler', () => {
       }
     }
     const both = await Promise.all([
-      getSessionHandler(
-        { projectsRoot: ctx.deps.projectsRoot, scans: counting, scanCache: NO_SCAN_CACHE },
-        request
-      ),
-      getSessionHandler(
-        { projectsRoot: ctx.deps.projectsRoot, scans: counting, scanCache: NO_SCAN_CACHE },
-        request
-      )
+      getSessionHandler({ ...ctx.deps, scans: counting, scanCache: NO_SCAN_CACHE }, request),
+      getSessionHandler({ ...ctx.deps, scans: counting, scanCache: NO_SCAN_CACHE }, request)
     ])
     expect(both.map((result) => result.ok)).toEqual([true, true])
     expect(scans).toBe(1)
