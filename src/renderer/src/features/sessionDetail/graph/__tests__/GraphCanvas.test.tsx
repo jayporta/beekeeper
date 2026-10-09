@@ -269,6 +269,16 @@ describe('GraphCanvas partial data', () => {
   })
 })
 
+describe('GraphCanvas region description', () => {
+  it('describes the graph region with the keyboard hint, which is always in the notes', () => {
+    renderGraph()
+
+    expect(
+      screen.getByRole('region', { name: 'Agent graph', description: /^Up and Down move/ })
+    ).toBeTruthy()
+  })
+})
+
 describe('GraphCanvas teammates that were not found', () => {
   const missing = (overrides: Parameters<typeof testUsage>[0]): SessionListItemDto[] => [
     testSession(1, { team: testLeadTeam([], testUsage(overrides)) })

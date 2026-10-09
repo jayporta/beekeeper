@@ -78,4 +78,15 @@ describe('MutedText', () => {
 
     expect(screen.queryByRole('status')).toBeNull()
   })
+
+  it('rejects decorative text that is also a status at compile time', () => {
+    render(
+      // @ts-expect-error -- an aria-hidden status is never announced, so typecheck fails without this directive
+      <MutedText decorative role="status">
+        Loading
+      </MutedText>
+    )
+
+    expect(screen.getByText('Loading')).toBeTruthy()
+  })
 })
