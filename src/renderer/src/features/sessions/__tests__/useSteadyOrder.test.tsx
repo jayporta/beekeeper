@@ -6,7 +6,7 @@ import { testRow } from '../testSessionRows'
 import { useSteadyOrder, type SteadyOrderOptions } from '../useSteadyOrder'
 
 const NOW = 1_000_000
-const NO_RESORT: SteadyOrderOptions = { resortAt: 0, dataUpdatedAt: NOW }
+const NO_RESORT: SteadyOrderOptions = { resortAt: 0, dataUpdatedAt: NOW, errorUpdatedAt: 0 }
 
 /**
  * The top-level rows for sessions numbered by key, session `n` last active at
@@ -92,7 +92,11 @@ describe('useSteadyOrder', () => {
   })
 
   describe('a resort request', () => {
-    const request = { resortAt: NOW + 10, dataUpdatedAt: NOW + 10 }
+    const request: SteadyOrderOptions = {
+      resortAt: NOW + 10,
+      dataUpdatedAt: NOW + 10,
+      errorUpdatedAt: 0
+    }
 
     it('re-sorts once data newer than the request arrives', () => {
       const { result, rerender } = setup(rowsOf({ 1: 300, 2: 200 }))
@@ -110,6 +114,32 @@ describe('useSteadyOrder', () => {
       expect(numbersOf(result.current)).toEqual([1, 2])
 
       rerender({ rows: reordered, options: request })
+      expect(numbersOf(result.current)).toEqual([2, 1])
+    })
+
+    it('is dropped when a load fails after it, so later data keeps the order', () => {
+      const { result, rerender } = setup(rowsOf({ 1: 300, 2: 200 }))
+      const failed = { resortAt: NOW + 10, dataUpdatedAt: NOW, errorUpdatedAt: NOW + 11 }
+      rerender({ rows: rowsOf({ 1: 300, 2: 200 }), options: failed })
+
+      rerender({
+        rows: rowsOf({ 1: 300, 2: 400 }),
+        options: { ...failed, dataUpdatedAt: NOW + 20 }
+      })
+
+      expect(numbersOf(result.current)).toEqual([1, 2])
+    })
+
+    it('is kept when the failure came before it', () => {
+      const { result, rerender } = setup(rowsOf({ 1: 300, 2: 200 }))
+      const earlier = { resortAt: NOW + 10, dataUpdatedAt: NOW, errorUpdatedAt: NOW + 5 }
+      rerender({ rows: rowsOf({ 1: 300, 2: 200 }), options: earlier })
+
+      rerender({
+        rows: rowsOf({ 1: 300, 2: 400 }),
+        options: { ...earlier, dataUpdatedAt: NOW + 20 }
+      })
+
       expect(numbersOf(result.current)).toEqual([2, 1])
     })
 

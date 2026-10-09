@@ -7,6 +7,8 @@ export interface SteadyOrderOptions {
   readonly resortAt: number
   /** When the rows' data last loaded, in epoch milliseconds. */
   readonly dataUpdatedAt: number
+  /** When a load of the rows' data last failed, in epoch milliseconds, or 0 if none has. */
+  readonly errorUpdatedAt: number
 }
 
 const sameKeys = (a: readonly string[], b: readonly string[]): boolean =>
@@ -22,7 +24,9 @@ const sameKeys = (a: readonly string[], b: readonly string[]): boolean =>
  *
  * A resort request takes effect on the first rows whose data loaded at or
  * after `resortAt`: those are shown as sorted, and the order holds from there.
- * Each request applies once.
+ * A load that fails after the request, before any newer data, drops it, so a
+ * later background update doesn't re-sort under the reader. Each request
+ * applies once.
  *
  * @param rows - The top-level rows, sorted newest first.
  * @param options - The pending resort request and when the data last loaded.
@@ -30,12 +34,14 @@ const sameKeys = (a: readonly string[], b: readonly string[]): boolean =>
  */
 export function useSteadyOrder(
   rows: readonly SessionRow[],
-  { resortAt, dataUpdatedAt }: SteadyOrderOptions
+  { resortAt, dataUpdatedAt, errorUpdatedAt }: SteadyOrderOptions
 ): readonly SessionRow[] {
   const [order, setOrder] = useState<readonly string[]>([])
   const [resortApplied, setResortApplied] = useState(0)
 
-  const resort = resortAt > resortApplied && dataUpdatedAt >= resortAt
+  const pending = resortAt > resortApplied
+  const resort = pending && dataUpdatedAt >= resortAt
+  const dropped = pending && !resort && errorUpdatedAt >= resortAt
   const keys = useMemo(() => {
     const known = new Set(order)
     const present = new Set(rows.map((row) => row.key))
@@ -45,7 +51,7 @@ export function useSteadyOrder(
   const nextOrder = resort ? rows.map((row) => row.key) : keys
 
   // Adjusting state while rendering: React re-renders at once with the new order.
-  if (resort) setResortApplied(resortAt)
+  if (resort || dropped) setResortApplied(resortAt)
   if (!sameKeys(nextOrder, order)) setOrder(nextOrder)
 
   return useMemo(() => {

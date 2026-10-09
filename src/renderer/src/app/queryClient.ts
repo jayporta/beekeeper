@@ -6,6 +6,7 @@ import { refetchListOnFocus, refetchProjectsOnFocus } from './backgroundRefetchR
 import { LISTS_STALE_TIME_MS } from './listsStaleTime'
 import { PERSIST_MAX_AGE_MS } from './persistMaxAge'
 import { PERSISTED_QUERY_ROOTS } from './shouldPersistQuery'
+import { TOTALS_ROOTS } from './totalsRoots'
 
 /** TanStack's own default: retry a failed query three times. */
 const DEFAULT_RETRY_COUNT = 3
@@ -46,9 +47,6 @@ const TOTALS_DEFAULTS = {
   refetchOnWindowFocus: true,
   staleTime: TOTALS_STALE_TIME_MS
 } as const
-
-/** The persisted roots that hold a folder's whole-folder reads, which take {@link TOTALS_DEFAULTS}. */
-const TOTALS_ROOTS: readonly unknown[] = ['projectTotals', 'projectDailyUsage']
 
 /**
  * Creates the app's query client. Queries run whether or not the OS reports a

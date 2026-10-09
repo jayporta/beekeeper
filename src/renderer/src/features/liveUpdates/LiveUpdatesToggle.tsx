@@ -6,8 +6,10 @@ import { useLiveUpdatesStore } from './state/useLiveUpdatesStore'
 
 /**
  * The checkbox that pauses and resumes live updates. It is checked while they
- * run. When they can't run it is disabled and unchecked, and a note says to use
- * Refresh, which the checkbox is described by.
+ * run. When they can't run it is unchecked and marked disabled, but it stays
+ * focusable, so a person on it doesn't lose their place. A polite status
+ * region, mounted from the start so its change is announced, then says to use
+ * Refresh, and the checkbox is described by it.
  *
  * @example
  * <LiveUpdatesToggle />
@@ -26,19 +28,17 @@ export function LiveUpdatesToggle(): React.JSX.Element {
           type="checkbox"
           className={styles.checkbox}
           checked={!paused && !unavailable}
-          disabled={unavailable}
+          aria-disabled={unavailable || undefined}
           aria-describedby={unavailable ? noteId : undefined}
           onChange={(event) => {
-            setPaused(!event.target.checked)
+            if (!unavailable) setPaused(!event.target.checked)
           }}
         />
         {t('label')}
       </label>
-      {unavailable && (
-        <MutedText smaller id={noteId} className={styles.note}>
-          {t('unavailable')}
-        </MutedText>
-      )}
+      <MutedText smaller role="status" id={noteId} className={styles.note}>
+        {unavailable && t('unavailable')}
+      </MutedText>
     </div>
   )
 }

@@ -13,7 +13,7 @@
   font-size: var(--font-size-sm);
   cursor: pointer;
 
-  &:has(:disabled) {
+  &:has([aria-disabled='true']) {
     color: var(--color-text-muted);
     cursor: default;
   }

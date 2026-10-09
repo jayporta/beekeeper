@@ -1,6 +1,5 @@
 import { useDeferredValue, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { LISTS_STALE_TIME_MS } from '@renderer/app/listsStaleTime'
 import { SelectedProjectHeading } from '@renderer/features/projects/SelectedProjectHeading'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import { countMatches } from './countMatches'
@@ -38,17 +37,17 @@ interface SessionsContentProps {
  */
 export function SessionsContent({ dirName, headingId }: SessionsContentProps): React.JSX.Element {
   const { t } = useTranslation('sessions')
-  const { data, dataUpdatedAt, error, errorUpdatedAt, isFetching, refetch } = useSessions(dirName)
-  // The cards re-sort on a Refresh press, and when this view opens on a list old enough to be
-  // refetched at once, so what the person first sees is current. Background updates keep the order.
-  const [resortAt, setResortAt] = useState(() =>
-    Date.now() - dataUpdatedAt > LISTS_STALE_TIME_MS ? Date.now() : 0
-  )
+  const { data, dataUpdatedAt, error, errorUpdatedAt, isFetching, isStale, refetch } =
+    useSessions(dirName)
+  // The cards re-sort on a Refresh press, and when this view opens on a stale list (old, or
+  // invalidated while hidden) that is refetched at once, so what the person first sees is
+  // current. Background updates keep the order.
+  const [resortAt, setResortAt] = useState(() => (isStale ? Date.now() : 0))
   const typed = useSessionsViewStore((state) => state.query)
   // Filtering waits on the deferred text, and the list is memoized, so typing stays responsive.
   const query = useDeferredValue(typed)
   const sorted = useMemo(() => (data === undefined ? [] : groupSessionRows(data, t)), [data, t])
-  const rows = useSteadyOrder(sorted, { resortAt, dataUpdatedAt })
+  const rows = useSteadyOrder(sorted, { resortAt, dataUpdatedAt, errorUpdatedAt })
   const matching = useMemo(() => filterRows(rows, query), [rows, query])
   const matchCount = useMemo(() => countMatches(rows, query), [rows, query])
   // A gone folder's cached list is hidden behind its alert, so it isn't searchable.

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { FilesChangedDto } from '../../../../../shared/ipc/filesChangedDto'
 import { installBeekeeperApi, type TestBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { createTestQueryClient } from '@renderer/testQueryWrapper'
+import { DETAIL_LIVE_INTERVAL_MS } from '../detailThrottle'
 import { useLiveUpdates } from '../useLiveUpdates'
 import { useLiveUpdatesStore } from '../state/useLiveUpdatesStore'
 
@@ -210,6 +211,96 @@ describe('useLiveUpdates', () => {
     })
 
     expect(api.onFilesChanged).toHaveBeenCalledTimes(1)
+  })
+
+  describe('session details', () => {
+    const SESSION = '11111111-1111-4111-8111-111111111111'
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    })
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('refresh when the detail interval ends, while lists refresh at once', async () => {
+      const list = showing(['sessions', A])
+      const detail = showing(['session', A, SESSION])
+      renderHook(
+        () => {
+          useLiveUpdates()
+        },
+        { wrapper }
+      )
+
+      act(() => {
+        api.fireFilesChanged(change([A]))
+      })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(list).toHaveBeenCalledTimes(1)
+      expect(detail).not.toHaveBeenCalled()
+
+      await vi.advanceTimersByTimeAsync(DETAIL_LIVE_INTERVAL_MS)
+      expect(detail).toHaveBeenCalledTimes(1)
+    })
+
+    it('are not refreshed after live updates are paused', async () => {
+      const detail = showing(['session', A, SESSION])
+      renderHook(
+        () => {
+          useLiveUpdates()
+        },
+        { wrapper }
+      )
+      act(() => {
+        api.fireFilesChanged(change([A]))
+      })
+
+      act(() => {
+        useLiveUpdatesStore.getState().setPaused(true)
+      })
+      await vi.advanceTimersByTimeAsync(DETAIL_LIVE_INTERVAL_MS * 2)
+
+      expect(detail).not.toHaveBeenCalled()
+    })
+
+    it('are not refreshed after it unmounts', async () => {
+      const detail = showing(['session', A, SESSION])
+      const { unmount } = renderHook(
+        () => {
+          useLiveUpdates()
+        },
+        { wrapper }
+      )
+      act(() => {
+        api.fireFilesChanged(change([A]))
+      })
+
+      unmount()
+      await vi.advanceTimersByTimeAsync(DETAIL_LIVE_INTERVAL_MS * 2)
+
+      expect(detail).not.toHaveBeenCalled()
+    })
+
+    it('refresh at once when live updates resume', async () => {
+      const detail = showing(['session', B, SESSION])
+      renderHook(
+        () => {
+          useLiveUpdates()
+        },
+        { wrapper }
+      )
+      act(() => {
+        useLiveUpdatesStore.getState().setPaused(true)
+      })
+
+      act(() => {
+        useLiveUpdatesStore.getState().setPaused(false)
+      })
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(detail).toHaveBeenCalledTimes(1)
+    })
   })
 
   describe('while the persisted cache is restoring', () => {

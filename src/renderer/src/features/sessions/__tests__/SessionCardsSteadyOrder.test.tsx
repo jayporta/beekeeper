@@ -108,7 +108,51 @@ describe('session cards while the list refreshes in the background', () => {
     })
   })
 
+  it('keeps the order for a later live update after a Refresh that failed', async () => {
+    const user = userEvent.setup()
+    renderApp()
+    await screen.findByRole('heading', { level: 2, name: 'Alpha' })
+    listSessions.mockImplementationOnce(() =>
+      Promise.resolve({ ok: false, error: { code: 'unreadable' } })
+    )
+    await user.click(screen.getByRole('button', { name: 'Refresh' }))
+    expect((await screen.findAllByText("Couldn't refresh the lists.")).length).toBeGreaterThan(0)
+
+    current = [session(1, 'Alpha', 200), session(2, 'Beta', 300)]
+    await refetchAfterChange(3)
+
+    expect(titles()).toEqual(['Alpha', 'Beta'])
+  })
+
+  it('keeps each card’s element in the same place across a reordering refresh', async () => {
+    renderApp()
+    await screen.findByRole('heading', { level: 2, name: 'Alpha' })
+    const cards = (): Element[] => [...screen.getByRole('list', { name: DIR }).children]
+    const before = cards()
+
+    current = [session(1, 'Alpha', 200), session(2, 'Beta', 300)]
+    await refetchAfterChange(2)
+
+    const after = cards()
+    expect(after).toHaveLength(2)
+    after.forEach((card, index) => {
+      expect(card).toBe(before[index])
+    })
+  })
+
   describe('a list old enough to be refetched as it opens', () => {
+    it('re-sorts a list that was invalidated while hidden when its view opens', async () => {
+      const client = createTestQueryClient()
+      client.setQueryData(['sessions', DIR], [session(1, 'Alpha', 200), session(2, 'Beta', 100)])
+      await client.invalidateQueries({ queryKey: ['sessions', DIR] })
+      current = [session(1, 'Alpha', 200), session(2, 'Beta', 300)]
+      renderApp(client)
+
+      await waitFor(() => {
+        expect(titles()).toEqual(['Beta', 'Alpha'])
+      })
+    })
+
     const staleUpdatedAt = (): number => Date.now() - LISTS_STALE_TIME_MS - 1
 
     it('shows the fetched order once it arrives, instead of keeping the saved one', async () => {
