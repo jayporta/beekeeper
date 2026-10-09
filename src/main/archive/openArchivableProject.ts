@@ -36,13 +36,13 @@ export async function openArchivableProject(
       const session = sessions.get(sessionId)
       if (session === undefined || !session.transcript.ok) return
       const transcript = session.transcript.value
-      const detail = await scanSessionDetail({
+      const { detail, complete } = await scanSessionDetail({
         deps,
         sessionId,
         found: { project, session },
         transcript
       })
-      archiveSessionDetail({ deps, projectDirName, detail, transcript })
+      archiveSessionDetail({ deps, projectDirName, detail, complete, transcript })
     }
   }
 }

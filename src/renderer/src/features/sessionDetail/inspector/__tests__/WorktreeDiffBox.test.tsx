@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { IpcResult } from '../../../../../../shared/ipc/ipcResult'
@@ -615,5 +615,181 @@ describe('WorktreeDiffBox for an archived session', () => {
       expect(inspector().queryByRole('heading', { name: 'Worktree diff' })).toBeNull()
     })
     expect(inspector().queryByText(/Shares the worktree/, { ignore: VISIBLE_ONLY })).toBeNull()
+  })
+})
+
+describe('WorktreeDiffBox when a session turns archived', () => {
+  const NOT_AVAILABLE = "Diffs aren't available for archived sessions."
+  const archivedDetail = { ...worktreeDetail, archived: true }
+  const changes = okDiff([{ path: 'a.ts', added: 10, deleted: 2 }])
+  const LEAD_KEY = ['session', SCENE_SESSION.projectDirName, SCENE_SESSION.sessionId]
+
+  /** Opens the scout's diff box with its changes shown, returning the client and the box's result region. */
+  async function openWithDiffs(): Promise<{
+    client: ReturnType<typeof createTestQueryClient>
+    region: HTMLElement
+  }> {
+    const { client } = renderInspectorScene({
+      detail: worktreeDetail,
+      diffs: { [SCENE_SESSION.sessionId]: changes }
+    })
+    await userEvent.click(screen.getByRole('button', { name: /^scout/ }))
+    const shown = await inspector().findByText('+10 −2 across 1 file')
+    const region = shown.closest('[role="status"]')
+    if (!(region instanceof HTMLElement)) throw new Error('the result region should exist')
+    return { client, region }
+  }
+
+  it('announces the change in the status region that already held the diffs', async () => {
+    const { client, region } = await openWithDiffs()
+
+    act(() => {
+      client.setQueryData(LEAD_KEY, archivedDetail)
+    })
+
+    await waitFor(() => {
+      expect(region.textContent).toBe(NOT_AVAILABLE)
+    })
+    expect(region.isConnected).toBe(true)
+  })
+
+  it('moves focus to the message when it was on the Open diff button', async () => {
+    const { client, region } = await openWithDiffs()
+    const button = await inspector().findByRole('button', { name: 'Open diff' })
+    act(() => {
+      button.focus()
+    })
+
+    act(() => {
+      client.setQueryData(LEAD_KEY, archivedDetail)
+    })
+
+    await waitFor(() => {
+      expect(document.activeElement).toBe(region)
+    })
+  })
+
+  it('moves focus to the message and closes the patch dialog that was open', async () => {
+    const { client, region } = await openWithDiffs()
+    await userEvent.click(await inspector().findByRole('button', { name: 'Open diff' }))
+    await screen.findByRole('dialog')
+
+    act(() => {
+      client.setQueryData(LEAD_KEY, archivedDetail)
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull()
+    })
+    expect(document.activeElement).toBe(region)
+  })
+
+  it('does not reopen the patch dialog when the session turns live again', async () => {
+    const { client } = await openWithDiffs()
+    await userEvent.click(await inspector().findByRole('button', { name: 'Open diff' }))
+    await screen.findByRole('dialog')
+    act(() => {
+      client.setQueryData(LEAD_KEY, archivedDetail)
+    })
+    await inspector().findByText(NOT_AVAILABLE)
+
+    act(() => {
+      client.setQueryData(LEAD_KEY, worktreeDetail)
+    })
+
+    expect(await inspector().findByRole('button', { name: 'Open diff' })).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('leaves focus alone when it was somewhere else', async () => {
+    const { client } = await openWithDiffs()
+    const scoutNode = screen.getByRole('button', { name: /^scout/ })
+    act(() => {
+      scoutNode.focus()
+    })
+
+    act(() => {
+      client.setQueryData(LEAD_KEY, archivedDetail)
+    })
+
+    await inspector().findByText(NOT_AVAILABLE)
+    expect(document.activeElement).toBe(scoutNode)
+  })
+
+  it('leaves focus alone when nothing had it', async () => {
+    const { client } = await openWithDiffs()
+    act(() => {
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+    })
+
+    act(() => {
+      client.setQueryData(LEAD_KEY, archivedDetail)
+    })
+
+    await inspector().findByText(NOT_AVAILABLE)
+    expect(document.activeElement).toBe(document.body)
+  })
+
+  it('leaves focus alone when it moved out of the box before the session turned archived', async () => {
+    const { client } = await openWithDiffs()
+    const button = await inspector().findByRole('button', { name: 'Open diff' })
+    act(() => {
+      button.focus()
+    })
+    const scoutNode = screen.getByRole('button', { name: /^scout/ })
+    act(() => {
+      scoutNode.focus()
+    })
+
+    act(() => {
+      client.setQueryData(LEAD_KEY, archivedDetail)
+    })
+
+    await inspector().findByText(NOT_AVAILABLE)
+    expect(document.activeElement).toBe(scoutNode)
+  })
+
+  it('still moves focus when the focused button reports a blur that names no element, as removing it does', async () => {
+    const { client, region } = await openWithDiffs()
+    const button = await inspector().findByRole('button', { name: 'Open diff' })
+    act(() => {
+      button.focus()
+    })
+    fireEvent.focusOut(button, { relatedTarget: null })
+
+    act(() => {
+      client.setQueryData(LEAD_KEY, archivedDetail)
+    })
+
+    await waitFor(() => {
+      expect(document.activeElement).toBe(region)
+    })
+  })
+
+  it('moves focus to a message when it was on a teammate’s shared worktree link', async () => {
+    const shared: IpcResult<WorktreeDiffsDto> = {
+      ok: true,
+      value: {
+        git: 'ok',
+        agents: [],
+        sharedWorktree: { lead: SCENE_SESSION, agentId: 'a1f3c9e2d4abc' }
+      }
+    }
+    const { client } = renderInspectorScene({ diffs: { [WRITER.sessionId]: shared } })
+    await userEvent.click(screen.getByRole('button', { name: /^writer/ }))
+    const link = await inspector().findByRole('button', { name: /^Show subagent/ })
+    act(() => {
+      link.focus()
+    })
+
+    act(() => {
+      client.setQueryData(
+        ['session', WRITER.projectDirName, WRITER.sessionId],
+        testDetail({ archived: true })
+      )
+    })
+
+    const message = await inspector().findByText(NOT_AVAILABLE)
+    expect(document.activeElement).toBe(message.closest('[role="status"]'))
   })
 })

@@ -304,6 +304,24 @@ describe('saveListItems', () => {
     ).toEqual([5_000, 5_000, 9_000])
   })
 
+  it('throws the original error even when the rollback itself fails', () => {
+    const failing = Object.assign(testListItem({ sessionId: SECOND.sessionId }), {
+      toJSON: (): never => {
+        throw new Error('serialization failed')
+      }
+    })
+    const exec = db.exec.bind(db)
+    vi.spyOn(db, 'exec').mockImplementation((sql) => {
+      if (sql === 'ROLLBACK') throw new Error('rollback failed')
+      return exec(sql)
+    })
+
+    expect(() =>
+      store.saveListItems([entryFor(TEST_REF), { item: failing, source: TEST_SOURCE }])
+    ).toThrow('serialization failed')
+    expect(logged).toEqual([])
+  })
+
   it('stores nothing and keeps the store consistent when an entry fails mid-batch', () => {
     const failing = Object.assign(testListItem({ sessionId: SECOND.sessionId }), {
       toJSON: (): never => {
@@ -654,6 +672,147 @@ describe('readListItems', () => {
     store.close()
 
     expect(store.readListItems(TEST_REF.projectDirName, NONE)).toEqual([])
+  })
+})
+
+describe('readListItems caching', () => {
+  const ARCHIVED = testListItem({ summary: testOkSummary(5) })
+
+  /** Changes a stored row behind the store's back, to show which reads come from memory. */
+  function corruptStoredItems(): void {
+    db.prepare('UPDATE sessions SET list_item = ?').run('{corrupt')
+  }
+
+  it('reads and parses a row once: a second read answers from memory', () => {
+    store.saveListItems([listEntry(ARCHIVED)])
+    store.readListItems(TEST_REF.projectDirName, NONE)
+    corruptStoredItems()
+    const parse = vi.spyOn(JSON, 'parse')
+
+    const items = store.readListItems(TEST_REF.projectDirName, NONE)
+
+    expect(items).toEqual([{ ...ARCHIVED, team: null }])
+    expect(parse).not.toHaveBeenCalled()
+    expect(logged).toEqual([])
+  })
+
+  it('reads a row again once a save changes it', () => {
+    store.saveListItems([listEntry(ARCHIVED)])
+    store.readListItems(TEST_REF.projectDirName, NONE)
+    const changed = testListItem({ summary: testOkSummary(99) })
+
+    store.saveListItems([listEntry(changed, { ...TEST_SOURCE, size: 900 })])
+
+    expect(store.readListItems(TEST_REF.projectDirName, NONE)).toEqual([{ ...changed, team: null }])
+  })
+
+  it('reads a session saved after the folder was first read, in session id order', () => {
+    const later = testListItem({ sessionId: SECOND_REF.sessionId, summary: testOkSummary(7) })
+    store.saveListItems([listEntry(later)])
+    store.readListItems(TEST_REF.projectDirName, NONE)
+
+    store.saveListItems([listEntry(ARCHIVED)])
+
+    expect(
+      store.readListItems(TEST_REF.projectDirName, NONE).map((item) => item.sessionId)
+    ).toEqual([TEST_REF.sessionId, SECOND_REF.sessionId])
+  })
+
+  it("leaves another folder's cached rows alone when a save touches a different folder", () => {
+    store.saveListItems([listEntry(ARCHIVED)])
+    store.readListItems(TEST_REF.projectDirName, NONE)
+    corruptStoredItems()
+
+    store.saveListItems([listEntry(testListItem({ projectDirName: '-other' }))])
+
+    expect(store.readListItems(TEST_REF.projectDirName, NONE)).toHaveLength(1)
+  })
+
+  it('does not read a row that was excluded, even over several reads', () => {
+    store.saveListItems([listEntry(ARCHIVED)])
+    corruptStoredItems()
+    const excluding = new Set([TEST_REF.sessionId])
+
+    store.readListItems(TEST_REF.projectDirName, excluding)
+    store.readListItems(TEST_REF.projectDirName, excluding)
+
+    expect(logged).toEqual([])
+  })
+
+  it('reads a row once it is no longer excluded', () => {
+    store.saveListItems([listEntry(ARCHIVED)])
+    store.readListItems(TEST_REF.projectDirName, new Set([TEST_REF.sessionId]))
+
+    const items = store.readListItems(TEST_REF.projectDirName, NONE)
+
+    expect(items).toHaveLength(1)
+  })
+
+  it('parses a corrupt row once and keeps skipping it', () => {
+    seedRow({ listItem: '{corrupt' })
+    const fresh = newStore()
+    fresh.readListItems(TEST_REF.projectDirName, NONE)
+    const parse = vi.spyOn(JSON, 'parse')
+
+    const items = fresh.readListItems(TEST_REF.projectDirName, NONE)
+
+    expect(items).toEqual([])
+    expect(parse).not.toHaveBeenCalled()
+  })
+})
+
+describe('readDetail caching', () => {
+  function corruptStoredDetail(): void {
+    db.prepare('UPDATE sessions SET detail = ?').run('{corrupt')
+  }
+
+  it('parses a detail once: a second read answers from memory', () => {
+    store.saveListItems([listEntry()])
+    store.saveDetail(TEST_REF, { detail: testDetail('notes'), source: TEST_SOURCE })
+    store.readDetail(TEST_REF)
+    corruptStoredDetail()
+    const parse = vi.spyOn(JSON, 'parse')
+
+    const detail = store.readDetail(TEST_REF)
+
+    expect(detail).toEqual(testDetail('notes'))
+    expect(parse).not.toHaveBeenCalled()
+  })
+
+  it('reads the new detail once a save replaces it', () => {
+    store.saveListItems([listEntry()])
+    store.saveDetail(TEST_REF, { detail: testDetail('first'), source: TEST_SOURCE })
+    store.readDetail(TEST_REF)
+
+    store.saveDetail(TEST_REF, {
+      detail: testDetail('second'),
+      source: { ...TEST_SOURCE, size: 700 }
+    })
+
+    expect(store.readDetail(TEST_REF)).toEqual(testDetail('second'))
+  })
+
+  it('answers null once a list item rewrite clears the detail', () => {
+    store.saveListItems([listEntry()])
+    store.saveDetail(TEST_REF, { detail: testDetail(), source: TEST_SOURCE })
+    store.readDetail(TEST_REF)
+
+    store.saveListItems([listEntry(testListItem(), { ...TEST_SOURCE, size: 900 })])
+
+    expect(store.readDetail(TEST_REF)).toBeNull()
+  })
+
+  it('keeps only the last detail it read', () => {
+    const secondDetail = { ...testDetail('second'), sessionId: SECOND_REF.sessionId }
+    store.saveListItems([listEntry(), listEntry(testListItem({ sessionId: SECOND_REF.sessionId }))])
+    store.saveDetail(TEST_REF, { detail: testDetail('first'), source: TEST_SOURCE })
+    store.saveDetail(SECOND_REF, { detail: secondDetail, source: TEST_SOURCE })
+    store.readDetail(TEST_REF)
+    store.readDetail(SECOND_REF)
+    corruptStoredDetail()
+
+    expect(store.readDetail(SECOND_REF)).toEqual(secondDetail)
+    expect(store.readDetail(TEST_REF)).toBeNull()
   })
 })
 

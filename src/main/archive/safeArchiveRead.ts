@@ -1,7 +1,4 @@
-import { describeArchiveError } from './describeArchiveError'
-
-/** The failures already logged by this process, so a repeating one doesn't flood the log. */
-const loggedFailures = new Set<string>()
+import { guardArchiveCall } from './guardArchiveCall'
 
 /**
  * Runs an archive read so that it can never fail the request that triggered
@@ -18,14 +15,5 @@ export function safeArchiveRead<T>(
   fallback: T,
   log: (line: string) => void = console.warn
 ): T {
-  try {
-    return read()
-  } catch (error) {
-    const failure = describeArchiveError(error)
-    if (!loggedFailures.has(failure)) {
-      loggedFailures.add(failure)
-      log(`Beekeeper archive read failed (${failure}).`)
-    }
-    return fallback
-  }
+  return guardArchiveCall({ run: read, fallback, kind: 'read', log })
 }

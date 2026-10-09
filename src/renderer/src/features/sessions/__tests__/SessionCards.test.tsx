@@ -495,7 +495,8 @@ describe('session cards: archived note', () => {
   })
 
   it('sorts an archived session among the others by when it was last active', async () => {
-    showSessions([archived, solo])
+    // The handler lists live sessions first and appends archived ones, so sorting has to move it.
+    showSessions([solo, archived])
 
     const list = await screen.findByRole('list', { name: DIR })
 

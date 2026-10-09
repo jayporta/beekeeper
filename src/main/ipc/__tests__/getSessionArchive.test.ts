@@ -1,4 +1,5 @@
-import { stat } from 'node:fs/promises'
+import { stat, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ARCHIVE_DETAIL_AFTER_DAYS, DAY_MS } from '../../archive/archiveConstants'
 import { testDetail } from '../../archive/testArchiveFixtures'
@@ -142,12 +143,15 @@ describe('getSessionHandler archived sessions', () => {
   })
 
   it('answers invalid-request for a bad payload without reading the archive', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const result = await getSessionHandler(
       { ...ctx.deps, archive: createFakeArchive(errorWithCode('EREAD_NEVER')) },
       { projectDirName: TEST_PROJECT, sessionId: 'not-a-uuid' }
     )
 
     expect(result).toEqual({ ok: false, error: { code: 'invalid-request' } })
+    // A read would throw, and the guard would log it instead of failing the request.
+    expect(warn).not.toHaveBeenCalled()
   })
 
   it('answers not-found and logs once when reading the archive throws', async () => {
@@ -158,5 +162,41 @@ describe('getSessionHandler archived sessions', () => {
 
     expect(result).toEqual({ ok: false, error: { code: 'not-found' } })
     expect(warn.mock.calls).toEqual([['Beekeeper archive read failed (EDETAIL_READ_THROWS).']])
+  })
+})
+
+describe('getSessionHandler archive of an incomplete scan', () => {
+  const metaPath = (): string =>
+    join(
+      ctx.tree.home,
+      '.claude',
+      'projects',
+      TEST_PROJECT,
+      TEST_SESSION_ID,
+      'subagents',
+      'agent-a1.meta.json'
+    )
+
+  it('returns the detail but does not archive it while a subagent meta file cannot be read', async () => {
+    await writeFile(metaPath(), 'not json')
+    const archive = createFakeArchive()
+    const deps = await depsAfter(ARCHIVE_DETAIL_AFTER_DAYS, { archive })
+
+    const result = await getSessionHandler(deps, request)
+
+    expect(result.ok).toBe(true)
+    expect(archive.detailSaves).toEqual([])
+  })
+
+  it('archives the detail once a later scan is complete', async () => {
+    await writeFile(metaPath(), 'not json')
+    const archive = createFakeArchive()
+    const deps = await depsAfter(ARCHIVE_DETAIL_AFTER_DAYS, { archive })
+    await getSessionHandler(deps, request)
+    await writeFile(metaPath(), JSON.stringify({ agentType: 'Explore' }))
+
+    await getSessionHandler(deps, request)
+
+    expect(archive.detailSaves).toHaveLength(1)
   })
 })

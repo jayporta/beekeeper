@@ -1,6 +1,5 @@
 import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
-import { compareCodeUnits } from '../../core/shared/compareCodeUnits'
 import { sessionRefKey } from '../ipc/sessionRefKey'
 import { ARCHIVE_FORMAT, MAX_ARCHIVED_DETAIL_CHARS } from './archiveConstants'
 import type {
@@ -10,19 +9,9 @@ import type {
   PendingDetail,
   SourceState
 } from './archiveStoreTypes'
-import {
-  SELECT_DETAIL,
-  SELECT_LIST_ITEM,
-  SELECT_STATES,
-  UPDATE_DETAIL,
-  UPSERT_LIST_ITEM
-} from './archiveSql'
+import { SELECT_STATES, UPDATE_DETAIL, UPSERT_LIST_ITEM } from './archiveSql'
+import { createArchiveReader } from './createArchiveReader'
 import type { ArchiveDb } from './openArchive'
-import {
-  parseArchivedDetail,
-  parseArchivedListItem,
-  type ArchivedRowError
-} from './parseArchivedRow'
 
 /** A stored list item's session, source state, format, and last message time. */
 interface StoredListEntry {
@@ -53,10 +42,8 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
   const { now = Date.now, log = console.warn } = options
   const upsertListItem = db.prepare(UPSERT_LIST_ITEM)
   const updateDetail = db.prepare(UPDATE_DETAIL)
-  const selectListItem = db.prepare(SELECT_LIST_ITEM)
-  const selectDetail = db.prepare(SELECT_DETAIL)
-  const loggedRowErrors = new Set<ArchivedRowError>()
   let closed = false
+  const reads = createArchiveReader({ db, log, isClosed: () => closed })
   const listEntries = new Map<string, StoredListEntry>()
   /**
    * The source state each session's detail is settled for: stored, or skipped
@@ -71,6 +58,7 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
       sessionId: String(row['session_id'])
     }
     const key = sessionRefKey(ref)
+    reads.rowChanged(ref)
     const format = Number(row['format'])
     const activity = row['activity_latest_ms']
     listEntries.set(key, {
@@ -98,11 +86,13 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
     return sameSource(settledStates.get(key), source)
   }
 
-  /** Logs a kind of unreadable row the first time it is seen. */
-  function logUnreadableRow(error: ArchivedRowError): void {
-    if (loggedRowErrors.has(error)) return
-    loggedRowErrors.add(error)
-    log(`Beekeeper archive skipped an unreadable row (${error}).`)
+  /** Ends a failed transaction. A rollback that fails too must not replace the error that caused it. */
+  function rollBack(): void {
+    try {
+      db.exec('ROLLBACK')
+    } catch {
+      // The caller rethrows the failure that made the batch fail, which is the one worth reporting.
+    }
   }
 
   /** Upserts the entries whose stored row is out of date, in one transaction. */
@@ -128,14 +118,16 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
       }
       db.exec('COMMIT')
     } catch (error) {
-      if (db.isTransaction) db.exec('ROLLBACK')
+      rollBack()
       throw error
     }
     for (const { item, source } of writes) {
       const key = sessionRefKey(item)
       settledStates.delete(key)
+      const ref = { projectDirName: item.projectDirName, sessionId: item.sessionId }
+      reads.rowChanged(ref)
       listEntries.set(key, {
-        ref: { projectDirName: item.projectDirName, sessionId: item.sessionId },
+        ref,
         source,
         format: ARCHIVE_FORMAT,
         activityLatestMs: activityLatestOf(item)
@@ -161,6 +153,7 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
         ref.sessionId
       )
       settledStates.set(key, source)
+      reads.rowChanged(ref)
       if (oversized) log('Beekeeper archive skipped a session detail that is too large.')
     },
 
@@ -181,33 +174,9 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
       return pending
     },
 
-    readListItems(projectDirName, excluding) {
-      if (closed) return []
-      const refs = [...listEntries.values()]
-        .filter(({ ref }) => ref.projectDirName === projectDirName && !excluding.has(ref.sessionId))
-        .map(({ ref }) => ref)
-        .sort((a, b) => compareCodeUnits(a.sessionId, b.sessionId))
-      const items: SessionListItemDto[] = []
-      for (const ref of refs) {
-        const row = selectListItem.get(ref.projectDirName, ref.sessionId, ARCHIVE_FORMAT)
-        if (row === undefined) continue
-        const parsed = parseArchivedListItem(String(row['list_item']), ref)
-        if (parsed.ok) items.push(parsed.value)
-        else logUnreadableRow(parsed.error)
-      }
-      return items
-    },
+    readListItems: reads.readListItems,
 
-    readDetail(ref) {
-      if (closed) return null
-      const row = selectDetail.get(ref.projectDirName, ref.sessionId, ARCHIVE_FORMAT)
-      const json = row?.['detail']
-      if (typeof json !== 'string') return null
-      const parsed = parseArchivedDetail(json, ref)
-      if (parsed.ok) return parsed.value
-      logUnreadableRow(parsed.error)
-      return null
-    },
+    readDetail: reads.readDetail,
 
     skipDetail(ref) {
       if (closed) return

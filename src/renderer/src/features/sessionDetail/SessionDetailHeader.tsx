@@ -29,7 +29,9 @@ interface SessionDetailHeaderProps {
  * gets a marker, and a footnote under the line says why. A session the list
  * doesn't hold is named by a placeholder and its short id, with no line. An
  * archived session says its transcript was removed and the copy shown is
- * beekeeper's, announced politely when a live session turns into one.
+ * beekeeper's. The sentence is announced by a status region that is always
+ * mounted and empty until then, and shown by text hidden from assistive
+ * technology so it isn't read twice.
  *
  * @example
  * <SessionDetailHeader label={label} row={row} archived={false} />
@@ -60,7 +62,11 @@ export function SessionDetailHeader({
           {reasons.size > 0 && <PartialMarker note={t('partial.note')} />}
         </MutedText>
       )}
-      {archived && <MutedText role="status">{t('archived')}</MutedText>}
+      {/* Mounted before the session turns archived, so filling it is announced. */}
+      <p role="status" className="visuallyHidden">
+        {archived ? t('archived') : ''}
+      </p>
+      {archived && <MutedText decorative>{t('archived')}</MutedText>}
       <PartialFootnote
         reasons={reasons}
         overrides={{ missingTeammates: t('partial.missingTeammates') }}

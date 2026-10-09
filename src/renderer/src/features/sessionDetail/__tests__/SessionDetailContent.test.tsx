@@ -291,12 +291,36 @@ describe('SessionDetailContent for an archived session', () => {
   const ARCHIVED_NOTICE =
     "This session's transcript was removed. Showing the copy beekeeper archived."
 
+  /** The two places the notice appears: the live region that announces it, and the visible text. */
+  function noticeElements(): { announced: HTMLElement[]; visible: HTMLElement[] } {
+    const all = screen.queryAllByText(ARCHIVED_NOTICE)
+    return {
+      announced: all.filter((element) => element.closest('[role="status"]') !== null),
+      visible: all.filter((element) => element.closest('[role="status"]') === null)
+    }
+  }
+
   it('says the transcript was removed and the shown copy is the archive', async () => {
     renderContent({
       detail: Promise.resolve({ ok: true, value: testDetail({ archived: true }) })
     })
 
-    expect(await screen.findByText(ARCHIVED_NOTICE)).toBeTruthy()
+    await screen.findAllByText(ARCHIVED_NOTICE)
+
+    const { announced, visible } = noticeElements()
+    expect([announced.length, visible.length]).toEqual([1, 1])
+  })
+
+  it('hides the visible notice from assistive technology, since the live region says it', async () => {
+    renderContent({
+      detail: Promise.resolve({ ok: true, value: testDetail({ archived: true }) })
+    })
+    await screen.findAllByText(ARCHIVED_NOTICE)
+
+    const [visible] = noticeElements().visible
+
+    expect(visible).toBeDefined()
+    expect(visible?.closest('[aria-hidden="true"]')).not.toBeNull()
   })
 
   it('shows no such notice for a session read from disk', async () => {
@@ -305,5 +329,22 @@ describe('SessionDetailContent for an archived session', () => {
     await screen.findByRole('heading', { level: 1, name: 'Kept' })
 
     expect(screen.queryByText(ARCHIVED_NOTICE)).toBeNull()
+  })
+
+  it('announces the notice in a status region that was already mounted when a live session turns archived', async () => {
+    const { client } = renderContent()
+    await screen.findByRole('heading', { level: 1, name: 'Kept' })
+    const regionsBefore = screen.getAllByRole('status')
+    expect(regionsBefore.some((region) => region.textContent === ARCHIVED_NOTICE)).toBe(false)
+
+    act(() => {
+      client.setQueryData(['session', DIR, REF.sessionId], testDetail({ archived: true }))
+    })
+
+    await waitFor(() => {
+      expect(noticeElements().announced).toHaveLength(1)
+    })
+    const [announced] = noticeElements().announced
+    expect(regionsBefore).toContain(announced?.closest('[role="status"]'))
   })
 })
