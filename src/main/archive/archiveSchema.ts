@@ -29,10 +29,10 @@ CREATE TABLE IF NOT EXISTS sessions (
 )`
 
 /**
- * Prepares an archive database for use: sets WAL mode with normal syncing,
- * which WAL makes safe, and a short busy timeout, creates the tables, and records the schema version. A database
- * whose version is newer than this build's, or isn't a number, is left
- * untouched.
+ * Prepares an archive database for use: sets a short busy timeout, checks the
+ * schema version, then sets WAL mode with normal syncing (which WAL makes
+ * safe), creates the tables, and records the version. A database whose
+ * version is newer than this build's, or isn't a number, is left untouched.
  *
  * @param db - The open database.
  * @returns Success, or `newer-schema` when the database must not be used.
@@ -40,14 +40,14 @@ CREATE TABLE IF NOT EXISTS sessions (
  */
 export function applySchema(db: DatabaseSync): Result<void, 'newer-schema'> {
   db.exec(`PRAGMA busy_timeout = ${BUSY_TIMEOUT_MS}`)
-  db.exec('PRAGMA journal_mode = WAL')
-  db.exec('PRAGMA synchronous = NORMAL')
   db.exec(CREATE_META)
   const stored = db.prepare('SELECT value FROM meta WHERE key = ?').get(SCHEMA_VERSION_KEY)
   if (stored !== undefined) {
     const version = Number(stored['value'])
     if (!Number.isInteger(version) || version > ARCHIVE_SCHEMA_VERSION) return err('newer-schema')
   }
+  db.exec('PRAGMA journal_mode = WAL')
+  db.exec('PRAGMA synchronous = NORMAL')
   db.exec(CREATE_SESSIONS)
   db.prepare('INSERT OR IGNORE INTO meta (key, value) VALUES (?, ?)').run(
     SCHEMA_VERSION_KEY,

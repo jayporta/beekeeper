@@ -1,6 +1,4 @@
-import { ARCHIVE_DETAIL_AFTER_DAYS } from './archiveConstants'
-
-const DAY_MS = 86_400_000
+import { ARCHIVE_DETAIL_AFTER_DAYS, DAY_MS } from './archiveConstants'
 
 /**
  * Decides whether a session has been quiet long enough to archive its detail.

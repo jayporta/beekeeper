@@ -1,6 +1,6 @@
 import { stat } from 'node:fs/promises'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ARCHIVE_DETAIL_AFTER_DAYS } from '../../archive/archiveConstants'
+import { ARCHIVE_DETAIL_AFTER_DAYS, DAY_MS } from '../../archive/archiveConstants'
 import { createFakeArchiveWriter } from '../../archive/testFakeArchiveWriter'
 import { errorWithCode } from '../../testErrorWithCode'
 import { getSessionHandler } from '../getSessionHandler'
@@ -9,7 +9,6 @@ import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTr
 
 const ctx = registerIpcTestTree()
 const request = { projectDirName: TEST_PROJECT, sessionId: TEST_SESSION_ID }
-const DAY_MS = 86_400_000
 
 afterEach(() => {
   vi.restoreAllMocks()

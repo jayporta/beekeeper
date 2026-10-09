@@ -110,7 +110,9 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
       throw error
     }
     for (const { item, source } of writes) {
-      listEntries.set(sessionRefKey(item), {
+      const key = sessionRefKey(item)
+      settledStates.delete(key)
+      listEntries.set(key, {
         ref: { projectDirName: item.projectDirName, sessionId: item.sessionId },
         source,
         format: ARCHIVE_FORMAT,

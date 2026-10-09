@@ -142,6 +142,28 @@ describe('saveListItems with one entry', () => {
     expect(rows()[0]?.['archived_at_ms']).toBe(5_000)
   })
 
+  it('clears the stored detail when the source state changes, leaving it pending', () => {
+    store.saveListItems([listEntry()])
+    store.saveDetail(TEST_REF, { detail: testDetail(), source: TEST_SOURCE })
+    const changed = { ...TEST_SOURCE, size: 900 }
+
+    store.saveListItems([listEntry(testListItem(), changed)])
+
+    expect(rows()[0]).toMatchObject({ detail: null, detail_mtime_ms: null, detail_size: null })
+    expect(store.pendingDetails().map((pending) => pending.source)).toEqual([changed])
+  })
+
+  it('lists a session again when its transcript returns to the state a cleared detail was stored for', () => {
+    store.saveListItems([listEntry()])
+    store.saveDetail(TEST_REF, { detail: testDetail(), source: TEST_SOURCE })
+    store.saveListItems([listEntry(testListItem(), { ...TEST_SOURCE, size: 900 })])
+
+    store.saveListItems([listEntry(testListItem(), TEST_SOURCE)])
+
+    expect(store.pendingDetails().map((pending) => pending.source)).toEqual([TEST_SOURCE])
+    expect(rows()[0]?.['detail']).toBeNull()
+  })
+
   it('rewrites a row stored in another format and drops its detail', () => {
     db.prepare(
       `INSERT INTO sessions (project_dir, session_id, source_mtime_ms, source_size, format,

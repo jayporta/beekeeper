@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { stat } from 'node:fs/promises'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../../ipc/testIpcTree'
-import { ARCHIVE_DETAIL_AFTER_DAYS } from '../archiveConstants'
+import { ARCHIVE_DETAIL_AFTER_DAYS, DAY_MS } from '../archiveConstants'
 import { createAppArchiver } from '../createAppArchiver'
 import type { ArchiveStore } from '../archiveStoreTypes'
 import { listEntry, testListItem } from '../testArchiveFixtures'
@@ -10,7 +10,6 @@ import { createArchiveStore } from '../createArchiveStore'
 import { openArchive } from '../openArchive'
 
 const ctx = registerIpcTestTree()
-const DAY_MS = 86_400_000
 const REF = { projectDirName: TEST_PROJECT, sessionId: TEST_SESSION_ID }
 
 let db: DatabaseSync
