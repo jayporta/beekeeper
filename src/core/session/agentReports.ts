@@ -4,10 +4,13 @@ import type { AgentUsage } from './agentUsage'
 import type { AgentReports } from './collectAgentReports'
 import type { FileTouch } from './fileTouchCollector'
 import type { FileTouchEntry, FilesLedger } from './filesLedger'
+import type { AgentSignals } from '../transcript/signals/agentSignals'
+import { summarizeSignals } from '../transcript/signals/summarizeSignals'
+import type { SignalEntry, SignalsLedger } from './signalsLedger'
 import { groupTokensByModelAndSpeed } from './tokenGroup'
 import type { LedgerEntry, UsageLedger } from './usageLedger'
 
-/** One agent's usage and file touches, scanned from its transcript. */
+/** One agent's usage, file touches and signals, scanned from its transcript. */
 export interface AgentReport {
   /** The agent's token usage. */
   readonly usage: AgentUsage
@@ -36,6 +39,13 @@ export interface AgentReport {
    * such as a fork's copy of the lead's history, don't count.
    */
   readonly activity: AgentActivity | null
+  /**
+   * The agent's signal counts, from the events it owns: the ones its transcript
+   * reported first. A fork's copy of the lead's history belongs to the lead, so
+   * it adds nothing here, and a run that spans the copied part is counted only
+   * over the fork's own events.
+   */
+  readonly signals: AgentSignals
 }
 
 /** The span between an agent's first and last timestamped assistant messages, and the active time within it. */
@@ -54,6 +64,8 @@ export interface ApplyAgentReportsInput {
   readonly usageLedger: UsageLedger
   /** The session's shared files ledger. */
   readonly filesLedger: FilesLedger
+  /** The session's shared signals ledger. */
+  readonly signalsLedger: SignalsLedger
   /** The agent whose reports are applied. */
   readonly identity: AgentIdentity
   /** What the agent's transcript reported. */
@@ -62,16 +74,19 @@ export interface ApplyAgentReportsInput {
 
 /**
  * Applies one agent's already-read reports to the session's shared ledgers.
+ * Each ledger credits a shared id to the first agent that reports it.
  * @param input - The ledgers, the agent, and what its transcript reported.
  */
 export function applyAgentReports(input: ApplyAgentReportsInput): void {
-  const { usageLedger, filesLedger, identity, agentReports } = input
+  const { usageLedger, filesLedger, signalsLedger, identity, agentReports } = input
   for (const report of agentReports.reports) usageLedger.report(report)
   for (const touch of agentReports.fileTouches) filesLedger.report({ identity, touch })
   for (const toolUseId of agentReports.incompleteToolUseIds) {
     filesLedger.reportIncomplete({ identity, toolUseId })
   }
   if (agentReports.incompleteOverflowed) filesLedger.markIncomplete(identity)
+  for (const event of agentReports.signalEvents) signalsLedger.report({ identity, event })
+  if (agentReports.signalsCapped) signalsLedger.markCapped(identity)
 }
 
 /** Input for {@link buildAgentReport}. */
@@ -84,6 +99,10 @@ export interface BuildAgentReportInput {
   readonly touchesByOwner: ReadonlyMap<string, readonly FileTouchEntry[]>
   /** The identity keys of the agents that own a possibly incomplete Bash result. */
   readonly incompleteOwners: ReadonlySet<string>
+  /** The signals ledger's entries, grouped by owner. */
+  readonly signalsByOwner: ReadonlyMap<string, readonly SignalEntry[]>
+  /** The identity keys of the agents whose signal events were dropped at a cap. */
+  readonly signalsCappedOwners: ReadonlySet<string>
   /** How many lines of the agent's transcript could not be read. */
   readonly skippedLines: number
 }
@@ -114,14 +133,23 @@ function activityOf(entries: readonly LedgerEntry[]): AgentActivity | null {
  * Builds one agent's report from the ledger entries it owns.
  * @param input - The agent's identity, the grouped ledgers, and its
  * transcript's skipped-line count.
- * @returns The agent's usage, file touches, and activity span.
+ * @returns The agent's usage, file touches, activity span and signals.
  */
 export function buildAgentReport(input: BuildAgentReportInput): AgentReport {
-  const { identity, usageByOwner, touchesByOwner, incompleteOwners, skippedLines } = input
+  const {
+    identity,
+    usageByOwner,
+    touchesByOwner,
+    incompleteOwners,
+    signalsByOwner,
+    signalsCappedOwners,
+    skippedLines
+  } = input
   const key = agentIdentityKey(identity)
   const owned = usageByOwner.get(key) ?? []
 
   const ownedTouches = touchesByOwner.get(key) ?? []
+  const ownedSignals = signalsByOwner.get(key) ?? []
 
   return {
     usage: {
@@ -131,6 +159,10 @@ export function buildAgentReport(input: BuildAgentReportInput): AgentReport {
     },
     fileTouches: ownedTouches.map((entry) => entry.touch),
     fileListIncomplete: incompleteOwners.has(key),
-    activity: activityOf(owned)
+    activity: activityOf(owned),
+    signals: summarizeSignals(
+      ownedSignals.map((entry) => entry.event),
+      { partial: signalsCappedOwners.has(key) }
+    )
   }
 }

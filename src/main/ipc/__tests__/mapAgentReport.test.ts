@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AgentReport } from '../../../core/session/agentReports'
+import { EMPTY_AGENT_SIGNALS } from '../../../core/transcript/signals/agentSignals'
 import { mapAgentReport } from '../mapAgentReport'
 
 const REPORT: AgentReport = {
@@ -9,7 +10,8 @@ const REPORT: AgentReport = {
     { filePath: '/repo/gone.ts', operation: 'delete', source: 'bash', toolUseId: 'toolu_2' }
   ],
   fileListIncomplete: true,
-  activity: { earliestMs: 1000, latestMs: 3000, activeMs: 1500 }
+  activity: { earliestMs: 1000, latestMs: 3000, activeMs: 1500 },
+  signals: EMPTY_AGENT_SIGNALS
 }
 
 describe('mapAgentReport activity', () => {

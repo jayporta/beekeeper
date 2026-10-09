@@ -17,6 +17,7 @@ import { reconcileUsage, type UsageReconciliation } from './reconcileUsage'
 import { readSubagentTranscript } from './readSubagentTranscript'
 import { resolveSpawnContexts } from './resolveSpawnContexts'
 import { resolveSubagentMeta } from './resolveSubagentMeta'
+import { createSignalsLedger } from './signalsLedger'
 import type { SpawnContext } from './spawnContext'
 import { createSpawnObserver, type TranscriptSpawns } from './spawnObserver'
 import { tapRecords } from './tapRecords'
@@ -69,16 +70,16 @@ export interface SessionScan {
 
 /**
  * Scans a session's lead transcript and its subagents' transcripts into one
- * report: an agent tree, and each agent's token usage and file touches.
+ * report: an agent tree, and each agent's token usage, file touches and signals.
  *
- * Every assistant message and file touch is credited to whichever agent
- * reports it first: the lead is always scanned before its subagents, so a
- * subagent transcript that forked from the lead's context and repeats some
- * of the lead's message ids or tool use ids doesn't double-count them. A
- * subagent's reports are applied to the session's shared ledgers only
- * after its whole transcript has been read successfully, so a read that
- * fails partway through never leaves a partial set of messages or touches
- * claimed by that subagent. Each subagent's `.meta.json` is read
+ * Every assistant message, file touch and signal event is credited to
+ * whichever agent reports it first: the lead is always scanned before its
+ * subagents, so a subagent transcript that forked from the lead's context and
+ * repeats some of the lead's message ids or tool use ids doesn't double-count
+ * them. A subagent's reports are applied to the session's shared ledgers
+ * only after its whole transcript has been read successfully, so a read that
+ * fails partway through never leaves a partial set of messages, touches or
+ * signal events claimed by that subagent. Each subagent's `.meta.json` is read
  * separately from its transcript into a meta status; a missing or
  * unreadable meta never fails the scan, it just leaves that subagent
  * parented to the lead in the tree, with its status recorded for display
@@ -96,6 +97,7 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
   const { leadPath, subagents, subagentsUnreadable = false, ...readOptions } = options
   const usageLedger = createUsageLedger()
   const filesLedger = createFilesLedger()
+  const signalsLedger = createSignalsLedger()
 
   const lastCostState = createLastCostState()
   const leadSpawns = createSpawnObserver()
@@ -107,7 +109,13 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
     ),
     leadIdentity
   )
-  applyAgentReports({ usageLedger, filesLedger, identity: leadIdentity, agentReports: leadReports })
+  applyAgentReports({
+    usageLedger,
+    filesLedger,
+    signalsLedger,
+    identity: leadIdentity,
+    agentReports: leadReports
+  })
 
   // Once a subagent's reports are in the ledgers, only its skipped-line count is
   // needed, so the reports (touches, message reports) are not kept until the scan ends.
@@ -123,7 +131,13 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
       observe: spawnObserver.observe
     })
     if (readResult.ok) {
-      applyAgentReports({ usageLedger, filesLedger, identity, agentReports: readResult.value })
+      applyAgentReports({
+        usageLedger,
+        filesLedger,
+        signalsLedger,
+        identity,
+        agentReports: readResult.value
+      })
       subagentSpawns.set(subagent.agentId, spawnObserver.result())
     }
     subagentSkippedLines.set(
@@ -143,6 +157,8 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
   const usageByOwner = groupByOwner(usageLedger.entries())
   const touchesByOwner = groupByOwner(filesLedger.entries())
   const incompleteOwners = new Set(filesLedger.incompleteOwners().map(agentIdentityKey))
+  const signalsByOwner = groupByOwner(signalsLedger.entries())
+  const signalsCappedOwners = signalsLedger.cappedOwners()
 
   const subagentReports = new Map<AgentId, Result<AgentReport, UnreadableError>>()
   for (const [agentId, skipped] of subagentSkippedLines) {
@@ -156,6 +172,8 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
       usageByOwner,
       touchesByOwner,
       incompleteOwners,
+      signalsByOwner,
+      signalsCappedOwners,
       skippedLines: skipped.value
     })
     subagentReports.set(agentId, ok(report))
@@ -166,6 +184,8 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
     usageByOwner,
     touchesByOwner,
     incompleteOwners,
+    signalsByOwner,
+    signalsCappedOwners,
     skippedLines: leadReports.skippedLines
   })
 
