@@ -1,0 +1,160 @@
+import { act, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
+import type { BeekeeperApi } from '../../../../../shared/ipc/beekeeperApi'
+import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
+import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
+import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
+import { installBeekeeperApi, testProject, type TestBeekeeperApi } from '@renderer/testBeekeeperApi'
+import { LISTS_STALE_TIME_MS } from '@renderer/app/listsStaleTime'
+import { useSelectedProjectStore } from '@renderer/features/projects/state/useSelectedProjectStore'
+import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
+import { createTestQueryClient } from '@renderer/testQueryWrapper'
+import { useSessionsViewStore } from '../state/useSessionsViewStore'
+import { testSession } from '../testSessionFixtures'
+
+const DIR = '-Users-a-repo'
+
+const session = (n: number, title: string, latestMs: number): SessionListItemDto =>
+  testSession(n, { projectDirName: DIR, title, latestMs })
+
+let current: readonly SessionListItemDto[]
+let api: TestBeekeeperApi
+let listSessions: Mock<BeekeeperApi['listSessions']>
+
+beforeEach(() => {
+  useFirstRunStore.setState({ dismissed: true })
+  useSessionsViewStore.setState({ query: '' })
+  current = [session(1, 'Alpha', 200), session(2, 'Beta', 100)]
+  listSessions = vi.fn<BeekeeperApi['listSessions']>(() =>
+    Promise.resolve({ ok: true, value: current })
+  )
+  api = installBeekeeperApi({
+    listProjects: () => Promise.resolve({ ok: true, value: [testProject(DIR)] }),
+    listSessions
+  })
+})
+
+afterEach(async () => {
+  useNavigationStore.getState().reset()
+  await resetPersistedState()
+})
+
+const titles = (): (string | null)[] =>
+  within(screen.getByRole('list', { name: DIR }))
+    .getAllByRole('heading', { level: 2 })
+    .map((heading) => heading.textContent)
+
+/** Delivers a change in the folder and waits for the list to be fetched again. */
+async function refetchAfterChange(calls: number): Promise<void> {
+  act(() => {
+    api.fireFilesChanged({ dirNames: [DIR], foldersChanged: false, all: false })
+  })
+  await waitFor(() => {
+    expect(listSessions).toHaveBeenCalledTimes(calls)
+  })
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0))
+  })
+}
+
+describe('session cards while the list refreshes in the background', () => {
+  it('keeps the visible order when a lower session becomes the newest', async () => {
+    renderApp()
+    await screen.findByRole('heading', { level: 2, name: 'Alpha' })
+
+    current = [session(1, 'Alpha', 200), session(2, 'Beta', 300)]
+    await refetchAfterChange(2)
+
+    expect(titles()).toEqual(['Alpha', 'Beta'])
+  })
+
+  it('shows a new session first', async () => {
+    renderApp()
+    await screen.findByRole('heading', { level: 2, name: 'Alpha' })
+
+    current = [session(3, 'Gamma', 50), session(1, 'Alpha', 200), session(2, 'Beta', 100)]
+    await refetchAfterChange(2)
+
+    expect(titles()).toEqual(['Gamma', 'Alpha', 'Beta'])
+  })
+
+  it('sorts again when Refresh is pressed', async () => {
+    const user = userEvent.setup()
+    renderApp()
+    await screen.findByRole('heading', { level: 2, name: 'Alpha' })
+    current = [session(1, 'Alpha', 200), session(2, 'Beta', 300)]
+    await refetchAfterChange(2)
+    expect(titles()).toEqual(['Alpha', 'Beta'])
+
+    await user.click(screen.getByRole('button', { name: 'Refresh' }))
+
+    await waitFor(() => {
+      expect(titles()).toEqual(['Beta', 'Alpha'])
+    })
+  })
+
+  it('sorts the data a Refresh press fetches, not the data already shown', async () => {
+    const user = userEvent.setup()
+    renderApp()
+    await screen.findByRole('heading', { level: 2, name: 'Alpha' })
+    // No change event arrives, as when live updates are paused: only the press fetches.
+    current = [session(1, 'Alpha', 200), session(2, 'Beta', 300)]
+
+    await user.click(screen.getByRole('button', { name: 'Refresh' }))
+
+    await waitFor(() => {
+      expect(titles()).toEqual(['Beta', 'Alpha'])
+    })
+  })
+
+  describe('a list old enough to be refetched as it opens', () => {
+    const staleUpdatedAt = (): number => Date.now() - LISTS_STALE_TIME_MS - 1
+
+    it('shows the fetched order once it arrives, instead of keeping the saved one', async () => {
+      const client = createTestQueryClient()
+      client.setQueryData(['sessions', DIR], [session(1, 'Alpha', 200), session(2, 'Beta', 100)], {
+        updatedAt: staleUpdatedAt()
+      })
+      current = [session(1, 'Alpha', 200), session(2, 'Beta', 300)]
+      renderApp(client)
+
+      await waitFor(() => {
+        expect(titles()).toEqual(['Beta', 'Alpha'])
+      })
+    })
+
+    it('does the same for the next folder a person opens', async () => {
+      const OTHER = '-Users-a-other'
+      const other = (n: number, title: string, latestMs: number): SessionListItemDto =>
+        testSession(n, { projectDirName: OTHER, title, latestMs })
+      const client = createTestQueryClient()
+      client.setQueryData(['sessions', OTHER], [other(3, 'Gamma', 200), other(4, 'Delta', 100)], {
+        updatedAt: staleUpdatedAt()
+      })
+      installBeekeeperApi({
+        listProjects: () =>
+          Promise.resolve({ ok: true, value: [testProject(DIR), testProject(OTHER)] }),
+        listSessions: (dirName) =>
+          Promise.resolve({
+            ok: true,
+            value: dirName === DIR ? current : [other(3, 'Gamma', 200), other(4, 'Delta', 300)]
+          })
+      })
+      renderApp(client)
+      await screen.findByRole('heading', { level: 2, name: 'Alpha' })
+
+      act(() => {
+        useSelectedProjectStore.getState().select(OTHER)
+      })
+
+      await waitFor(() => {
+        expect(
+          within(screen.getByRole('list', { name: OTHER }))
+            .getAllByRole('heading', { level: 2 })
+            .map((heading) => heading.textContent)
+        ).toEqual(['Delta', 'Gamma'])
+      })
+    })
+  })
+})
