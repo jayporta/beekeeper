@@ -1,7 +1,7 @@
 import { waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { idbStorage } from '@renderer/storage/idbStorage'
-import { resetProjects } from '../testProjectsReset'
+import { resetPersistedState } from '@renderer/testRenderApp'
 import {
   SELECTED_PROJECT_STORAGE_KEY,
   useSelectedProjectStore
@@ -12,7 +12,7 @@ const BETA = '-Users-a-beta'
 
 afterEach(async () => {
   vi.restoreAllMocks()
-  await resetProjects()
+  await resetPersistedState()
 })
 
 /** Lets a store change reach the storage write it starts. */
