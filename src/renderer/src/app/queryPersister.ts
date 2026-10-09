@@ -2,6 +2,7 @@ import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persi
 import type { PersistedClient, Persister } from '@tanstack/react-query-persist-client'
 import { idbStorage } from '@renderer/storage/idbStorage'
 import { keepFreshSavedQueries } from './keepFreshSavedQueries'
+import { PERSIST_THROTTLE_MS } from './persistThrottle'
 import { skipUnchangedSaves } from './skipUnchangedSaves'
 import { toCachedQueryState } from './toCachedQueryState'
 
@@ -74,8 +75,10 @@ export function logPersistError(): void {
  * Creates the persister that saves the query cache to IndexedDB. A failed
  * save is logged once and given up on, so the app keeps working without it.
  * The next cache event tries again, so while saves keep failing, every cache
- * event retries and logs, at most once a second. Otherwise a save is skipped
- * when the persisted queries haven't changed since the last one.
+ * event retries and logs, at most once every {@link PERSIST_THROTTLE_MS}.
+ * Otherwise a save is skipped when the persisted queries haven't changed since
+ * the last one, and saves are at least that far apart, the latest change
+ * winning.
  *
  * @param storage - Where to save. Defaults to the app's IndexedDB adapter.
  * @returns The persister.
@@ -85,6 +88,7 @@ export function createQueryPersister(storage: PersisterStorage = idbStorage): Pe
     createAsyncStoragePersister({
       storage,
       key: QUERY_CACHE_KEY,
+      throttleTime: PERSIST_THROTTLE_MS,
       retry: () => {
         forgetLastSave()
         return giveUpOnSave()

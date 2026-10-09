@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo } from 'react'
+import { useDeferredValue, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SelectedProjectHeading } from '@renderer/features/projects/SelectedProjectHeading'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
@@ -13,6 +13,7 @@ import { SessionsBody } from './SessionsBody'
 import { SessionCardList } from './SessionCardList'
 import { useSessionsViewStore } from './state/useSessionsViewStore'
 import { useSessions } from './useSessions'
+import { useSteadyOrder } from './useSteadyOrder'
 
 /** Props for {@link SessionsContent}. */
 interface SessionsContentProps {
@@ -25,8 +26,9 @@ interface SessionsContentProps {
 /**
  * The sessions view for one folder: the project header with the search box and
  * refresh button, the live region that announces search results, and the
- * list. The search box shows only once a non-empty list has loaded, and not
- * while the folder is gone. The region
+ * list. The cards keep their order while the list updates in the background,
+ * and sort again on a refresh. The search box shows only once a non-empty list
+ * has loaded, and not while the folder is gone. The region
  * is mounted in every state, so its text changes while it is mounted and is
  * announced.
  *
@@ -35,11 +37,17 @@ interface SessionsContentProps {
  */
 export function SessionsContent({ dirName, headingId }: SessionsContentProps): React.JSX.Element {
   const { t } = useTranslation('sessions')
-  const { data, error, errorUpdatedAt, isFetching, refetch } = useSessions(dirName)
+  const { data, dataUpdatedAt, error, errorUpdatedAt, isFetching, isStale, refetch } =
+    useSessions(dirName)
+  // The cards re-sort on a Refresh press, and when this view opens on a stale list (old, or
+  // invalidated while hidden) that is refetched at once, so what the person first sees is
+  // current. Background updates keep the order.
+  const [resortAt, setResortAt] = useState(() => (isStale ? Date.now() : 0))
   const typed = useSessionsViewStore((state) => state.query)
   // Filtering waits on the deferred text, and the list is memoized, so typing stays responsive.
   const query = useDeferredValue(typed)
-  const rows = useMemo(() => (data === undefined ? [] : groupSessionRows(data, t)), [data, t])
+  const sorted = useMemo(() => (data === undefined ? [] : groupSessionRows(data, t)), [data, t])
+  const rows = useSteadyOrder(sorted, { resortAt, dataUpdatedAt, errorUpdatedAt })
   const matching = useMemo(() => filterRows(rows, query), [rows, query])
   const matchCount = useMemo(() => countMatches(rows, query), [rows, query])
   // A gone folder's cached list is hidden behind its alert, so it isn't searchable.
@@ -55,7 +63,13 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
         actions={
           <>
             {searchable && <SessionSearch />}
-            <RefreshSessionsButton key={dirName} dirName={dirName} />
+            <RefreshSessionsButton
+              key={dirName}
+              dirName={dirName}
+              onRefresh={() => {
+                setResortAt(Date.now())
+              }}
+            />
           </>
         }
       />

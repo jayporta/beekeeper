@@ -34,24 +34,43 @@ export type TestBeekeeperApi = { [K in keyof BeekeeperApi]: Mock<BeekeeperApi[K]
   fireOpenAbout(): void
   /** Calls every listener subscribed through `onFilesChanged` with `change`, as a batch from the main process does. */
   fireFilesChanged(change: FilesChangedDto): void
-  /** Calls every listener subscribed through `onLiveUpdatesUnavailable`, as the main process does when the watcher fails. */
+  /**
+   * Calls every listener subscribed through `onLiveUpdatesUnavailable`, as the main process does when the watcher fails.
+   * With no listener it is remembered once, and the first `onLiveUpdatesUnavailable` subscriber gets it at once.
+   */
   fireLiveUpdatesUnavailable(): void
 }
 
-/** A set of listeners that `subscribe` adds to and the returned function removes from. */
-function createListeners<T extends unknown[]>(): {
+/**
+ * A set of listeners that `subscribe` adds to and the returned function removes from.
+ *
+ * @param holdEarlySignal - When set, a `fire` that finds no listener is remembered once (several count as one), and the first listener to subscribe is called with it at once, as the preload's signal relay does.
+ */
+function createListeners<T extends unknown[]>(
+  holdEarlySignal = false
+): {
   subscribe(listener: (...args: T) => void): () => void
   fire(...args: T): void
 } {
   const listeners = new Set<(...args: T) => void>()
+  let pending: T | undefined
   return {
     subscribe: (listener) => {
       listeners.add(listener)
+      if (pending) {
+        const args = pending
+        pending = undefined
+        listener(...args)
+      }
       return () => {
         listeners.delete(listener)
       }
     },
     fire: (...args) => {
+      if (holdEarlySignal && listeners.size === 0) {
+        pending = args
+        return
+      }
       for (const listener of [...listeners]) listener(...args)
     }
   }
@@ -62,7 +81,8 @@ function createListeners<T extends unknown[]>(): {
  * default. Calls to a method the test did not stub reject, so a test can't
  * silently depend on it. `onOpenAbout`, `onFilesChanged` and
  * `onLiveUpdatesUnavailable` subscriptions are real: each `fire…` helper reaches
- * every listener that has not unsubscribed.
+ * every listener that has not unsubscribed. As in the preload, a
+ * `fireLiveUpdatesUnavailable` before any subscriber is held for the first one.
  *
  * @param overrides - Implementations to use instead of the defaults.
  * @returns The installed stub.
@@ -72,7 +92,7 @@ export function installBeekeeperApi(overrides: Partial<BeekeeperApi> = {}): Test
     Promise.reject(new Error(`window.beekeeper.${name} was not stubbed`))
   const about = createListeners()
   const filesChanged = createListeners<[FilesChangedDto]>()
-  const unavailable = createListeners()
+  const unavailable = createListeners(true)
   const api: TestBeekeeperApi = {
     listProjects: vi.fn(
       overrides.listProjects ??
