@@ -43,7 +43,8 @@ describe('preload API', () => {
       api.getWorktreePatch('p', 's', 'a'),
       api.getOtelReceiver(),
       api.setOtelReceiverEnabled(true),
-      api.getReportedCost('s')
+      api.getReportedCost('s'),
+      api.copyText('t')
     ])
 
     expect(invoke.mock.calls.map(([channel]) => channel).sort()).toEqual(
@@ -65,6 +66,14 @@ describe('preload API', () => {
     await api.getReportedCost('abc')
 
     expect(invoke).toHaveBeenCalledWith(IPC_CHANNELS.getReportedCost, { sessionId: 'abc' })
+  })
+
+  it('sends the text to copyText', async () => {
+    const api = await loadApi()
+
+    await api.copyText('KEY=value')
+
+    expect(invoke).toHaveBeenCalledWith(IPC_CHANNELS.copyText, { text: 'KEY=value' })
   })
 
   it('sends no payload to getOtelReceiver', async () => {

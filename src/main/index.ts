@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu } from 'electron'
+import { app, BrowserWindow, clipboard, ipcMain, Menu } from 'electron'
 import { join } from 'path'
 import { optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -85,7 +85,11 @@ app
     registerIpcHandlers({
       ipcMain,
       isTrusted: (event) => isTrustedSender(event, { rendererRoot, devServerUrl }),
-      deps: { ...createIpcDeps(app.getPath('home')), otel }
+      deps: {
+        ...createIpcDeps(app.getPath('home')),
+        otel,
+        copyToClipboard: (text) => clipboard.writeText(text)
+      }
     })
 
     // Set once, before any window: `activate` recreates windows, not the menu.

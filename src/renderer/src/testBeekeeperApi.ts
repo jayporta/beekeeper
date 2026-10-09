@@ -65,6 +65,7 @@ export function installBeekeeperApi(overrides: Partial<BeekeeperApi> = {}): Test
       overrides.setOtelReceiverEnabled ?? unstubbed('setOtelReceiverEnabled')
     ),
     getReportedCost: vi.fn(overrides.getReportedCost ?? unstubbed('getReportedCost')),
+    copyText: vi.fn(overrides.copyText ?? unstubbed('copyText')),
     onOpenAbout: vi.fn(
       overrides.onOpenAbout ??
         ((listener) => {
