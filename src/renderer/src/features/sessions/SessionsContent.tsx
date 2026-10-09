@@ -13,6 +13,7 @@ import { SessionsBody } from './SessionsBody'
 import { SessionCardList } from './SessionCardList'
 import { useSessionsViewStore } from './state/useSessionsViewStore'
 import { useMatchCountPerSearch } from './useMatchCountPerSearch'
+import { useReusedRows } from './useReusedRows'
 import { useSessions } from './useSessions'
 import { useSteadyOrder } from './useSteadyOrder'
 
@@ -47,7 +48,9 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
   const typed = useSessionsViewStore((state) => state.query)
   // Filtering waits on the deferred text, and the list is memoized, so typing stays responsive.
   const query = useDeferredValue(typed)
-  const sorted = useMemo(() => (data === undefined ? [] : groupSessionRows(data, t)), [data, t])
+  const grouped = useMemo(() => (data === undefined ? [] : groupSessionRows(data, t)), [data, t])
+  // Unchanged rows stay the same objects, so their memoized cards skip a background update.
+  const sorted = useReusedRows(grouped)
   const rows = useSteadyOrder(sorted, { resortAt, dataUpdatedAt, errorUpdatedAt })
   const matching = useMemo(() => filterRows(rows, query), [rows, query])
   const matchCount = useMemo(() => countMatches(rows, query), [rows, query])
