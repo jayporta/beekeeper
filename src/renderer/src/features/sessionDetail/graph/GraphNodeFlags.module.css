@@ -1,0 +1,12 @@
+.flags {
+  display: flex;
+  flex: none;
+  gap: var(--space-2);
+}
+
+.flag {
+  flex: none;
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}

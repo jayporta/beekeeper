@@ -82,6 +82,7 @@ export function workflowRunNodes(input: WorkflowRunNodesInput): readonly AgentGr
       ),
       partial: members.some((agent) => agent.partial || agent.tokens === null),
       stopped: false,
+      marks: null,
       subagentsNotLoaded: false,
       folder: null,
       selection: { kind: 'workflow', ownerRef, runId },

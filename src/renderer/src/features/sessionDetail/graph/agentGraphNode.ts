@@ -27,6 +27,14 @@ export interface NodeWorkflow {
   readonly phases: readonly string[]
 }
 
+/** The counts a node shows beside its name, from the agent's signals. */
+export interface NodeMarks {
+  /** Tool results with `is_error: true`. */
+  readonly toolErrors: number
+  /** How many times the agent's context was compacted. */
+  readonly compactions: number
+}
+
 /** One node in the spawn graph: an agent, or a workflow run that holds its agents. */
 export interface AgentGraphNode {
   /** The node's identity, unique within the graph. */
@@ -48,6 +56,8 @@ export interface AgentGraphNode {
   readonly partial: boolean
   /** Whether the agent was stopped. */
   readonly stopped: boolean
+  /** The agent's tool error and compaction counts, or `null` when its report isn't known: a workflow run, a teammate's session, or an unreadable report. */
+  readonly marks: NodeMarks | null
   /** Whether the agent may have subagents the graph doesn't hold yet: a teammate whose subagents haven't been loaded and whose session has subagents or an unknown number of them. */
   readonly subagentsNotLoaded: boolean
   /** The folder of a teammate whose session lives in another folder than the lead's, otherwise `null`. Transcript-derived. */

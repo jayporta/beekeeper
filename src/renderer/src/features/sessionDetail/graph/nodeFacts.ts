@@ -1,5 +1,6 @@
 import type { AgentGraphNode, NodeWorkflow } from './agentGraphNode'
 import type { GraphT } from './graphT'
+import { markFacts } from './nodeMarks'
 import { runMembers } from './runMembers'
 
 /** The run's phase count as text, or `null` when it has no phases or isn't a run. */
@@ -73,6 +74,7 @@ export function nodeAccessibleName(
       ? t('graph.node.tokensUnknown')
       : t('graph.node.tokens', { count: node.tokens }),
     ...(node.kind === 'workflow' ? runDetails(node, t) : nodeDetail(node, t)),
+    ...markFacts(node.marks, t),
     node.stopped ? t('graph.node.stopped') : null,
     loading ? t('graph.node.loading') : null,
     node.partial ? t('graph.node.partial') : null

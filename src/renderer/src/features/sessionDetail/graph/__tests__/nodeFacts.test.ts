@@ -174,3 +174,22 @@ describe('nodeAccessibleName', () => {
     )
   })
 })
+
+describe('nodeAccessibleName marks', () => {
+  it('says the counts in words, before the stopped flag', () => {
+    const name = nameOf({ marks: { toolErrors: 12, compactions: 1 }, stopped: true })
+
+    expect(name).toContain('12 tool errors, 1 compaction, stopped')
+  })
+
+  it('leaves out a count that is zero', () => {
+    const name = nameOf({ marks: { toolErrors: 1, compactions: 0 } })
+
+    expect(name).toContain('1 tool error')
+    expect(name).not.toContain('compaction')
+  })
+
+  it('does not read the mark glyphs', () => {
+    expect(nameOf({ marks: { toolErrors: 12, compactions: 2 } })).not.toMatch(/[×▲]/)
+  })
+})

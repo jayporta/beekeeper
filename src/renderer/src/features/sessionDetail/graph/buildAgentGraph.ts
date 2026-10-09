@@ -4,6 +4,7 @@ import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
 import type { SessionRow } from '@renderer/features/sessions/sessionRow'
 import type { SessionDetailT } from '../sessionDetailT'
 import type { RootAgentGraphNode } from './agentGraphNode'
+import { nodeMarks } from './nodeMarks'
 import { isPartialReport, reportTokens } from './reportFacts'
 import { sessionFacts } from './sessionFacts'
 import { buildSubagentNodes } from './subagentNodes'
@@ -49,6 +50,7 @@ export function buildAgentGraph(input: BuildAgentGraphInput): RootAgentGraphNode
     tokens: reportTokens(detail.lead),
     partial: isPartialReport(detail.lead) || !detail.subagents.ok,
     stopped: facts.stopped,
+    marks: nodeMarks(detail.lead.signals),
     subagentsNotLoaded: false,
     folder: null,
     selection: null,

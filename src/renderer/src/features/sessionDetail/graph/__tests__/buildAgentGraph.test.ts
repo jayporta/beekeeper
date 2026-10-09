@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { AgentNodeDto } from '../../../../../../shared/ipc/agentDto'
 import type { SessionListItemDto } from '../../../../../../shared/ipc/sessionListDto'
+import { EMPTY_AGENT_SIGNALS_DTO } from '../../../../../../shared/ipc/emptyAgentSignals'
 import { testRow } from '@renderer/features/sessions/testSessionRows'
 import {
   testAgentRole,
@@ -426,5 +427,49 @@ describe('buildAgentGraph teammate sessions', () => {
     const graph = graphAmong(items)
 
     expect(graph.children.map((node) => node.partial)).toEqual([true, true])
+  })
+})
+
+describe('buildAgentGraph signal marks', () => {
+  const signals = { ...EMPTY_AGENT_SIGNALS_DTO, toolErrors: 12, compactions: 2 }
+
+  it("takes the lead's marks from its report's signals", () => {
+    const graph = graphOf(testDetail({ lead: testReport({ signals }) }))
+
+    expect(graph.marks).toEqual({ toolErrors: 12, compactions: 2 })
+  })
+
+  it("takes a subagent's marks from its report's signals", () => {
+    const graph = graphOf(
+      testDetail({ children: [testNode('a1')], reports: { a1: testReport({ signals }) } })
+    )
+
+    expect(graph.children[0]?.marks).toEqual({ toolErrors: 12, compactions: 2 })
+  })
+
+  it('has no marks for a subagent whose report could not be read', () => {
+    const graph = graphOf(testDetail({ children: [testNode('a1')], reports: { a1: 'error' } }))
+
+    expect(graph.children[0]?.marks).toBeNull()
+  })
+
+  it('is partial for a subagent whose only gap is capped signals', () => {
+    const report = testReport({ signals: { ...EMPTY_AGENT_SIGNALS_DTO, partial: true } })
+
+    const graph = graphOf(testDetail({ children: [testNode('a1')], reports: { a1: report } }))
+
+    expect(graph.children[0]?.partial).toBe(true)
+  })
+
+  it('has no marks for a teammate session, whose signals are not loaded yet', () => {
+    const graph = graphAmong(
+      [
+        testSession(1, { team: testLeadTeam([testRef(2)], testUsage()) }),
+        testSession(2, { team: testTeammateTeam(REF) })
+      ],
+      testDetail()
+    )
+
+    expect(graph.children[0]?.marks).toBeNull()
   })
 })

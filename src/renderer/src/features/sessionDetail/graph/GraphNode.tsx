@@ -6,6 +6,7 @@ import { EmptyCell } from '@renderer/features/sessions/EmptyCell'
 import type { AgentGraphNode } from './agentGraphNode'
 import { GRAPH_FOOTNOTE_ID, GRAPH_WORKFLOW_FOOTNOTE_ID } from './graphFootnoteId'
 import { NODE_HEIGHT, NODE_WIDTH } from './graphMetrics'
+import { GraphNodeFlags } from './GraphNodeFlags'
 import styles from './GraphNode.module.css'
 import { nodeAccessibleName, nodeDetail } from './nodeFacts'
 
@@ -30,10 +31,11 @@ interface GraphNodeProps {
 /**
  * One node on the graph, as a button that selects it. The first line is its
  * name and own tokens, and the second its type and model (or the folder of a
- * teammate in another folder, or a workflow run's kind and phase count) and a
- * stopped flag. A lead is filled, a teammate has a solid border, a subagent a
- * dashed one, and a workflow run a double one, and the selected node has a
- * heavier border and a ring around it. The accessible name carries all of that
+ * teammate in another folder, or a workflow run's kind and phase count) and its
+ * flags: the tool error and compaction marks, then a stopped flag. A lead is
+ * filled, a teammate has a solid border, a subagent a dashed one, and a
+ * workflow run a double one, and the selected node has a heavier border and a
+ * ring around it. The accessible name carries all of that
  * and the parent's name, and `aria-current` marks the selected node: pressing
  * the selected node doesn't unselect it, so it is a choice among nodes, not a
  * toggle. It is memoized, so a selection
@@ -93,11 +95,7 @@ export const GraphNode = memo(function GraphNode({
         <MutedText as="span" smaller className={styles.detail}>
           {detail !== '' && <bdi>{detail}</bdi>}
         </MutedText>
-        {loading ? (
-          <span className={styles.flag}>{t('graph.node.loadingFlag')}</span>
-        ) : (
-          node.stopped && <span className={styles.flag}>{t('graph.node.stoppedFlag')}</span>
-        )}
+        <GraphNodeFlags marks={node.marks} stopped={node.stopped} loading={loading} />
       </span>
     </button>
   )

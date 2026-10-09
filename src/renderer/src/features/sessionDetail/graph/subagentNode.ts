@@ -7,6 +7,7 @@ import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
 import { sessionKey } from '@renderer/features/sessions/sessionKey'
 import type { AgentGraphNode, AgentKind, NodeWorkflow } from './agentGraphNode'
 import { agentName } from './agentName'
+import { nodeMarks } from './nodeMarks'
 import { isPartialReport, reportTokens } from './reportFacts'
 
 /** What {@link subagentNode} needs to build one node. */
@@ -56,6 +57,7 @@ export function subagentNode(input: SubagentNodeInput): AgentGraphNode {
     tokens: report === null ? null : reportTokens(report),
     partial: report === null || isPartialReport(report),
     stopped: details?.stoppedByUser === true,
+    marks: report === null ? null : nodeMarks(report.signals),
     subagentsNotLoaded: false,
     folder: null,
     selection: { kind: 'subagent', ownerRef, agentId },

@@ -145,10 +145,3 @@
   font-weight: var(--font-weight-medium);
   white-space: nowrap;
 }
-
-.flag {
-  flex: none;
-  font-size: var(--font-size-2xs);
-  font-weight: var(--font-weight-semibold);
-  white-space: nowrap;
-}
