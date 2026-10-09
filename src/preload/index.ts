@@ -2,12 +2,19 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { BeekeeperApi } from '../shared/ipc/beekeeperApi'
 import { IPC_CHANNELS, IPC_EVENTS } from '../shared/ipc/channels'
 import { createSignalRelay } from './createSignalRelay'
+import { parseFilesChanged } from './parseFilesChanged'
 
 // Registered once as the preload loads, before the page has run any script, so a
 // request made while the page loads is held until the dialog host subscribes.
 const openAbout = createSignalRelay()
 ipcRenderer.on(IPC_EVENTS.openAbout, () => {
   openAbout.signal()
+})
+
+// Same early registration: a failure reported while the page loads is held for its first subscriber.
+const liveUpdatesUnavailable = createSignalRelay()
+ipcRenderer.on(IPC_EVENTS.liveUpdatesUnavailable, () => {
+  liveUpdatesUnavailable.signal()
 })
 
 /**
@@ -33,7 +40,20 @@ const api: BeekeeperApi = {
     ipcRenderer.invoke(IPC_CHANNELS.setOtelReceiverEnabled, { enabled }),
   getReportedCost: (sessionId) => ipcRenderer.invoke(IPC_CHANNELS.getReportedCost, { sessionId }),
   // The renderer learns only that About was requested, never the event.
-  onOpenAbout: (listener) => openAbout.subscribe(listener)
+  onOpenAbout: (listener) => openAbout.subscribe(listener),
+  // Each subscription registers its own listener, so unsubscribing removes only that one.
+  // The listener sees only a validated payload, never the event object.
+  onFilesChanged: (listener) => {
+    const handler = (_event: unknown, payload: unknown): void => {
+      const change = parseFilesChanged(payload)
+      if (change) listener(change)
+    }
+    ipcRenderer.on(IPC_EVENTS.filesChanged, handler)
+    return () => {
+      ipcRenderer.removeListener(IPC_EVENTS.filesChanged, handler)
+    }
+  },
+  onLiveUpdatesUnavailable: (listener) => liveUpdatesUnavailable.subscribe(listener)
 }
 
 contextBridge.exposeInMainWorld('beekeeper', api)

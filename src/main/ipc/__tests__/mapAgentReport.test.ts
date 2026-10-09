@@ -64,16 +64,6 @@ describe('mapAgentReport signals', () => {
     })
   })
 
-  it('copies the longest wait as a new object', () => {
-    const mapped = mapAgentReport(REPORT).signals.longestToolWait
-    expect(mapped).not.toBe(REPORT.signals.longestToolWait)
-  })
-
-  it('maps no wait to null', () => {
-    const report = { ...REPORT, signals: { ...REPORT.signals, longestToolWait: null } }
-    expect(mapAgentReport(report).signals.longestToolWait).toBeNull()
-  })
-
   it('maps empty signals to the empty signals DTO', () => {
     const report = { ...REPORT, signals: summarizeSignals([], { partial: false }) }
     expect(mapAgentReport(report).signals).toEqual(EMPTY_AGENT_SIGNALS_DTO)

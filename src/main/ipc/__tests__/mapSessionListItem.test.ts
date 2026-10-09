@@ -4,7 +4,10 @@ import { toProjectDirName, toSessionId } from '../../../core/transcript/ids'
 import type { SessionSummary } from '../../../core/transcript/summary/sessionSummary'
 import { NO_AGENT_TERMS } from '../../../core/session/agentSearchTerms'
 import { NO_WORKFLOW_RUN_NAMES } from '../readSessionWorkflowRunNames'
-import { buildSessionSummary } from '../../../core/transcript/summary/testSessionSummary'
+import {
+  buildSessionSummary,
+  EMPTY_SIGNALS
+} from '../../../core/transcript/summary/testSessionSummary'
 import { toAgentId } from '../../../core/transcript/ids'
 import type { SubagentEntry } from '../../../core/transcript/discoverSubagents'
 import { parseWorkflowRunId } from '../../../core/transcript/workflowRunId'
@@ -104,6 +107,21 @@ describe('mapSessionListItem', () => {
     expect(item.summary.ok && item.summary.value.limitHit).toBeNull()
   })
 
+  it('copies the summary signals, the longest wait as a new object', () => {
+    const signals = {
+      ...EMPTY_SIGNALS,
+      toolErrors: 12,
+      compactions: 2,
+      longestToolWait: { ms: 90_000, tool: 'Bash' }
+    }
+    const item = mapSessionListItem(scanned(ok({ ...SUMMARY, signals })), null)
+
+    expect(item.summary.ok && item.summary.value.signals).toEqual(signals)
+    expect(item.summary.ok && item.summary.value.signals.longestToolWait).not.toBe(
+      signals.longestToolWait
+    )
+  })
+
   it('sends exactly the summary fields the DTO names', () => {
     const { summary } = mapSessionListItem(scanned(ok(SUMMARY)), null)
 
@@ -112,6 +130,7 @@ describe('mapSessionListItem', () => {
       'limitHit',
       'model',
       'role',
+      'signals',
       'skippedLines',
       'title',
       'transcriptTokens',

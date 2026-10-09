@@ -48,6 +48,22 @@ export interface TeamUsageRollupDto {
    * it was.
    */
   readonly teamListsTruncated: boolean
+  /**
+   * The lead's and each grouped teammate's tool errors, compactions and agent
+   * kills, summed. A teammate that joined another lead or stayed ungrouped is
+   * not in it.
+   */
+  readonly signalTotals: SignalTotalsDto
+}
+
+/** The signal counts that add across a team. */
+export interface SignalTotalsDto {
+  /** Tool results with `is_error: true`, summed over the sessions. */
+  readonly toolErrors: number
+  /** Context compactions, summed over the sessions. */
+  readonly compactions: number
+  /** Agent kills, summed over the sessions. */
+  readonly agentsKilled: number
 }
 
 /**
