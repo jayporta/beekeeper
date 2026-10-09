@@ -34,7 +34,7 @@ export function testProject(dirName: string, worktree?: TestWorktree): ProjectDt
 
 /** The stubbed API: each method is a mock, so a test can assert on calls or change a result. */
 export type TestBeekeeperApi = { [K in keyof BeekeeperApi]: Mock<BeekeeperApi[K]> } & {
-  /** Calls every listener subscribed through `onOpenAbout`, as the menu's About item does. */
+  /** Calls every listener subscribed through `onOpenAbout`, as the menu's About item does. With none subscribed, the first one to subscribe gets it, as in the preload. */
   fireOpenAbout(): void
   /** Calls every listener subscribed through `onFilesChanged` with `change`, as a batch from the main process does. */
   fireFilesChanged(change: FilesChangedDto): void
@@ -95,7 +95,7 @@ function createListeners<T extends unknown[]>(
 export function installBeekeeperApi(overrides: Partial<BeekeeperApi> = {}): TestBeekeeperApi {
   const unstubbed = (name: string) => () =>
     Promise.reject(new Error(`window.beekeeper.${name} was not stubbed`))
-  const about = createListeners()
+  const about = createListeners(true)
   const filesChanged = createListeners<[FilesChangedDto]>()
   const unavailable = createListeners(true)
   const api: TestBeekeeperApi = {

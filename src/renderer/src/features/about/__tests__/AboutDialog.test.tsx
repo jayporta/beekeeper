@@ -33,6 +33,14 @@ describe('AboutDialog', () => {
     expect(aboutDialog()).toBeTruthy()
   })
 
+  it('opens when the menu asked for About before the dialog mounted', () => {
+    api.fireOpenAbout()
+
+    render(<AboutDialog />)
+
+    expect(aboutDialog()).toBeTruthy()
+  })
+
   it('says what beekeeper reads and that it stays on the computer', () => {
     render(<AboutDialog />)
 
