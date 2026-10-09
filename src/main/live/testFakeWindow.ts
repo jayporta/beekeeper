@@ -7,7 +7,10 @@ export interface FakeWindow {
   readonly window: BrowserWindow
   /** Every `webContents.send` call, as `[channel, ...payload]`. */
   readonly send: ReturnType<typeof vi.fn>
-  /** Finishes a page load, as Electron does by emitting `did-finish-load`. */
+  /**
+   * Finishes a page load. As in Electron, `did-finish-load` handlers run while
+   * the web contents still report loading, which ends just after them.
+   */
   finishLoad(): void
   /** Destroys the window's web contents. */
   destroy(): void
@@ -39,10 +42,10 @@ export function fakeWindow(state: { loading?: boolean; destroyed?: boolean } = {
     window,
     send,
     finishLoad: () => {
-      loading = false
       const once = [...onceHandlers]
       onceHandlers.clear()
       for (const handler of [...handlers, ...once]) handler()
+      loading = false
     },
     destroy: () => {
       destroyed = true

@@ -6,7 +6,7 @@ export const LIVE_UPDATE_INTERVAL_MS = 2000
 
 /** Collects watch events into batches, at most one per interval. */
 export interface ChangeBatcher {
-  /** Adds one change. The first change of a batch starts the interval timer. */
+  /** Adds one change. The first change of a batch starts the interval timer. An ignored change is left out. */
   add(change: FolderChange): void
   /** Cancels a pending batch without sending it. */
   dispose(): void
@@ -56,6 +56,7 @@ export function createChangeBatcher(options: ChangeBatcherOptions): ChangeBatche
 
   return {
     add(change) {
+      if (change.kind === 'ignored') return
       if (change.kind === 'unknown') {
         all = true
       } else {

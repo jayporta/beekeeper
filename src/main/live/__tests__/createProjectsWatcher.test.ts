@@ -167,6 +167,29 @@ describe('createProjectsWatcher', () => {
     expect(batchesOf(live)).toHaveLength(1)
   })
 
+  it.each([['.DS_Store'], ['.DS_Store/x']])(
+    'ignores an event for %s without checking the root',
+    (filename) => {
+      const fake = fakeWatch()
+      const live = fakeWindow()
+      const exists = vi.fn(() => true)
+      start(fake, [live], exists)
+      fake.watchers[0]?.emit(filename)
+      vi.advanceTimersByTime(LIVE_UPDATE_INTERVAL_MS)
+      expect(live.send).not.toHaveBeenCalled()
+      expect(exists).not.toHaveBeenCalled()
+    }
+  )
+
+  it('maps a hidden file inside a project folder to that folder', () => {
+    const fake = fakeWatch()
+    const live = fakeWindow()
+    start(fake, [live])
+    fake.watchers[0]?.emit('-Users-a/.hidden')
+    vi.advanceTimersByTime(LIVE_UPDATE_INTERVAL_MS)
+    expect(batchesOf(live)).toEqual([{ dirNames: ['-Users-a'], foldersChanged: false, all: false }])
+  })
+
   it('widens a batch to all for an event it cannot map to a folder while the root exists', () => {
     const fake = fakeWatch()
     const live = fakeWindow()

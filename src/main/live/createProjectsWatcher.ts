@@ -155,9 +155,11 @@ export function createProjectsWatcher(options: ProjectsWatcherOptions): Projects
   return {
     start,
     notifyWindow(window) {
-      window.webContents.on('did-finish-load', () => {
-        if (state === 'unavailable')
-          sendLiveEvent([window], { channel: IPC_EVENTS.liveUpdatesUnavailable })
+      const { webContents } = window
+      // Sent directly: `did-finish-load` fires while `isLoading()` is still true.
+      webContents.on('did-finish-load', () => {
+        if (state === 'unavailable' && !webContents.isDestroyed())
+          webContents.send(IPC_EVENTS.liveUpdatesUnavailable)
       })
     },
     close() {

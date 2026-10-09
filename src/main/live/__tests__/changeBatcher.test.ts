@@ -11,6 +11,7 @@ const folderItself = (dirName: string): FolderChange => ({
   isFolderItself: true
 })
 const UNKNOWN: FolderChange = { kind: 'unknown' }
+const IGNORED: FolderChange = { kind: 'ignored' }
 
 function setup(): { sent: FilesChangedDto[]; batcher: ChangeBatcher } {
   const sent: FilesChangedDto[] = []
@@ -87,6 +88,31 @@ describe('createChangeBatcher', () => {
     batcher.add(file('b'))
     vi.advanceTimersByTime(LIVE_UPDATE_INTERVAL_MS)
     expect(sent).toEqual([{ dirNames: [], foldersChanged: false, all: true }])
+  })
+
+  it('sends nothing for an ignored change', () => {
+    const { sent, batcher } = setup()
+    batcher.add(IGNORED)
+    vi.advanceTimersByTime(LIVE_UPDATE_INTERVAL_MS * 2)
+    expect(sent).toEqual([])
+  })
+
+  it('leaves an ignored change out of a batch', () => {
+    const { sent, batcher } = setup()
+    batcher.add(IGNORED)
+    batcher.add(file('a'))
+    batcher.add(IGNORED)
+    vi.advanceTimersByTime(LIVE_UPDATE_INTERVAL_MS)
+    expect(sent).toEqual([{ dirNames: ['a'], foldersChanged: false, all: false }])
+  })
+
+  it('does not start the interval for an ignored change', () => {
+    const { sent, batcher } = setup()
+    batcher.add(IGNORED)
+    vi.advanceTimersByTime(LIVE_UPDATE_INTERVAL_MS - 1)
+    batcher.add(file('a'))
+    vi.advanceTimersByTime(1)
+    expect(sent).toEqual([])
   })
 
   it('sets foldersChanged when a folder itself changed', () => {

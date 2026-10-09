@@ -51,6 +51,22 @@ describe('changedFolder', () => {
   })
 
   it.each([
+    ['a hidden file at the root', '.DS_Store'],
+    ['something inside a hidden folder at the root', '.DS_Store/x'],
+    ['a hidden editor file at the root', '.swp']
+  ])('ignores %s', (_label, filename) => {
+    expect(changedFolder(filename)).toEqual({ kind: 'ignored' })
+  })
+
+  it('still maps a hidden file inside a project folder to that folder', () => {
+    expect(changedFolder('-Users-a/.hidden')).toEqual({
+      kind: 'folder',
+      dirName: '-Users-a',
+      isFolderItself: false
+    })
+  })
+
+  it.each([
     ['null', null],
     ['an empty string', ''],
     ['only separators', '//'],
