@@ -52,6 +52,10 @@ export function isInFamilies(
  * @param change - The batch from the main process.
  * @param projects - The cached project list, or `undefined` before it has loaded.
  * @returns The plan.
+ * @remarks A folder missing from the cached project list may be a new worktree
+ * whose parent the list can't name yet, and the refreshed list doesn't plan
+ * this batch again. Any such folder, or no list at all, plans every family
+ * rather than the folder's own, so the parent's session list is not missed.
  */
 export function invalidationPlan(
   change: FilesChangedDto,
@@ -59,9 +63,12 @@ export function invalidationPlan(
 ): InvalidationPlan {
   if (change.all) return { projects: true, families: 'all', staleTotals: 'all' }
   const listed = new Set(projects?.map((project) => project.dirName))
+  const hasUnlisted = change.dirNames.some((dirName) => !listed.has(dirName))
   return {
-    projects: change.foldersChanged || change.dirNames.some((dirName) => !listed.has(dirName)),
-    families: new Set(change.dirNames.map((dirName) => familyOf(dirName, projects))),
+    projects: change.foldersChanged || hasUnlisted,
+    families: hasUnlisted
+      ? 'all'
+      : new Set(change.dirNames.map((dirName) => familyOf(dirName, projects))),
     staleTotals: new Set(change.dirNames)
   }
 }

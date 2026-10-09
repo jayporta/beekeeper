@@ -82,13 +82,29 @@ describe('invalidationPlan', () => {
   })
 
   it('refetches the project list for a folder it does not know', () => {
+    expect(invalidationPlan(change(['-Users-new']), projects).projects).toBe(true)
+  })
+
+  it('plans every family for a folder it does not know', () => {
+    expect(invalidationPlan(change(['-Users-new']), projects).families).toBe('all')
+  })
+
+  it('plans every family when a new worktree folder arrives with a listed folder', () => {
+    const plan = invalidationPlan(change([BASE, `${BASE}--claude-worktrees-new`]), projects)
+    expect(plan.families).toBe('all')
+  })
+
+  it('marks the totals of an unknown folder by folder, not all', () => {
     const plan = invalidationPlan(change(['-Users-new']), projects)
-    expect(plan.projects).toBe(true)
-    expect(plan.families).toEqual(new Set(['-Users-new']))
+    expect(plan.staleTotals).toEqual(new Set(['-Users-new']))
   })
 
   it('refetches the project list when no projects are loaded yet', () => {
     expect(invalidationPlan(change([BASE]), undefined).projects).toBe(true)
+  })
+
+  it('plans every family when no projects are loaded yet', () => {
+    expect(invalidationPlan(change([BASE]), undefined).families).toBe('all')
   })
 
   it('refetches the project list when a folder itself changed', () => {

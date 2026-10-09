@@ -3,7 +3,7 @@ import type { QueryClient } from '@tanstack/react-query'
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { FilesChangedDto } from '../../../../../shared/ipc/filesChangedDto'
-import { installBeekeeperApi, type TestBeekeeperApi } from '@renderer/testBeekeeperApi'
+import { installBeekeeperApi, testProject, type TestBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { createTestQueryClient } from '@renderer/testQueryWrapper'
 import { DETAIL_LIVE_INTERVAL_MS } from '../detailThrottle'
 import { useLiveUpdates } from '../useLiveUpdates'
@@ -59,6 +59,7 @@ afterEach(() => {
 
 describe('useLiveUpdates', () => {
   it('refetches the visible lists of a changed family', async () => {
+    client.setQueryData(['projects'], [testProject(A), testProject(B)])
     const list = showing(['sessions', A])
     const other = showing(['sessions', B])
     renderHook(
@@ -76,6 +77,27 @@ describe('useLiveUpdates', () => {
       expect(list).toHaveBeenCalledTimes(1)
     })
     expect(other).not.toHaveBeenCalled()
+  })
+
+  it('refetches every visible list when a changed folder is not in the cached projects', async () => {
+    client.setQueryData(['projects'], [testProject(A), testProject(B)])
+    const parent = showing(['sessions', A])
+    const other = showing(['sessions', B])
+    renderHook(
+      () => {
+        useLiveUpdates()
+      },
+      { wrapper }
+    )
+
+    act(() => {
+      api.fireFilesChanged(change([`${A}--claude-worktrees-new`]))
+    })
+
+    await vi.waitFor(() => {
+      expect(parent).toHaveBeenCalledTimes(1)
+      expect(other).toHaveBeenCalledTimes(1)
+    })
   })
 
   it('ignores changes while paused', async () => {
@@ -152,6 +174,19 @@ describe('useLiveUpdates', () => {
     act(() => {
       api.fireLiveUpdatesUnavailable()
     })
+
+    expect(useLiveUpdatesStore.getState().unavailable).toBe(true)
+  })
+
+  it('records a notice that live updates were unavailable before it mounted', () => {
+    api.fireLiveUpdatesUnavailable()
+
+    renderHook(
+      () => {
+        useLiveUpdates()
+      },
+      { wrapper }
+    )
 
     expect(useLiveUpdatesStore.getState().unavailable).toBe(true)
   })
