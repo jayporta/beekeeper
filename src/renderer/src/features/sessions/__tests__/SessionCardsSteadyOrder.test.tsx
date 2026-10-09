@@ -202,3 +202,17 @@ describe('session cards while the list refreshes in the background', () => {
     })
   })
 })
+
+describe('the search announcement while the list refreshes in the background', () => {
+  it('keeps the announced match count when a background update adds a match', async () => {
+    useSessionsViewStore.setState({ query: 'a' })
+    renderApp()
+    await screen.findByText('2 sessions match')
+
+    current = [session(3, 'Gamma', 300), session(1, 'Alpha', 200), session(2, 'Beta', 100)]
+    await refetchAfterChange(2)
+
+    expect(titles()).toEqual(['Gamma', 'Alpha', 'Beta'])
+    expect(screen.getByText('2 sessions match')).toBeTruthy()
+  })
+})

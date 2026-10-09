@@ -12,6 +12,7 @@ import { SessionSearch } from './SessionSearch'
 import { SessionsBody } from './SessionsBody'
 import { SessionCardList } from './SessionCardList'
 import { useSessionsViewStore } from './state/useSessionsViewStore'
+import { useMatchCountPerSearch } from './useMatchCountPerSearch'
 import { useSessions } from './useSessions'
 import { useSteadyOrder } from './useSteadyOrder'
 
@@ -55,6 +56,7 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
   const searchable = !gone && data !== undefined && data.length > 0
   // An empty or gone folder shows no search box, so a leftover query isn't a search.
   const searching = searchable && normalizeQuery(query) !== ''
+  const announcedCount = useMatchCountPerSearch(matchCount, searching ? query : null)
 
   return (
     <>
@@ -73,7 +75,7 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
           </>
         }
       />
-      <SearchResultsStatus count={matchCount} searching={searching} />
+      <SearchResultsStatus count={announcedCount} searching={searching} />
       <SessionsBody
         data={data}
         error={error}
