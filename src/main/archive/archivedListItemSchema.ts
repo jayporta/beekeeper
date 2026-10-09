@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { projectDirNameSchema, sessionIdSchema } from '../../shared/ipc/requestSchemas'
+import { archivedSignalsSchema } from './archivedSignalsSchema'
 
 const nullableNumber = z.number().nullable()
 const nullableString = z.string().nullable()
@@ -14,7 +15,7 @@ const roleSchema = z.discriminatedUnion('kind', [
   })
 ])
 
-/** What the list views read of a summary: a card's label, notes and usage. */
+/** What the list views read of a summary: a card's label, notes, usage and signal counts. */
 const summaryValueSchema = z.looseObject({
   title: nullableString,
   usage: z.looseObject({ totalUSD: nullableNumber, totalTokens: nullableNumber }).nullable(),
@@ -25,7 +26,8 @@ const summaryValueSchema = z.looseObject({
   limitHit: z
     .looseObject({ window: z.enum(['fiveHour', 'sevenDay']), resetsAtMs: z.number() })
     .nullable(),
-  transcriptTokens: nullableNumber
+  transcriptTokens: nullableNumber,
+  signals: archivedSignalsSchema
 })
 
 const agentTermSchema = z.looseObject({

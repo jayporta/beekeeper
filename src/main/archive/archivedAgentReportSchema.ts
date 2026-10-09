@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { archivedSignalsSchema } from './archivedSignalsSchema'
 
 const tokenCountsSchema = z.looseObject({
   input: z.number(),
@@ -19,16 +20,6 @@ const fileTouchSchema = z.looseObject({
   operation: z.enum(['edit', 'create', 'update', 'delete', 'change'])
 })
 
-const signalsSchema = z.looseObject({
-  toolErrors: z.number(),
-  longestErrorStreak: z.number(),
-  longestBashRepeat: z.number(),
-  compactions: z.number(),
-  agentsKilled: z.number(),
-  longestToolWait: z.looseObject({ ms: z.number(), tool: z.string() }).nullable(),
-  partial: z.boolean()
-})
-
 /**
  * The parts of an archived agent report the detail views read without a
  * guard: the token groups they sum and price, the files they list, the
@@ -43,5 +34,5 @@ export const archivedAgentReportSchema = z.looseObject({
   activity: z
     .looseObject({ earliestMs: z.number(), latestMs: z.number(), activeMs: z.number() })
     .nullable(),
-  signals: signalsSchema
+  signals: archivedSignalsSchema
 })

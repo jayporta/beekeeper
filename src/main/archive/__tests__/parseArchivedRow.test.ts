@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { EMPTY_AGENT_SIGNALS_DTO } from '../../../shared/ipc/emptyAgentSignals'
 import { parseArchivedDetail, parseArchivedListItem } from '../parseArchivedRow'
 import {
   testDetail,
@@ -99,6 +100,21 @@ describe('parseArchivedListItem', () => {
   it('rejects an activity whose times are not numbers', () => {
     const activity = { earliestMs: 'a', latestMs: 1 }
     const summary = { ok: true, value: { ...okSummaryValue(), activity } }
+
+    expect(parseArchivedListItem(storedItem({ summary }), TEST_REF).ok).toBe(false)
+  })
+
+  it('rejects a summary without its signals', () => {
+    const value = okSummaryValue()
+    delete value['signals']
+    const summary = { ok: true, value }
+
+    expect(parseArchivedListItem(storedItem({ summary }), TEST_REF).ok).toBe(false)
+  })
+
+  it('rejects signals whose counts are not numbers', () => {
+    const signals = { ...EMPTY_AGENT_SIGNALS_DTO, toolErrors: '3' }
+    const summary = { ok: true, value: { ...okSummaryValue(), signals } }
 
     expect(parseArchivedListItem(storedItem({ summary }), TEST_REF).ok).toBe(false)
   })
