@@ -128,6 +128,52 @@ describe('createOtelReceiverController', () => {
     expect(broken.receiver.state()).toEqual({ status: 'off' })
   })
 
+  it('keeps the server up when turning it off cannot be saved', async () => {
+    const folder = join(dir, 'settings')
+    mkdirSync(folder)
+    const guarded = build(join(folder, 'otel-receiver.json'), 0)
+    await guarded.controller.setEnabled(true)
+    chmodSync(folder, 0o500)
+
+    try {
+      await expect(guarded.controller.setEnabled(false)).rejects.toThrow()
+    } finally {
+      chmodSync(folder, 0o700)
+    }
+
+    expect(guarded.receiver.state().status).toBe('listening')
+    await guarded.stopAll()
+  })
+
+  it('reports starting for a saved on setting before the server has started', async () => {
+    const saved = await settings.setEnabled(true)
+
+    expect(await controller.get()).toEqual({
+      enabled: true,
+      status: 'starting',
+      failure: null,
+      port: 0,
+      token: saved.token
+    })
+  })
+
+  it('reports listening once the saved setting has been started', async () => {
+    await settings.setEnabled(true)
+
+    await controller.startFromSettings()
+
+    expect((await controller.get()).status).toBe('listening')
+  })
+
+  it('reports off, not starting, after a receiver started at launch is stopped', async () => {
+    await settings.setEnabled(true)
+    await controller.startFromSettings()
+
+    await controller.stop()
+
+    expect((await controller.get()).status).toBe('off')
+  })
+
   it('starts from the saved setting when it is on', async () => {
     const saved = await settings.setEnabled(true)
 

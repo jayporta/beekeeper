@@ -11,7 +11,7 @@ export const OTEL_RECEIVER_PORT = 47318
 /** The only address the receiver binds, so nothing off this machine can reach it. */
 export const OTEL_RECEIVER_HOST = '127.0.0.1'
 
-const MAX_CONNECTIONS = 16
+const MAX_CONNECTIONS = 4
 const DEFAULT_REQUEST_TIMEOUT_MS = 10_000
 
 /** Whether the receiver is listening, and why not if it was turned on but couldn't. */

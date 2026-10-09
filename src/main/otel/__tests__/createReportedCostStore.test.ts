@@ -135,6 +135,10 @@ describe('createReportedCostStore', () => {
     ])
   })
 
+  it('remembers 500 request ids per session', () => {
+    expect(MAX_REQUEST_IDS_PER_SESSION).toBe(500)
+  })
+
   it('evicts the least recently reported session past the session cap', () => {
     const store = createReportedCostStore()
     for (let n = 0; n < MAX_STORED_SESSIONS; n += 1) {

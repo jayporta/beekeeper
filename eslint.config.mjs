@@ -12,7 +12,8 @@ import { importDirectionPolicy } from './lint/importDirectionPolicy.mjs'
 import {
   networkBannedGlobals,
   networkBannedImports,
-  telemetryReceiverImports
+  telemetryReceiverImports,
+  telemetryReceiverTestImports
 } from './lint/networkBans.mjs'
 
 export default defineConfig(
@@ -54,10 +55,17 @@ export default defineConfig(
     }
   },
   {
-    // The opt-in telemetry receiver may use node:http, and every other network ban stays.
+    // The opt-in telemetry receiver may import a node:http server, and every other network ban stays.
     files: ['src/main/otel/**/*.ts'],
     rules: {
       'no-restricted-imports': ['error', { paths: telemetryReceiverImports }]
+    }
+  },
+  {
+    // Its tests and test helpers may also import the client `request`, to send it exports.
+    files: ['src/main/otel/__tests__/**/*.ts', 'src/main/otel/test*.ts'],
+    rules: {
+      'no-restricted-imports': ['error', { paths: telemetryReceiverTestImports }]
     }
   },
   {

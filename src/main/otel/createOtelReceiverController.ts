@@ -13,17 +13,18 @@ export interface OtelReceiverController {
   get(): Promise<OtelReceiverDto>
 
   /**
-   * Saves the choice and starts or stops the server to match. Turning it on
-   * keeps the setting on even when the server can't start, and reports why.
+   * Saves the choice and then starts or stops the server to match. Turning it
+   * on keeps the setting on even when the server can't start, and reports why.
    *
    * @param enabled - The new setting.
    * @returns The receiver afterwards.
-   * @throws When the setting can't be saved. The server is left as it was.
+   * @throws When the setting can't be saved. The server is left as it was, running or not.
    */
   setEnabled(enabled: boolean): Promise<OtelReceiverDto>
 
   /**
-   * Starts the server when the saved setting is on. Call it once at launch.
+   * Starts the server when the saved setting is on. Call it once at launch;
+   * until it has run, a receiver that is on reports `starting`.
    *
    * @throws When the saved setting can't be read.
    */
@@ -43,29 +44,36 @@ export interface OtelReceiverControllerOptions {
   readonly port: number
 }
 
-function toDto(settings: OtelSettings, state: OtelReceiverState, port: number): OtelReceiverDto {
+/** What {@link toDto} combines. */
+interface DtoParts {
+  /** The saved setting. */
+  readonly settings: OtelSettings
+  /** The server's state. */
+  readonly state: OtelReceiverState
+  /** The port to report while the server isn't listening. */
+  readonly port: number
+  /** Whether the server has already been asked to start, at launch or by a person. */
+  readonly startAttempted: boolean
+}
+
+function toDto({ settings, state, port, startAttempted }: DtoParts): OtelReceiverDto {
   if (!settings.enabled) {
     return { enabled: false, status: 'off', failure: null, port, token: null }
   }
+  const { token } = settings
   switch (state.status) {
     case 'listening':
-      return {
-        enabled: true,
-        status: 'listening',
-        failure: null,
-        port: state.port,
-        token: settings.token
-      }
+      return { enabled: true, status: 'listening', failure: null, port: state.port, token }
     case 'failed':
+      return { enabled: true, status: 'failed', failure: state.failure, port, token }
+    case 'off':
       return {
         enabled: true,
-        status: 'failed',
-        failure: state.failure,
+        status: startAttempted ? 'off' : 'starting',
+        failure: null,
         port,
-        token: settings.token
+        token
       }
-    case 'off':
-      return { enabled: true, status: 'off', failure: null, port, token: settings.token }
   }
 }
 
@@ -81,24 +89,32 @@ export function createOtelReceiverController(
 ): OtelReceiverController {
   const { settings, receiver, port } = options
   const serialize = createSerialQueue()
+  let startAttempted = false
 
   async function read(): Promise<OtelReceiverDto> {
-    return toDto(await settings.read(), receiver.state(), port)
+    return toDto({ settings: await settings.read(), state: receiver.state(), port, startAttempted })
   }
 
   return {
     get: () => serialize(read),
     setEnabled: (enabled) =>
       serialize(async () => {
-        if (!enabled) await receiver.stop()
         const saved = await settings.setEnabled(enabled)
-        if (enabled && saved.token !== null) await receiver.start(saved.token)
+        if (!enabled) await receiver.stop()
+        else if (saved.token !== null) {
+          startAttempted = true
+          await receiver.start(saved.token)
+        }
         return read()
       }),
     startFromSettings: () =>
       serialize(async () => {
-        const saved = await settings.read()
-        if (saved.enabled && saved.token !== null) await receiver.start(saved.token)
+        try {
+          const saved = await settings.read()
+          if (saved.enabled && saved.token !== null) await receiver.start(saved.token)
+        } finally {
+          startAttempted = true
+        }
       }),
     stop: () => serialize(() => receiver.stop())
   }

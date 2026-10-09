@@ -172,10 +172,13 @@ export function parseOtlpLogs(body: unknown): ParseOtlpLogsResult {
         seen += 1
         const record = logRecordSchema.safeParse(recordEntry)
         if (!record.success) continue
-        const attributes = new Map([
-          ...resourceAttributes,
-          ...collectOtlpAttributes(record.data.attributes, WANTED_ATTRIBUTES)
-        ])
+        const attributes = new Map(resourceAttributes)
+        for (const [key, value] of collectOtlpAttributes(
+          record.data.attributes,
+          WANTED_ATTRIBUTES
+        )) {
+          attributes.set(key, value)
+        }
         if (!isApiRequest(record.data, attributes)) continue
         const apiRequest = toApiRequest(attributes)
         if (apiRequest !== null) requests.push(apiRequest)

@@ -5,7 +5,7 @@ import type { ReportedApiRequest } from './parseOtlpLogs'
 export const MAX_STORED_SESSIONS = 500
 
 /** The most request ids remembered per session to drop a retried export; the oldest are forgotten first. */
-export const MAX_REQUEST_IDS_PER_SESSION = 5000
+export const MAX_REQUEST_IDS_PER_SESSION = 500
 
 /** The most agents tracked per session. A later agent's cost still counts in the session total. */
 export const MAX_AGENTS_PER_SESSION = 256

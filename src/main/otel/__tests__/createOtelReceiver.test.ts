@@ -6,8 +6,8 @@ import { createOtelReceiver, type OtelReceiver } from '../createOtelReceiver'
 import { apiRequestAttributes, logRecord, otlpLogsBody, TEST_SESSION_ID } from '../testOtlpLogs'
 import { sendToReceiver, TEST_TOKEN } from '../testOtelClient'
 
-/** The 8 MiB body cap, written out so a change to the constant fails these tests. */
-const EIGHT_MIB = 8 * 1024 * 1024
+/** The 2 MiB body cap, written out so a change to the constant fails these tests. */
+const TWO_MIB = 2 * 1024 * 1024
 
 let costs: ReportedCostStore
 let receiver: OtelReceiver
@@ -200,7 +200,7 @@ describe('createOtelReceiver requests', () => {
     const response = await sendToReceiver({
       port,
       body: validBody(),
-      headers: { 'content-length': String(EIGHT_MIB + 1) }
+      headers: { 'content-length': String(TWO_MIB + 1) }
     })
 
     expect([response.status, costs.get(TEST_SESSION_ID)]).toEqual([413, null])
@@ -209,7 +209,7 @@ describe('createOtelReceiver requests', () => {
   it('answers 413 or resets a streamed body past the cap, and records nothing', async () => {
     const body = JSON.stringify({
       ...(otlpLogsBody([logRecord(apiRequestAttributes())]) as object),
-      padding: 'x'.repeat(EIGHT_MIB)
+      padding: 'x'.repeat(TWO_MIB)
     })
 
     // The receiver destroys the socket after answering, so a client still writing may see a reset instead.
@@ -225,7 +225,7 @@ describe('createOtelReceiver requests', () => {
   it('accepts a streamed body just under the cap', async () => {
     const body = JSON.stringify({
       ...(otlpLogsBody([logRecord(apiRequestAttributes())]) as object),
-      padding: 'x'.repeat(EIGHT_MIB - 1000)
+      padding: 'x'.repeat(TWO_MIB - 1000)
     })
 
     const response = await sendToReceiver({ port, body, chunked: true })
@@ -289,8 +289,8 @@ describe('createOtelReceiver limits', () => {
     expect(costs.get(TEST_SESSION_ID)).toBeNull()
   })
 
-  it('drops connections past the 16th open one', async () => {
-    const open = Array.from({ length: 16 }, () => {
+  it('drops connections past the 4th open one', async () => {
+    const open = Array.from({ length: 4 }, () => {
       const req = request({
         host: '127.0.0.1',
         port,
@@ -305,13 +305,13 @@ describe('createOtelReceiver limits', () => {
     })
     await new Promise((resolve) => setTimeout(resolve, 100))
 
-    const seventeenth = await sendToReceiver({ port, body: validBody() }).then(
+    const fifth = await sendToReceiver({ port, body: validBody() }).then(
       (response) => `status ${response.status}`,
       () => 'dropped'
     )
     open.forEach((req) => req.destroy())
 
-    expect(seventeenth).toBe('dropped')
+    expect(fifth).toBe('dropped')
   })
 })
 

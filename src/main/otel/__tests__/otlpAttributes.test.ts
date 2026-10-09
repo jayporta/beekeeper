@@ -11,6 +11,17 @@ describe('collectOtlpAttributes', () => {
     expect([...kept.keys()]).toEqual(['model'])
   })
 
+  it('does not read the value of an attribute it was not asked for', () => {
+    const unwanted = {
+      key: 'prompt',
+      get value(): never {
+        throw new Error('the value was read')
+      }
+    }
+
+    expect(() => collectOtlpAttributes([unwanted], new Set(['model']))).not.toThrow()
+  })
+
   it('keeps the last value of a repeated key', () => {
     const list = [
       { key: 'model', value: { stringValue: 'first' } },

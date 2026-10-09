@@ -6,7 +6,7 @@ import { parseOtlpLogs } from './parseOtlpLogs'
 import { readLimitedBody } from './readLimitedBody'
 
 /** The most request-body bytes the receiver reads. */
-export const MAX_OTLP_BODY_BYTES = 8 * 1024 * 1024
+export const MAX_OTLP_BODY_BYTES = 2 * 1024 * 1024
 
 /** What the handler needs to answer a request. */
 export interface OtlpRequestHandlerOptions {
@@ -42,20 +42,21 @@ function isUncompressed(contentEncoding: string | undefined): boolean {
  * success, which is an empty OTLP response, and empty for a failure. Nothing
  * from the request is echoed back.
  */
-function reply(
-  res: ServerResponse,
-  status: number,
-  options: { destroySocket?: boolean } = {}
-): void {
+function reply(res: ServerResponse, status: number): void {
   const body = status === 200 ? '{}' : ''
   res.writeHead(status, {
     'Content-Type': 'application/json',
     'Content-Length': Buffer.byteLength(body),
     Connection: 'close'
   })
-  res.end(body, () => {
-    if (options.destroySocket) res.socket?.destroy()
-  })
+  res.end(body)
+}
+
+/** Answers like {@link reply}, then destroys the socket so a client still sending can't keep it busy. */
+function replyAndDestroy(res: ServerResponse, status: number): void {
+  const { socket } = res
+  res.once('finish', () => socket?.destroy())
+  reply(res, status)
 }
 
 /**
@@ -84,12 +85,12 @@ export function createOtlpRequestHandler(
     if (!isJson(req.headers['content-type'])) return reply(res, 415)
     if (!isUncompressed(req.headers['content-encoding'])) return reply(res, 415)
     if (Number(req.headers['content-length']) > MAX_OTLP_BODY_BYTES) {
-      return reply(res, 413, { destroySocket: true })
+      return replyAndDestroy(res, 413)
     }
 
     const body = await readLimitedBody(req, MAX_OTLP_BODY_BYTES)
     if (!body.ok) {
-      if (body.reason === 'too-large') reply(res, 413, { destroySocket: true })
+      if (body.reason === 'too-large') replyAndDestroy(res, 413)
       else res.destroy()
       return
     }

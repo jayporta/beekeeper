@@ -16,13 +16,54 @@ const OTEL_FILE = 'src/main/otel/probe.ts'
 const OTHER_FILE = 'src/main/probe.ts'
 
 describe('network bans', () => {
-  it.each(['node:http', 'http'])('allows %s in the telemetry receiver folder', async (module) => {
+  it.each(['node:http', 'http'])(
+    'allows createServer and the server types from %s in the telemetry receiver folder',
+    async (module) => {
+      const rules = await reportedRules(
+        OTEL_FILE,
+        `import { createServer, type Server } from '${module}'\nimport type { IncomingMessage, ServerResponse } from '${module}'\nexport const s = [createServer, {} as Server, {} as IncomingMessage, {} as ServerResponse]\n`
+      )
+
+      expect(rules).not.toContain('no-restricted-imports')
+    }
+  )
+
+  it.each([
+    "import { request } from 'node:http'",
+    "import { get } from 'node:http'",
+    "import { request } from 'http'",
+    "import { Agent } from 'node:http'",
+    "import { ClientRequest } from 'node:http'",
+    "import { createServer, request } from 'node:http'",
+    "import * as http from 'node:http'",
+    "import http from 'node:http'",
+    "export { request } from 'node:http'",
+    "export * from 'node:http'"
+  ])('bans outbound http in a receiver source file: %s', async (statement) => {
+    const rules = await reportedRules(OTEL_FILE, `${statement}\n`)
+
+    expect(rules).toContain('no-restricted-imports')
+  })
+
+  it.each([
+    ['a test', 'src/main/otel/__tests__/probe.test.ts'],
+    ['a test helper', 'src/main/otel/testProbe.ts']
+  ])('allows request from node:http in %s', async (_label, path) => {
     const rules = await reportedRules(
-      OTEL_FILE,
-      `import { createServer } from '${module}'\nexport const s = createServer\n`
+      path,
+      "import { request, type IncomingHttpHeaders } from 'node:http'\nexport const s = [request, {} as IncomingHttpHeaders]\n"
     )
 
     expect(rules).not.toContain('no-restricted-imports')
+  })
+
+  it('still bans node:https in a receiver test', async () => {
+    const rules = await reportedRules(
+      'src/main/otel/__tests__/probe.test.ts',
+      "import { request } from 'node:https'\nexport const s = request\n"
+    )
+
+    expect(rules).toContain('no-restricted-imports')
   })
 
   it.each(['node:http', 'http'])(

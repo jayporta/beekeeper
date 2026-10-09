@@ -25,6 +25,16 @@ const attributeSchema = z.object({ key: z.string(), value: valueSchema })
 /** A plain decimal number, so `0x10`, `Infinity` and the empty string never coerce. */
 const DECIMAL = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/
 
+function isWantedEntry(entry: unknown, wanted: ReadonlySet<string>): boolean {
+  return (
+    typeof entry === 'object' &&
+    entry !== null &&
+    'key' in entry &&
+    typeof entry.key === 'string' &&
+    wanted.has(entry.key)
+  )
+}
+
 /**
  * Collects the wanted attributes from an OTLP attribute list. A malformed
  * entry is skipped, and keys outside `wanted` are never retained, so content
@@ -38,10 +48,10 @@ export function collectOtlpAttributes(list: unknown, wanted: ReadonlySet<string>
   const attributes = new Map<string, OtlpValue>()
   if (!Array.isArray(list)) return attributes
   for (const entry of list as readonly unknown[]) {
+    // Checked before the parse, so an attribute nobody asked for costs one lookup.
+    if (!isWantedEntry(entry, wanted)) continue
     const parsed = attributeSchema.safeParse(entry)
-    if (parsed.success && wanted.has(parsed.data.key)) {
-      attributes.set(parsed.data.key, parsed.data.value)
-    }
+    if (parsed.success) attributes.set(parsed.data.key, parsed.data.value)
   }
   return attributes
 }
