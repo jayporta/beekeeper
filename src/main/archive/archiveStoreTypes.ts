@@ -25,9 +25,11 @@ export interface ArchiveStore {
    * a team is recomputed from the family at list time. An entry whose stored
    * row has the same source state and format is skipped without being
    * serialized, and a batch of only such entries opens no transaction. A row
-   * stored in another format is rewritten and loses its detail. When a write
-   * fails, the whole batch is rolled back and the error is thrown, and the
-   * store behaves as if none of it had been saved.
+   * whose source state changed is rewritten, and keeps its detail only when
+   * that detail was scanned from the new state. A row stored in another format
+   * is rewritten and loses its detail. When a write fails, the whole batch is
+   * rolled back and the error is thrown, and the store behaves as if none of
+   * it had been saved.
    *
    * @param entries - The list items and the source states they were built from.
    */

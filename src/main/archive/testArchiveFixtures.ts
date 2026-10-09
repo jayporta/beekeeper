@@ -1,3 +1,4 @@
+import type { AgentReportDto } from '../../shared/ipc/agentDto'
 import { EMPTY_AGENT_SIGNALS_DTO } from '../../shared/ipc/emptyAgentSignals'
 import type { IpcResult } from '../../shared/ipc/ipcResult'
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
@@ -82,5 +83,113 @@ export function testDetail(padding = ''): SessionDetailDto {
     },
     workflowRuns: [],
     archived: false
+  }
+}
+
+/** A list item with every optional part of a summary and every kind of agent term set. */
+export function testPopulatedListItem(): SessionListItemDto {
+  return testListItem({
+    modifiedMs: 5,
+    subagentCount: 2,
+    workflows: { runs: 1, agents: 1 },
+    agentTerms: [
+      { name: 'scout', description: null, agentType: 'Explore' },
+      { name: null, description: 'Find the bug', agentType: 'code-reviewer' }
+    ],
+    workflowRunNames: ['nightly'],
+    summary: {
+      ok: true,
+      value: {
+        title: 'Fix the bug',
+        usage: { totalUSD: 1.5, totalTokens: 1_200 },
+        activity: { earliestMs: 1, latestMs: 5 },
+        skippedLines: 2,
+        role: { kind: 'agent', agentType: 'Explore', agentName: 'scout', teamName: 'blue' },
+        model: 'claude-opus-4',
+        limitHit: { window: 'fiveHour', resetsAtMs: 9 },
+        transcriptTokens: 1_000
+      }
+    }
+  })
+}
+
+/** An agent report with every kind of price, file touch, and signal set. */
+export function testPopulatedReport(): AgentReportDto {
+  const tokens = { input: 1, output: 2, cacheRead: 3, cacheWrite5m: 4, cacheWrite1h: 5 }
+  return {
+    tokenGroups: [
+      { model: 'm', speed: 'standard', tokens, price: { kind: 'priced', usd: 0.5 } },
+      { model: 'm', speed: 'fast', tokens, price: { kind: 'unpriced', reason: 'unknown-speed' } },
+      { model: 'n', speed: 'standard', tokens, price: { kind: 'free' } }
+    ],
+    messageCount: 3,
+    skippedLines: 1,
+    fileTouches: [
+      { filePath: '/work/app/a.ts', operation: 'edit', source: 'edit-write' },
+      { filePath: '/work/app/b.ts', operation: 'delete', source: 'bash' }
+    ],
+    fileListIncomplete: true,
+    activity: { earliestMs: 1, latestMs: 9, activeMs: 5 },
+    signals: {
+      toolErrors: 2,
+      longestErrorStreak: 1,
+      longestBashRepeat: 3,
+      compactions: 1,
+      agentsKilled: 1,
+      longestToolWait: { ms: 100, tool: 'Bash' },
+      partial: true
+    }
+  }
+}
+
+/** A detail with a nested tree of every meta status, subagent reports good and bad, and workflow runs. */
+export function testPopulatedDetail(): SessionDetailDto {
+  return {
+    ...testDetail(),
+    tree: {
+      agentId: null,
+      meta: { status: 'absent' },
+      workflowRunId: null,
+      children: [
+        {
+          agentId: 'a1',
+          meta: {
+            status: 'ok',
+            meta: {
+              agentType: 'Explore',
+              description: 'Find the bug',
+              model: 'claude-opus-4',
+              toolUseId: 'toolu_1',
+              spawnDepth: 0,
+              stoppedByUser: true,
+              worktreeBranch: 'fix/bug',
+              teamName: 'blue',
+              name: 'scout'
+            }
+          },
+          workflowRunId: 'run-1',
+          children: [
+            {
+              agentId: 'a2',
+              meta: { status: 'error', reason: 'invalid-json' },
+              workflowRunId: null,
+              children: []
+            }
+          ]
+        }
+      ]
+    },
+    lead: testPopulatedReport(),
+    subagents: {
+      ok: true,
+      value: [
+        { agentId: 'a1', report: { ok: true, value: testPopulatedReport() } },
+        { agentId: 'a2', report: { ok: false, error: { code: 'unreadable' } } }
+      ]
+    },
+    workflowRuns: [
+      { runId: 'run-1', record: { name: 'nightly', completed: true, phases: ['plan', 'build'] } },
+      { runId: 'run-2', record: null }
+    ]
   }
 }

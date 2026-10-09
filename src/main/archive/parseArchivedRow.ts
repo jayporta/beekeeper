@@ -1,41 +1,13 @@
 import { z } from 'zod'
 import { err, ok, type Result } from '../../core/shared/result'
-import { projectDirNameSchema, sessionIdSchema } from '../../shared/ipc/requestSchemas'
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
+import { archivedDetailSchema } from './archivedDetailSchema'
+import { archivedListItemSchema } from './archivedListItemSchema'
 
 /** Why a stored row can't be served: bad JSON, a shape the UI can't rely on, or keys that don't match the row's. */
 export type ArchivedRowError = 'invalid-json' | 'invalid-shape' | 'key-mismatch'
-
-const nullableNumber = z.number().nullable()
-
-/**
- * The parts of a list item the UI relies on, checked leniently so a field
- * added later doesn't invalidate rows. An archived item always has a readable
- * summary, since only those are written.
- */
-const listItemSchema = z.looseObject({
-  projectDirName: projectDirNameSchema,
-  sessionId: sessionIdSchema,
-  modifiedMs: nullableNumber,
-  agentTerms: z.array(z.unknown()),
-  workflowRunNames: z.array(z.string()),
-  summary: z.looseObject({
-    ok: z.literal(true),
-    value: z.looseObject({
-      title: z.string().nullable(),
-      activity: z.looseObject({ earliestMs: z.number(), latestMs: z.number() }).nullable()
-    })
-  })
-})
-
-/** The parts of a detail the UI relies on. */
-const detailSchema = z.looseObject({
-  sessionId: sessionIdSchema,
-  lead: z.looseObject({}),
-  tree: z.looseObject({})
-})
 
 /** What {@link parseRow} checks a row's JSON against. */
 interface ParseRowOptions<Schema extends z.ZodType> {
@@ -61,7 +33,7 @@ function parseRow<Schema extends z.ZodType, Dto>(
   if (!parsed.success) return err('invalid-shape')
   if (!options.matchesKey(parsed.data)) return err('key-mismatch')
   // The row was written from this DTO by this app. The shape check above covers
-  // the fields the UI relies on, and the format version guards against drift.
+  // the fields the UI reads without a guard, and the format version guards against drift.
   return ok(value as Dto)
 }
 
@@ -78,7 +50,7 @@ export function parseArchivedListItem(
 ): Result<SessionListItemDto, ArchivedRowError> {
   return parseRow({
     json,
-    schema: listItemSchema,
+    schema: archivedListItemSchema,
     matchesKey: (item) =>
       item.projectDirName === ref.projectDirName && item.sessionId === ref.sessionId
   })
@@ -97,7 +69,7 @@ export function parseArchivedDetail(
 ): Result<SessionDetailDto, ArchivedRowError> {
   return parseRow({
     json,
-    schema: detailSchema,
+    schema: archivedDetailSchema,
     matchesKey: (detail) => detail.sessionId === ref.sessionId
   })
 }

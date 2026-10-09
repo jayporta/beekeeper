@@ -184,6 +184,78 @@ describe('saveListItems with one entry', () => {
     expect(rows()[0]).toMatchObject({ format: 1, detail: null, detail_mtime_ms: null })
     expect(JSON.parse(String(rows()[0]?.['list_item']))).toEqual(testListItem())
   })
+
+  it('lists a rewritten stale-format row again, whatever a skip recorded for it in memory', () => {
+    seedRow({ format: 0, listItem: '{}', detail: '{}' })
+    const stale = newStore()
+    stale.skipDetail(TEST_REF)
+
+    stale.saveListItems([listEntry(testListItem(), TEST_SOURCE)])
+
+    expect(stale.pendingDetails().map((pending) => pending.ref)).toEqual([TEST_REF])
+  })
+})
+
+describe('saveListItems after a detail was archived ahead of the list item', () => {
+  // A detail is archived for the transcript's state when it was scanned, which can be newer
+  // than the state the stored list item describes.
+  const AHEAD: SourceState = { mtimeMs: 2_000, size: 900 }
+
+  beforeEach(() => {
+    store.saveListItems([listEntry()])
+    store.saveDetail(TEST_REF, { detail: testDetail('ahead'), source: AHEAD })
+  })
+
+  it('keeps the detail when the list item catches up to the state it was scanned for', () => {
+    store.saveListItems([listEntry(testListItem(), AHEAD)])
+
+    expect(rows()[0]).toMatchObject({ detail_mtime_ms: AHEAD.mtimeMs, detail_size: AHEAD.size })
+    expect(String(rows()[0]?.['detail'])).toContain('ahead')
+  })
+
+  it('leaves the session out of the pending list, as a store created over the archive does', () => {
+    store.saveListItems([listEntry(testListItem(), AHEAD)])
+
+    expect(store.pendingDetails()).toEqual([])
+    expect(newStore().pendingDetails()).toEqual([])
+  })
+
+  it('still serves the detail it kept', () => {
+    store.readDetail(TEST_REF)
+
+    store.saveListItems([listEntry(testListItem(), AHEAD)])
+
+    expect(store.readDetail(TEST_REF)).toEqual(testDetail('ahead'))
+  })
+
+  it('keeps a too-large skip recorded for that state, which stays settled', () => {
+    store.saveDetail(TEST_REF, {
+      detail: testDetail('x'.repeat(MAX_ARCHIVED_DETAIL_CHARS)),
+      source: { ...AHEAD, size: 901 }
+    })
+
+    store.saveListItems([listEntry(testListItem(), { ...AHEAD, size: 901 })])
+
+    expect(rows()[0]).toMatchObject({
+      detail: null,
+      detail_mtime_ms: AHEAD.mtimeMs,
+      detail_size: 901
+    })
+    expect(store.pendingDetails()).toEqual([])
+  })
+
+  it.each([
+    ['size', { ...AHEAD, size: 901 }],
+    ['modification time', { ...AHEAD, mtimeMs: 2_001 }]
+  ])(
+    'clears the detail when the new state differs from the one it was scanned for in %s',
+    (_label, next) => {
+      store.saveListItems([listEntry(testListItem(), next)])
+
+      expect(rows()[0]).toMatchObject({ detail: null, detail_mtime_ms: null, detail_size: null })
+      expect(store.pendingDetails().map((pending) => pending.source)).toEqual([next])
+    }
+  )
 })
 
 describe('saveDetail', () => {
@@ -648,6 +720,22 @@ describe('readListItems', () => {
     ])
   })
 
+  it.each([
+    ['an agent term that is null', { agentTerms: [null] }],
+    [
+      'an agent term with a numeric name',
+      { agentTerms: [{ name: 7, description: null, agentType: 'a' }] }
+    ]
+  ])('skips a hand-edited row with %s and logs it once', (_label, edit) => {
+    seedRow({ listItem: JSON.stringify({ ...OK_ITEM, ...edit }) })
+    const fresh = newStore()
+
+    expect(fresh.readListItems(TEST_REF.projectDirName, NONE)).toEqual([])
+    fresh.readListItems(TEST_REF.projectDirName, NONE)
+
+    expect(logged).toEqual(['Beekeeper archive skipped an unreadable row (invalid-shape).'])
+  })
+
   it('still returns the readable rows beside a corrupt one', () => {
     seedRow({ listItem: '{corrupt' })
     seedRow({
@@ -872,6 +960,19 @@ describe('readDetail', () => {
     expect(fresh.readDetail(TEST_REF)).toBeNull()
     expect(fresh.readDetail(TEST_REF)).toBeNull()
     expect(logged).toEqual(['Beekeeper archive skipped an unreadable row (invalid-json).'])
+  })
+
+  it.each([
+    ['a lead that is empty', { lead: {} }],
+    ['a tree that is empty', { tree: {} }],
+    ['a tree whose children are not a list', { tree: { ...testDetail().tree, children: {} } }]
+  ])('returns null for a hand-edited detail with %s and logs it once', (_label, edit) => {
+    seedRow({ listItem: '{}', detail: JSON.stringify({ ...testDetail(), ...edit }) })
+    const fresh = newStore()
+
+    expect(fresh.readDetail(TEST_REF)).toBeNull()
+    expect(fresh.readDetail(TEST_REF)).toBeNull()
+    expect(logged).toEqual(['Beekeeper archive skipped an unreadable row (invalid-shape).'])
   })
 
   it('returns null for a detail of another session', () => {

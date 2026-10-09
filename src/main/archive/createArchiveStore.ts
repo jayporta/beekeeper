@@ -123,7 +123,9 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
     }
     for (const { item, source } of writes) {
       const key = sessionRefKey(item)
-      settledStates.delete(key)
+      // Mirrors the upsert, which keeps a detail scanned from the new source state at this format.
+      const keepsDetail = listEntries.get(key)?.format === ARCHIVE_FORMAT && isSettled(key, source)
+      if (!keepsDetail) settledStates.delete(key)
       const ref = { projectDirName: item.projectDirName, sessionId: item.sessionId }
       reads.rowChanged(ref)
       listEntries.set(key, {
