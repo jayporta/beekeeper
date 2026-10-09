@@ -1,0 +1,32 @@
+.toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.label {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-height: var(--size-target-min);
+  padding-inline: var(--space-2);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+
+  &:has(:disabled) {
+    color: var(--color-text-muted);
+    cursor: default;
+  }
+}
+
+.checkbox {
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+  margin: 0;
+  accent-color: var(--color-accent-strong);
+  cursor: inherit;
+}
+
+.note {
+  padding-inline: var(--space-2);
+}
