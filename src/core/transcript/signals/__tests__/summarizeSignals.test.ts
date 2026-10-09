@@ -103,10 +103,14 @@ describe('summarizeSignals', () => {
     ).toBeNull()
   })
 
-  it('drops a wait when either timestamp is missing', () => {
+  it('drops a wait when the call has no timestamp', () => {
     expect(
       summarize([call('a', { atMs: null }), result('a', false, 1000)]).longestToolWait
     ).toBeNull()
+  })
+
+  it('drops a wait when the result has no timestamp', () => {
+    expect(summarize([call('a', { atMs: 0 }), result('a', false, null)]).longestToolWait).toBeNull()
   })
 
   it('counts a result with no matching call toward errors but not waits', () => {
