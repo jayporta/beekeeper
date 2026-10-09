@@ -1,3 +1,4 @@
+import type { AgentSignalsDto } from './agentDto'
 import type { IpcResult } from './ipcResult'
 import type { SessionRoleDto } from './sessionRoleDto'
 import type { SessionTeamDto } from './sessionTeamDto'
@@ -36,6 +37,11 @@ export interface SessionSummaryDto {
    * distinct messages than the scan keeps.
    */
   readonly transcriptTokens: number | null
+  /**
+   * The off-the-rails counts for the transcript's own tool calls and system
+   * records. Excludes subagent transcripts.
+   */
+  readonly signals: AgentSignalsDto
 }
 
 /** What a session search matches on for one subagent. Transcript-derived: render it as plain text. */

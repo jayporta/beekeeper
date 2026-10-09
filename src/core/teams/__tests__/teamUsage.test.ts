@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { EMPTY_SIGNALS } from '../../transcript/summary/testSessionSummary'
 import { groupTeams } from '../groupTeams'
 import { rollupTeamUsage } from '../teamUsage'
 import {
@@ -70,6 +71,24 @@ describe('rollupTeamUsage', () => {
     const rollup = rollupOf([lead, a, b])
 
     expect(rollup).toMatchObject({ leadUSD: null, teamUSD: 7, sessionsWithoutCost: 1 })
+  })
+
+  it('totals the signals of the lead and its grouped teammates', () => {
+    const lead = testLead(testRef('p', 'lead'), {
+      teamSpawns: testTeamSpawns([testSpawn('a', 'team')]),
+      signals: { ...EMPTY_SIGNALS, toolErrors: 2, compactions: 1 }
+    })
+    const a = testAgent(testRef('p', 'a'), {
+      agentName: 'a',
+      teamName: 'team',
+      signals: { ...EMPTY_SIGNALS, toolErrors: 3, agentsKilled: 1 }
+    })
+
+    expect(rollupOf([lead, a]).signalTotals).toEqual({
+      toolErrors: 5,
+      compactions: 1,
+      agentsKilled: 1
+    })
   })
 
   it('reports a null teamUSD when no session recorded a total', () => {

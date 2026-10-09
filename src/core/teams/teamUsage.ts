@@ -1,4 +1,5 @@
 import type { RecordedUsage } from '../transcript/summary/sessionSummary'
+import { sumSignalTotals, type SignalTotals } from './signalTotals'
 import { spawnPairOrder } from './spawnPairOrder'
 import { agentPairKey } from './teamKey'
 import type { LeadGroup, SummarizedSession } from './teamGrouping'
@@ -53,6 +54,12 @@ export interface TeamUsageRollup {
    * it was.
    */
   readonly teamListsTruncated: boolean
+  /**
+   * The lead's and each grouped teammate's tool errors, compactions and agent
+   * kills, summed. Counts what each session's own transcript reports, so a
+   * teammate that joined another lead or stayed ungrouped is not in it.
+   */
+  readonly signalTotals: SignalTotals
 }
 
 interface RecordedSum {
@@ -116,6 +123,7 @@ export function rollupTeamUsage(group: LeadGroup): TeamUsageRollup {
     teamTokens: tokens.team,
     sessionsWithoutTokens: tokens.missing,
     missingTeammates: countMissingTeammates(group),
-    teamListsTruncated: group.lead.summary.teamSpawns.truncated
+    teamListsTruncated: group.lead.summary.teamSpawns.truncated,
+    signalTotals: sumSignalTotals(sessions)
   }
 }

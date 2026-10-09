@@ -2,6 +2,7 @@ import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
+import { EMPTY_AGENT_SIGNALS_DTO } from '../../../../../shared/ipc/emptyAgentSignals'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { testDetail } from '@renderer/features/sessionDetail/testSessionDetail'
@@ -474,5 +475,88 @@ describe('session cards: plan limit note', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+})
+
+describe('session cards: signal notes', () => {
+  const counts = { toolErrors: 12, compactions: 2, agentsKilled: 0 }
+  const noisy = testSession(5, {
+    projectDirName: DIR,
+    title: 'Went off the rails',
+    signals: { ...EMPTY_AGENT_SIGNALS_DTO, ...counts }
+  })
+  const teamLead = testSession(6, {
+    projectDirName: DIR,
+    title: 'Team lead',
+    signals: { ...EMPTY_AGENT_SIGNALS_DTO, toolErrors: 1 },
+    team: testLeadTeam([testRef(7, DIR)], testUsage({ signalTotals: counts }))
+  })
+  const teammate = testSession(7, {
+    projectDirName: DIR,
+    role: testAgentRole('helper', 'code'),
+    team: testTeammateTeam(testRef(6, DIR))
+  })
+  const unreadable = testSession(8, { projectDirName: DIR, title: 'Hidden', unreadable: true })
+  const SCOPE = /^Card counts cover the lead and its teammates/
+
+  it('notes the tool errors and compactions on a card, and nothing on a quiet one', async () => {
+    showSessions([noisy, solo])
+
+    expect((await cardOf('Went off the rails')).textContent).toContain(
+      '12 tool errors · 2 compactions'
+    )
+    expect((await cardOf('Plain session')).textContent).not.toContain('tool error')
+  })
+
+  it('notes a lead with the team totals rather than its own counts', async () => {
+    showSessions([teamLead, teammate])
+
+    expect((await cardOf('Team lead')).textContent).toContain('12 tool errors · 2 compactions')
+  })
+
+  it('renders a lead and its unreadable teammate, the lead noting its team totals', async () => {
+    // Main gives an unreadable session no team entry and leaves it out of its lead's group
+    // (guarded in listSessionsTeam.test.ts), so the lead lists no teammate and counts it as missing.
+    const leadOfUnreadable = testSession(9, {
+      projectDirName: DIR,
+      title: 'Lead of a lost teammate',
+      signals: { ...EMPTY_AGENT_SIGNALS_DTO, toolErrors: 1 },
+      team: testLeadTeam([], testUsage({ missingTeammates: 1, signalTotals: counts }))
+    })
+    const lostTeammate = testSession(10, {
+      projectDirName: DIR,
+      role: testAgentRole('lost', 'code'),
+      unreadable: true
+    })
+    showSessions([leadOfUnreadable, lostTeammate])
+
+    const leadCard = await cardOf('Lead of a lost teammate')
+    const lostCard = await cardOf('Unreadable session')
+
+    expect(leadCard.textContent).toContain('12 tool errors · 2 compactions')
+    expect(lostCard.textContent).not.toContain('tool error')
+  })
+
+  it('says what the counts cover once, below the list, when a card has a count', async () => {
+    showSessions([noisy, solo])
+    await cardOf('Went off the rails')
+
+    expect(screen.getAllByText(SCOPE)).toHaveLength(1)
+  })
+
+  it('leaves the scope note out when no card has a count', async () => {
+    showSessions([solo])
+    await cardOf('Plain session')
+
+    expect(screen.queryByText(SCOPE)).toBeNull()
+  })
+
+  it('still renders a card whose summary failed, with no signal note or scope note', async () => {
+    showSessions([unreadable])
+
+    const card = await screen.findByRole('heading', { level: 2, name: 'Unreadable session' })
+
+    expect(card.closest('li')?.textContent).not.toContain('tool error')
+    expect(screen.queryByText(SCOPE)).toBeNull()
   })
 })

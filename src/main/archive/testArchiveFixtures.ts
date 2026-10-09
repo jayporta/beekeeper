@@ -50,7 +50,8 @@ export function testOkSummary(latestMs: number | null): IpcResult<SessionSummary
       role: { kind: 'lead' },
       model: null,
       limitHit: null,
-      transcriptTokens: null
+      transcriptTokens: null,
+      signals: EMPTY_AGENT_SIGNALS_DTO
     }
   }
 }

@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, Menu } from 'electron'
+import { existsSync, watch } from 'node:fs'
 import { join } from 'path'
 import { optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -9,6 +10,7 @@ import { buildAppMenuTemplate } from './appMenu'
 import { createIpcDeps } from './ipc/createIpcDeps'
 import { registerIpcHandlers } from './ipc/registerIpcHandlers'
 import { isTrustedSender } from './ipc/senderValidation'
+import { createProjectsWatcher } from './live/createProjectsWatcher'
 import { hardenDefaultSession } from './security/session'
 import { hardenWebContents } from './security/windowSecurity'
 import { sendOpenAbout } from './sendOpenAbout'
@@ -88,6 +90,17 @@ app
       deps
     })
 
+    // One watcher for the app's lifetime, on the same root the handlers read.
+    const projectsWatcher = createProjectsWatcher({
+      root: deps.projectsRoot,
+      watch,
+      exists: existsSync,
+      windows: () => BrowserWindow.getAllWindows()
+    })
+    app.on('will-quit', () => {
+      projectsWatcher.close()
+    })
+
     // Set once, before any window: `activate` recreates windows, not the menu.
     Menu.setApplicationMenu(
       Menu.buildFromTemplate(
@@ -103,6 +116,14 @@ app
       // `zoom: true` keeps the toolkit from cancelling the zoom keys. Cancelling
       // a key event in the window also blocks the matching menu accelerator.
       optimizer.watchWindowShortcuts(window, { zoom: true })
+      projectsWatcher.notifyWindow(window)
+      // A recursive watch can walk a large tree before it returns, so it starts after the
+      // first page has loaded and painted. Starting again does nothing.
+      window.webContents.once('did-finish-load', () => {
+        setImmediate(() => {
+          projectsWatcher.start()
+        })
+      })
     })
 
     const firstWindow = createWindow()

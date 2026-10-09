@@ -1,5 +1,6 @@
 import { vi, type Mock } from 'vitest'
 import type { BeekeeperApi } from '../../shared/ipc/beekeeperApi'
+import type { FilesChangedDto } from '../../shared/ipc/filesChangedDto'
 import type { IpcResult } from '../../shared/ipc/ipcResult'
 import type { ProjectDto } from '../../shared/ipc/projectDto'
 
@@ -31,13 +32,37 @@ export function testProject(dirName: string, worktree?: TestWorktree): ProjectDt
 export type TestBeekeeperApi = { [K in keyof BeekeeperApi]: Mock<BeekeeperApi[K]> } & {
   /** Calls every listener subscribed through `onOpenAbout`, as the menu's About item does. */
   fireOpenAbout(): void
+  /** Calls every listener subscribed through `onFilesChanged` with `change`, as a batch from the main process does. */
+  fireFilesChanged(change: FilesChangedDto): void
+  /** Calls every listener subscribed through `onLiveUpdatesUnavailable`, as the main process does when the watcher fails. */
+  fireLiveUpdatesUnavailable(): void
+}
+
+/** A set of listeners that `subscribe` adds to and the returned function removes from. */
+function createListeners<T extends unknown[]>(): {
+  subscribe(listener: (...args: T) => void): () => void
+  fire(...args: T): void
+} {
+  const listeners = new Set<(...args: T) => void>()
+  return {
+    subscribe: (listener) => {
+      listeners.add(listener)
+      return () => {
+        listeners.delete(listener)
+      }
+    },
+    fire: (...args) => {
+      for (const listener of [...listeners]) listener(...args)
+    }
+  }
 }
 
 /**
  * Installs a stub `window.beekeeper`. `listProjects` returns one project by
  * default. Calls to a method the test did not stub reject, so a test can't
- * silently depend on it. `onOpenAbout` subscriptions are real: `fireOpenAbout`
- * reaches every listener that has not unsubscribed.
+ * silently depend on it. `onOpenAbout`, `onFilesChanged` and
+ * `onLiveUpdatesUnavailable` subscriptions are real: each `fire…` helper reaches
+ * every listener that has not unsubscribed.
  *
  * @param overrides - Implementations to use instead of the defaults.
  * @returns The installed stub.
@@ -45,7 +70,9 @@ export type TestBeekeeperApi = { [K in keyof BeekeeperApi]: Mock<BeekeeperApi[K]
 export function installBeekeeperApi(overrides: Partial<BeekeeperApi> = {}): TestBeekeeperApi {
   const unstubbed = (name: string) => () =>
     Promise.reject(new Error(`window.beekeeper.${name} was not stubbed`))
-  const aboutListeners = new Set<() => void>()
+  const about = createListeners()
+  const filesChanged = createListeners<[FilesChangedDto]>()
+  const unavailable = createListeners()
   const api: TestBeekeeperApi = {
     listProjects: vi.fn(
       overrides.listProjects ??
@@ -60,18 +87,12 @@ export function installBeekeeperApi(overrides: Partial<BeekeeperApi> = {}): Test
       overrides.getProjectDailyUsage ?? ((): Promise<never> => new Promise(() => undefined))
     ),
     getWorktreePatch: vi.fn(overrides.getWorktreePatch ?? unstubbed('getWorktreePatch')),
-    onOpenAbout: vi.fn(
-      overrides.onOpenAbout ??
-        ((listener) => {
-          aboutListeners.add(listener)
-          return () => {
-            aboutListeners.delete(listener)
-          }
-        })
-    ),
-    fireOpenAbout: () => {
-      for (const listener of [...aboutListeners]) listener()
-    }
+    onOpenAbout: vi.fn(overrides.onOpenAbout ?? about.subscribe),
+    onFilesChanged: vi.fn(overrides.onFilesChanged ?? filesChanged.subscribe),
+    onLiveUpdatesUnavailable: vi.fn(overrides.onLiveUpdatesUnavailable ?? unavailable.subscribe),
+    fireOpenAbout: about.fire,
+    fireFilesChanged: filesChanged.fire,
+    fireLiveUpdatesUnavailable: unavailable.fire
   }
   window.beekeeper = api
   return api

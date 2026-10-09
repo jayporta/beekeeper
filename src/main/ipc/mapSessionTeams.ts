@@ -31,7 +31,12 @@ function mapLeadGroup(group: LeadGroup, into: Map<string, SessionTeamDto>): void
       teamTokens: usage.teamTokens,
       sessionsWithoutTokens: usage.sessionsWithoutTokens,
       missingTeammates: usage.missingTeammates,
-      teamListsTruncated: usage.teamListsTruncated
+      teamListsTruncated: usage.teamListsTruncated,
+      signalTotals: {
+        toolErrors: usage.signalTotals.toolErrors,
+        compactions: usage.signalTotals.compactions,
+        agentsKilled: usage.signalTotals.agentsKilled
+      }
     }
   })
 }

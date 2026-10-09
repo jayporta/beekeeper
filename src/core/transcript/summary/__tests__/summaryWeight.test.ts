@@ -7,7 +7,7 @@ import {
   SUMMARY_ENTRY_OVERHEAD,
   summaryWeight
 } from '../summaryWeight'
-import { buildSessionSummary } from '../testSessionSummary'
+import { buildSessionSummary, EMPTY_SIGNALS } from '../testSessionSummary'
 
 const EMPTY_SUMMARY: SessionSummary = buildSessionSummary()
 
@@ -22,6 +22,15 @@ describe('summaryWeight', () => {
 
   it('adds the length of the model', () => {
     expect(summaryWeight({ ...EMPTY_SUMMARY, model: 'abcde' })).toBe(SUMMARY_ENTRY_OVERHEAD + 5)
+  })
+
+  it('adds the length of the longest tool wait tool name', () => {
+    const summary: SessionSummary = {
+      ...EMPTY_SUMMARY,
+      signals: { ...EMPTY_SIGNALS, longestToolWait: { ms: 5, tool: 'abcdef' } }
+    }
+
+    expect(summaryWeight(summary)).toBe(SUMMARY_ENTRY_OVERHEAD + 6)
   })
 
   it('counts UTF-16 code units, so a character outside the BMP weighs two', () => {

@@ -1,3 +1,4 @@
+import type { FilesChangedDto } from './filesChangedDto'
 import type { IpcResult } from './ipcResult'
 import type { ProjectDto } from './projectDto'
 import type { ProjectDailyUsageDto } from './projectDailyUsageDto'
@@ -80,4 +81,18 @@ export interface BeekeeperApi {
    * @returns A function that removes the subscription.
    */
   onOpenAbout(listener: () => void): () => void
+
+  /**
+   * Subscribes to changes under `~/.claude/projects`, which the main process sends in batches.
+   * @param listener - Called with each batch that passes validation. Invalid payloads are dropped.
+   * @returns A function that removes this subscription and no other.
+   */
+  onFilesChanged(listener: (change: FilesChangedDto) => void): () => void
+
+  /**
+   * Subscribes to the notice that live updates stopped and won't resume.
+   * @param listener - Called with no arguments. A notice sent before anyone subscribed is delivered once, to the first subscriber.
+   * @returns A function that removes this subscription and no other.
+   */
+  onLiveUpdatesUnavailable(listener: () => void): () => void
 }
