@@ -14,6 +14,7 @@ export function testGraphNode(
     tokens: null,
     partial: false,
     stopped: false,
+    marks: null,
     subagentsNotLoaded: false,
     folder: null,
     selection: null,

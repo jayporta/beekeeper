@@ -6,6 +6,7 @@ import type { InspectionTarget } from './inspectionTarget'
 import { InspectorFlags } from './InspectorFlags'
 import { InspectorFootnote } from './InspectorFootnote'
 import { inspectorReasons } from './inspectorReasons'
+import { InspectorSignals } from './InspectorSignals'
 import { InspectorTotals } from './InspectorTotals'
 import { reportCost } from './reportCost'
 import { rollupBelow } from './rollupBelow'
@@ -24,7 +25,7 @@ interface InspectorBodyProps {
 
 /**
  * Everything the inspector knows about an agent whose report has loaded: its
- * totals, tokens by class, files touched, worktree diff, flags, and the
+ * totals, tokens by class, files touched, worktree diff, signals, flags, and the
  * footnote that explains each "¹". The worktree box is for a subagent that ran
  * on a worktree branch, and for an agent in a session of its own, which shows
  * one only when it shares a worktree with a subagent of the lead.
@@ -66,6 +67,7 @@ export function InspectorBody({ node, target, inspection }: InspectorBodyProps):
           branch={worktreeBranch}
         />
       )}
+      <InspectorSignals signals={report.signals} showKills={target.agentId === null} />
       <InspectorFlags stopped={node.stopped} partial={node.partial} />
       <InspectorFootnote reasons={reasons} />
     </>

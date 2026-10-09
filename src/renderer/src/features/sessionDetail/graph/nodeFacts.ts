@@ -1,5 +1,6 @@
 import type { AgentGraphNode, NodeWorkflow } from './agentGraphNode'
 import type { GraphT } from './graphT'
+import { markFacts } from './nodeMarks'
 import { runMembers } from './runMembers'
 
 /** The run's phase count as text, or `null` when it has no phases or isn't a run. */
@@ -54,8 +55,9 @@ interface NodeNameOptions {
 
 /**
  * The accessible name of a node's button: its name, its kind and parent, its
- * tokens, its second line, then each flag. A workflow run's second line is its
- * phase count, its id when its name isn't unique, then how many agents it
+ * tokens, its second line, then each flag. While the node loads, its flags
+ * are only the loading one, as the node shows. A workflow run's second line is
+ * its phase count, its id when its name isn't unique, then how many agents it
  * holds, since the kind is already said. It carries everything the node
  * shows, and the edge to its parent, so a screen reader hears the same facts a
  * sighted reader sees and can tell same-named siblings apart by where they hang.
@@ -73,7 +75,8 @@ export function nodeAccessibleName(
       ? t('graph.node.tokensUnknown')
       : t('graph.node.tokens', { count: node.tokens }),
     ...(node.kind === 'workflow' ? runDetails(node, t) : nodeDetail(node, t)),
-    node.stopped ? t('graph.node.stopped') : null,
+    ...(loading ? [] : markFacts(node.marks, t)),
+    node.stopped && !loading ? t('graph.node.stopped') : null,
     loading ? t('graph.node.loading') : null,
     node.partial ? t('graph.node.partial') : null
   ].filter((part) => part !== null)

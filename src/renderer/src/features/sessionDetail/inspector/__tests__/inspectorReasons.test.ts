@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { EMPTY_AGENT_SIGNALS_DTO } from '../../../../../../shared/ipc/emptyAgentSignals'
 import { testReport, testTokenGroup } from '../../testSessionDetail'
 import { inspectorReasons } from '../inspectorReasons'
 
@@ -148,5 +149,19 @@ describe('inspectorReasons', () => {
     })
 
     expect(reasons.size).toBe(4)
+  })
+})
+
+describe('inspectorReasons with partial signals', () => {
+  it('names signals that may be low, as the only reason when nothing else is wrong', () => {
+    const reasons = inspectorReasons({
+      report: testReport({ signals: { ...EMPTY_AGENT_SIGNALS_DTO, partial: true } }),
+      cost: complete,
+      rollup: noBelow,
+      partial: true,
+      subagentsUnreadable: false
+    })
+
+    expect([...reasons]).toEqual(['incompleteSignals'])
   })
 })

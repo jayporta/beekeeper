@@ -5,6 +5,7 @@ import styles from './GraphCanvas.module.css'
 import { GraphFootnote } from './GraphFootnote'
 import { GraphNode } from './GraphNode'
 import { GraphViewport } from './GraphViewport'
+import { hasMarks } from './nodeMarks'
 import { nodeLabel } from './nodeLabel'
 import { parentNames } from './parentNames'
 import type { AgentGraph } from './useAgentGraph'
@@ -68,6 +69,7 @@ export function GraphCanvas({ graph }: GraphCanvasProps): React.JSX.Element {
       <GraphFootnote
         partial={layout.nodes.some(({ node }) => node.kind !== 'workflow' && node.partial)}
         partialWorkflow={layout.nodes.some(({ node }) => node.kind === 'workflow' && node.partial)}
+        marks={layout.nodes.some(({ node }) => hasMarks(node.marks))}
         missingTeammates={root.missingTeammates}
         teamListsTruncated={root.teamListsTruncated}
       />

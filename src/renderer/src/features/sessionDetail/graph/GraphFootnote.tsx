@@ -9,6 +9,8 @@ interface GraphFootnoteProps {
   readonly partial: boolean
   /** Whether any workflow run is partial, which its "¹" means differently: some of its agents are. */
   readonly partialWorkflow: boolean
+  /** Whether any node has a tool error or compaction mark, which the legend explains. */
+  readonly marks: boolean
   /** How many teammates the lead spawned that never appeared as sessions. */
   readonly missingTeammates: number
   /** Whether the lead's spawn or stop lists hit their cap, so more teammates may be missing. */
@@ -17,18 +19,20 @@ interface GraphFootnoteProps {
 
 /**
  * The quiet notes under the graph: how to move among the nodes with the
- * keyboard, then why a "¹" marks a node (and what it means on a workflow run), how many teammates the lead spawned
+ * keyboard, then why a "¹" marks a node (and what it means on a workflow run), what the
+ * node marks mean (hidden from assistive technology, since a node's name says them in words), how many teammates the lead spawned
  * that aren't in the sessions list, and that the lead's lists hit their cap.
  * Only the selected node is in the tab order, so the keyboard hint is always
  * there. They describe the graph region, so a screen reader reads them on
  * entering it.
  *
  * @example
- * <GraphFootnote partial={false} partialWorkflow={false} missingTeammates={2} teamListsTruncated={false} />
+ * <GraphFootnote partial={false} partialWorkflow={false} marks={false} missingTeammates={2} teamListsTruncated={false} />
  */
 export function GraphFootnote({
   partial,
   partialWorkflow,
+  marks,
   missingTeammates,
   teamListsTruncated
 }: GraphFootnoteProps): React.JSX.Element {
@@ -40,6 +44,13 @@ export function GraphFootnote({
       {partial && <p id={GRAPH_FOOTNOTE_ID}>{t('graph.footnote.partial')}</p>}
       {partialWorkflow && (
         <p id={GRAPH_WORKFLOW_FOOTNOTE_ID}>{t('graph.footnote.partialWorkflow')}</p>
+      )}
+      {marks && (
+        <p aria-hidden="true" className={styles.legend}>
+          <span>{t('graph.footnote.legend.toolErrors')}</span>
+          <span>{t('graph.footnote.legend.compactions')}</span>
+          <span>{t('graph.footnote.legend.stopped')}</span>
+        </p>
       )}
       {missingTeammates > 0 && (
         <p>{t('graph.footnote.missingTeammates', { count: missingTeammates })}</p>

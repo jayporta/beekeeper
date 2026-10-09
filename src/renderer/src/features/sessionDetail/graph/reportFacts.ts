@@ -19,11 +19,11 @@ export function reportTokens(report: AgentReportDto): number | null {
 
 /**
  * Whether a report may be missing something: transcript lines that couldn't
- * be read, or a file list that may be incomplete.
+ * be read, a file list that may be incomplete, or signal counts that hit a cap.
  *
  * @param report - The agent's report.
  * @returns `true` when it may be incomplete.
  */
 export function isPartialReport(report: AgentReportDto): boolean {
-  return report.skippedLines > 0 || report.fileListIncomplete
+  return report.skippedLines > 0 || report.fileListIncomplete || report.signals.partial
 }

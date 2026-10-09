@@ -8,6 +8,7 @@ const REASON_ORDER = [
   'unreadableLines',
   'unpricedTokens',
   'incompleteFiles',
+  'incompleteSignals',
   'unrecordedTokens',
   'subagentsUnreadable',
   'subagentsNotLoaded',
