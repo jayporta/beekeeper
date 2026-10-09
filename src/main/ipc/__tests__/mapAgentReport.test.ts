@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { AgentReport } from '../../../core/session/agentReports'
+import { summarizeSignals } from '../../../core/transcript/signals/summarizeSignals'
+import { EMPTY_AGENT_SIGNALS_DTO } from '../../../shared/ipc/emptyAgentSignals'
 import { mapAgentReport } from '../mapAgentReport'
 
 const REPORT: AgentReport = {
@@ -9,7 +11,16 @@ const REPORT: AgentReport = {
     { filePath: '/repo/gone.ts', operation: 'delete', source: 'bash', toolUseId: 'toolu_2' }
   ],
   fileListIncomplete: true,
-  activity: { earliestMs: 1000, latestMs: 3000, activeMs: 1500 }
+  activity: { earliestMs: 1000, latestMs: 3000, activeMs: 1500 },
+  signals: {
+    toolErrors: 12,
+    longestErrorStreak: 4,
+    longestBashRepeat: 3,
+    compactions: 2,
+    agentsKilled: 1,
+    longestToolWait: { ms: 90_000, tool: 'Bash' },
+    partial: true
+  }
 }
 
 describe('mapAgentReport activity', () => {
@@ -37,5 +48,34 @@ describe('mapAgentReport file touches', () => {
   it('passes the incomplete flag through', () => {
     expect(mapAgentReport(REPORT).fileListIncomplete).toBe(true)
     expect(mapAgentReport({ ...REPORT, fileListIncomplete: false }).fileListIncomplete).toBe(false)
+  })
+})
+
+describe('mapAgentReport signals', () => {
+  it('copies every signal field', () => {
+    expect(mapAgentReport(REPORT).signals).toEqual({
+      toolErrors: 12,
+      longestErrorStreak: 4,
+      longestBashRepeat: 3,
+      compactions: 2,
+      agentsKilled: 1,
+      longestToolWait: { ms: 90_000, tool: 'Bash' },
+      partial: true
+    })
+  })
+
+  it('copies the longest wait as a new object', () => {
+    const mapped = mapAgentReport(REPORT).signals.longestToolWait
+    expect(mapped).not.toBe(REPORT.signals.longestToolWait)
+  })
+
+  it('maps no wait to null', () => {
+    const report = { ...REPORT, signals: { ...REPORT.signals, longestToolWait: null } }
+    expect(mapAgentReport(report).signals.longestToolWait).toBeNull()
+  })
+
+  it('maps empty signals to the empty signals DTO', () => {
+    const report = { ...REPORT, signals: summarizeSignals([], { partial: false }) }
+    expect(mapAgentReport(report).signals).toEqual(EMPTY_AGENT_SIGNALS_DTO)
   })
 })

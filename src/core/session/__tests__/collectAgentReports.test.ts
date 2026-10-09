@@ -165,4 +165,16 @@ describe('collectAgentReports', () => {
 
     expect(fileTouches).toEqual([])
   })
+
+  it('collects signal events from the same pass', async () => {
+    const { signalEvents, signalsCapped } = await collectAgentReports(
+      recordsOf(ok(buildUserToolResultRecord({ toolUseId: 'toolu_1', isError: true }))),
+      leadIdentity
+    )
+
+    expect(signalEvents).toMatchObject([
+      { kind: 'tool-result', toolUseId: 'toolu_1', isError: true }
+    ])
+    expect(signalsCapped).toBe(false)
+  })
 })

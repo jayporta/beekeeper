@@ -1,4 +1,5 @@
 import type { AgentReportDto } from '../../../../../shared/ipc/agentDto'
+import { EMPTY_AGENT_SIGNALS_DTO } from '../../../../../shared/ipc/emptyAgentSignals'
 import type { SessionDetailDto } from '../../../../../shared/ipc/sessionDetailDto'
 import { reportTokens } from '../graph/reportFacts'
 
@@ -26,7 +27,8 @@ export function readableReports(
 /**
  * Adds up the reports of a workflow run's agents into one, so the inspector can
  * read a run's tokens by class, cost, messages and span like an agent's. A run
- * shows no files, so the report holds none.
+ * shows no files, so the report holds none, and the workflow inspector doesn't
+ * render signals, so the report holds empty ones.
  *
  * @param reports - The run's readable agent reports, from {@link readableReports}.
  * @returns The combined report: every token group, the summed message count and skipped lines, and a span from the earliest start to the latest end.
@@ -43,6 +45,7 @@ export function runReport(reports: readonly AgentReportDto[]): AgentReportDto {
     skippedLines: reports.reduce((total, { skippedLines }) => total + skippedLines, 0),
     fileTouches: [],
     fileListIncomplete: false,
+    signals: EMPTY_AGENT_SIGNALS_DTO,
     activity:
       spans.length === 0
         ? null
