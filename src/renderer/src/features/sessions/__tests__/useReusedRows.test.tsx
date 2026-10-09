@@ -55,6 +55,14 @@ describe('useReusedRows', () => {
     expect(rowOf(next, solo)).toBe(rowOf(initial, solo))
   })
 
+  it('returns the earlier row when an equal item arrives as a new object', () => {
+    const { initial, rerenderWith } = renderRows([lead, teammate, solo])
+
+    const next = rerenderWith([lead, teammate, structuredClone(solo)])
+
+    expect(rowOf(next, solo)).toBe(rowOf(initial, solo))
+  })
+
   it('returns a new row for a changed item and keeps the others', () => {
     const { initial, rerenderWith } = renderRows([lead, teammate, solo])
 
