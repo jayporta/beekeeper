@@ -45,6 +45,11 @@ export function mapAgentReport(report: AgentReport): AgentReportDto {
       source: touch.source
     })),
     fileListIncomplete: report.fileListIncomplete,
-    activity: report.activity === null ? null : { ...report.activity }
+    activity: report.activity === null ? null : { ...report.activity },
+    signals: {
+      ...report.signals,
+      longestToolWait:
+        report.signals.longestToolWait === null ? null : { ...report.signals.longestToolWait }
+    }
   }
 }

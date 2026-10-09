@@ -52,7 +52,33 @@ export interface AgentActivityDto {
   readonly activeMs: number
 }
 
-/** One agent's usage, file touches, and activity span. */
+/** The longest gap between a tool call and its result. */
+export interface ToolWaitDto {
+  /** The gap, in milliseconds. */
+  readonly ms: number
+  /** The name of the tool that was called. Render as plain text only. */
+  readonly tool: string
+}
+
+/** Raw counts of the signs that an agent went off the rails, from its own transcript. */
+export interface AgentSignalsDto {
+  /** Tool results with `is_error: true`, including calls a hook blocked or a person denied. */
+  readonly toolErrors: number
+  /** The longest run of consecutive errored tool results. */
+  readonly longestErrorStreak: number
+  /** The longest run of identical Bash commands, ignoring other tools between them. 0 with no Bash calls. */
+  readonly longestBashRepeat: number
+  /** How many times the agent's context was compacted. */
+  readonly compactions: number
+  /** How many times the agent's running subagents were killed. */
+  readonly agentsKilled: number
+  /** The longest tool wait, or `null` when no call has a usable pair of timestamps. */
+  readonly longestToolWait: ToolWaitDto | null
+  /** Whether events were dropped at a cap, so the counts may be low. */
+  readonly partial: boolean
+}
+
+/** One agent's usage, file touches, activity span, and signals. */
 export interface AgentReportDto {
   /** Tokens by model and speed. */
   readonly tokenGroups: readonly TokenGroupDto[]
@@ -83,6 +109,8 @@ export interface AgentReportDto {
    * messages don't count.
    */
   readonly activity: AgentActivityDto | null
+  /** Its signal counts, from the events it owns. A fork's copies of the lead's events don't count. */
+  readonly signals: AgentSignalsDto
 }
 
 /** The subagent meta fields the renderer may see. Unknown fields are dropped. */

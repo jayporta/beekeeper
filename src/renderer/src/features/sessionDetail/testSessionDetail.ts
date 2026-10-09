@@ -5,6 +5,7 @@ import type {
   AgentReportDto,
   TokenGroupDto
 } from '../../../../shared/ipc/agentDto'
+import { EMPTY_AGENT_SIGNALS_DTO } from '../../../../shared/ipc/emptyAgentSignals'
 import type { SessionDetailDto } from '../../../../shared/ipc/sessionDetailDto'
 import type { WorkflowRunDto } from '../../../../shared/ipc/workflowRunDto'
 
@@ -17,6 +18,7 @@ export function testReport(overrides: Partial<AgentReportDto> = {}): AgentReport
     fileTouches: [],
     fileListIncomplete: false,
     activity: null,
+    signals: EMPTY_AGENT_SIGNALS_DTO,
     ...overrides
   }
 }
