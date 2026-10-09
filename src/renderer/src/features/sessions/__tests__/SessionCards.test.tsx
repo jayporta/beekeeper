@@ -514,9 +514,9 @@ describe('session cards: signal notes', () => {
     expect((await cardOf('Team lead')).textContent).toContain('12 tool errors · 2 compactions')
   })
 
-  it('renders both cards when a teammate’s summary failed, counting it nowhere in the lead’s totals', async () => {
-    // Main gives an unreadable session no team entry and leaves it out of its lead's group,
-    // so the lead lists no teammate and counts it as missing.
+  it('renders a lead and its unreadable teammate, the lead noting its team totals', async () => {
+    // Main gives an unreadable session no team entry and leaves it out of its lead's group
+    // (guarded in listSessionsTeam.test.ts), so the lead lists no teammate and counts it as missing.
     const leadOfUnreadable = testSession(9, {
       projectDirName: DIR,
       title: 'Lead of a lost teammate',
