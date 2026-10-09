@@ -1,11 +1,12 @@
 import { toProjectDirName, toSessionId } from '../transcript/ids'
 import type { SessionRole } from '../transcript/sessionRole'
+import type { AgentSignals } from '../transcript/signals/agentSignals'
 import type {
   ActivitySpan,
   RecordedUsage,
   SessionSummary
 } from '../transcript/summary/sessionSummary'
-import { buildSessionSummary } from '../transcript/summary/testSessionSummary'
+import { buildSessionSummary, EMPTY_SIGNALS } from '../transcript/summary/testSessionSummary'
 import type { TeammateSpawn, TeammateStop, TranscriptTeamSpawns } from '../transcript/teammateSpawn'
 import type { SessionRef, SummarizedSession } from './teamGrouping'
 
@@ -53,6 +54,8 @@ interface TestSessionOptions {
   readonly teamSpawns?: TranscriptTeamSpawns
   /** What the session recorded about its own usage. Defaults to `null`, no record. */
   readonly usage?: RecordedUsage | null
+  /** The session's signals. Defaults to all zero. */
+  readonly signals?: AgentSignals
 }
 
 function testSession(
@@ -63,7 +66,8 @@ function testSession(
     usage: options.usage ?? null,
     activity: options.activity ?? null,
     role: identity.role,
-    teamSpawns: options.teamSpawns ?? testTeamSpawns()
+    teamSpawns: options.teamSpawns ?? testTeamSpawns(),
+    signals: options.signals ?? EMPTY_SIGNALS
   })
   return { ref: identity.ref, summary }
 }

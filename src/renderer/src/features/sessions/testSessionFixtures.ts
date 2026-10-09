@@ -1,3 +1,5 @@
+import type { AgentSignalsDto } from '../../../../shared/ipc/agentDto'
+import { EMPTY_AGENT_SIGNALS_DTO } from '../../../../shared/ipc/emptyAgentSignals'
 import type {
   AgentSearchTermDto,
   SessionListItemDto,
@@ -43,6 +45,8 @@ interface TestSessionOptions {
   readonly skippedLines?: number
   /** The plan limit the session hit. Defaults to `null`. */
   readonly limitHit?: SessionSummaryDto['limitHit']
+  /** The session's own signal counts. Defaults to all zero. */
+  readonly signals?: AgentSignalsDto
   /** Whether the summary could not be read. Defaults to `false`. */
   readonly unreadable?: boolean
 }
@@ -72,6 +76,7 @@ export function testSession(n: number, options: TestSessionOptions = {}): Sessio
     workflowRunNames = [],
     skippedLines = 0,
     limitHit = null,
+    signals = EMPTY_AGENT_SIGNALS_DTO,
     unreadable = false
   } = options
 
@@ -86,7 +91,8 @@ export function testSession(n: number, options: TestSessionOptions = {}): Sessio
     role,
     model,
     limitHit,
-    transcriptTokens
+    transcriptTokens,
+    signals
   }
   return {
     projectDirName,
@@ -115,6 +121,7 @@ export function testUsage(overrides: Partial<TeamUsageRollupDto> = {}): TeamUsag
     sessionsWithoutTokens: 0,
     missingTeammates: 0,
     teamListsTruncated: false,
+    signalTotals: { toolErrors: 0, compactions: 0, agentsKilled: 0 },
     ...overrides
   }
 }

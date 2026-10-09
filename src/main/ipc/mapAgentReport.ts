@@ -1,6 +1,7 @@
 import type { AgentReport } from '../../core/session/agentReports'
 import type { TokenGroup } from '../../core/session/tokenGroup'
 import type { AgentReportDto, PriceDto, TokenGroupDto } from '../../shared/ipc/agentDto'
+import { mapAgentSignals } from './mapAgentSignals'
 
 function mapPrice(price: TokenGroup['price']): PriceDto {
   switch (price.kind) {
@@ -46,10 +47,6 @@ export function mapAgentReport(report: AgentReport): AgentReportDto {
     })),
     fileListIncomplete: report.fileListIncomplete,
     activity: report.activity === null ? null : { ...report.activity },
-    signals: {
-      ...report.signals,
-      longestToolWait:
-        report.signals.longestToolWait === null ? null : { ...report.signals.longestToolWait }
-    }
+    signals: mapAgentSignals(report.signals)
   }
 }

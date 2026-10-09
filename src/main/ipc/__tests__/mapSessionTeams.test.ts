@@ -9,6 +9,7 @@ import {
   testTeamSpawns,
   testUsage
 } from '../../../core/teams/testTeamFixtures'
+import { EMPTY_SIGNALS } from '../../../core/transcript/summary/testSessionSummary'
 import type { SessionRefDto } from '../../../shared/ipc/sessionRefDto'
 import { mapSessionTeams } from '../mapSessionTeams'
 import { sessionRefKey } from '../sessionRefKey'
@@ -25,6 +26,7 @@ const ref = (sessionId: string, projectDirName = 'p'): SessionRefDto => ({
 describe('mapSessionTeams', () => {
   const lead = testLead(testRef('p', 'lead'), {
     usage: testUsage(1, 10),
+    signals: { ...EMPTY_SIGNALS, toolErrors: 4, compactions: 1 },
     teamSpawns: testTeamSpawns(
       [testSpawn('a', 'team'), testSpawn('b', 'team'), testSpawn('ghost', 'team')],
       [testStop('a', 'team')]
@@ -33,7 +35,8 @@ describe('mapSessionTeams', () => {
   const a = testAgent(testRef('p', 'a'), {
     agentName: 'a',
     teamName: 'team',
-    usage: testUsage(2, 5)
+    usage: testUsage(2, 5),
+    signals: { ...EMPTY_SIGNALS, toolErrors: 3, agentsKilled: 2 }
   })
   const b = testAgent(testRef('p', 'b'), { agentName: 'b', teamName: 'team' })
 
@@ -51,7 +54,8 @@ describe('mapSessionTeams', () => {
         teamTokens: 15,
         sessionsWithoutTokens: 1,
         missingTeammates: 1,
-        teamListsTruncated: false
+        teamListsTruncated: false,
+        signalTotals: { toolErrors: 7, compactions: 1, agentsKilled: 2 }
       }
     })
   })
@@ -130,7 +134,8 @@ describe('mapSessionTeams', () => {
         teamTokens: 50,
         sessionsWithoutTokens: 0,
         missingTeammates: 1,
-        teamListsTruncated: false
+        teamListsTruncated: false,
+        signalTotals: { toolErrors: 0, compactions: 0, agentsKilled: 0 }
       }
     })
   })
@@ -152,7 +157,8 @@ describe('mapSessionTeams', () => {
         teamTokens: 50,
         sessionsWithoutTokens: 0,
         missingTeammates: 0,
-        teamListsTruncated: true
+        teamListsTruncated: true,
+        signalTotals: { toolErrors: 0, compactions: 0, agentsKilled: 0 }
       }
     })
   })
