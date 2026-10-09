@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { err, ok } from '../../../core/shared/result'
 import { toSessionId } from '../../../core/transcript/ids'
 import { testDetail } from '../../archive/testArchiveFixtures'
-import { createFakeArchiveWriter } from '../../archive/testFakeArchiveWriter'
+import { createFakeArchive } from '../../archive/testFakeArchive'
 import { getSessionHandler } from '../getSessionHandler'
 import { lookupRequestedSession } from '../findRequestedSession'
 import { sessionRefKey } from '../sessionRefKey'
@@ -31,7 +31,7 @@ describe('a listed session whose transcript cannot be read', () => {
   })
 
   it('never falls back to the archived detail', async () => {
-    const archive = createFakeArchiveWriter(undefined, {
+    const archive = createFakeArchive(undefined, {
       details: new Map([[sessionRefKey(request), { ...testDetail(), sessionId: TEST_SESSION_ID }]])
     })
 

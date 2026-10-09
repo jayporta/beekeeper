@@ -286,3 +286,24 @@ describe('SessionDetailContent load announcement', () => {
     expect(await screen.findByText('Kept loaded')).toBeTruthy()
   })
 })
+
+describe('SessionDetailContent for an archived session', () => {
+  const ARCHIVED_NOTICE =
+    "This session's transcript was removed. Showing the copy beekeeper archived."
+
+  it('says the transcript was removed and the shown copy is the archive', async () => {
+    renderContent({
+      detail: Promise.resolve({ ok: true, value: testDetail({ archived: true }) })
+    })
+
+    expect(await screen.findByText(ARCHIVED_NOTICE)).toBeTruthy()
+  })
+
+  it('shows no such notice for a session read from disk', async () => {
+    renderContent()
+
+    await screen.findByRole('heading', { level: 1, name: 'Kept' })
+
+    expect(screen.queryByText(ARCHIVED_NOTICE)).toBeNull()
+  })
+})

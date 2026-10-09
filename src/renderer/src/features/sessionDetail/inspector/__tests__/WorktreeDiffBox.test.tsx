@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { act, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { IpcResult } from '../../../../../../shared/ipc/ipcResult'
@@ -508,5 +508,112 @@ describe('WorktreeDiffBox for a teammate in a session of its own', () => {
     await waitFor(() => {
       expect(api.getWorktreeDiffs).toHaveBeenCalledWith(TESTER.projectDirName, TESTER.sessionId)
     })
+  })
+})
+
+describe('WorktreeDiffBox for an archived session', () => {
+  const NOT_AVAILABLE = "Diffs aren't available for archived sessions."
+  const archivedDetail = { ...worktreeDetail, archived: true }
+  const changes = okDiff([{ path: 'a.ts', added: 10, deleted: 2 }])
+
+  it('says diffs are not available, and asks for none', async () => {
+    const { api } = renderInspectorScene({
+      detail: archivedDetail,
+      diffs: { [SCENE_SESSION.sessionId]: changes }
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: /^scout/ }))
+
+    expect(await inspector().findByText(NOT_AVAILABLE)).toBeTruthy()
+    expect(api.getWorktreeDiffs).not.toHaveBeenCalled()
+    expect(inspector().queryByRole('button', { name: 'Open diff' })).toBeNull()
+  })
+
+  it('still names the branch the subagent ran on', async () => {
+    renderInspectorScene({ detail: archivedDetail })
+
+    await userEvent.click(screen.getByRole('button', { name: /^scout/ }))
+
+    expect(await inspector().findByText('feature/x')).toBeTruthy()
+  })
+
+  it('shows the diffs of a session read from disk, with no such message', async () => {
+    renderInspectorScene({
+      detail: worktreeDetail,
+      diffs: { [SCENE_SESSION.sessionId]: changes }
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: /^scout/ }))
+
+    expect(await inspector().findByText('+10 −2 across 1 file')).toBeTruthy()
+    expect(inspector().queryByText(NOT_AVAILABLE)).toBeNull()
+  })
+
+  it('replaces diffs already shown once the detail refetches into the archived state', async () => {
+    const { client } = renderInspectorScene({
+      detail: worktreeDetail,
+      diffs: { [SCENE_SESSION.sessionId]: changes }
+    })
+    await userEvent.click(screen.getByRole('button', { name: /^scout/ }))
+    expect(await inspector().findByText('+10 −2 across 1 file')).toBeTruthy()
+
+    act(() => {
+      client.setQueryData(
+        ['session', SCENE_SESSION.projectDirName, SCENE_SESSION.sessionId],
+        archivedDetail
+      )
+    })
+
+    expect(await inspector().findByText(NOT_AVAILABLE)).toBeTruthy()
+    expect(inspector().queryByText('+10 −2 across 1 file')).toBeNull()
+    expect(inspector().queryByRole('button', { name: 'Open diff' })).toBeNull()
+  })
+
+  it('shows no box for a teammate in its own archived session', async () => {
+    const shared: IpcResult<WorktreeDiffsDto> = {
+      ok: true,
+      value: {
+        git: 'ok',
+        agents: [],
+        sharedWorktree: { lead: SCENE_SESSION, agentId: 'a1f3c9e2d4abc' }
+      }
+    }
+    const { api } = renderInspectorScene({
+      sessions: { [WRITER.sessionId]: { ok: true, value: testDetail({ archived: true }) } },
+      diffs: { [WRITER.sessionId]: shared }
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: /^writer/ }))
+    await inspector().findByText('Teammate · own session')
+
+    expect(inspector().queryByRole('heading', { name: 'Worktree diff' })).toBeNull()
+    expect(inspector().queryByText(/Shares the worktree/)).toBeNull()
+    expect(api.getWorktreeDiffs).not.toHaveBeenCalled()
+  })
+
+  it('removes a shared worktree note already shown once the teammate session turns archived', async () => {
+    const shared: IpcResult<WorktreeDiffsDto> = {
+      ok: true,
+      value: {
+        git: 'ok',
+        agents: [],
+        sharedWorktree: { lead: SCENE_SESSION, agentId: 'a1f3c9e2d4abc' }
+      }
+    }
+    const { client } = renderInspectorScene({ diffs: { [WRITER.sessionId]: shared } })
+    await userEvent.click(screen.getByRole('button', { name: /^writer/ }))
+    await inspector().findByText(/Shares the worktree of subagent/, { ignore: VISIBLE_ONLY })
+
+    act(() => {
+      client.setQueryData(
+        ['session', WRITER.projectDirName, WRITER.sessionId],
+        testDetail({ archived: true })
+      )
+    })
+
+    await waitFor(() => {
+      expect(inspector().queryByRole('heading', { name: 'Worktree diff' })).toBeNull()
+    })
+    expect(inspector().queryByText(/Shares the worktree/, { ignore: VISIBLE_ONLY })).toBeNull()
   })
 })

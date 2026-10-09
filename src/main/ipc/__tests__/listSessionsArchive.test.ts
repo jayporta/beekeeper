@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { err } from '../../../core/shared/result'
 import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
 import { testListItem, testOkSummary } from '../../archive/testArchiveFixtures'
-import { createFakeArchiveWriter } from '../../archive/testFakeArchiveWriter'
+import { createFakeArchive } from '../../archive/testFakeArchive'
 import { errorWithCode } from '../../testErrorWithCode'
 import type { IpcDeps } from '../ipcDeps'
 import { listSessionsHandler } from '../listSessionsHandler'
@@ -29,7 +29,7 @@ function list(deps: IpcDeps): ReturnType<typeof listSessionsHandler> {
 
 describe('listSessionsHandler archive', () => {
   it('saves each listed session with its transcript state', async () => {
-    const archive = createFakeArchiveWriter()
+    const archive = createFakeArchive()
 
     const result = await list({ ...ctx.deps, archive })
 
@@ -48,7 +48,7 @@ describe('listSessionsHandler archive', () => {
       sessionId: AGENT_SESSION_ID,
       records: scoutRecords()
     })
-    const archive = createFakeArchiveWriter()
+    const archive = createFakeArchive()
 
     await list({ ...ctx.deps, archive })
 
@@ -56,7 +56,7 @@ describe('listSessionsHandler archive', () => {
   })
 
   it('saves nothing, not even an empty batch, when no session has a readable summary', async () => {
-    const archive = createFakeArchiveWriter()
+    const archive = createFakeArchive()
     const deps: IpcDeps = {
       ...ctx.deps,
       archive,
@@ -83,7 +83,7 @@ describe('listSessionsHandler archive', () => {
       sessionId: AGENT_SESSION_ID,
       records: scoutRecords()
     })
-    const archive = createFakeArchiveWriter()
+    const archive = createFakeArchive()
     const deps: IpcDeps = {
       ...ctx.deps,
       archive,
@@ -110,7 +110,7 @@ describe('listSessionsHandler archive', () => {
       records: scoutRecords()
     })
     await writeLead(ctx.tree.home)
-    const archive = createFakeArchiveWriter()
+    const archive = createFakeArchive()
 
     const result = await list({ ...ctx.deps, archive })
 
@@ -120,7 +120,7 @@ describe('listSessionsHandler archive', () => {
 
   it('returns the same list when the archive throws', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const archive = createFakeArchiveWriter(errorWithCode('ELIST_THROWS'))
+    const archive = createFakeArchive(errorWithCode('ELIST_THROWS'))
 
     const withArchive = await list({ ...ctx.deps, archive })
     const without = await list({ ...ctx.deps, archive: null })
@@ -157,13 +157,13 @@ async function listOk(deps: IpcDeps): Promise<readonly SessionListItemDto[]> {
 
 describe('listSessionsHandler archived sessions', () => {
   it('marks live sessions as not archived', async () => {
-    const items = await listOk({ ...ctx.deps, archive: createFakeArchiveWriter() })
+    const items = await listOk({ ...ctx.deps, archive: createFakeArchive() })
 
     expect(items.map((item) => item.archived)).toEqual([false])
   })
 
   it('appends an archived session whose transcript is gone, marked archived', async () => {
-    const archive = createFakeArchiveWriter(undefined, { listItems: [archivedItem(GONE_ID)] })
+    const archive = createFakeArchive(undefined, { listItems: [archivedItem(GONE_ID)] })
 
     const items = await listOk({ ...ctx.deps, archive })
 
@@ -175,7 +175,7 @@ describe('listSessionsHandler archived sessions', () => {
 
   it('keeps the archived item as stored, apart from the archived flag', async () => {
     const stored = archivedItem(GONE_ID)
-    const archive = createFakeArchiveWriter(undefined, { listItems: [stored] })
+    const archive = createFakeArchive(undefined, { listItems: [stored] })
 
     const items = await listOk({ ...ctx.deps, archive })
 
@@ -187,7 +187,7 @@ describe('listSessionsHandler archived sessions', () => {
       kind: 'ungrouped',
       teamName: 'team-1'
     } as const
-    const archive = createFakeArchiveWriter(undefined, {
+    const archive = createFakeArchive(undefined, {
       listItems: [archivedItem(GONE_ID, { team })]
     })
 
@@ -197,7 +197,7 @@ describe('listSessionsHandler archived sessions', () => {
   })
 
   it('lets the live session win over an archived copy of the same id', async () => {
-    const archive = createFakeArchiveWriter(undefined, {
+    const archive = createFakeArchive(undefined, {
       listItems: [archivedItem(TEST_SESSION_ID), archivedItem(GONE_ID)]
     })
 
@@ -210,7 +210,7 @@ describe('listSessionsHandler archived sessions', () => {
   })
 
   it('does not append archived sessions of another folder', async () => {
-    const archive = createFakeArchiveWriter(undefined, {
+    const archive = createFakeArchive(undefined, {
       listItems: [archivedItem(GONE_ID, { projectDirName: WORKTREE })]
     })
 
@@ -223,7 +223,7 @@ describe('listSessionsHandler archived sessions', () => {
     const subagents = join(ctx.tree.home, '.claude', 'projects', TEST_PROJECT, GONE_ID, 'subagents')
     await mkdir(subagents, { recursive: true })
     await writeFile(join(subagents, 'agent-a1.jsonl'), '')
-    const archive = createFakeArchiveWriter(undefined, { listItems: [archivedItem(GONE_ID)] })
+    const archive = createFakeArchive(undefined, { listItems: [archivedItem(GONE_ID)] })
 
     const items = await listOk({ ...ctx.deps, archive })
 
@@ -240,7 +240,7 @@ describe('listSessionsHandler archived sessions', () => {
       sessionId: AGENT_SESSION_ID,
       records: scoutRecords()
     })
-    const archive = createFakeArchiveWriter(undefined, {
+    const archive = createFakeArchive(undefined, {
       listItems: [archivedItem(AGENT_SESSION_ID)]
     })
 
@@ -254,7 +254,7 @@ describe('listSessionsHandler archived sessions', () => {
   })
 
   it('appends several archived sessions in the order the archive gives them', async () => {
-    const archive = createFakeArchiveWriter(undefined, {
+    const archive = createFakeArchive(undefined, {
       listItems: [archivedItem(GONE_ID), archivedItem(OTHER_GONE_ID)]
     })
 
@@ -265,7 +265,7 @@ describe('listSessionsHandler archived sessions', () => {
 
   it('leaves grouping untouched: an archived teammate does not join its live lead', async () => {
     await writeLead(ctx.tree.home)
-    const archive = createFakeArchiveWriter(undefined, {
+    const archive = createFakeArchive(undefined, {
       listItems: [archivedItem(AGENT_SESSION_ID)]
     })
 
@@ -276,7 +276,7 @@ describe('listSessionsHandler archived sessions', () => {
   })
 
   it('still answers not-found for a project folder that is gone', async () => {
-    const archive = createFakeArchiveWriter(undefined, { listItems: [archivedItem(GONE_ID)] })
+    const archive = createFakeArchive(undefined, { listItems: [archivedItem(GONE_ID)] })
 
     const result = await listSessionsHandler(
       { ...ctx.deps, archive },
@@ -288,7 +288,7 @@ describe('listSessionsHandler archived sessions', () => {
 
   it('returns the live list and logs once when reading the archive throws', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const archive = createFakeArchiveWriter(errorWithCode('ELIST_READ_THROWS'))
+    const archive = createFakeArchive(errorWithCode('ELIST_READ_THROWS'))
 
     const withArchive = await list({ ...ctx.deps, archive })
     const without = await list({ ...ctx.deps, archive: null })

@@ -6,6 +6,7 @@ import { MutedText } from '@renderer/components/MutedText'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { shortId } from '@renderer/features/sessions/sessionLabel'
 import { WorktreePatchDialog } from '../patch/WorktreePatchDialog'
+import { useIsArchivedSession } from '../useIsArchivedSession'
 import { useWorktreeDiffs } from '../useWorktreeDiffs'
 import { diffsOlderThanDetail } from './diffsOlderThanDetail'
 import { InspectorHeading } from './InspectorHeading'
@@ -46,10 +47,14 @@ export function WorktreeDiffBox({
   const queryClient = useQueryClient()
   // Selecting another agent mounts a new reader. It runs git again only when the session
   // detail was refreshed after these diffs were loaded, so they follow the detail's freshness.
-  const { data: diffs, isError } = useWorktreeDiffs(sessionRef, {
-    enabled: true,
+  // An archived session has no worktrees to diff, so nothing is requested, and diffs cached
+  // from before it turned archived are not shown.
+  const archived = useIsArchivedSession(sessionRef)
+  const { data: loaded, isError } = useWorktreeDiffs(sessionRef, {
+    enabled: !archived,
     refetchOnMount: diffsOlderThanDetail(queryClient, sessionRef)
   })
+  const diffs = archived ? undefined : loaded
   const [patchOpen, setPatchOpen] = useState(false)
   // The shared worktree belongs to a teammate session's own agent, not to its subagents.
   const shared = agentId === null ? (diffs?.sharedWorktree ?? null) : null
@@ -67,6 +72,22 @@ export function WorktreeDiffBox({
   )
   if (agentId === null && shared === null) return <>{status}</>
 
+  const branchLine = branch !== null && (
+    <p className={styles.branch}>
+      <bdi>{branch}</bdi>
+    </p>
+  )
+
+  if (archived) {
+    return (
+      <section className={styles.box}>
+        <InspectorHeading>{t('inspector.worktree.label')}</InspectorHeading>
+        {branchLine}
+        <MutedText>{t('inspector.worktree.archived')}</MutedText>
+      </section>
+    )
+  }
+
   const showShared = (): void => {
     if (shared === null) return
     showSession(shared.lead, { kind: 'subagent', ownerRef: shared.lead, agentId: shared.agentId })
@@ -77,11 +98,7 @@ export function WorktreeDiffBox({
       {status}
       <section className={styles.box}>
         <InspectorHeading>{t('inspector.worktree.label')}</InspectorHeading>
-        {branch !== null && (
-          <p className={styles.branch}>
-            <bdi>{branch}</bdi>
-          </p>
-        )}
+        {branchLine}
         {agentId !== null && (
           <div role="status" className={styles.result}>
             {diffs === undefined ? (

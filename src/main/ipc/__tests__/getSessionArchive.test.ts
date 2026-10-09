@@ -2,7 +2,7 @@ import { stat } from 'node:fs/promises'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ARCHIVE_DETAIL_AFTER_DAYS, DAY_MS } from '../../archive/archiveConstants'
 import { testDetail } from '../../archive/testArchiveFixtures'
-import { createFakeArchiveWriter } from '../../archive/testFakeArchiveWriter'
+import { createFakeArchive } from '../../archive/testFakeArchive'
 import { sessionRefKey } from '../sessionRefKey'
 import { errorWithCode } from '../../testErrorWithCode'
 import { getSessionHandler } from '../getSessionHandler'
@@ -24,7 +24,7 @@ async function depsAfter(days: number, extra: Partial<IpcDeps>): Promise<IpcDeps
 
 describe('getSessionHandler archive', () => {
   it('saves the detail with the lead transcript state once the session has been quiet long enough', async () => {
-    const archive = createFakeArchiveWriter()
+    const archive = createFakeArchive()
     const deps = await depsAfter(ARCHIVE_DETAIL_AFTER_DAYS, { archive })
 
     const result = await getSessionHandler(deps, request)
@@ -37,7 +37,7 @@ describe('getSessionHandler archive', () => {
   })
 
   it('does not save the detail of a session active within the waiting period', async () => {
-    const archive = createFakeArchiveWriter()
+    const archive = createFakeArchive()
     const deps = await depsAfter(ARCHIVE_DETAIL_AFTER_DAYS - 1, { archive })
 
     await getSessionHandler(deps, request)
@@ -56,7 +56,7 @@ describe('getSessionHandler archive', () => {
   })
 
   it('does not save a detail for a request that fails', async () => {
-    const archive = createFakeArchiveWriter()
+    const archive = createFakeArchive()
     const deps = await depsAfter(ARCHIVE_DETAIL_AFTER_DAYS, { archive })
 
     const result = await getSessionHandler(deps, { ...request, sessionId: 'not-a-session' })
@@ -67,7 +67,7 @@ describe('getSessionHandler archive', () => {
 
   it('returns the same detail when the archive throws', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const archive = createFakeArchiveWriter(errorWithCode('EDETAIL_THROWS'))
+    const archive = createFakeArchive(errorWithCode('EDETAIL_THROWS'))
     const withArchive = await depsAfter(ARCHIVE_DETAIL_AFTER_DAYS, { archive })
     const without = await depsAfter(ARCHIVE_DETAIL_AFTER_DAYS, { archive: null })
 
@@ -83,8 +83,8 @@ const GONE_ID = '9f9f9f9f-9999-4999-8999-99999999999a'
 const GONE_REF = { projectDirName: TEST_PROJECT, sessionId: GONE_ID }
 
 /** An archive holding a detail for each given ref, whose own session id matches the ref's. */
-function archiveHolding(...refs: (typeof GONE_REF)[]): ReturnType<typeof createFakeArchiveWriter> {
-  return createFakeArchiveWriter(undefined, {
+function archiveHolding(...refs: (typeof GONE_REF)[]): ReturnType<typeof createFakeArchive> {
+  return createFakeArchive(undefined, {
     details: new Map(
       refs.map((ref) => [sessionRefKey(ref), { ...testDetail('kept'), sessionId: ref.sessionId }])
     )
@@ -143,7 +143,7 @@ describe('getSessionHandler archived sessions', () => {
 
   it('answers invalid-request for a bad payload without reading the archive', async () => {
     const result = await getSessionHandler(
-      { ...ctx.deps, archive: createFakeArchiveWriter(errorWithCode('EREAD_NEVER')) },
+      { ...ctx.deps, archive: createFakeArchive(errorWithCode('EREAD_NEVER')) },
       { projectDirName: TEST_PROJECT, sessionId: 'not-a-uuid' }
     )
 
@@ -152,7 +152,7 @@ describe('getSessionHandler archived sessions', () => {
 
   it('answers not-found and logs once when reading the archive throws', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const archive = createFakeArchiveWriter(errorWithCode('EDETAIL_READ_THROWS'))
+    const archive = createFakeArchive(errorWithCode('EDETAIL_READ_THROWS'))
 
     const result = await getSessionHandler({ ...ctx.deps, archive }, GONE_REF)
 

@@ -39,6 +39,7 @@
     "costNotRecorded": "cost not recorded"
   },
   "notes": {
+    "archived": "archived",
     "team": "team {{name}}",
     "stopped": "stopped",
     "leadIn": "lead in {{folder}}",

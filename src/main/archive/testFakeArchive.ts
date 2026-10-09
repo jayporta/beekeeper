@@ -23,7 +23,7 @@ export interface RecordedDetailSave {
 }
 
 /** An archive that records its saves and answers reads from what it was given. */
-export interface FakeArchiveWriter extends ArchiveWriter, ArchiveReader {
+export interface FakeArchive extends ArchiveWriter, ArchiveReader {
   /** The list items saved, in order, across every batch. */
   readonly listSaves: readonly RecordedListSave[]
   /** The list item batches saved, in order. */
@@ -48,10 +48,7 @@ export interface FakeArchiveReads {
  * @param reads - The list items and details it holds.
  * @returns The fake archive.
  */
-export function createFakeArchiveWriter(
-  failure?: Error,
-  reads: FakeArchiveReads = {}
-): FakeArchiveWriter {
+export function createFakeArchive(failure?: Error, reads: FakeArchiveReads = {}): FakeArchive {
   const listSaves: RecordedListSave[] = []
   const listBatches: RecordedListSave[][] = []
   const detailSaves: RecordedDetailSave[] = []
