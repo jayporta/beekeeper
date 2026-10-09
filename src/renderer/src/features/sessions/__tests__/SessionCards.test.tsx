@@ -476,3 +476,44 @@ describe('session cards: plan limit note', () => {
     }
   })
 })
+
+describe('session cards: archived note', () => {
+  const archived = testSession(6, {
+    projectDirName: DIR,
+    title: 'Removed from disk',
+    latestMs: Date.parse('2026-01-10T12:00:00Z'),
+    archived: true
+  })
+
+  it('notes an archived session, and nothing on one read from disk', async () => {
+    showSessions([archived, solo])
+
+    const card = await cardOf('Removed from disk')
+
+    expect(within(card).getByText(/archived/)).toBeTruthy()
+    expect((await cardOf('Plain session')).textContent).not.toContain('archived')
+  })
+
+  it('sorts an archived session among the others by when it was last active', async () => {
+    // The handler lists live sessions first and appends archived ones, so sorting has to move it.
+    showSessions([solo, archived])
+
+    const list = await screen.findByRole('list', { name: DIR })
+
+    expect(
+      within(list)
+        .getAllByRole('heading', { level: 2 })
+        .map((title) => title.textContent)
+    ).toEqual(['Removed from disk', 'Plain session'])
+  })
+
+  it('finds an archived session by its title in a search', async () => {
+    showSessions([archived, solo])
+    await screen.findByRole('list', { name: DIR })
+
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Search sessions' }), 'removed')
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Removed from disk' })).toBeTruthy()
+    expect(screen.queryByRole('heading', { level: 2, name: 'Plain session' })).toBeNull()
+  })
+})

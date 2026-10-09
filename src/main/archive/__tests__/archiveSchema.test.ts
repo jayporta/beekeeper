@@ -1,5 +1,8 @@
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { applySchema, ARCHIVE_SCHEMA_VERSION } from '../archiveSchema'
 
 function tableNames(db: DatabaseSync): string[] {
@@ -82,5 +85,49 @@ describe('applySchema', () => {
     applySchema(db)
 
     expect(db.prepare('PRAGMA busy_timeout').get()?.['timeout']).toBe(100)
+  })
+})
+
+describe('applySchema journal mode', () => {
+  let dir: string
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'beekeeper-archive-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  function journalModeOf(path: string): string {
+    const db = new DatabaseSync(path)
+    const mode = String(db.prepare('PRAGMA journal_mode').get()?.['journal_mode'])
+    db.close()
+    return mode
+  }
+
+  it('puts a current database in WAL mode', () => {
+    const path = join(dir, 'archive.sqlite')
+    const db = new DatabaseSync(path)
+
+    applySchema(db)
+    db.close()
+
+    expect(journalModeOf(path)).toBe('wal')
+  })
+
+  it('leaves the journal mode of a database from a newer schema alone', () => {
+    const path = join(dir, 'archive.sqlite')
+    const seeded = new DatabaseSync(path)
+    seeded.exec('CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)')
+    seeded.exec("INSERT INTO meta (key, value) VALUES ('schema_version', '2')")
+    seeded.close()
+    const db = new DatabaseSync(path)
+
+    const result = applySchema(db)
+    db.close()
+
+    expect(result).toEqual({ ok: false, error: 'newer-schema' })
+    expect(journalModeOf(path)).toBe('delete')
   })
 })

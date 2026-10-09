@@ -55,7 +55,7 @@ export function SessionDetailContent({
         />
       ) : (
         <>
-          <SessionDetailHeader label={label} row={row} />
+          <SessionDetailHeader label={label} row={row} archived={data.archived} />
           <SessionDetailBody detail={data} sessionRef={sessionRef} row={row} />
         </>
       )}

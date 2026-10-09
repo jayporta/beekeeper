@@ -45,6 +45,8 @@ interface TestSessionOptions {
   readonly limitHit?: SessionSummaryDto['limitHit']
   /** Whether the summary could not be read. Defaults to `false`. */
   readonly unreadable?: boolean
+  /** Whether the item is an archived copy. Defaults to `false`. */
+  readonly archived?: boolean
 }
 
 /** The id of the `n`th test session: a UUID whose first group is `n` padded to 8 digits. */
@@ -72,7 +74,8 @@ export function testSession(n: number, options: TestSessionOptions = {}): Sessio
     workflowRunNames = [],
     skippedLines = 0,
     limitHit = null,
-    unreadable = false
+    unreadable = false,
+    archived = false
   } = options
 
   const summary: SessionSummaryDto = {
@@ -100,7 +103,8 @@ export function testSession(n: number, options: TestSessionOptions = {}): Sessio
     summary: unreadable
       ? { ok: false, error: { code: 'unreadable' } }
       : { ok: true, value: summary },
-    team
+    team,
+    archived
   }
 }
 

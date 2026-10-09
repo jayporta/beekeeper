@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { folderNote, stoppedNote } from '../itemNotes'
+import { archivedNote, folderNote, stoppedNote } from '../itemNotes'
 import { testRef, testSession, testTeammateTeam } from '../testSessionFixtures'
 import { testSessionsT } from '../testSessionsT'
 
@@ -30,5 +30,15 @@ describe('folderNote', () => {
 
   it('has no note for a session in the list’s own folder', () => {
     expect(folderNote(testSession(1, { projectDirName: '-p' }), '-p', testSessionsT)).toBeNull()
+  })
+})
+
+describe('archivedNote', () => {
+  it('notes a session whose transcript was removed', () => {
+    expect(archivedNote(testSession(1, { archived: true }), testSessionsT)).toBe('archived')
+  })
+
+  it('has no note for a session read from disk', () => {
+    expect(archivedNote(testSession(1), testSessionsT)).toBeNull()
   })
 })
