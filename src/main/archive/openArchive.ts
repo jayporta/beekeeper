@@ -1,7 +1,7 @@
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import { describeError } from '../describeError'
+import { describeArchiveError } from './describeArchiveError'
 import { applySchema } from './archiveSchema'
 
 /** The open archive database. */
@@ -32,17 +32,22 @@ export function openArchive(
     if (schema.ok) return db
     log(`Beekeeper archive is disabled (${schema.error}).`)
   } catch (error) {
-    log(`Beekeeper archive is disabled (${describeError(error)}).`)
+    log(`Beekeeper archive is disabled (${describeArchiveError(error)}).`)
   }
-  discard(db, log)
+  closeDiscarded(db, log)
   return null
 }
 
-/** Closes a database that can't be used, logging a failure to close by its code. */
-function discard(db: ArchiveDb | null, log: (line: string) => void): void {
+/**
+ * Closes a database that can't be used, logging a failure to close by its code.
+ *
+ * @param db - The database being discarded, or `null` when none was opened.
+ * @param log - Receives the one-line log.
+ */
+export function closeDiscarded(db: ArchiveDb | null, log: (line: string) => void): void {
   try {
     db?.close()
   } catch (error) {
-    log(`Beekeeper archive could not be closed (${describeError(error)}).`)
+    log(`Beekeeper archive could not be closed (${describeArchiveError(error)}).`)
   }
 }

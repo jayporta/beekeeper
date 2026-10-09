@@ -1,4 +1,5 @@
 import type { SessionSummaryCache } from '../../core/transcript/summary/sessionSummaryCache'
+import type { ArchiveWriter } from '../archive/createArchiveStore'
 import type { GitLocation } from '../git/gitLocator'
 import type { DailyUsageCache } from '../overview/dailyUsageCache'
 import type { AgentTermsCache } from './agentTermsCache'
@@ -52,4 +53,10 @@ export interface IpcDeps {
   readonly now: () => number
   /** Locates git, lazily. Injectable so tests can fake a missing git. */
   readonly git: () => Promise<GitLocation>
+  /**
+   * Where listed sessions and scanned details are archived, or `null` when
+   * the archive is off or couldn't be opened. A write failure never fails the
+   * request that triggered it.
+   */
+  readonly archive: ArchiveWriter | null
 }

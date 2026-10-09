@@ -197,7 +197,6 @@ describe('saveDetail', () => {
     store.saveDetail(TEST_REF, { detail: huge, source: TEST_SOURCE })
 
     expect(rows()[0]?.['detail']).toBeNull()
-    expect(store.hasDetail(TEST_REF, TEST_SOURCE)).toBe(false)
     expect(logged).toHaveLength(1)
     expect(logged[0]).not.toContain(TEST_REF.projectDirName)
   })
@@ -215,6 +214,17 @@ describe('saveDetail', () => {
 })
 
 describe('hasDetail', () => {
+  it('is true for a state whose detail was skipped as too large, so nothing is retried', () => {
+    store.saveListItem(testListItem(), TEST_SOURCE)
+    store.saveDetail(TEST_REF, {
+      detail: testDetail('x'.repeat(MAX_ARCHIVED_DETAIL_CHARS)),
+      source: TEST_SOURCE
+    })
+
+    expect(store.hasDetail(TEST_REF, TEST_SOURCE)).toBe(true)
+    expect(store.hasDetail(TEST_REF, { ...TEST_SOURCE, size: 1 })).toBe(false)
+  })
+
   it('is false before any detail is stored', () => {
     store.saveListItem(testListItem(), TEST_SOURCE)
 

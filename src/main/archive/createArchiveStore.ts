@@ -45,7 +45,7 @@ export interface ArchiveStore {
   saveDetail(ref: SessionRefDto, entry: ArchivedDetailEntry): void
   /**
    * Whether the stored detail was scanned from this source state, at the
-   * current format.
+   * current format, or a detail for this state was skipped as too large.
    *
    * @param ref - The session to check.
    * @param source - The lead transcript's current state.
@@ -55,6 +55,9 @@ export interface ArchiveStore {
   /** Closes the database. */
   close(): void
 }
+
+/** What the IPC handlers use of the store: the writes and the archiver's check, not `close`. */
+export type ArchiveWriter = Pick<ArchiveStore, 'saveListItem' | 'saveDetail' | 'hasDetail'>
 
 /** Options for {@link createArchiveStore}. */
 export interface ArchiveStoreOptions {
@@ -135,6 +138,11 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
     }
   }
 
+  /** Whether archiving a detail for this source state would change nothing. */
+  function isSettled(key: string, source: SourceState): boolean {
+    return sameSource(detailStates.get(key), source) || sameSource(oversizedStates.get(key), source)
+  }
+
   return {
     saveListItem(item, source) {
       const key = sessionRefKey(item)
@@ -155,12 +163,7 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
     saveDetail(ref, { detail, source }) {
       const key = sessionRefKey(ref)
       if (listStates.get(key)?.format !== ARCHIVE_FORMAT) return
-      if (
-        sameSource(detailStates.get(key), source) ||
-        sameSource(oversizedStates.get(key), source)
-      ) {
-        return
-      }
+      if (isSettled(key, source)) return
       const json = JSON.stringify(detail)
       if (json.length > MAX_ARCHIVED_DETAIL_CHARS) {
         oversizedStates.set(key, source)
@@ -173,7 +176,7 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
     },
 
     hasDetail(ref, source) {
-      return sameSource(detailStates.get(sessionRefKey(ref)), source)
+      return isSettled(sessionRefKey(ref), source)
     },
 
     close() {

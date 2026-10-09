@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, Menu } from 'electron'
 import { join } from 'path'
 import { optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { openArchiveStore } from './archive/openArchiveStore'
 import { buildAppMenuTemplate } from './appMenu'
 import { createIpcDeps } from './ipc/createIpcDeps'
 import { registerIpcHandlers } from './ipc/registerIpcHandlers'
@@ -79,7 +80,10 @@ app
     registerIpcHandlers({
       ipcMain,
       isTrusted: (event) => isTrustedSender(event, { rendererRoot, devServerUrl }),
-      deps: createIpcDeps(app.getPath('home'))
+      deps: {
+        ...createIpcDeps(app.getPath('home')),
+        archive: openArchiveStore(join(app.getPath('userData'), 'archive.sqlite'))
+      }
     })
 
     // Set once, before any window: `activate` recreates windows, not the menu.

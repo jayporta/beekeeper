@@ -33,7 +33,7 @@ export const SCAN_CACHE_CAPACITY = 4
  * change while its transcript doesn't.
  *
  * @param homeDir - The user's home directory.
- * @returns The dependencies.
+ * @returns The dependencies, with no archive. The app sets `archive` once its database is open.
  */
 export function createIpcDeps(homeDir: string): IpcDeps {
   return {
@@ -50,6 +50,7 @@ export function createIpcDeps(homeDir: string): IpcDeps {
     timeZone: hostTimeZone,
     diffs: createScanScheduler({ maxConcurrent: MAX_CONCURRENT_DIFFS }),
     now: Date.now,
-    git: createGitLocator()
+    git: createGitLocator(),
+    archive: null
   }
 }
