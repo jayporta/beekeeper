@@ -6,7 +6,8 @@ import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunS
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { testDetail } from '@renderer/features/sessionDetail/testSessionDetail'
 import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
-import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
+import { hydratePersistedStores, renderAppReady } from '@renderer/testAppReady'
+import { resetPersistedState } from '@renderer/testRenderApp'
 import { useSessionsViewStore } from '../state/useSessionsViewStore'
 import {
   testAgentRole,
@@ -52,9 +53,10 @@ const solo = testSession(4, {
 })
 const SESSIONS = [lead, reviewer, writer, solo]
 
-beforeEach(() => {
+beforeEach(async () => {
   useFirstRunStore.setState({ dismissed: true })
   useSessionsViewStore.setState({ query: '' })
+  await hydratePersistedStores()
 })
 
 afterEach(async () => {
@@ -62,13 +64,13 @@ afterEach(async () => {
   await resetPersistedState()
 })
 
-function showSessions(sessions: readonly SessionListItemDto[] = SESSIONS): void {
+async function showSessions(sessions: readonly SessionListItemDto[] = SESSIONS): Promise<void> {
   installBeekeeperApi({
     listProjects: () => Promise.resolve({ ok: true, value: [testProject(DIR)] }),
     listSessions: () => Promise.resolve({ ok: true, value: sessions }),
     getSession: () => Promise.resolve({ ok: true, value: testDetail() })
   })
-  renderApp()
+  await renderAppReady()
 }
 
 /** The card whose title is `name`. */
@@ -79,7 +81,7 @@ async function cardOf(name: string | RegExp): Promise<HTMLElement> {
 
 describe('session cards', () => {
   it('lists one card per lead or solo session, newest first, in a list named by the project', async () => {
-    showSessions()
+    await showSessions()
 
     const list = await screen.findByRole('list', { name: DIR })
 
@@ -91,7 +93,7 @@ describe('session cards', () => {
   })
 
   it('shows a lead with its agent count, team total, and a chip for each teammate', async () => {
-    showSessions()
+    await showSessions()
 
     const card = await cardOf('Refactor parser')
 
@@ -108,7 +110,7 @@ describe('session cards', () => {
   })
 
   it('labels the agents cell and the duration cell for assistive technology', async () => {
-    showSessions()
+    await showSessions()
 
     const card = await cardOf('Refactor parser')
 
@@ -117,7 +119,7 @@ describe('session cards', () => {
   })
 
   it('shows the last active time, model, and duration of a session', async () => {
-    showSessions()
+    await showSessions()
 
     const card = await cardOf('Refactor parser')
 
@@ -127,7 +129,7 @@ describe('session cards', () => {
   })
 
   it('shows a solo session with subagents with no chips, no team total, and "at API prices"', async () => {
-    showSessions()
+    await showSessions()
 
     const card = await cardOf('Plain session')
 
@@ -138,7 +140,7 @@ describe('session cards', () => {
   })
 
   it('marks a missing value as not recorded and a tiny cost as under a cent', async () => {
-    showSessions([testSession(5, { projectDirName: DIR, title: 'Cheap', costUSD: 0.004 })])
+    await showSessions([testSession(5, { projectDirName: DIR, title: 'Cheap', costUSD: 0.004 })])
 
     const card = await cardOf('Cheap')
 
@@ -147,7 +149,7 @@ describe('session cards', () => {
   })
 
   it("shows the transcript's tokens, marked partial, for a session that recorded none", async () => {
-    showSessions([
+    await showSessions([
       testSession(5, {
         projectDirName: DIR,
         title: 'Still running',
@@ -169,7 +171,7 @@ describe('session cards', () => {
       title: 'Lost its team',
       team: testLeadTeam([], testUsage({ missingTeammates: 2 }))
     })
-    showSessions([orphanLead])
+    await showSessions([orphanLead])
 
     const card = await cardOf('Lost its team')
 
@@ -179,7 +181,7 @@ describe('session cards', () => {
   })
 
   it('names the true agent count when there are more agents than marks', async () => {
-    showSessions([testSession(5, { projectDirName: DIR, title: 'Busy', subagentCount: 40 })])
+    await showSessions([testSession(5, { projectDirName: DIR, title: 'Busy', subagentCount: 40 })])
 
     const card = await cardOf('Busy')
 
@@ -193,7 +195,7 @@ describe('session cards', () => {
       role: testAgentRole('stray', 'code'),
       team: testTeammateTeam(testRef(9, OTHER))
     })
-    showSessions([stray])
+    await showSessions([stray])
 
     const card = await cardOf('stray (code)')
 
@@ -201,7 +203,7 @@ describe('session cards', () => {
   })
 
   it('shows an unreadable session as a placeholder card with spoken missing values, still openable', async () => {
-    showSessions([testSession(5, { projectDirName: DIR, unreadable: true })])
+    await showSessions([testSession(5, { projectDirName: DIR, unreadable: true })])
 
     const card = await cardOf('Unreadable session')
 
@@ -218,7 +220,7 @@ describe('session cards', () => {
       title: hostile,
       team: testLeadTeam([testRef(2, DIR)])
     })
-    showSessions([hostileLead, { ...reviewer, team: testTeammateTeam(testRef(1, DIR)) }])
+    await showSessions([hostileLead, { ...reviewer, team: testTeammateTeam(testRef(1, DIR)) }])
 
     const card = await cardOf(hostile)
 
@@ -228,7 +230,7 @@ describe('session cards', () => {
 
 describe('session cards: legend', () => {
   it('names the kinds of mark on screen', async () => {
-    showSessions()
+    await showSessions()
     await cardOf('Refactor parser')
 
     expect(screen.getByText('Lead')).toBeTruthy()
@@ -237,7 +239,7 @@ describe('session cards: legend', () => {
   })
 
   it('leaves out the kinds that no card on screen draws', async () => {
-    showSessions([testSession(5, { projectDirName: DIR, title: 'On its own' })])
+    await showSessions([testSession(5, { projectDirName: DIR, title: 'On its own' })])
     await cardOf('On its own')
 
     expect(screen.getByText('Lead')).toBeTruthy()
@@ -248,14 +250,14 @@ describe('session cards: legend', () => {
 
 describe('session cards: partial figures', () => {
   it('shows no footnote when no figure is partial', async () => {
-    showSessions([solo])
+    await showSessions([solo])
     await cardOf('Plain session')
 
     expect(screen.queryByText(/Partial:/)).toBeNull()
   })
 
   it('shows a marker on the partial card and a footnote naming exactly the reasons on screen', async () => {
-    showSessions()
+    await showSessions()
 
     const card = await cardOf('Refactor parser')
 
@@ -277,7 +279,7 @@ describe('session cards: partial figures', () => {
       skippedLines: 4,
       latestMs: 2
     })
-    showSessions([lead, reviewer, writer, unreadable])
+    await showSessions([lead, reviewer, writer, unreadable])
     await cardOf('Garbled')
 
     const note = screen.getByText(/Partial:/).textContent
@@ -293,7 +295,7 @@ describe('session cards: partial figures', () => {
       latestMs: 2,
       team: testLeadTeam([], testUsage({ missingTeammates: 3 }))
     })
-    showSessions([lead, reviewer, writer, otherLead])
+    await showSessions([lead, reviewer, writer, otherLead])
     await cardOf('Also short a teammate')
 
     const note = screen.getByText(/Partial:/).textContent ?? ''
@@ -324,7 +326,7 @@ describe('session cards: partial figures', () => {
       })
 
     it('leaves its own reasons out of the footnote, since no marker explains them', async () => {
-      showSessions([emptyLead, chipOf({ totalTokens: 9 })])
+      await showSessions([emptyLead, chipOf({ totalTokens: 9 })])
       const card = await cardOf('Empty lead')
 
       expect(within(card).queryByText('¹')).toBeNull()
@@ -332,7 +334,7 @@ describe('session cards: partial figures', () => {
     })
 
     it("still explains a teammate chip's own marker", async () => {
-      showSessions([emptyLead, chipOf({ transcriptTokens: 400, subagentCount: 1 })])
+      await showSessions([emptyLead, chipOf({ transcriptTokens: 400, subagentCount: 1 })])
       const card = await cardOf('Empty lead')
 
       expect(within(card).getByText('¹')).toBeTruthy()
@@ -343,7 +345,7 @@ describe('session cards: partial figures', () => {
   })
 
   it('drops a reason from the footnote when its card is filtered out', async () => {
-    showSessions()
+    await showSessions()
     await cardOf('Refactor parser')
     expect(screen.getByText(/Partial:/)).toBeTruthy()
 
@@ -354,14 +356,14 @@ describe('session cards: partial figures', () => {
   })
 
   it('hides the column header row from assistive technology, since each card says what its figures are', async () => {
-    showSessions()
+    await showSessions()
     await cardOf('Refactor parser')
 
     expect(screen.getByText('Tokens').closest('[aria-hidden="true"]')).not.toBeNull()
   })
 
   it('leaves the marker off a card whose figures are complete', async () => {
-    showSessions()
+    await showSessions()
 
     const card = await cardOf('Plain session')
 
@@ -371,7 +373,7 @@ describe('session cards: partial figures', () => {
 
 describe('session cards: search', () => {
   it('keeps the lead of a matching teammate with all its chips and marks only the match', async () => {
-    showSessions()
+    await showSessions()
     await cardOf('Refactor parser')
 
     await userEvent.type(screen.getByRole('searchbox', { name: 'Search sessions' }), 'review')
@@ -385,7 +387,7 @@ describe('session cards: search', () => {
   })
 
   it('highlights a matching chip whatever the case of the search', async () => {
-    showSessions()
+    await showSessions()
     await cardOf('Refactor parser')
 
     await userEvent.type(screen.getByRole('searchbox', { name: 'Search sessions' }), 'REVIEW')
@@ -395,7 +397,7 @@ describe('session cards: search', () => {
   })
 
   it('marks no chip when the lead itself matches and no teammate does', async () => {
-    showSessions()
+    await showSessions()
     await cardOf('Refactor parser')
 
     await userEvent.type(screen.getByRole('searchbox', { name: 'Search sessions' }), 'parser')
@@ -407,7 +409,7 @@ describe('session cards: search', () => {
 
 describe('session cards: opening a session', () => {
   it('opens a session from its title with the keyboard', async () => {
-    showSessions()
+    await showSessions()
     const title = await screen.findByRole('button', { name: 'Refactor parser' })
 
     title.focus()
@@ -422,7 +424,7 @@ describe('session cards: opening a session', () => {
   })
 
   it("opens the lead's session with that teammate selected from a chip with the keyboard", async () => {
-    showSessions()
+    await showSessions()
     const chip = await screen.findByRole('button', { name: /^writer \(code\)/ })
 
     chip.focus()
@@ -445,7 +447,7 @@ describe('session cards: plan limit note', () => {
     })
 
   it('notes the plan limit a session hit, and nothing on one that hit none', async () => {
-    showSessions([limited(Date.parse('2099-01-01T00:00:00Z')), solo])
+    await showSessions([limited(Date.parse('2099-01-01T00:00:00Z')), solo])
 
     const card = await cardOf('Hit a limit')
 
@@ -461,7 +463,7 @@ describe('session cards: plan limit note', () => {
       shouldAdvanceTime: true
     })
     try {
-      showSessions([limited(nowMs + 60_000)])
+      await showSessions([limited(nowMs + 60_000)])
       const card = await cardOf('Hit a limit')
       expect(card.textContent).toContain('resets')
 
