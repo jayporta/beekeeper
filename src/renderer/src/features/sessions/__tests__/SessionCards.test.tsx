@@ -502,18 +502,16 @@ describe('session cards: signal notes', () => {
   const SCOPE = /^Card counts cover the lead and its teammates/
 
   it('notes the tool errors and compactions on a card, and nothing on a quiet one', async () => {
-    showSessions([noisy, solo])
+    await showSessions([noisy, solo])
 
-    expect((await cardOf('Went off the rails')).textContent).toContain(
-      '12 tool errors · 2 compactions'
-    )
-    expect((await cardOf('Plain session')).textContent).not.toContain('tool error')
+    expect(cardOf('Went off the rails').textContent).toContain('12 tool errors · 2 compactions')
+    expect(cardOf('Plain session').textContent).not.toContain('tool error')
   })
 
   it('notes a lead with the team totals rather than its own counts', async () => {
-    showSessions([teamLead, teammate])
+    await showSessions([teamLead, teammate])
 
-    expect((await cardOf('Team lead')).textContent).toContain('12 tool errors · 2 compactions')
+    expect(cardOf('Team lead').textContent).toContain('12 tool errors · 2 compactions')
   })
 
   it('renders a lead and its unreadable teammate, the lead noting its team totals', async () => {
@@ -530,35 +528,75 @@ describe('session cards: signal notes', () => {
       role: testAgentRole('lost', 'code'),
       unreadable: true
     })
-    showSessions([leadOfUnreadable, lostTeammate])
+    await showSessions([leadOfUnreadable, lostTeammate])
 
-    const leadCard = await cardOf('Lead of a lost teammate')
-    const lostCard = await cardOf('Unreadable session')
+    const leadCard = cardOf('Lead of a lost teammate')
+    const lostCard = cardOf('Unreadable session')
 
     expect(leadCard.textContent).toContain('12 tool errors · 2 compactions')
     expect(lostCard.textContent).not.toContain('tool error')
   })
 
   it('says what the counts cover once, below the list, when a card has a count', async () => {
-    showSessions([noisy, solo])
-    await cardOf('Went off the rails')
+    await showSessions([noisy, solo])
+    cardOf('Went off the rails')
 
     expect(screen.getAllByText(SCOPE)).toHaveLength(1)
   })
 
   it('leaves the scope note out when no card has a count', async () => {
-    showSessions([solo])
-    await cardOf('Plain session')
+    await showSessions([solo])
+    cardOf('Plain session')
 
     expect(screen.queryByText(SCOPE)).toBeNull()
   })
 
   it('still renders a card whose summary failed, with no signal note or scope note', async () => {
-    showSessions([unreadable])
+    await showSessions([unreadable])
 
-    const card = await screen.findByRole('heading', { level: 2, name: 'Unreadable session' })
+    const card = cardOf('Unreadable session')
 
-    expect(card.closest('li')?.textContent).not.toContain('tool error')
+    expect(card.textContent).not.toContain('tool error')
     expect(screen.queryByText(SCOPE)).toBeNull()
+  })
+})
+
+describe('session cards: archived note', () => {
+  const archived = testSession(6, {
+    projectDirName: DIR,
+    title: 'Removed from disk',
+    latestMs: Date.parse('2026-01-10T12:00:00Z'),
+    archived: true
+  })
+
+  it('notes an archived session, and nothing on one read from disk', async () => {
+    await showSessions([archived, solo])
+
+    const card = cardOf('Removed from disk')
+
+    expect(within(card).getByText(/archived/)).toBeTruthy()
+    expect(cardOf('Plain session').textContent).not.toContain('archived')
+  })
+
+  it('sorts an archived session among the others by when it was last active', async () => {
+    // The handler lists live sessions first and appends archived ones, so sorting has to move it.
+    await showSessions([solo, archived])
+
+    const list = screen.getByRole('list', { name: DIR })
+
+    expect(
+      within(list)
+        .getAllByRole('heading', { level: 2 })
+        .map((title) => title.textContent)
+    ).toEqual(['Removed from disk', 'Plain session'])
+  })
+
+  it('finds an archived session by its title in a search', async () => {
+    await showSessions([archived, solo])
+
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Search sessions' }), 'removed')
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Removed from disk' })).toBeTruthy()
+    expect(screen.queryByRole('heading', { level: 2, name: 'Plain session' })).toBeNull()
   })
 })

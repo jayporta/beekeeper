@@ -22,7 +22,7 @@ describe('getSessionHandler scan sharing', () => {
   it('uses the same scan key for the same transcript state', async () => {
     const keys: string[] = []
     const deps = {
-      projectsRoot: ctx.deps.projectsRoot,
+      ...ctx.deps,
       scans: recordKeys(keys),
       scanCache: NO_SCAN_CACHE
     }
@@ -34,7 +34,7 @@ describe('getSessionHandler scan sharing', () => {
   it('uses a different scan key once the transcript mtime changes', async () => {
     const keys: string[] = []
     const deps = {
-      projectsRoot: ctx.deps.projectsRoot,
+      ...ctx.deps,
       scans: recordKeys(keys),
       scanCache: NO_SCAN_CACHE
     }
@@ -49,7 +49,7 @@ describe('getSessionHandler scan sharing', () => {
     async () => {
       const keys: string[] = []
       const deps = {
-        projectsRoot: ctx.deps.projectsRoot,
+        ...ctx.deps,
         scans: recordKeys(keys),
         scanCache: NO_SCAN_CACHE
       }
@@ -68,7 +68,7 @@ describe('getSessionHandler scan sharing', () => {
   it('uses a different scan key once a subagent transcript changes', async () => {
     const keys: string[] = []
     const deps = {
-      projectsRoot: ctx.deps.projectsRoot,
+      ...ctx.deps,
       scans: recordKeys(keys),
       scanCache: NO_SCAN_CACHE
     }
@@ -87,7 +87,7 @@ describe('getSessionHandler scan sharing', () => {
   it('uses a different scan key once a subagent gains or loses its meta file', async () => {
     const keys: string[] = []
     const deps = {
-      projectsRoot: ctx.deps.projectsRoot,
+      ...ctx.deps,
       scans: recordKeys(keys),
       scanCache: NO_SCAN_CACHE
     }
@@ -115,7 +115,7 @@ describe('getSessionHandler scan sharing', () => {
     it('uses a different scan key once a workflow agent transcript changes', async () => {
       const keys: string[] = []
       const deps = {
-        projectsRoot: ctx.deps.projectsRoot,
+        ...ctx.deps,
         scans: recordKeys(keys),
         scanCache: NO_SCAN_CACHE
       }
@@ -128,7 +128,7 @@ describe('getSessionHandler scan sharing', () => {
     it('uses a different scan key once a workflow agent joins a run', async () => {
       const keys: string[] = []
       const deps = {
-        projectsRoot: ctx.deps.projectsRoot,
+        ...ctx.deps,
         scans: recordKeys(keys),
         scanCache: NO_SCAN_CACHE
       }
@@ -141,7 +141,7 @@ describe('getSessionHandler scan sharing', () => {
     it('uses a different scan key once a workflow agent moves to another run', async () => {
       const keys: string[] = []
       const deps = {
-        projectsRoot: ctx.deps.projectsRoot,
+        ...ctx.deps,
         scans: recordKeys(keys),
         scanCache: NO_SCAN_CACHE
       }
@@ -155,7 +155,7 @@ describe('getSessionHandler scan sharing', () => {
   it('serves a repeat request from the scan cache without scanning again', async () => {
     const keys: string[] = []
     const deps = {
-      projectsRoot: ctx.deps.projectsRoot,
+      ...ctx.deps,
       scans: recordKeys(keys),
       scanCache: ctx.deps.scanCache
     }

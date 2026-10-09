@@ -74,6 +74,7 @@
   },
   "loading": "Loading session",
   "loaded": "{{title}} loaded",
+  "archived": "This session's transcript was removed. Showing the copy beekeeper archived.",
   "notFound": {
     "heading": "Session not found",
     "body": "beekeeper can't find this session. It may have been deleted.",
@@ -149,6 +150,7 @@
       "uncommittedNoWorktree": "Uncommitted changes aren't included: this agent's worktree folder isn't available.",
       "loading": "Loading the diff",
       "loadFailed": "beekeeper couldn't load the diff.",
+      "archived": "Diffs aren't available for archived sessions.",
       "gitNotFound": "Git isn't installed, so the diff isn't available.",
       "gitTooOld": "This version of git is too old to show the diff. Update git to see it.",
       "failure": {

@@ -38,7 +38,7 @@ function hasMetaError(node: AgentTreeNode): boolean {
  * @param subagentsListed - Whether the subagents folder was listed.
  * @returns `true` when the scan is safe to cache.
  */
-function isCompleteScan(scan: SessionScan, subagentsListed: boolean): boolean {
+export function isCompleteScan(scan: SessionScan, subagentsListed: boolean): boolean {
   if (!subagentsListed) return false
   for (const report of scan.subagents.values()) if (!report.ok) return false
   return !hasMetaError(scan.tree)

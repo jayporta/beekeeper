@@ -1,4 +1,4 @@
-import { folderNote, stoppedNote } from './itemNotes'
+import { archivedNote, folderNote, stoppedNote } from './itemNotes'
 import { limitHitNote } from './limitHitNote'
 import type { SessionRow } from './sessionRow'
 import { signalNotes, signalTotalsOf } from './signalNotes'
@@ -15,8 +15,8 @@ export interface NotesOptions {
 }
 
 /**
- * The muted notes after a session's name: its team, stopped state, plan limit
- * hit, signal counts, and folders.
+ * The muted notes after a session's name: whether it is archived, its team,
+ * stopped state, plan limit hit, signal counts, and folders.
  *
  * @param row - The session's row.
  * @param options - The list's folder, the current time, and the translate function.
@@ -25,6 +25,8 @@ export interface NotesOptions {
 export function notesFor(row: SessionRow, { selectedDirName, nowMs, t }: NotesOptions): string[] {
   const { item, leadFolder } = row
   const notes: string[] = []
+  const archived = archivedNote(item, t)
+  if (archived !== null) notes.push(archived)
   if (item.team?.kind === 'ungrouped' && item.team.teamName !== null) {
     notes.push(t('notes.team', { name: item.team.teamName }))
   }

@@ -46,6 +46,7 @@ export function mapSessionScan(options: MapSessionScanOptions): SessionDetailDto
     lead: mapAgentReport(scan.lead),
     subagents: subagentsError === null ? okResult(reports) : errResult(subagentsError),
     reconciliation: mapReconciliation(scan.reconciliation),
-    workflowRuns
+    workflowRuns,
+    archived: false
   }
 }

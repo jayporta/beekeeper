@@ -53,6 +53,22 @@ function scannedWith(entries: readonly SubagentEntry[]): ListableSession {
   return { ...base, entry: { ...base.entry, subagents: ok(entries) } }
 }
 
+describe('mapSessionListItem archived flag', () => {
+  it('marks a session read from disk as not archived', () => {
+    expect(mapSessionListItem(scanned(ok(SUMMARY)), null).archived).toBe(false)
+  })
+
+  it('marks a session whose transcript could not be read as not archived', () => {
+    const base = scanned(ok(SUMMARY))
+    const unreadable: ListableSession = {
+      ...base,
+      entry: { ...base.entry, transcript: err({ reason: 'unreadable', code: 'EACCES' }) }
+    }
+
+    expect(mapSessionListItem(unreadable, null).archived).toBe(false)
+  })
+})
+
 describe('mapSessionListItem', () => {
   it('copies the summary model to the item', () => {
     const item = mapSessionListItem(scanned(ok(SUMMARY)), null)
