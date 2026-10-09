@@ -170,6 +170,32 @@ describe('createOtelReceiverController', () => {
     expect(receiver.state()).toEqual({ status: 'off' })
   })
 
+  it('answers a read made in the same tick as startFromSettings with the receiver listening', async () => {
+    let listening = false
+    const slowToStart: OtelReceiver = {
+      start: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 30))
+        listening = true
+        return { status: 'listening', port: 1 }
+      },
+      stop: () => Promise.resolve(),
+      state: () => (listening ? { status: 'listening', port: 1 } : { status: 'off' })
+    }
+    const saved: OtelSettingsStore = {
+      read: () => Promise.resolve({ enabled: true, token: 'tok' }),
+      setEnabled: () => Promise.resolve({ enabled: true, token: 'tok' })
+    }
+    const launching = createOtelReceiverController({
+      settings: saved,
+      receiver: slowToStart,
+      port: 0
+    })
+
+    const [, during] = await Promise.all([launching.startFromSettings(), launching.get()])
+
+    expect(during).toMatchObject({ enabled: true, status: 'listening' })
+  })
+
   it('answers a read made during a change with the state after it', async () => {
     const [, during] = await Promise.all([controller.setEnabled(true), controller.get()])
 
@@ -212,31 +238,5 @@ describe('createOtelReceiverController', () => {
     await Promise.all([racing.setEnabled(true), racing.setEnabled(false)])
 
     expect([saved.enabled, listening]).toEqual([false, false])
-  })
-
-  it('answers a read made during a change with the state after it', async () => {
-    const [, during] = await Promise.all([controller.setEnabled(true), controller.get()])
-
-    expect(during).toMatchObject({ enabled: true, status: 'listening' })
-  })
-
-  it('stops listening without changing the saved setting', async () => {
-    await controller.setEnabled(true)
-
-    await controller.stop()
-
-    expect((await settings.read()).enabled).toBe(true)
-    expect(await controller.get()).toMatchObject({ enabled: true, status: 'off' })
-  })
-
-  it('ends consistent when toggles overlap', async () => {
-    await Promise.all([
-      controller.setEnabled(true),
-      controller.setEnabled(false),
-      controller.setEnabled(true),
-      controller.setEnabled(false)
-    ])
-
-    expect(await controller.get()).toMatchObject({ enabled: false, status: 'off' })
   })
 })

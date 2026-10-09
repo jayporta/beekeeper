@@ -23,9 +23,10 @@ export interface OtelReceiverController {
   setEnabled(enabled: boolean): Promise<OtelReceiverDto>
 
   /**
-   * Starts the server when the saved setting is on. Call it once at launch,
-   * before any window exists: reads queue behind it, so the renderer never
-   * sees a receiver that is on but not yet started.
+   * Starts the server when the saved setting is on. Call it once at launch, in
+   * the same tick the window is created: it is then queued before any IPC call
+   * can arrive, and reads queue behind it, so the renderer never sees a
+   * receiver that is on but not yet started.
    *
    * @throws When the saved setting can't be read.
    */
