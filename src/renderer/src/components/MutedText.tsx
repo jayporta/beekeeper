@@ -1,8 +1,8 @@
 import styles from './MutedText.module.css'
 import { withClassName } from './withClassName'
 
-/** Props for {@link MutedText}. */
-interface MutedTextProps {
+/** The props every {@link MutedText} takes. */
+interface MutedTextBaseProps {
   /** The text. */
   readonly children: React.ReactNode
   /**
@@ -20,13 +20,6 @@ interface MutedTextProps {
    * @defaultValue false
    */
   readonly wrapAnywhere?: boolean
-  /**
-   * Hides the text from assistive technology, for a note that repeats what is already announced.
-   * @defaultValue false
-   */
-  readonly decorative?: boolean
-  /** An ARIA role for a note that is announced, such as a loading note. Omit it for a plain note. */
-  readonly role?: 'status'
   /** The element's id, so a figure can describe itself by it. */
   readonly id?: string
   /**
@@ -35,6 +28,28 @@ interface MutedTextProps {
    */
   readonly className?: string
 }
+
+/** A note that repeats what is already announced, so it takes no role: an aria-hidden status is never announced. */
+interface DecorativeMutedTextProps extends MutedTextBaseProps {
+  /** Hides the text from assistive technology, for a note that repeats what is already announced. */
+  readonly decorative: true
+  /** Not allowed on decorative text, which assistive technology never reaches. */
+  readonly role?: never
+}
+
+/** A note that assistive technology reads, optionally as a live status. */
+interface AnnouncedMutedTextProps extends MutedTextBaseProps {
+  /**
+   * Hides the text from assistive technology when `true`.
+   * @defaultValue false
+   */
+  readonly decorative?: false
+  /** An ARIA role for a note that is announced, such as a loading note. Omit it for a plain note. */
+  readonly role?: 'status'
+}
+
+/** Props for {@link MutedText}: decorative text takes no role. */
+type MutedTextProps = DecorativeMutedTextProps | AnnouncedMutedTextProps
 
 /**
  * Muted small text: a note, a caption, or a figure's label.
