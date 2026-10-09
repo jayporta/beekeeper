@@ -461,15 +461,18 @@ describe('buildAgentGraph signal marks', () => {
     expect(graph.children[0]?.partial).toBe(true)
   })
 
-  it('has no marks for a teammate session, whose signals are not loaded yet', () => {
+  it('marks a teammate session from its own list summary', () => {
     const graph = graphAmong(
       [
         testSession(1, { team: testLeadTeam([testRef(2)], testUsage()) }),
-        testSession(2, { team: testTeammateTeam(REF) })
+        testSession(2, {
+          team: testTeammateTeam(REF),
+          signals: { ...EMPTY_AGENT_SIGNALS_DTO, toolErrors: 5, compactions: 2 }
+        })
       ],
       testDetail()
     )
 
-    expect(graph.children[0]?.marks).toBeNull()
+    expect(graph.children[0]?.marks).toEqual({ toolErrors: 5, compactions: 2 })
   })
 })
