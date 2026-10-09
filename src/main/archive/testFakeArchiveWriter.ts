@@ -1,7 +1,8 @@
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
-import type { ArchiveWriter, SourceState } from './archiveStoreTypes'
+import { sessionRefKey } from '../ipc/sessionRefKey'
+import type { ArchiveReader, ArchiveWriter, SourceState } from './archiveStoreTypes'
 
 /** A list item save the fake received. */
 export interface RecordedListSave {
@@ -21,8 +22,8 @@ export interface RecordedDetailSave {
   readonly source: SourceState
 }
 
-/** An {@link ArchiveWriter} that records its saves, or throws on every one. */
-export interface FakeArchiveWriter extends ArchiveWriter {
+/** An archive that records its saves and answers reads from what it was given. */
+export interface FakeArchiveWriter extends ArchiveWriter, ArchiveReader {
   /** The list items saved, in order, across every batch. */
   readonly listSaves: readonly RecordedListSave[]
   /** The list item batches saved, in order. */
@@ -31,13 +32,26 @@ export interface FakeArchiveWriter extends ArchiveWriter {
   readonly detailSaves: readonly RecordedDetailSave[]
 }
 
+/** What a fake archive answers reads with. */
+export interface FakeArchiveReads {
+  /** The list items it holds, from any folder. */
+  readonly listItems?: readonly SessionListItemDto[]
+  /** The details it holds, keyed by {@link sessionRefKey}. */
+  readonly details?: ReadonlyMap<string, SessionDetailDto>
+}
+
 /**
- * Builds a writer that records what it is asked to save.
+ * Builds an archive that records what it is asked to save and answers reads
+ * from what it was given, the way the store does.
  *
- * @param failure - When set, every save throws it after recording nothing.
- * @returns The fake writer.
+ * @param failure - When set, every save and read throws it. Saves record nothing.
+ * @param reads - The list items and details it holds.
+ * @returns The fake archive.
  */
-export function createFakeArchiveWriter(failure?: Error): FakeArchiveWriter {
+export function createFakeArchiveWriter(
+  failure?: Error,
+  reads: FakeArchiveReads = {}
+): FakeArchiveWriter {
   const listSaves: RecordedListSave[] = []
   const listBatches: RecordedListSave[][] = []
   const detailSaves: RecordedDetailSave[] = []
@@ -53,6 +67,16 @@ export function createFakeArchiveWriter(failure?: Error): FakeArchiveWriter {
     saveDetail(ref, { detail, source }) {
       if (failure !== undefined) throw failure
       detailSaves.push({ ref, detail, source })
+    },
+    readListItems(projectDirName, excluding) {
+      if (failure !== undefined) throw failure
+      return (reads.listItems ?? []).filter(
+        (item) => item.projectDirName === projectDirName && !excluding.has(item.sessionId)
+      )
+    },
+    readDetail(ref) {
+      if (failure !== undefined) throw failure
+      return reads.details?.get(sessionRefKey(ref)) ?? null
     }
   }
 }

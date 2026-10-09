@@ -28,3 +28,11 @@ WHERE excluded.source_mtime_ms != sessions.source_mtime_ms
 export const UPDATE_DETAIL = `
 UPDATE sessions SET detail = ?, detail_mtime_ms = ?, detail_size = ?
 WHERE project_dir = ? AND session_id = ?`
+
+export const SELECT_LIST_ITEM = `
+SELECT list_item FROM sessions
+WHERE project_dir = ? AND session_id = ? AND format = ?`
+
+export const SELECT_DETAIL = `
+SELECT detail FROM sessions
+WHERE project_dir = ? AND session_id = ? AND format = ?`

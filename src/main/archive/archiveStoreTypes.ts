@@ -72,6 +72,30 @@ export interface ArchiveStore {
    */
   skipDetail(ref: SessionRefDto): void
   /**
+   * Reads the archived list items of a project folder, leaving out the
+   * sessions named in `excluding` without reading their rows. A row at
+   * another format, or one that fails to parse or doesn't carry its own keys,
+   * is left out, and each kind of unreadable row is logged once. Rows are read
+   * one at a time, so the cost follows the sessions returned.
+   *
+   * @param projectDirName - The project folder.
+   * @param excluding - Session ids to leave out, such as the folder's live sessions.
+   * @returns The items in session id order, or an empty list after the store is closed.
+   */
+  readListItems(
+    projectDirName: string,
+    excluding: ReadonlySet<string>
+  ): readonly SessionListItemDto[]
+  /**
+   * Reads a session's archived detail.
+   *
+   * @param ref - The session.
+   * @returns The detail, or `null` when the session has none at the current
+   * format (including one skipped as too large), the row can't be read, or the
+   * store is closed.
+   */
+  readDetail(ref: SessionRefDto): SessionDetailDto | null
+  /**
    * Closes the database. Every write after this is silently ignored, so a
    * write still in flight when the app quits fails nothing and logs nothing.
    * Closing again does nothing.
@@ -97,8 +121,11 @@ export interface ListItemEntry {
   readonly source: SourceState
 }
 
-/** What the IPC handlers use of the store: the two writes. */
+/** What the IPC handlers use of the store to write. */
 export type ArchiveWriter = Pick<ArchiveStore, 'saveListItems' | 'saveDetail'>
+
+/** What the IPC handlers use of the store to read. */
+export type ArchiveReader = Pick<ArchiveStore, 'readListItems' | 'readDetail'>
 
 /** Options for {@link createArchiveStore}. */
 export interface ArchiveStoreOptions {

@@ -1,5 +1,5 @@
 import type { SessionSummaryCache } from '../../core/transcript/summary/sessionSummaryCache'
-import type { ArchiveWriter } from '../archive/archiveStoreTypes'
+import type { ArchiveReader, ArchiveWriter } from '../archive/archiveStoreTypes'
 import type { GitLocation } from '../git/gitLocator'
 import type { DailyUsageCache } from '../overview/dailyUsageCache'
 import type { AgentTermsCache } from './agentTermsCache'
@@ -58,5 +58,5 @@ export interface IpcDeps {
    * the archive is off or couldn't be opened. A write failure never fails the
    * request that triggered it.
    */
-  readonly archive: ArchiveWriter | null
+  readonly archive: (ArchiveWriter & ArchiveReader) | null
 }

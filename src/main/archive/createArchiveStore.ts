@@ -1,5 +1,6 @@
 import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
+import { compareCodeUnits } from '../../core/shared/compareCodeUnits'
 import { sessionRefKey } from '../ipc/sessionRefKey'
 import { ARCHIVE_FORMAT, MAX_ARCHIVED_DETAIL_CHARS } from './archiveConstants'
 import type {
@@ -9,8 +10,19 @@ import type {
   PendingDetail,
   SourceState
 } from './archiveStoreTypes'
-import { SELECT_STATES, UPDATE_DETAIL, UPSERT_LIST_ITEM } from './archiveSql'
+import {
+  SELECT_DETAIL,
+  SELECT_LIST_ITEM,
+  SELECT_STATES,
+  UPDATE_DETAIL,
+  UPSERT_LIST_ITEM
+} from './archiveSql'
 import type { ArchiveDb } from './openArchive'
+import {
+  parseArchivedDetail,
+  parseArchivedListItem,
+  type ArchivedRowError
+} from './parseArchivedRow'
 
 /** A stored list item's session, source state, format, and last message time. */
 interface StoredListEntry {
@@ -41,6 +53,9 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
   const { now = Date.now, log = console.warn } = options
   const upsertListItem = db.prepare(UPSERT_LIST_ITEM)
   const updateDetail = db.prepare(UPDATE_DETAIL)
+  const selectListItem = db.prepare(SELECT_LIST_ITEM)
+  const selectDetail = db.prepare(SELECT_DETAIL)
+  const loggedRowErrors = new Set<ArchivedRowError>()
   let closed = false
   const listEntries = new Map<string, StoredListEntry>()
   /**
@@ -81,6 +96,13 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
   /** Whether archiving a detail for this source state would change nothing. */
   function isSettled(key: string, source: SourceState): boolean {
     return sameSource(settledStates.get(key), source)
+  }
+
+  /** Logs a kind of unreadable row the first time it is seen. */
+  function logUnreadableRow(error: ArchivedRowError): void {
+    if (loggedRowErrors.has(error)) return
+    loggedRowErrors.add(error)
+    log(`Beekeeper archive skipped an unreadable row (${error}).`)
   }
 
   /** Upserts the entries whose stored row is out of date, in one transaction. */
@@ -157,6 +179,34 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
         })
       }
       return pending
+    },
+
+    readListItems(projectDirName, excluding) {
+      if (closed) return []
+      const refs = [...listEntries.values()]
+        .filter(({ ref }) => ref.projectDirName === projectDirName && !excluding.has(ref.sessionId))
+        .map(({ ref }) => ref)
+        .sort((a, b) => compareCodeUnits(a.sessionId, b.sessionId))
+      const items: SessionListItemDto[] = []
+      for (const ref of refs) {
+        const row = selectListItem.get(ref.projectDirName, ref.sessionId, ARCHIVE_FORMAT)
+        if (row === undefined) continue
+        const parsed = parseArchivedListItem(String(row['list_item']), ref)
+        if (parsed.ok) items.push(parsed.value)
+        else logUnreadableRow(parsed.error)
+      }
+      return items
+    },
+
+    readDetail(ref) {
+      if (closed) return null
+      const row = selectDetail.get(ref.projectDirName, ref.sessionId, ARCHIVE_FORMAT)
+      const json = row?.['detail']
+      if (typeof json !== 'string') return null
+      const parsed = parseArchivedDetail(json, ref)
+      if (parsed.ok) return parsed.value
+      logUnreadableRow(parsed.error)
+      return null
     },
 
     skipDetail(ref) {
