@@ -34,7 +34,7 @@ export function testProject(dirName: string, worktree?: TestWorktree): ProjectDt
 
 /** The stubbed API: each method is a mock, so a test can assert on calls or change a result. */
 export type TestBeekeeperApi = { [K in keyof BeekeeperApi]: Mock<BeekeeperApi[K]> } & {
-  /** Calls every listener subscribed through `onOpenAbout`, as the menu's About item does. With none subscribed, the first one to subscribe gets it, as in the preload. */
+  /** Calls every listener subscribed through `onOpenAbout`, as the menu's About item does. */
   fireOpenAbout(): void
   /** Calls every listener subscribed through `onFilesChanged` with `change`, as a batch from the main process does. */
   fireFilesChanged(change: FilesChangedDto): void
@@ -87,7 +87,8 @@ function createListeners<T extends unknown[]>(
  * can't silently depend on it. `onOpenAbout`, `onFilesChanged` and
  * `onLiveUpdatesUnavailable` subscriptions are real: each `fire…` helper reaches
  * every listener that has not unsubscribed. As in the preload, a
- * `fireLiveUpdatesUnavailable` before any subscriber is held for the first one.
+ * `fireOpenAbout` or `fireLiveUpdatesUnavailable` before any subscriber is held
+ * for the first one.
  *
  * @param overrides - Implementations to use instead of the defaults.
  * @returns The installed stub.
