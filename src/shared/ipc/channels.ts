@@ -17,5 +17,7 @@ export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
  * {@link IPC_CHANNELS}, which holds only the request channels that get a handler.
  */
 export const IPC_EVENTS = {
-  openAbout: 'beekeeper:open-about'
+  openAbout: 'beekeeper:open-about',
+  filesChanged: 'beekeeper:files-changed',
+  liveUpdatesUnavailable: 'beekeeper:live-updates-unavailable'
 } as const
