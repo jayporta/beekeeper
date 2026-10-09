@@ -21,20 +21,13 @@ export interface ArchivedDetailEntry {
 /** Writes to the archive. Errors from SQLite propagate to the caller. */
 export interface ArchiveStore {
   /**
-   * Stores a session's list item, with its team cleared since a team is
-   * recomputed from the family at list time. Does nothing, not even
-   * serializing the item, when the stored row has the same source state and
-   * format. A row stored in another format is rewritten and loses its detail.
-   *
-   * @param item - The list item to store.
-   * @param source - The lead transcript's state the item was built from.
-   */
-  saveListItem(item: SessionListItemDto, source: SourceState): void
-  /**
-   * Stores several list items in one transaction, skipping the ones whose
-   * stored row is unchanged exactly as {@link ArchiveStore.saveListItem} does.
-   * When a write fails, the whole batch is rolled back and the error is
-   * thrown, and the store behaves as if none of it had been saved.
+   * Stores list items in one transaction, with each item's team cleared since
+   * a team is recomputed from the family at list time. An entry whose stored
+   * row has the same source state and format is skipped without being
+   * serialized, and a batch of only such entries opens no transaction. A row
+   * stored in another format is rewritten and loses its detail. When a write
+   * fails, the whole batch is rolled back and the error is thrown, and the
+   * store behaves as if none of it had been saved.
    *
    * @param entries - The list items and the source states they were built from.
    */
@@ -51,15 +44,6 @@ export interface ArchiveStore {
    * @param entry - The detail and the transcript state it was scanned from.
    */
   saveDetail(ref: SessionRefDto, entry: ArchivedDetailEntry): void
-  /**
-   * Whether a detail was archived for this source state at the current
-   * format, or was skipped as too large for it.
-   *
-   * @param ref - The session to check.
-   * @param source - The lead transcript's current state.
-   * @returns `true` when archiving the detail again would change nothing.
-   */
-  hasDetail(ref: SessionRefDto, source: SourceState): boolean
   /**
    * Whether the stored list item was built from this source state, at the
    * current format.
@@ -87,7 +71,11 @@ export interface ArchiveStore {
    * @param ref - The session to stop retrying.
    */
   skipDetail(ref: SessionRefDto): void
-  /** Closes the database. */
+  /**
+   * Closes the database. Every write after this is silently ignored, so a
+   * write still in flight when the app quits fails nothing and logs nothing.
+   * Closing again does nothing.
+   */
   close(): void
 }
 

@@ -5,7 +5,7 @@ import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../../ipc/te
 import { ARCHIVE_DETAIL_AFTER_DAYS } from '../archiveConstants'
 import { createAppArchiver } from '../createAppArchiver'
 import type { ArchiveStore } from '../archiveStoreTypes'
-import { testListItem } from '../testArchiveFixtures'
+import { listEntry, testListItem } from '../testArchiveFixtures'
 import { createArchiveStore } from '../createArchiveStore'
 import { openArchive } from '../openArchive'
 
@@ -54,7 +54,7 @@ describe('createAppArchiver', () => {
   it('archives the detail of a session quiet for the waiting period', async () => {
     await archiver(ARCHIVE_DETAIL_AFTER_DAYS).runPass()
 
-    expect(store.hasDetail(REF, await sourceState())).toBe(true)
+    expect(detailRows()).toBe(1)
   })
 
   it('does not list a project again when none of its sessions changed', async () => {
@@ -87,6 +87,29 @@ describe('createAppArchiver', () => {
     expect(detailRows()).toBe(1)
   })
 
+  it("scans details through its own scan cache, leaving the UI's alone", async () => {
+    const uiCache = { gets: 0, sets: 0 }
+    const deps = {
+      ...ctx.deps,
+      now: () => Date.now() + ARCHIVE_DETAIL_AFTER_DAYS * DAY_MS,
+      scanCache: {
+        get: (key: string) => {
+          uiCache.gets += 1
+          return ctx.deps.scanCache.get(key)
+        },
+        set: (...args: Parameters<typeof ctx.deps.scanCache.set>) => {
+          uiCache.sets += 1
+          ctx.deps.scanCache.set(...args)
+        }
+      }
+    }
+
+    await createAppArchiver({ deps, store }).runPass()
+
+    expect(detailRows()).toBe(1)
+    expect(uiCache).toEqual({ gets: 0, sets: 0 })
+  })
+
   describe('a pending session whose transcript is gone', () => {
     const GHOST = {
       projectDirName: TEST_PROJECT,
@@ -107,7 +130,7 @@ describe('createAppArchiver', () => {
     }
 
     it('is never scanned and is not pending in the next pass', async () => {
-      store.saveListItem(testListItem(GHOST), { mtimeMs: 1_000, size: 10 })
+      store.saveListItems([listEntry(testListItem(GHOST), { mtimeMs: 1_000, size: 10 })])
       const counter = { scans: 0 }
       const archiver = createAppArchiver({ deps: countingDeps(counter), store })
 

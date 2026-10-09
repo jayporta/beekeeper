@@ -41,6 +41,7 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
   const { now = Date.now, log = console.warn } = options
   const upsertListItem = db.prepare(UPSERT_LIST_ITEM)
   const updateDetail = db.prepare(UPDATE_DETAIL)
+  let closed = false
   const listEntries = new Map<string, StoredListEntry>()
   /**
    * The source state each session's detail is settled for: stored, or skipped
@@ -84,6 +85,7 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
 
   /** Upserts the entries whose stored row is out of date, in one transaction. */
   function saveListItems(entries: readonly ListItemEntry[]): void {
+    if (closed) return
     const writes = entries.filter(
       ({ item, source }) => !isListItemCurrent(sessionRefKey(item), source)
     )
@@ -118,13 +120,10 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
   }
 
   return {
-    saveListItem(item, source) {
-      saveListItems([{ item, source }])
-    },
-
     saveListItems,
 
     saveDetail(ref, { detail, source }) {
+      if (closed) return
       const key = sessionRefKey(ref)
       if (listEntries.get(key)?.format !== ARCHIVE_FORMAT) return
       if (isSettled(key, source)) return
@@ -139,10 +138,6 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
       )
       settledStates.set(key, source)
       if (oversized) log('Beekeeper archive skipped a session detail that is too large.')
-    },
-
-    hasDetail(ref, source) {
-      return isSettled(sessionRefKey(ref), source)
     },
 
     hasListItem(ref, source) {
@@ -163,12 +158,15 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
     },
 
     skipDetail(ref) {
+      if (closed) return
       const key = sessionRefKey(ref)
       const entry = listEntries.get(key)
       if (entry !== undefined) settledStates.set(key, entry.source)
     },
 
     close() {
+      if (closed) return
+      closed = true
       db.close()
     }
   }

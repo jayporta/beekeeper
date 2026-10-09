@@ -3,7 +3,7 @@ import type { IpcResult } from '../../shared/ipc/ipcResult'
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto, SessionSummaryDto } from '../../shared/ipc/sessionListDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
-import type { SourceState } from './archiveStoreTypes'
+import type { ListItemEntry, SourceState } from './archiveStoreTypes'
 
 /** The session the fixtures describe unless overridden. */
 export const TEST_REF: SessionRefDto = {
@@ -28,6 +28,14 @@ export function testListItem(overrides: Partial<SessionListItemDto> = {}): Sessi
     team: null,
     ...overrides
   }
+}
+
+/** A list item to store with the transcript state it was built from, for {@link TEST_REF} unless overridden. */
+export function listEntry(
+  item: SessionListItemDto = testListItem(),
+  source: SourceState = TEST_SOURCE
+): ListItemEntry {
+  return { item, source }
 }
 
 /** A readable summary whose last message is at `latestMs`, or that has no timestamps when `null`. */
