@@ -19,7 +19,7 @@ const metaStatusSchema = z.discriminatedUnion('status', [
 ])
 
 /** One tree node without its descendants, which {@link hasValidNodes} checks in turn. */
-const agentNodeSchema = z.looseObject({
+export const archivedAgentNodeSchema = z.looseObject({
   agentId: z.string().nullable(),
   meta: metaStatusSchema,
   workflowRunId: z.string().nullable(),
@@ -33,7 +33,7 @@ const agentNodeSchema = z.looseObject({
 function hasValidNodes(root: unknown): boolean {
   const pending: unknown[] = [root]
   while (pending.length > 0) {
-    const parsed = agentNodeSchema.safeParse(pending.pop())
+    const parsed = archivedAgentNodeSchema.safeParse(pending.pop())
     if (!parsed.success) return false
     for (const child of parsed.data.children) pending.push(child)
   }

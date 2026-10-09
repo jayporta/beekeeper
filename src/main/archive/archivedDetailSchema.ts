@@ -3,8 +3,16 @@ import { sessionIdSchema } from '../../shared/ipc/requestSchemas'
 import { archivedAgentReportSchema } from './archivedAgentReportSchema'
 import { archivedAgentTreeSchema } from './archivedAgentTreeSchema'
 
+/** The schema {@link ipcResultSchema} builds, typed so the checks against the DTOs see through it. */
+type IpcResultSchema<Value extends z.ZodType> = z.ZodDiscriminatedUnion<
+  [
+    z.ZodObject<{ ok: z.ZodLiteral<true>; value: Value }, z.core.$loose>,
+    z.ZodObject<{ ok: z.ZodLiteral<false> }, z.core.$loose>
+  ]
+>
+
 /** An `IpcResult` whose success value `value` describes. A failure is checked for its flag only, since nothing reads what it carries. */
-function ipcResultSchema(value: z.ZodType): z.ZodType {
+function ipcResultSchema<Value extends z.ZodType>(value: Value): IpcResultSchema<Value> {
   return z.discriminatedUnion('ok', [
     z.looseObject({ ok: z.literal(true), value }),
     z.looseObject({ ok: z.literal(false) })
