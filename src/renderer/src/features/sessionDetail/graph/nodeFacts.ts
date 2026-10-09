@@ -55,8 +55,9 @@ interface NodeNameOptions {
 
 /**
  * The accessible name of a node's button: its name, its kind and parent, its
- * tokens, its second line, then each flag. While the node loads it says only that it is loading, as the node shows only the loading flag. A workflow run's second line is its
- * phase count, its id when its name isn't unique, then how many agents it
+ * tokens, its second line, then each flag. While the node loads, its flags
+ * are only the loading one, as the node shows. A workflow run's second line is
+ * its phase count, its id when its name isn't unique, then how many agents it
  * holds, since the kind is already said. It carries everything the node
  * shows, and the edge to its parent, so a screen reader hears the same facts a
  * sighted reader sees and can tell same-named siblings apart by where they hang.

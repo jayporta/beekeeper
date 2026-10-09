@@ -326,6 +326,9 @@ describe('AgentInspector signals', () => {
 
     await select(/^writer/)
 
+    expect(
+      await inspector().findByRole('heading', { level: 2, name: 'writer (code)' })
+    ).toBeTruthy()
     await waitFor(() => expect(inspector().getByText('Agents killed')).toBeTruthy())
   })
 })

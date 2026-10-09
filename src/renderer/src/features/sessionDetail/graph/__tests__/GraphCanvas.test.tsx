@@ -2,6 +2,7 @@ import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SessionListItemDto } from '../../../../../../shared/ipc/sessionListDto'
+import { EMPTY_AGENT_SIGNALS_DTO } from '../../../../../../shared/ipc/emptyAgentSignals'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import {
   testLeadTeam,
@@ -134,6 +135,24 @@ describe('GraphCanvas', () => {
     await userEvent.click(node(/^reader/))
 
     expect(vi.mocked(layoutGraphOriginal).mock.calls.length).toBe(calls)
+  })
+})
+
+describe('GraphCanvas legend', () => {
+  it('explains the marks when an agent has tool errors', () => {
+    const detail = testDetail({
+      children: [testNode('a1')],
+      reports: { a1: testReport({ signals: { ...EMPTY_AGENT_SIGNALS_DTO, toolErrors: 3 } }) }
+    })
+    renderGraphWith({ detail, row: null })
+
+    expect(screen.getByText('× tool errors')).toBeTruthy()
+  })
+
+  it('leaves the legend out when no agent has marks', () => {
+    renderGraphWith({ detail: testDetail({ children: [testNode('a1')] }), row: null })
+
+    expect(screen.queryByText('× tool errors')).toBeNull()
   })
 })
 
