@@ -142,6 +142,28 @@ describe('saveListItems with one entry', () => {
     expect(rows()[0]?.['archived_at_ms']).toBe(5_000)
   })
 
+  it('clears the stored detail when the source state changes, leaving it pending', () => {
+    store.saveListItems([listEntry()])
+    store.saveDetail(TEST_REF, { detail: testDetail(), source: TEST_SOURCE })
+    const changed = { ...TEST_SOURCE, size: 900 }
+
+    store.saveListItems([listEntry(testListItem(), changed)])
+
+    expect(rows()[0]).toMatchObject({ detail: null, detail_mtime_ms: null, detail_size: null })
+    expect(store.pendingDetails().map((pending) => pending.source)).toEqual([changed])
+  })
+
+  it('lists a session again when its transcript returns to the state a cleared detail was stored for', () => {
+    store.saveListItems([listEntry()])
+    store.saveDetail(TEST_REF, { detail: testDetail(), source: TEST_SOURCE })
+    store.saveListItems([listEntry(testListItem(), { ...TEST_SOURCE, size: 900 })])
+
+    store.saveListItems([listEntry(testListItem(), TEST_SOURCE)])
+
+    expect(store.pendingDetails().map((pending) => pending.source)).toEqual([TEST_SOURCE])
+    expect(rows()[0]?.['detail']).toBeNull()
+  })
+
   it('rewrites a row stored in another format and drops its detail', () => {
     db.prepare(
       `INSERT INTO sessions (project_dir, session_id, source_mtime_ms, source_size, format,
@@ -162,6 +184,78 @@ describe('saveListItems with one entry', () => {
     expect(rows()[0]).toMatchObject({ format: 1, detail: null, detail_mtime_ms: null })
     expect(JSON.parse(String(rows()[0]?.['list_item']))).toEqual(testListItem())
   })
+
+  it('lists a rewritten stale-format row again, whatever a skip recorded for it in memory', () => {
+    seedRow({ format: 0, listItem: '{}', detail: '{}' })
+    const stale = newStore()
+    stale.skipDetail(TEST_REF)
+
+    stale.saveListItems([listEntry(testListItem(), TEST_SOURCE)])
+
+    expect(stale.pendingDetails().map((pending) => pending.ref)).toEqual([TEST_REF])
+  })
+})
+
+describe('saveListItems after a detail was archived ahead of the list item', () => {
+  // A detail is archived for the transcript's state when it was scanned, which can be newer
+  // than the state the stored list item describes.
+  const AHEAD: SourceState = { mtimeMs: 2_000, size: 900 }
+
+  beforeEach(() => {
+    store.saveListItems([listEntry()])
+    store.saveDetail(TEST_REF, { detail: testDetail('ahead'), source: AHEAD })
+  })
+
+  it('keeps the detail when the list item catches up to the state it was scanned for', () => {
+    store.saveListItems([listEntry(testListItem(), AHEAD)])
+
+    expect(rows()[0]).toMatchObject({ detail_mtime_ms: AHEAD.mtimeMs, detail_size: AHEAD.size })
+    expect(String(rows()[0]?.['detail'])).toContain('ahead')
+  })
+
+  it('leaves the session out of the pending list, as a store created over the archive does', () => {
+    store.saveListItems([listEntry(testListItem(), AHEAD)])
+
+    expect(store.pendingDetails()).toEqual([])
+    expect(newStore().pendingDetails()).toEqual([])
+  })
+
+  it('still serves the detail it kept', () => {
+    store.readDetail(TEST_REF)
+
+    store.saveListItems([listEntry(testListItem(), AHEAD)])
+
+    expect(store.readDetail(TEST_REF)).toEqual(testDetail('ahead'))
+  })
+
+  it('keeps a too-large skip recorded for that state, which stays settled', () => {
+    store.saveDetail(TEST_REF, {
+      detail: testDetail('x'.repeat(MAX_ARCHIVED_DETAIL_CHARS)),
+      source: { ...AHEAD, size: 901 }
+    })
+
+    store.saveListItems([listEntry(testListItem(), { ...AHEAD, size: 901 })])
+
+    expect(rows()[0]).toMatchObject({
+      detail: null,
+      detail_mtime_ms: AHEAD.mtimeMs,
+      detail_size: 901
+    })
+    expect(store.pendingDetails()).toEqual([])
+  })
+
+  it.each([
+    ['size', { ...AHEAD, size: 901 }],
+    ['modification time', { ...AHEAD, mtimeMs: 2_001 }]
+  ])(
+    'clears the detail when the new state differs from the one it was scanned for in %s',
+    (_label, next) => {
+      store.saveListItems([listEntry(testListItem(), next)])
+
+      expect(rows()[0]).toMatchObject({ detail: null, detail_mtime_ms: null, detail_size: null })
+      expect(store.pendingDetails().map((pending) => pending.source)).toEqual([next])
+    }
+  )
 })
 
 describe('saveDetail', () => {
@@ -280,6 +374,24 @@ describe('saveListItems', () => {
         .map((row) => row['archived_at_ms'])
         .sort()
     ).toEqual([5_000, 5_000, 9_000])
+  })
+
+  it('throws the original error even when the rollback itself fails', () => {
+    const failing = Object.assign(testListItem({ sessionId: SECOND.sessionId }), {
+      toJSON: (): never => {
+        throw new Error('serialization failed')
+      }
+    })
+    const exec = db.exec.bind(db)
+    vi.spyOn(db, 'exec').mockImplementation((sql) => {
+      if (sql === 'ROLLBACK') throw new Error('rollback failed')
+      return exec(sql)
+    })
+
+    expect(() =>
+      store.saveListItems([entryFor(TEST_REF), { item: failing, source: TEST_SOURCE }])
+    ).toThrow('serialization failed')
+    expect(logged).toEqual([])
   })
 
   it('stores nothing and keeps the store consistent when an entry fails mid-batch', () => {
@@ -505,6 +617,378 @@ describe('pendingDetails', () => {
     expect(newStore().pendingDetails()).toEqual([
       { ref: TEST_REF, source: TEST_SOURCE, activityLatestMs: 5 }
     ])
+  })
+})
+
+/** Writes a row straight to the table, as another build or a bad edit might have left it. */
+function seedRow(options: {
+  readonly ref?: typeof TEST_REF
+  readonly format?: number
+  readonly listItem: string
+  readonly detail?: string
+}): void {
+  const { ref = TEST_REF, format = 1, listItem, detail = null } = options
+  db.prepare(
+    `INSERT INTO sessions (project_dir, session_id, source_mtime_ms, source_size, format,
+       detail_mtime_ms, detail_size, archived_at_ms, list_item, detail)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`
+  ).run(
+    ref.projectDirName,
+    ref.sessionId,
+    TEST_SOURCE.mtimeMs,
+    TEST_SOURCE.size,
+    format,
+    detail === null ? null : TEST_SOURCE.mtimeMs,
+    detail === null ? null : TEST_SOURCE.size,
+    listItem,
+    detail
+  )
+}
+
+const OK_ITEM = testListItem({ summary: testOkSummary(5) })
+const SECOND_REF = { ...TEST_REF, sessionId: '22222222-2222-4222-8222-222222222222' }
+const NONE: ReadonlySet<string> = new Set()
+
+describe('readListItems', () => {
+  it('returns the stored items in session id order, each with its team cleared', () => {
+    const second = testListItem({ sessionId: SECOND_REF.sessionId, summary: testOkSummary(9) })
+    store.saveListItems([listEntry(second), listEntry(OK_ITEM)])
+
+    expect(store.readListItems(TEST_REF.projectDirName, NONE)).toEqual([
+      { ...OK_ITEM, team: null },
+      { ...second, team: null }
+    ])
+  })
+
+  it('reads items saved by an earlier store over the same archive', () => {
+    store.saveListItems([listEntry(OK_ITEM)])
+
+    expect(newStore().readListItems(TEST_REF.projectDirName, NONE)).toHaveLength(1)
+  })
+
+  it('leaves out the sessions it is told to exclude, without reading their rows', () => {
+    store.saveListItems([listEntry(OK_ITEM)])
+    db.prepare('UPDATE sessions SET list_item = ?').run('{corrupt')
+
+    const items = store.readListItems(TEST_REF.projectDirName, new Set([TEST_REF.sessionId]))
+
+    expect(items).toEqual([])
+    expect(logged).toEqual([])
+  })
+
+  it('returns only the requested folder', () => {
+    store.saveListItems([
+      listEntry(OK_ITEM),
+      listEntry(testListItem({ projectDirName: '-other', summary: testOkSummary(5) }))
+    ])
+
+    const items = store.readListItems('-other', NONE)
+
+    expect(items.map((item) => item.projectDirName)).toEqual(['-other'])
+  })
+
+  it('returns nothing for a folder with no archived sessions', () => {
+    store.saveListItems([listEntry(OK_ITEM)])
+
+    expect(store.readListItems('-unknown', NONE)).toEqual([])
+  })
+
+  it('skips a row stored in another format without logging it', () => {
+    seedRow({ format: 0, listItem: JSON.stringify(OK_ITEM) })
+
+    expect(newStore().readListItems(TEST_REF.projectDirName, NONE)).toEqual([])
+    expect(logged).toEqual([])
+  })
+
+  it('skips corrupt rows and logs each kind once, without a path', () => {
+    seedRow({ listItem: '{corrupt' })
+    seedRow({ ref: SECOND_REF, listItem: 'also corrupt' })
+    const third = { ...TEST_REF, sessionId: '33333333-3333-4333-8333-333333333333' }
+    seedRow({
+      ref: third,
+      listItem: JSON.stringify({ ...OK_ITEM, sessionId: SECOND_REF.sessionId })
+    })
+    const fresh = newStore()
+
+    const items = fresh.readListItems(TEST_REF.projectDirName, NONE)
+    fresh.readListItems(TEST_REF.projectDirName, NONE)
+
+    expect(items).toEqual([])
+    expect(logged).toEqual([
+      'Beekeeper archive skipped an unreadable row (invalid-json).',
+      'Beekeeper archive skipped an unreadable row (key-mismatch).'
+    ])
+  })
+
+  it.each([
+    ['an agent term that is null', { agentTerms: [null] }],
+    [
+      'an agent term with a numeric name',
+      { agentTerms: [{ name: 7, description: null, agentType: 'a' }] }
+    ]
+  ])('skips a hand-edited row with %s and logs it once', (_label, edit) => {
+    seedRow({ listItem: JSON.stringify({ ...OK_ITEM, ...edit }) })
+    const fresh = newStore()
+
+    expect(fresh.readListItems(TEST_REF.projectDirName, NONE)).toEqual([])
+    fresh.readListItems(TEST_REF.projectDirName, NONE)
+
+    expect(logged).toEqual(['Beekeeper archive skipped an unreadable row (invalid-shape).'])
+  })
+
+  it('still returns the readable rows beside a corrupt one', () => {
+    seedRow({ listItem: '{corrupt' })
+    seedRow({
+      ref: SECOND_REF,
+      listItem: JSON.stringify({ ...OK_ITEM, sessionId: SECOND_REF.sessionId })
+    })
+
+    const items = newStore().readListItems(TEST_REF.projectDirName, NONE)
+
+    expect(items.map((item) => item.sessionId)).toEqual([SECOND_REF.sessionId])
+  })
+
+  it('skips an item whose summary was not readable', () => {
+    store.saveListItems([listEntry(testListItem())])
+
+    expect(store.readListItems(TEST_REF.projectDirName, NONE)).toEqual([])
+    expect(logged).toEqual(['Beekeeper archive skipped an unreadable row (invalid-shape).'])
+  })
+
+  it('returns nothing after the store is closed', () => {
+    store.saveListItems([listEntry(OK_ITEM)])
+    store.close()
+
+    expect(store.readListItems(TEST_REF.projectDirName, NONE)).toEqual([])
+  })
+})
+
+describe('readListItems caching', () => {
+  const ARCHIVED = testListItem({ summary: testOkSummary(5) })
+
+  /** Changes a stored row behind the store's back, to show which reads come from memory. */
+  function corruptStoredItems(): void {
+    db.prepare('UPDATE sessions SET list_item = ?').run('{corrupt')
+  }
+
+  it('reads and parses a row once: a second read answers from memory', () => {
+    store.saveListItems([listEntry(ARCHIVED)])
+    store.readListItems(TEST_REF.projectDirName, NONE)
+    corruptStoredItems()
+    const parse = vi.spyOn(JSON, 'parse')
+
+    const items = store.readListItems(TEST_REF.projectDirName, NONE)
+
+    expect(items).toEqual([{ ...ARCHIVED, team: null }])
+    expect(parse).not.toHaveBeenCalled()
+    expect(logged).toEqual([])
+  })
+
+  it('reads a row again once a save changes it', () => {
+    store.saveListItems([listEntry(ARCHIVED)])
+    store.readListItems(TEST_REF.projectDirName, NONE)
+    const changed = testListItem({ summary: testOkSummary(99) })
+
+    store.saveListItems([listEntry(changed, { ...TEST_SOURCE, size: 900 })])
+
+    expect(store.readListItems(TEST_REF.projectDirName, NONE)).toEqual([{ ...changed, team: null }])
+  })
+
+  it('reads a session saved after the folder was first read, in session id order', () => {
+    const later = testListItem({ sessionId: SECOND_REF.sessionId, summary: testOkSummary(7) })
+    store.saveListItems([listEntry(later)])
+    store.readListItems(TEST_REF.projectDirName, NONE)
+
+    store.saveListItems([listEntry(ARCHIVED)])
+
+    expect(
+      store.readListItems(TEST_REF.projectDirName, NONE).map((item) => item.sessionId)
+    ).toEqual([TEST_REF.sessionId, SECOND_REF.sessionId])
+  })
+
+  it("leaves another folder's cached rows alone when a save touches a different folder", () => {
+    store.saveListItems([listEntry(ARCHIVED)])
+    store.readListItems(TEST_REF.projectDirName, NONE)
+    corruptStoredItems()
+
+    store.saveListItems([listEntry(testListItem({ projectDirName: '-other' }))])
+
+    expect(store.readListItems(TEST_REF.projectDirName, NONE)).toHaveLength(1)
+  })
+
+  it('does not read a row that was excluded, even over several reads', () => {
+    store.saveListItems([listEntry(ARCHIVED)])
+    corruptStoredItems()
+    const excluding = new Set([TEST_REF.sessionId])
+
+    store.readListItems(TEST_REF.projectDirName, excluding)
+    store.readListItems(TEST_REF.projectDirName, excluding)
+
+    expect(logged).toEqual([])
+  })
+
+  it('reads a row once it is no longer excluded', () => {
+    store.saveListItems([listEntry(ARCHIVED)])
+    store.readListItems(TEST_REF.projectDirName, new Set([TEST_REF.sessionId]))
+
+    const items = store.readListItems(TEST_REF.projectDirName, NONE)
+
+    expect(items).toHaveLength(1)
+  })
+
+  it('parses a corrupt row once and keeps skipping it', () => {
+    seedRow({ listItem: '{corrupt' })
+    const fresh = newStore()
+    fresh.readListItems(TEST_REF.projectDirName, NONE)
+    const parse = vi.spyOn(JSON, 'parse')
+
+    const items = fresh.readListItems(TEST_REF.projectDirName, NONE)
+
+    expect(items).toEqual([])
+    expect(parse).not.toHaveBeenCalled()
+  })
+})
+
+describe('readDetail caching', () => {
+  function corruptStoredDetail(): void {
+    db.prepare('UPDATE sessions SET detail = ?').run('{corrupt')
+  }
+
+  it('parses a detail once: a second read answers from memory', () => {
+    store.saveListItems([listEntry()])
+    store.saveDetail(TEST_REF, { detail: testDetail('notes'), source: TEST_SOURCE })
+    store.readDetail(TEST_REF)
+    corruptStoredDetail()
+    const parse = vi.spyOn(JSON, 'parse')
+
+    const detail = store.readDetail(TEST_REF)
+
+    expect(detail).toEqual(testDetail('notes'))
+    expect(parse).not.toHaveBeenCalled()
+  })
+
+  it('reads the new detail once a save replaces it', () => {
+    store.saveListItems([listEntry()])
+    store.saveDetail(TEST_REF, { detail: testDetail('first'), source: TEST_SOURCE })
+    store.readDetail(TEST_REF)
+
+    store.saveDetail(TEST_REF, {
+      detail: testDetail('second'),
+      source: { ...TEST_SOURCE, size: 700 }
+    })
+
+    expect(store.readDetail(TEST_REF)).toEqual(testDetail('second'))
+  })
+
+  it('answers null once a list item rewrite clears the detail', () => {
+    store.saveListItems([listEntry()])
+    store.saveDetail(TEST_REF, { detail: testDetail(), source: TEST_SOURCE })
+    store.readDetail(TEST_REF)
+
+    store.saveListItems([listEntry(testListItem(), { ...TEST_SOURCE, size: 900 })])
+
+    expect(store.readDetail(TEST_REF)).toBeNull()
+  })
+
+  it('keeps only the last detail it read', () => {
+    const secondDetail = { ...testDetail('second'), sessionId: SECOND_REF.sessionId }
+    store.saveListItems([listEntry(), listEntry(testListItem({ sessionId: SECOND_REF.sessionId }))])
+    store.saveDetail(TEST_REF, { detail: testDetail('first'), source: TEST_SOURCE })
+    store.saveDetail(SECOND_REF, { detail: secondDetail, source: TEST_SOURCE })
+    store.readDetail(TEST_REF)
+    store.readDetail(SECOND_REF)
+    corruptStoredDetail()
+
+    expect(store.readDetail(SECOND_REF)).toEqual(secondDetail)
+    expect(store.readDetail(TEST_REF)).toBeNull()
+  })
+})
+
+describe('readDetail', () => {
+  it('returns the stored detail', () => {
+    store.saveListItems([listEntry()])
+    store.saveDetail(TEST_REF, { detail: testDetail('notes'), source: TEST_SOURCE })
+
+    expect(store.readDetail(TEST_REF)).toEqual(testDetail('notes'))
+  })
+
+  it('reads a detail saved by an earlier store over the same archive', () => {
+    store.saveListItems([listEntry()])
+    store.saveDetail(TEST_REF, { detail: testDetail(), source: TEST_SOURCE })
+
+    expect(newStore().readDetail(TEST_REF)).toEqual(testDetail())
+  })
+
+  it('returns null when the session has no detail yet', () => {
+    store.saveListItems([listEntry()])
+
+    expect(store.readDetail(TEST_REF)).toBeNull()
+  })
+
+  it('returns null for a session that was never archived', () => {
+    expect(store.readDetail(TEST_REF)).toBeNull()
+  })
+
+  it('returns null for the same session id in another folder', () => {
+    store.saveListItems([listEntry()])
+    store.saveDetail(TEST_REF, { detail: testDetail(), source: TEST_SOURCE })
+
+    expect(store.readDetail({ ...TEST_REF, projectDirName: '-other' })).toBeNull()
+  })
+
+  it('returns null for a detail that was skipped as too large', () => {
+    store.saveListItems([listEntry()])
+    store.saveDetail(TEST_REF, {
+      detail: testDetail('x'.repeat(MAX_ARCHIVED_DETAIL_CHARS)),
+      source: TEST_SOURCE
+    })
+
+    expect(store.readDetail(TEST_REF)).toBeNull()
+  })
+
+  it('returns null for a row stored in another format', () => {
+    seedRow({ format: 0, listItem: '{}', detail: JSON.stringify(testDetail()) })
+
+    expect(newStore().readDetail(TEST_REF)).toBeNull()
+    expect(logged).toEqual([])
+  })
+
+  it('returns null and logs the kind once for a corrupt detail', () => {
+    seedRow({ listItem: '{}', detail: '{corrupt' })
+    const fresh = newStore()
+
+    expect(fresh.readDetail(TEST_REF)).toBeNull()
+    expect(fresh.readDetail(TEST_REF)).toBeNull()
+    expect(logged).toEqual(['Beekeeper archive skipped an unreadable row (invalid-json).'])
+  })
+
+  it.each([
+    ['a lead that is empty', { lead: {} }],
+    ['a tree that is empty', { tree: {} }],
+    ['a tree whose children are not a list', { tree: { ...testDetail().tree, children: {} } }]
+  ])('returns null for a hand-edited detail with %s and logs it once', (_label, edit) => {
+    seedRow({ listItem: '{}', detail: JSON.stringify({ ...testDetail(), ...edit }) })
+    const fresh = newStore()
+
+    expect(fresh.readDetail(TEST_REF)).toBeNull()
+    expect(fresh.readDetail(TEST_REF)).toBeNull()
+    expect(logged).toEqual(['Beekeeper archive skipped an unreadable row (invalid-shape).'])
+  })
+
+  it('returns null for a detail of another session', () => {
+    const other = JSON.stringify({ ...testDetail(), sessionId: SECOND_REF.sessionId })
+    seedRow({ listItem: '{}', detail: other })
+
+    expect(newStore().readDetail(TEST_REF)).toBeNull()
+    expect(logged).toEqual(['Beekeeper archive skipped an unreadable row (key-mismatch).'])
+  })
+
+  it('returns null after the store is closed', () => {
+    store.saveListItems([listEntry()])
+    store.saveDetail(TEST_REF, { detail: testDetail(), source: TEST_SOURCE })
+    store.close()
+
+    expect(store.readDetail(TEST_REF)).toBeNull()
   })
 })
 

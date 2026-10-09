@@ -17,4 +17,10 @@ export interface SessionDetailDto {
   readonly reconciliation: ReconciliationDto
   /** The session's workflow runs sorted by run id, each with its record when one could be read. */
   readonly workflowRuns: readonly WorkflowRunDto[]
+  /**
+   * Whether this is beekeeper's archived copy of a session whose transcript is
+   * no longer on disk. A live session is `false`. Worktree diffs and patches
+   * aren't available for an archived session.
+   */
+  readonly archived: boolean
 }

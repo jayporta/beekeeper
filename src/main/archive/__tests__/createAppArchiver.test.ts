@@ -1,8 +1,9 @@
 import { DatabaseSync } from 'node:sqlite'
-import { stat } from 'node:fs/promises'
+import { stat, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../../ipc/testIpcTree'
-import { ARCHIVE_DETAIL_AFTER_DAYS } from '../archiveConstants'
+import { ARCHIVE_DETAIL_AFTER_DAYS, DAY_MS } from '../archiveConstants'
 import { createAppArchiver } from '../createAppArchiver'
 import type { ArchiveStore } from '../archiveStoreTypes'
 import { listEntry, testListItem } from '../testArchiveFixtures'
@@ -10,7 +11,6 @@ import { createArchiveStore } from '../createArchiveStore'
 import { openArchive } from '../openArchive'
 
 const ctx = registerIpcTestTree()
-const DAY_MS = 86_400_000
 const REF = { projectDirName: TEST_PROJECT, sessionId: TEST_SESSION_ID }
 
 let db: DatabaseSync
@@ -108,6 +108,34 @@ describe('createAppArchiver', () => {
 
     expect(detailRows()).toBe(1)
     expect(uiCache).toEqual({ gets: 0, sets: 0 })
+  })
+
+  describe('a session whose scan is incomplete', () => {
+    const metaPath = (): string =>
+      join(
+        ctx.tree.home,
+        '.claude',
+        'projects',
+        TEST_PROJECT,
+        TEST_SESSION_ID,
+        'subagents',
+        'agent-a1.meta.json'
+      )
+
+    it('is not archived, stays pending, and is archived once a later scan is complete', async () => {
+      await writeFile(metaPath(), 'not json')
+      const later = archiver(ARCHIVE_DETAIL_AFTER_DAYS)
+
+      await later.runPass()
+      const rowsAfterIncomplete = detailRows()
+      const stillPending = store.pendingDetails().map((pending) => pending.ref.sessionId)
+      await writeFile(metaPath(), JSON.stringify({ agentType: 'Explore' }))
+      await later.runPass()
+
+      expect(rowsAfterIncomplete).toBe(0)
+      expect(stillPending).toEqual([TEST_SESSION_ID])
+      expect(detailRows()).toBe(1)
+    })
   })
 
   describe('a pending session whose transcript is gone', () => {

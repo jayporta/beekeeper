@@ -19,18 +19,28 @@ interface SessionDetailHeaderProps {
   readonly label: SessionLabel
   /** The session's row in its folder's sessions list, or `null` when the list doesn't hold it. */
   readonly row: SessionRow | null
+  /** Whether the session is an archived copy, which the header says. */
+  readonly archived: boolean
 }
 
 /**
  * The session detail's header: the session's name as the page heading, and a
  * line of its start, duration, team, agents, tokens and cost. A partial figure
  * gets a marker, and a footnote under the line says why. A session the list
- * doesn't hold is named by a placeholder and its short id, with no line.
+ * doesn't hold is named by a placeholder and its short id, with no line. An
+ * archived session says its transcript was removed and the copy shown is
+ * beekeeper's. The sentence is announced by a status region that is always
+ * mounted and empty until then, and shown by text hidden from assistive
+ * technology so it isn't read twice.
  *
  * @example
- * <SessionDetailHeader label={label} row={row} />
+ * <SessionDetailHeader label={label} row={row} archived={false} />
  */
-export function SessionDetailHeader({ label, row }: SessionDetailHeaderProps): React.JSX.Element {
+export function SessionDetailHeader({
+  label,
+  row,
+  archived
+}: SessionDetailHeaderProps): React.JSX.Element {
   const { t } = useTranslation('sessionDetail')
   const { t: tSessions } = useTranslation('sessions')
 
@@ -52,6 +62,11 @@ export function SessionDetailHeader({ label, row }: SessionDetailHeaderProps): R
           {reasons.size > 0 && <PartialMarker note={t('partial.note')} />}
         </MutedText>
       )}
+      {/* Mounted before the session turns archived, so filling it is announced. */}
+      <p role="status" className="visuallyHidden">
+        {archived ? t('archived') : ''}
+      </p>
+      {archived && <MutedText decorative>{t('archived')}</MutedText>}
       <PartialFootnote
         reasons={reasons}
         overrides={{ missingTeammates: t('partial.missingTeammates') }}

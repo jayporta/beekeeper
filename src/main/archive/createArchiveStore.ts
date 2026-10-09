@@ -10,6 +10,7 @@ import type {
   SourceState
 } from './archiveStoreTypes'
 import { SELECT_STATES, UPDATE_DETAIL, UPSERT_LIST_ITEM } from './archiveSql'
+import { createArchiveReader } from './createArchiveReader'
 import type { ArchiveDb } from './openArchive'
 
 /** A stored list item's session, source state, format, and last message time. */
@@ -42,6 +43,7 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
   const upsertListItem = db.prepare(UPSERT_LIST_ITEM)
   const updateDetail = db.prepare(UPDATE_DETAIL)
   let closed = false
+  const reads = createArchiveReader({ db, log, isClosed: () => closed })
   const listEntries = new Map<string, StoredListEntry>()
   /**
    * The source state each session's detail is settled for: stored, or skipped
@@ -56,6 +58,7 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
       sessionId: String(row['session_id'])
     }
     const key = sessionRefKey(ref)
+    reads.rowChanged(ref)
     const format = Number(row['format'])
     const activity = row['activity_latest_ms']
     listEntries.set(key, {
@@ -83,6 +86,15 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
     return sameSource(settledStates.get(key), source)
   }
 
+  /** Ends a failed transaction. A rollback that fails too must not replace the error that caused it. */
+  function rollBack(): void {
+    try {
+      db.exec('ROLLBACK')
+    } catch {
+      // The caller rethrows the failure that made the batch fail, which is the one worth reporting.
+    }
+  }
+
   /** Upserts the entries whose stored row is out of date, in one transaction. */
   function saveListItems(entries: readonly ListItemEntry[]): void {
     if (closed) return
@@ -106,12 +118,18 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
       }
       db.exec('COMMIT')
     } catch (error) {
-      if (db.isTransaction) db.exec('ROLLBACK')
+      rollBack()
       throw error
     }
     for (const { item, source } of writes) {
-      listEntries.set(sessionRefKey(item), {
-        ref: { projectDirName: item.projectDirName, sessionId: item.sessionId },
+      const key = sessionRefKey(item)
+      // Mirrors the upsert, which keeps a detail scanned from the new source state at this format.
+      const keepsDetail = listEntries.get(key)?.format === ARCHIVE_FORMAT && isSettled(key, source)
+      if (!keepsDetail) settledStates.delete(key)
+      const ref = { projectDirName: item.projectDirName, sessionId: item.sessionId }
+      reads.rowChanged(ref)
+      listEntries.set(key, {
+        ref,
         source,
         format: ARCHIVE_FORMAT,
         activityLatestMs: activityLatestOf(item)
@@ -137,6 +155,7 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
         ref.sessionId
       )
       settledStates.set(key, source)
+      reads.rowChanged(ref)
       if (oversized) log('Beekeeper archive skipped a session detail that is too large.')
     },
 
@@ -156,6 +175,10 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
       }
       return pending
     },
+
+    readListItems: reads.readListItems,
+
+    readDetail: reads.readDetail,
 
     skipDetail(ref) {
       if (closed) return

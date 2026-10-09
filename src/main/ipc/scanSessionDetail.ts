@@ -5,6 +5,7 @@ import type { IpcDeps } from './ipcDeps'
 import { mapSessionScan } from './mapSessionScan'
 import { readWorkflowRuns } from './readWorkflowRuns'
 import { scanFoundSession } from './scanFoundSession'
+import { isCompleteScan } from './sessionScanCache'
 import { toIpcErrorCode } from './toIpcErrorCode'
 
 /** Options for {@link scanSessionDetail}. */
@@ -19,6 +20,19 @@ export interface ScanSessionDetailOptions {
   readonly transcript: TranscriptFileInfo
 }
 
+/** A session scanned in full. */
+export interface ScannedSessionDetail {
+  /** The session's detail. */
+  readonly detail: SessionDetailDto
+  /**
+   * Whether the scan read everything it needed: no unreadable subagent
+   * transcript or meta file, and a subagents folder that could be listed. An
+   * incomplete scan may read differently once the failure clears, so it is
+   * never archived.
+   */
+  readonly complete: boolean
+}
+
 /**
  * Scans a listed session in full and maps it to its detail. The scan is
  * shared and cached as {@link scanFoundSession} describes. Run records are
@@ -27,11 +41,11 @@ export interface ScanSessionDetailOptions {
  * folder comes back inside the detail as `subagents: { ok: false }`.
  *
  * @param options - The dependencies and the listed session.
- * @returns The session detail.
+ * @returns The session detail, and whether the scan was complete.
  */
 export async function scanSessionDetail(
   options: ScanSessionDetailOptions
-): Promise<SessionDetailDto> {
+): Promise<ScannedSessionDetail> {
   const { deps, sessionId, found, transcript } = options
   const scan = await scanFoundSession({ deps, found, transcript })
   const { subagents } = found.session
@@ -39,5 +53,8 @@ export async function scanSessionDetail(
   const workflowRuns = subagents.ok
     ? await readWorkflowRuns(found.session.sessionDir, subagents.value)
     : []
-  return mapSessionScan({ sessionId, scan, subagentsError, workflowRuns })
+  return {
+    detail: mapSessionScan({ sessionId, scan, subagentsError, workflowRuns }),
+    complete: isCompleteScan(scan, subagents.ok)
+  }
 }

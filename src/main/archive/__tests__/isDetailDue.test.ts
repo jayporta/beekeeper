@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { ARCHIVE_DETAIL_AFTER_DAYS } from '../archiveConstants'
+import { ARCHIVE_DETAIL_AFTER_DAYS, DAY_MS } from '../archiveConstants'
 import { isDetailDue } from '../isDetailDue'
 
-const DAY_MS = 86_400_000
 const NOW = 100 * DAY_MS
 
 describe('isDetailDue', () => {
