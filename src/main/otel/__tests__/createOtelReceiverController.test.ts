@@ -148,6 +148,20 @@ describe('createOtelReceiverController turning on', () => {
     await again.stopAll()
   })
 
+  it('replaces a server still listening under another token when the saved setting is off', async () => {
+    const stale = build(join(dir, 'stale.json'), { tokens: [TOKEN_B] })
+    const old = await stale.receiver.start({ token: TOKEN_A, port: 0 })
+    if (old.status !== 'listening') throw new Error('the stale server did not start')
+
+    const dto = await stale.controller.setEnabled(true)
+
+    const { port, token } = onDto(dto)
+    expect(token).toBe(TOKEN_B)
+    expect(await accepts(port, TOKEN_B)).toBe(200)
+    expect(await accepts(port, TOKEN_A)).toBe(401)
+    await stale.stopAll()
+  })
+
   it('issues a new port and a new token each time it is turned off and on', async () => {
     const [first, second] = [await freePort(), await freePort()]
     const picker = ports(first, second)

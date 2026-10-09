@@ -9,26 +9,34 @@ interface TelemetryStatusProps {
   readonly loadFailed: boolean
   /** Whether saving the last change failed. */
   readonly saveFailed: boolean
+  /** The setting being saved right now (`true` is turning on), or `null` when no change is saving. */
+  readonly savingEnabled: boolean | null
+  /** The element id, so the checkbox can point `aria-describedby` at this line. */
+  readonly id: string
 }
 
 /**
- * The one polite status line of the telemetry dialog: that saving a change
- * failed, that the setting couldn't be read or is loading, or what the receiver
- * is doing (listening, off, why it couldn't start, or why turning it on failed
- * and it stays off). It stays mounted, so a
- * screen reader hears each change.
+ * The one polite status line of the telemetry dialog: that a change is
+ * saving, that saving it failed, that the setting couldn't be read or is
+ * loading, or what the receiver is doing (listening, off, why it couldn't
+ * start, or why turning it on failed and it stays off). A change that is
+ * saving always shows its own text first, so an outcome that matches the last
+ * one is still a change a screen reader hears. It stays mounted.
  *
  * @example
- * <TelemetryStatus receiver={data} loadFailed={false} saveFailed={false} />
+ * <TelemetryStatus receiver={data} loadFailed={false} saveFailed={false} savingEnabled={null} id={id} />
  */
 export function TelemetryStatus({
   receiver,
   loadFailed,
-  saveFailed
+  saveFailed,
+  savingEnabled,
+  id
 }: TelemetryStatusProps): React.JSX.Element {
   const { t } = useTranslation('telemetry')
 
   function message(): string {
+    if (savingEnabled !== null) return t(savingEnabled ? 'status.turningOn' : 'status.turningOff')
     if (saveFailed) return t('status.saveFailed')
     if (receiver === undefined) {
       return loadFailed ? t('status.loadFailed') : t('status.loading')
@@ -42,5 +50,9 @@ export function TelemetryStatus({
     return t(`status.failure.${receiver.failure ?? 'failed'}`, { port: receiver.port })
   }
 
-  return <p role="status">{message()}</p>
+  return (
+    <p id={id} role="status">
+      {message()}
+    </p>
+  )
 }

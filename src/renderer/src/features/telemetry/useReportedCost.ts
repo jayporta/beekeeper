@@ -1,6 +1,7 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import type { ReportedCostDto } from '../../../../shared/ipc/reportedCostDto'
 import { unwrapIpcResult } from '@renderer/ipc/unwrapIpcResult'
+import { reportedCostQueryKey } from './reportedCostQueryKey'
 import { useOtelReceiver } from './useOtelReceiver'
 
 /** How often a listening receiver's figures are read again, in milliseconds. It is a local IPC call. */
@@ -18,7 +19,7 @@ export const REPORTED_COST_POLL_MS = 5000
 export function useReportedCost(sessionId: string): UseQueryResult<ReportedCostDto | null> {
   const { data: receiver } = useOtelReceiver()
   return useQuery({
-    queryKey: ['reportedCost', sessionId],
+    queryKey: reportedCostQueryKey(sessionId),
     queryFn: async () => unwrapIpcResult(await window.beekeeper.getReportedCost(sessionId)),
     enabled: receiver?.status === 'listening',
     refetchInterval: REPORTED_COST_POLL_MS

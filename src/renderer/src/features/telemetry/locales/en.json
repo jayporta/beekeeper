@@ -9,6 +9,8 @@
     "loading": "Checking the telemetry setting.",
     "loadFailed": "beekeeper couldn't read the telemetry setting.",
     "saveFailed": "beekeeper couldn't save the telemetry setting.",
+    "turningOn": "Turning the receiver on…",
+    "turningOff": "Turning the receiver off…",
     "off": "Off. Nothing is listening.",
     "listening": "Listening on 127.0.0.1, port {{port}}.",
     "failure": {

@@ -2,11 +2,13 @@ import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/r
 import type { OtelReceiverDto } from '../../../../shared/ipc/otelReceiverDto'
 import { unwrapIpcResult } from '@renderer/ipc/unwrapIpcResult'
 import { OTEL_RECEIVER_QUERY_KEY } from './otelReceiverQueryKey'
+import { REPORTED_COST_QUERY_ROOT } from './reportedCostQueryKey'
 
 /**
  * Turns the telemetry receiver on or off. When the call succeeds, the
  * receiver's state in the cache becomes what the call returned, so everything
- * that reads it updates at once. A failed call surfaces as an `IpcCallError`
+ * that reads it updates at once, and turning it off drops the cached reported
+ * costs. A failed call surfaces as an `IpcCallError`
  * on the mutation's `error` and reads the receiver again, so the cache never
  * keeps a port or token the main process no longer holds.
  *
@@ -19,6 +21,8 @@ export function useSetOtelReceiverEnabled(): UseMutationResult<OtelReceiverDto, 
       unwrapIpcResult(await window.beekeeper.setOtelReceiverEnabled(enabled)),
     onSuccess: (receiver) => {
       client.setQueryData(OTEL_RECEIVER_QUERY_KEY, receiver)
+      // Turning the receiver off clears the costs in the main process, so none cached here may outlive them.
+      if (!receiver.enabled) client.removeQueries({ queryKey: REPORTED_COST_QUERY_ROOT })
     },
     onError: () => client.invalidateQueries({ queryKey: OTEL_RECEIVER_QUERY_KEY })
   })

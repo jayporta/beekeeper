@@ -123,6 +123,8 @@ export function createOtelReceiverController(
 
   async function turnOn(): Promise<OtelReceiverDto> {
     if (await startSaved()) return read()
+    // A server still listening would answer the start with its old token and port.
+    await receiver.stop()
     const bound = await bindFreshReceiver({ receiver, pickPort, newToken })
     if (!bound.ok) {
       turnOnFailure = bound.failure

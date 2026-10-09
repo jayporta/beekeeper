@@ -35,7 +35,7 @@ export const SCAN_CACHE_CAPACITY = 4
  * The telemetry receiver, the clipboard writer and the archive are `null`; the app supplies them.
  *
  * @param homeDir - The user's home directory.
- * @returns The dependencies, with no archive. The app sets `archive` once its database is open.
+ * @returns The dependencies.
  */
 export function createIpcDeps(homeDir: string): IpcDeps {
   return {
