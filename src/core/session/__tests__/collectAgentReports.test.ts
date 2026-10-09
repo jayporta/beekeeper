@@ -7,7 +7,6 @@ import {
   buildEditToolUseResult,
   buildUserToolResultRecord
 } from '../../transcript/testFileTouchFixtures'
-import { buildToolResultRecord } from '../../transcript/signals/testSignalFixtures'
 import { buildAssistantRecord } from '../../transcript/testFixtures'
 import { leadIdentity } from '../agentIdentity'
 import { collectAgentReports } from '../collectAgentReports'
@@ -169,7 +168,7 @@ describe('collectAgentReports', () => {
 
   it('collects signal events from the same pass', async () => {
     const { signalEvents, signalsCapped } = await collectAgentReports(
-      recordsOf(ok(buildToolResultRecord({ toolUseId: 'toolu_1', isError: true }))),
+      recordsOf(ok(buildUserToolResultRecord({ toolUseId: 'toolu_1', isError: true }))),
       leadIdentity
     )
 

@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { MAX_SIGNAL_EVENTS_PER_TRANSCRIPT } from '../../transcript/signals/signalObserver'
+import { buildSystemRecord } from '../../transcript/signals/testSignalFixtures'
 import {
-  buildSystemRecord,
-  buildToolCallRecord,
-  buildToolResultRecord
-} from '../../transcript/signals/testSignalFixtures'
+  buildAssistantToolUseRecord,
+  buildUserToolResultRecord
+} from '../../transcript/testFileTouchFixtures'
 import { buildJsonlText } from '../../transcript/testFixtures'
 import { scanSession } from '../scanSession'
 import { createSessionScanDir, type SessionScanDir } from '../testSessionDir'
@@ -20,8 +21,8 @@ afterEach(() => {
 
 /** The lead's errored Read call, as a transcript. */
 const leadHistory = [
-  buildToolCallRecord({ toolUseId: 'toolu_lead', tool: 'Read' }),
-  buildToolResultRecord({ toolUseId: 'toolu_lead', isError: true })
+  buildAssistantToolUseRecord({ toolUseId: 'toolu_lead', toolName: 'Read' }),
+  buildUserToolResultRecord({ toolUseId: 'toolu_lead', isError: true })
 ]
 
 describe('scanSession signals', () => {
@@ -48,7 +49,7 @@ describe('scanSession signals', () => {
     const fork = dir.addSubagent('forked', {
       transcript: buildJsonlText([
         ...leadHistory,
-        buildToolResultRecord({ toolUseId: 'toolu_fork', isError: true })
+        buildUserToolResultRecord({ toolUseId: 'toolu_fork', isError: true })
       ])
     })
 
@@ -62,7 +63,7 @@ describe('scanSession signals', () => {
     const fork = dir.addSubagent('forked', {
       transcript: buildJsonlText([
         ...leadHistory,
-        buildToolResultRecord({ toolUseId: 'toolu_fork', isError: true })
+        buildUserToolResultRecord({ toolUseId: 'toolu_fork', isError: true })
       ])
     })
 
@@ -78,6 +79,25 @@ describe('scanSession signals', () => {
     const scan = await scanSession({ leadPath, subagents: [] })
 
     expect(scan.lead.signals.toolErrors).toBe(1)
+  })
+
+  it('marks the lead partial when its transcript passes the per-transcript cap', async () => {
+    const results = Array.from({ length: MAX_SIGNAL_EVENTS_PER_TRANSCRIPT + 1 }, (_, index) =>
+      buildUserToolResultRecord({ toolUseId: `toolu_${index}`, isError: true })
+    )
+    const leadPath = dir.writeLead(buildJsonlText(results))
+
+    const scan = await scanSession({ leadPath, subagents: [] })
+
+    expect(scan.lead.signals.partial).toBe(true)
+  })
+
+  it('leaves the lead complete when its transcript is within the cap', async () => {
+    const leadPath = dir.writeLead(buildJsonlText(leadHistory))
+
+    const scan = await scanSession({ leadPath, subagents: [] })
+
+    expect(scan.lead.signals.partial).toBe(false)
   })
 
   it('gives an agent with no events empty signals', async () => {

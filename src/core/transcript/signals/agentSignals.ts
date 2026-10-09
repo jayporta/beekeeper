@@ -23,14 +23,3 @@ export interface AgentSignals {
   /** Whether events were dropped at a cap, so the counts may be low. */
   readonly partial: boolean
 }
-
-/** The signals of an agent with no events. */
-export const EMPTY_AGENT_SIGNALS: AgentSignals = {
-  toolErrors: 0,
-  longestErrorStreak: 0,
-  longestBashRepeat: 0,
-  compactions: 0,
-  agentsKilled: 0,
-  longestToolWait: null,
-  partial: false
-}

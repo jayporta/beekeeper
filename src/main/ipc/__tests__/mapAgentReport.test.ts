@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AgentReport } from '../../../core/session/agentReports'
-import { EMPTY_AGENT_SIGNALS } from '../../../core/transcript/signals/agentSignals'
+import { summarizeSignals } from '../../../core/transcript/signals/summarizeSignals'
 import { EMPTY_AGENT_SIGNALS_DTO } from '../../../shared/ipc/emptyAgentSignals'
 import { mapAgentReport } from '../mapAgentReport'
 
@@ -75,7 +75,7 @@ describe('mapAgentReport signals', () => {
   })
 
   it('maps empty signals to the empty signals DTO', () => {
-    const report = { ...REPORT, signals: EMPTY_AGENT_SIGNALS }
+    const report = { ...REPORT, signals: summarizeSignals([], { partial: false }) }
     expect(mapAgentReport(report).signals).toEqual(EMPTY_AGENT_SIGNALS_DTO)
   })
 })

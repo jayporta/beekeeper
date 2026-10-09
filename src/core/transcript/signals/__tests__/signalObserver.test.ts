@@ -2,11 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { commandHash } from '../commandHash'
 import { createSignalObserver, MAX_SIGNAL_EVENTS_PER_TRANSCRIPT } from '../signalObserver'
 import type { SignalObserver } from '../signalObserver'
-import {
-  buildSystemRecord,
-  buildToolCallRecord,
-  buildToolResultRecord
-} from '../testSignalFixtures'
+import { buildAssistantToolUseRecord, buildUserToolResultRecord } from '../../testFileTouchFixtures'
+import { buildSystemRecord } from '../testSignalFixtures'
 
 function observed(...records: Record<string, unknown>[]): SignalObserver {
   const observer = createSignalObserver()
@@ -17,10 +14,10 @@ function observed(...records: Record<string, unknown>[]): SignalObserver {
 describe('createSignalObserver', () => {
   it('records a Bash call with its command hash and timestamp', () => {
     const observer = observed(
-      buildToolCallRecord({
+      buildAssistantToolUseRecord({
         toolUseId: 'a',
-        tool: 'Bash',
-        command: 'ls -la',
+        toolName: 'Bash',
+        input: { command: 'ls -la' },
         timestamp: '2026-01-01T00:00:01.000Z'
       })
     )
@@ -36,18 +33,22 @@ describe('createSignalObserver', () => {
   })
 
   it('gives a call to another tool a null command hash', () => {
-    const observer = observed(buildToolCallRecord({ toolUseId: 'a', tool: 'Read', command: 'ls' }))
+    const observer = observed(
+      buildAssistantToolUseRecord({ toolUseId: 'a', toolName: 'Read', input: { command: 'ls' } })
+    )
     expect(observer.events()).toMatchObject([{ tool: 'Read', commandHash: null }])
   })
 
   it('gives a Bash call whose command is not a string a null hash', () => {
-    const observer = observed(buildToolCallRecord({ toolUseId: 'a', tool: 'Bash', command: 42 }))
+    const observer = observed(
+      buildAssistantToolUseRecord({ toolUseId: 'a', toolName: 'Bash', input: { command: 42 } })
+    )
     expect(observer.events()).toMatchObject([{ tool: 'Bash', commandHash: null }])
   })
 
   it('records an errored result with its timestamp', () => {
     const observer = observed(
-      buildToolResultRecord({
+      buildUserToolResultRecord({
         toolUseId: 'a',
         isError: true,
         timestamp: '2026-01-01T00:00:02.000Z'
@@ -64,7 +65,7 @@ describe('createSignalObserver', () => {
   })
 
   it.each(['true', 1])('treats is_error %j as not an error', (isError) => {
-    const observer = observed(buildToolResultRecord({ toolUseId: 'a', isError }))
+    const observer = observed(buildUserToolResultRecord({ toolUseId: 'a', isError }))
     expect(observer.events()).toMatchObject([{ kind: 'tool-result', isError: false }])
   })
 
@@ -108,16 +109,35 @@ describe('createSignalObserver', () => {
   it('stops at the cap and reports capped', () => {
     const observer = createSignalObserver()
     for (let index = 0; index <= MAX_SIGNAL_EVENTS_PER_TRANSCRIPT; index += 1) {
-      observer.observe(buildToolResultRecord({ toolUseId: `t${index}`, isError: true }))
+      observer.observe(buildUserToolResultRecord({ toolUseId: `t${index}`, isError: true }))
     }
     expect(observer.events()).toHaveLength(MAX_SIGNAL_EVENTS_PER_TRANSCRIPT)
     expect(observer.capped()).toBe(true)
   })
 
+  it('reads no further records once capped', () => {
+    const observer = createSignalObserver()
+    for (let index = 0; index <= MAX_SIGNAL_EVENTS_PER_TRANSCRIPT; index += 1) {
+      observer.observe(buildUserToolResultRecord({ toolUseId: `t${index}` }))
+    }
+    let reads = 0
+    const unread = {
+      type: 'user',
+      get message(): unknown {
+        reads += 1
+        return undefined
+      }
+    }
+
+    observer.observe(unread)
+
+    expect(reads).toBe(0)
+  })
+
   it('does not report capped at exactly the cap', () => {
     const observer = createSignalObserver()
     for (let index = 0; index < MAX_SIGNAL_EVENTS_PER_TRANSCRIPT; index += 1) {
-      observer.observe(buildToolResultRecord({ toolUseId: `t${index}` }))
+      observer.observe(buildUserToolResultRecord({ toolUseId: `t${index}` }))
     }
     expect(observer.capped()).toBe(false)
   })
@@ -130,7 +150,9 @@ describe('createSignalObserver', () => {
 
   it('never holds the command text', () => {
     const command = 'curl https://example.invalid/secret-token-123'
-    const observer = observed(buildToolCallRecord({ toolUseId: 'a', tool: 'Bash', command }))
+    const observer = observed(
+      buildAssistantToolUseRecord({ toolUseId: 'a', toolName: 'Bash', input: { command } })
+    )
     expect(JSON.stringify(observer.events())).not.toContain(command)
   })
 })

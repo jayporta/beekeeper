@@ -104,6 +104,7 @@ export function createSignalObserver(): SignalObserver {
 
   return {
     observe(record) {
+      if (capped) return
       switch (record.type) {
         case 'assistant':
           observeToolCalls(record)
