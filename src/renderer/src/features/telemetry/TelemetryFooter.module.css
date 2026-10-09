@@ -1,0 +1,16 @@
+.note {
+  padding-inline: var(--space-2);
+}
+
+/* A button that reads as a link, and is still a full-size target. */
+.button {
+  min-height: var(--size-target-min);
+  padding-inline: var(--space-2);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}

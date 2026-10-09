@@ -1,0 +1,3 @@
+.dialog {
+  --dialog-width: var(--size-readable);
+}
