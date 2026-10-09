@@ -1,0 +1,131 @@
+import { describe, expect, it } from 'vitest'
+import type { FilesChangedDto } from '../../../../../shared/ipc/filesChangedDto'
+import { testProject } from '@renderer/testBeekeeperApi'
+import { familyOf, invalidationPlan, isInFamilies } from '../invalidationPlan'
+
+const BASE = '-Users-a-repo'
+const WORKTREE = '-Users-a-repo--claude-worktrees-feature'
+const OTHER = '-Users-b-other'
+const projects = [
+  testProject(BASE),
+  testProject(WORKTREE, { worktreeOf: BASE, worktreeName: 'feature' }),
+  testProject(OTHER)
+]
+
+const change = (
+  dirNames: string[],
+  flags: { foldersChanged?: boolean; all?: boolean } = {}
+): FilesChangedDto => ({
+  dirNames,
+  foldersChanged: flags.foldersChanged ?? false,
+  all: flags.all ?? false
+})
+
+describe('familyOf', () => {
+  it('names the parent for a worktree folder', () => {
+    expect(familyOf(WORKTREE, projects)).toBe(BASE)
+  })
+
+  it('names the folder itself for a base folder', () => {
+    expect(familyOf(BASE, projects)).toBe(BASE)
+  })
+
+  it('names the folder itself when it is not listed', () => {
+    expect(familyOf('-Users-new', projects)).toBe('-Users-new')
+  })
+
+  it('names the folder itself when no projects are loaded', () => {
+    expect(familyOf(WORKTREE, undefined)).toBe(WORKTREE)
+  })
+})
+
+describe('isInFamilies', () => {
+  it('is true for a folder whose family is in the set', () => {
+    expect(isInFamilies(new Set([BASE]), projects, ['sessions', WORKTREE])).toBe(true)
+  })
+
+  it('is false for a folder whose family is not in the set', () => {
+    expect(isInFamilies(new Set([BASE]), projects, ['sessions', OTHER])).toBe(false)
+  })
+
+  it('is true for any folder when the families are all', () => {
+    expect(isInFamilies('all', projects, ['sessions', OTHER])).toBe(true)
+  })
+
+  it('is false for a key with no folder name unless the families are all', () => {
+    expect(isInFamilies(new Set([BASE]), projects, ['sessions'])).toBe(false)
+    expect(isInFamilies(new Set([BASE]), projects, ['sessions', 3])).toBe(false)
+  })
+})
+
+describe('invalidationPlan', () => {
+  it('plans the parent family for a change in a worktree folder', () => {
+    expect(invalidationPlan(change([WORKTREE]), projects).families).toEqual(new Set([BASE]))
+  })
+
+  it('plans a base folder as its own family', () => {
+    expect(invalidationPlan(change([BASE]), projects).families).toEqual(new Set([BASE]))
+  })
+
+  it('merges the families of several folders', () => {
+    const plan = invalidationPlan(change([WORKTREE, BASE, OTHER]), projects)
+    expect(plan.families).toEqual(new Set([BASE, OTHER]))
+  })
+
+  it('marks the totals of the changed folders, not their families', () => {
+    const plan = invalidationPlan(change([WORKTREE]), projects)
+    expect(plan.staleTotals).toEqual(new Set([WORKTREE]))
+  })
+
+  it('leaves the project list alone for a change in a listed folder', () => {
+    expect(invalidationPlan(change([BASE]), projects).projects).toBe(false)
+  })
+
+  it('refetches the project list for a folder it does not know', () => {
+    expect(invalidationPlan(change(['-Users-new']), projects).projects).toBe(true)
+  })
+
+  it('plans every family for a folder it does not know', () => {
+    expect(invalidationPlan(change(['-Users-new']), projects).families).toBe('all')
+  })
+
+  it('plans every family when a new worktree folder arrives with a listed folder', () => {
+    const plan = invalidationPlan(change([BASE, `${BASE}--claude-worktrees-new`]), projects)
+    expect(plan.families).toBe('all')
+  })
+
+  it('marks the totals of an unknown folder by folder, not all', () => {
+    const plan = invalidationPlan(change(['-Users-new']), projects)
+    expect(plan.staleTotals).toEqual(new Set(['-Users-new']))
+  })
+
+  it('refetches the project list when no projects are loaded yet', () => {
+    expect(invalidationPlan(change([BASE]), undefined).projects).toBe(true)
+  })
+
+  it('plans every family when no projects are loaded yet', () => {
+    expect(invalidationPlan(change([BASE]), undefined).families).toBe('all')
+  })
+
+  it('refetches the project list when a folder itself changed', () => {
+    const plan = invalidationPlan(change([BASE], { foldersChanged: true }), projects)
+    expect(plan.projects).toBe(true)
+    expect(plan.families).toEqual(new Set([BASE]))
+  })
+
+  it('plans everything for an all change', () => {
+    expect(invalidationPlan(change([], { all: true }), projects)).toEqual({
+      projects: true,
+      families: 'all',
+      staleTotals: 'all'
+    })
+  })
+
+  it('plans nothing for an empty change', () => {
+    expect(invalidationPlan(change([]), projects)).toEqual({
+      projects: false,
+      families: new Set(),
+      staleTotals: new Set()
+    })
+  })
+})

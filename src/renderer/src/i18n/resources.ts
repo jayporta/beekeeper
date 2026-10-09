@@ -1,5 +1,6 @@
 import about from '@renderer/features/about/locales/en.json'
 import firstRun from '@renderer/features/firstRun/locales/en.json'
+import liveUpdates from '@renderer/features/liveUpdates/locales/en.json'
 import navigation from '@renderer/features/navigation/locales/en.json'
 import overview from '@renderer/features/overview/locales/en.json'
 import projects from '@renderer/features/projects/locales/en.json'
@@ -14,6 +15,7 @@ export const resources = {
     common,
     about,
     firstRun,
+    liveUpdates,
     navigation,
     overview,
     projects,

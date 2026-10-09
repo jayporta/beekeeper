@@ -5,6 +5,8 @@ import { useRefreshLists } from './useRefreshLists'
 interface RefreshSessionsButtonProps {
   /** The folder whose session list to refresh, with the project list. */
   readonly dirName: string
+  /** Called each time a press starts a refresh. */
+  readonly onRefresh: () => void
 }
 
 /**
@@ -12,10 +14,21 @@ interface RefreshSessionsButtonProps {
  * Its state belongs to one folder, so render it with `key={dirName}`.
  *
  * @example
- * <RefreshSessionsButton dirName="-Users-me-repo" />
+ * <RefreshSessionsButton dirName="-Users-me-repo" onRefresh={() => {}} />
  */
-export function RefreshSessionsButton({ dirName }: RefreshSessionsButtonProps): React.JSX.Element {
+export function RefreshSessionsButton({
+  dirName,
+  onRefresh
+}: RefreshSessionsButtonProps): React.JSX.Element {
   const { refresh, status } = useRefreshLists(dirName)
 
-  return <RefreshButton onRefresh={refresh} status={status} />
+  return (
+    <RefreshButton
+      onRefresh={() => {
+        onRefresh()
+        refresh()
+      }}
+      status={status}
+    />
+  )
 }

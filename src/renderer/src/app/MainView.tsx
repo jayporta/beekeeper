@@ -3,6 +3,7 @@ import {
   selectIsFirstRunShowing,
   useFirstRunStore
 } from '@renderer/features/firstRun/state/useFirstRunStore'
+import { LiveUpdates } from '@renderer/features/liveUpdates/LiveUpdates'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { OverviewView } from '@renderer/features/overview/OverviewView'
 import { FolderGoneStatus } from '@renderer/features/projects/FolderGoneStatus'
@@ -21,7 +22,8 @@ import { useResetNavigationOnProjectChange } from './useResetNavigationOnProject
  * names counts as gone. The region is the first child in every branch, so it
  * stays the same element when the first-run screen closes and its text is
  * announced. It also returns navigation to the sessions list when
- * the project in effect changes.
+ * the project in effect changes. Beside the views it mounts live updates, so
+ * they start only once the persisted state is read.
  *
  * @example
  * <main><MainView /></main>
@@ -43,6 +45,7 @@ export function MainView(): React.JSX.Element {
   return (
     <>
       <FolderGoneStatus />
+      <LiveUpdates />
       <ProjectsGate>
         {view === 'overview' && <OverviewView />}
         {view === 'sessions' && <SessionsView />}

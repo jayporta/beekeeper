@@ -1,0 +1,397 @@
+import { IsRestoringProvider, QueryClientProvider, QueryObserver } from '@tanstack/react-query'
+import type { QueryClient } from '@tanstack/react-query'
+import { act, renderHook } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { FilesChangedDto } from '../../../../../shared/ipc/filesChangedDto'
+import { installBeekeeperApi, testProject, type TestBeekeeperApi } from '@renderer/testBeekeeperApi'
+import { createTestQueryClient } from '@renderer/testQueryWrapper'
+import { DETAIL_LIVE_INTERVAL_MS } from '../detailThrottle'
+import { useLiveUpdates } from '../useLiveUpdates'
+import { useLiveUpdatesStore } from '../state/useLiveUpdatesStore'
+
+const A = '-Users-a-repo'
+const B = '-Users-b-other'
+const change = (dirNames: string[]): FilesChangedDto => ({
+  dirNames,
+  foldersChanged: false,
+  all: false
+})
+
+let client: QueryClient
+let api: TestBeekeeperApi
+let restoring: boolean
+let unsubscribers: (() => void)[]
+
+function wrapper({ children }: { children: React.ReactNode }): React.JSX.Element {
+  return (
+    <QueryClientProvider client={client}>
+      <IsRestoringProvider value={restoring}>{children}</IsRestoringProvider>
+    </QueryClientProvider>
+  )
+}
+
+/** Keeps a seeded, fresh query on screen and returns its query function. */
+function showing(queryKey: readonly unknown[]): ReturnType<typeof vi.fn> {
+  client.setQueryData(queryKey, ['seed'])
+  const queryFn = vi.fn(() => Promise.resolve(['fresh']))
+  const observer = new QueryObserver(client, {
+    queryKey,
+    queryFn,
+    staleTime: Infinity,
+    refetchOnMount: false
+  })
+  unsubscribers.push(observer.subscribe(() => undefined))
+  return queryFn
+}
+
+beforeEach(() => {
+  client = createTestQueryClient()
+  api = installBeekeeperApi()
+  restoring = false
+  unsubscribers = []
+})
+
+afterEach(() => {
+  for (const unsubscribe of unsubscribers) unsubscribe()
+  client.clear()
+  useLiveUpdatesStore.setState({ paused: false, unavailable: false })
+})
+
+describe('useLiveUpdates', () => {
+  it('refetches the visible lists of a changed family', async () => {
+    client.setQueryData(['projects'], [testProject(A), testProject(B)])
+    const list = showing(['sessions', A])
+    const other = showing(['sessions', B])
+    renderHook(
+      () => {
+        useLiveUpdates()
+      },
+      { wrapper }
+    )
+
+    act(() => {
+      api.fireFilesChanged(change([A]))
+    })
+
+    await vi.waitFor(() => {
+      expect(list).toHaveBeenCalledTimes(1)
+    })
+    expect(other).not.toHaveBeenCalled()
+  })
+
+  it('refetches every visible list when a changed folder is not in the cached projects', async () => {
+    client.setQueryData(['projects'], [testProject(A), testProject(B)])
+    const parent = showing(['sessions', A])
+    const other = showing(['sessions', B])
+    renderHook(
+      () => {
+        useLiveUpdates()
+      },
+      { wrapper }
+    )
+
+    act(() => {
+      api.fireFilesChanged(change([`${A}--claude-worktrees-new`]))
+    })
+
+    await vi.waitFor(() => {
+      expect(parent).toHaveBeenCalledTimes(1)
+      expect(other).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  it('ignores changes while paused', async () => {
+    const list = showing(['sessions', A])
+    renderHook(
+      () => {
+        useLiveUpdates()
+      },
+      { wrapper }
+    )
+    act(() => {
+      useLiveUpdatesStore.getState().setPaused(true)
+    })
+
+    act(() => {
+      api.fireFilesChanged(change([A]))
+    })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(list).not.toHaveBeenCalled()
+  })
+
+  it('refreshes everything visible once when live updates resume', async () => {
+    const list = showing(['sessions', A])
+    const other = showing(['sessions', B])
+    renderHook(
+      () => {
+        useLiveUpdates()
+      },
+      { wrapper }
+    )
+    act(() => {
+      useLiveUpdatesStore.getState().setPaused(true)
+    })
+    act(() => {
+      api.fireFilesChanged(change([A]))
+    })
+
+    act(() => {
+      useLiveUpdatesStore.getState().setPaused(false)
+    })
+
+    await vi.waitFor(() => {
+      expect(list).toHaveBeenCalledTimes(1)
+      expect(other).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  it('does not refresh when pausing', async () => {
+    const list = showing(['sessions', A])
+    renderHook(
+      () => {
+        useLiveUpdates()
+      },
+      { wrapper }
+    )
+
+    act(() => {
+      useLiveUpdatesStore.getState().setPaused(true)
+    })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(list).not.toHaveBeenCalled()
+  })
+
+  it('records that live updates are unavailable', () => {
+    renderHook(
+      () => {
+        useLiveUpdates()
+      },
+      { wrapper }
+    )
+
+    act(() => {
+      api.fireLiveUpdatesUnavailable()
+    })
+
+    expect(useLiveUpdatesStore.getState().unavailable).toBe(true)
+  })
+
+  it('records a notice that live updates were unavailable before it mounted', () => {
+    api.fireLiveUpdatesUnavailable()
+
+    renderHook(
+      () => {
+        useLiveUpdates()
+      },
+      { wrapper }
+    )
+
+    expect(useLiveUpdatesStore.getState().unavailable).toBe(true)
+  })
+
+  it('stops listening when it unmounts', async () => {
+    const list = showing(['sessions', A])
+    const { unmount } = renderHook(
+      () => {
+        useLiveUpdates()
+      },
+      { wrapper }
+    )
+    unmount()
+
+    api.fireFilesChanged(change([A]))
+    api.fireLiveUpdatesUnavailable()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(list).not.toHaveBeenCalled()
+    expect(useLiveUpdatesStore.getState().unavailable).toBe(false)
+  })
+
+  it('does not catch up on a resume after it unmounts', async () => {
+    const list = showing(['sessions', A])
+    const { unmount } = renderHook(
+      () => {
+        useLiveUpdates()
+      },
+      { wrapper }
+    )
+    act(() => {
+      useLiveUpdatesStore.getState().setPaused(true)
+    })
+    unmount()
+
+    act(() => {
+      useLiveUpdatesStore.getState().setPaused(false)
+    })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(list).not.toHaveBeenCalled()
+  })
+
+  it('keeps one subscription across a pause and a resume', () => {
+    renderHook(
+      () => {
+        useLiveUpdates()
+      },
+      { wrapper }
+    )
+
+    act(() => {
+      useLiveUpdatesStore.getState().setPaused(true)
+    })
+    act(() => {
+      useLiveUpdatesStore.getState().setPaused(false)
+    })
+
+    expect(api.onFilesChanged).toHaveBeenCalledTimes(1)
+  })
+
+  describe('session details', () => {
+    const SESSION = '11111111-1111-4111-8111-111111111111'
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    })
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('refresh when the detail interval ends, while lists refresh at once', async () => {
+      const list = showing(['sessions', A])
+      const detail = showing(['session', A, SESSION])
+      renderHook(
+        () => {
+          useLiveUpdates()
+        },
+        { wrapper }
+      )
+
+      act(() => {
+        api.fireFilesChanged(change([A]))
+      })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(list).toHaveBeenCalledTimes(1)
+      expect(detail).not.toHaveBeenCalled()
+
+      await vi.advanceTimersByTimeAsync(DETAIL_LIVE_INTERVAL_MS)
+      expect(detail).toHaveBeenCalledTimes(1)
+    })
+
+    it('are not refreshed after live updates are paused', async () => {
+      const detail = showing(['session', A, SESSION])
+      renderHook(
+        () => {
+          useLiveUpdates()
+        },
+        { wrapper }
+      )
+      act(() => {
+        api.fireFilesChanged(change([A]))
+      })
+
+      act(() => {
+        useLiveUpdatesStore.getState().setPaused(true)
+      })
+      await vi.advanceTimersByTimeAsync(DETAIL_LIVE_INTERVAL_MS * 2)
+
+      expect(detail).not.toHaveBeenCalled()
+    })
+
+    it('are not refreshed after it unmounts', async () => {
+      const detail = showing(['session', A, SESSION])
+      const { unmount } = renderHook(
+        () => {
+          useLiveUpdates()
+        },
+        { wrapper }
+      )
+      act(() => {
+        api.fireFilesChanged(change([A]))
+      })
+
+      unmount()
+      await vi.advanceTimersByTimeAsync(DETAIL_LIVE_INTERVAL_MS * 2)
+
+      expect(detail).not.toHaveBeenCalled()
+    })
+
+    it('refresh at once when live updates resume', async () => {
+      const detail = showing(['session', B, SESSION])
+      renderHook(
+        () => {
+          useLiveUpdates()
+        },
+        { wrapper }
+      )
+      act(() => {
+        useLiveUpdatesStore.getState().setPaused(true)
+      })
+
+      act(() => {
+        useLiveUpdatesStore.getState().setPaused(false)
+      })
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(detail).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('while the persisted cache is restoring', () => {
+    it('ignores changes', async () => {
+      restoring = true
+      const list = showing(['sessions', A])
+      renderHook(
+        () => {
+          useLiveUpdates()
+        },
+        { wrapper }
+      )
+
+      act(() => {
+        api.fireFilesChanged(change([A]))
+      })
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      expect(list).not.toHaveBeenCalled()
+    })
+
+    it('starts applying changes once restoring has finished', async () => {
+      restoring = true
+      const list = showing(['sessions', A])
+      const { rerender } = renderHook(
+        () => {
+          useLiveUpdates()
+        },
+        { wrapper }
+      )
+
+      restoring = false
+      rerender()
+      act(() => {
+        api.fireFilesChanged(change([A]))
+      })
+
+      await vi.waitFor(() => {
+        expect(list).toHaveBeenCalledTimes(1)
+      })
+    })
+
+    it('still records that live updates are unavailable', () => {
+      restoring = true
+      renderHook(
+        () => {
+          useLiveUpdates()
+        },
+        { wrapper }
+      )
+
+      act(() => {
+        api.fireLiveUpdatesUnavailable()
+      })
+
+      expect(useLiveUpdatesStore.getState().unavailable).toBe(true)
+    })
+  })
+})

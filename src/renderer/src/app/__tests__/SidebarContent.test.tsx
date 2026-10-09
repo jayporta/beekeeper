@@ -44,6 +44,14 @@ describe('SidebarContent', () => {
     expect(within(sidebar).getByRole('button', { name: 'Claude Code telemetry' })).toBeTruthy()
   })
 
+  it('has the live updates checkbox in the footer', async () => {
+    renderApp()
+
+    const sidebar = await screen.findByRole('complementary', { name: 'Sidebar' })
+
+    expect(await within(sidebar).findByRole('checkbox', { name: 'Live updates' })).toBeTruthy()
+  })
+
   it('shows only the name and footer while there are no projects', async () => {
     installBeekeeperApi({ listProjects: () => Promise.resolve({ ok: true, value: [] }) })
     renderApp()

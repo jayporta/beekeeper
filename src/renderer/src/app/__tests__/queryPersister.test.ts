@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto'
 import { dehydrate, hydrate, QueryClient } from '@tanstack/react-query'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { PERSIST_THROTTLE_MS } from '../persistThrottle'
 import { createQueryPersister, logPersistError } from '../queryPersister'
 import { shouldPersistQuery } from '../shouldPersistQuery'
 
@@ -53,7 +54,7 @@ describe('createQueryPersister', () => {
     const persister = createQueryPersister({ ...memoryStorage(), setItem })
     await persister.persistClient(CLIENT)
 
-    vi.setSystemTime(Date.now() + 1000)
+    vi.setSystemTime(Date.now() + PERSIST_THROTTLE_MS)
     await persister.persistClient({ ...CLIENT, timestamp: CLIENT.timestamp + 1 })
 
     expect(setItem).toHaveBeenCalledTimes(2)
@@ -79,6 +80,39 @@ describe('createQueryPersister', () => {
     await save()
 
     expect(setItem).toHaveBeenCalledTimes(1)
+  })
+
+  describe('while the cache keeps changing', () => {
+    /** Starts a save after the projects list of `client` is set to `rows`, without waiting for it. */
+    function saveProjects(
+      persister: ReturnType<typeof createQueryPersister>,
+      client: QueryClient,
+      rows: string[]
+    ): void {
+      client.setQueryData(['projects'], rows)
+      void persister.persistClient({
+        timestamp: Date.now(),
+        buster: 'b',
+        clientState: dehydrate(client, { shouldDehydrateQuery: shouldPersistQuery })
+      })
+    }
+
+    it('writes a later change only once the throttle interval has passed', async () => {
+      vi.useFakeTimers()
+      const setItem = vi.fn(() => Promise.resolve())
+      const persister = createQueryPersister({ ...memoryStorage(), setItem })
+      const client = new QueryClient()
+      saveProjects(persister, client, ['a'])
+      await vi.advanceTimersByTimeAsync(0)
+      expect(setItem).toHaveBeenCalledTimes(1)
+
+      saveProjects(persister, client, ['a', 'b'])
+      await vi.advanceTimersByTimeAsync(PERSIST_THROTTLE_MS - 1)
+      expect(setItem).toHaveBeenCalledTimes(1)
+
+      await vi.advanceTimersByTimeAsync(1)
+      expect(setItem).toHaveBeenCalledTimes(2)
+    })
   })
 
   it('saves and restores a client through the storage it is given', async () => {
