@@ -45,9 +45,12 @@ export async function hydratePersistedStores(): Promise<void> {
 /**
  * Waits until the app has read its persisted stores and every query it started
  * has settled, including the queries that only start once an earlier one
- * returns (sessions after projects). It waits on those events, not on a clock,
- * so it holds under load and under fake timers. A query that never settles
- * keeps it waiting until the test times out.
+ * returns (sessions after projects). It waits on those events, and on one
+ * `setTimeout(0)` per round to let TanStack deliver a result, so it holds under
+ * load. Under fake timers it holds only when they advance on their own
+ * (`shouldAdvanceTime: true`): with plain `vi.useFakeTimers()` that timer never
+ * fires and it hangs. A query that never settles keeps it waiting until the
+ * test times out.
  *
  * @param client - The client the app renders with.
  */

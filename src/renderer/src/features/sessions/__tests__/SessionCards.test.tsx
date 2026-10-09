@@ -415,7 +415,7 @@ describe('session cards: opening a session', () => {
     title.focus()
     await userEvent.keyboard('{Enter}')
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Refactor parser' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Refactor parser' })).toBeTruthy()
     expect(useNavigationStore.getState()).toMatchObject({
       view: 'session',
       selectedSessionRef: testRef(1, DIR),
@@ -430,7 +430,7 @@ describe('session cards: opening a session', () => {
     chip.focus()
     await userEvent.keyboard('{Enter}')
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Refactor parser' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Refactor parser' })).toBeTruthy()
     expect(useNavigationStore.getState()).toMatchObject({
       selectedSessionRef: testRef(1, DIR),
       selectedAgent: { kind: 'teammate', ref: testRef(3, OTHER) }

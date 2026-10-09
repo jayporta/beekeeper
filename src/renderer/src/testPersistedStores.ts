@@ -19,10 +19,8 @@ export interface PersistedStoreHandle {
 }
 
 /** The `persist` API of a store, as far as {@link persistedStore} reads it. */
-interface PersistApi {
-  rehydrate: () => Promise<void> | void
-  hasHydrated: () => boolean
-  onFinishHydration: (listener: () => void) => () => void
+type PersistApi = PersistedStoreHandle['persist'] & {
+  /** The options the store was created with. */
   getOptions: () => { readonly name?: string }
 }
 
