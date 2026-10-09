@@ -91,4 +91,10 @@ export interface SessionListItemDto {
    * would only repeat its own usage.
    */
   readonly team: SessionTeamDto | null
+  /**
+   * Whether this entry is beekeeper's archived copy of a session whose
+   * transcript is no longer on disk. A live session is `false`. An archived
+   * entry takes no part in team grouping, so its `team` is `null`.
+   */
+  readonly archived: boolean
 }

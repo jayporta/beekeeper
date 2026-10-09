@@ -26,6 +26,7 @@ export function testListItem(overrides: Partial<SessionListItemDto> = {}): Sessi
     workflowRunNames: [],
     summary: { ok: false, error: { code: 'unreadable' } },
     team: null,
+    archived: false,
     ...overrides
   }
 }
@@ -79,6 +80,7 @@ export function testDetail(padding = ''): SessionDetailDto {
       models: [],
       totals: { transcriptUSD: null, transcriptPartial: false, recordedUSD: null }
     },
-    workflowRuns: []
+    workflowRuns: [],
+    archived: false
   }
 }

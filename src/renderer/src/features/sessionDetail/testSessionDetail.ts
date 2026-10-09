@@ -71,11 +71,19 @@ interface TestDetailOptions {
   readonly reports?: Readonly<Record<string, AgentReportDto | 'error'>> | false
   /** The session's workflow runs. Defaults to none. */
   readonly workflowRuns?: readonly WorkflowRunDto[]
+  /** Whether the detail is an archived copy. Defaults to `false`. */
+  readonly archived?: boolean
 }
 
 /** A session detail with the given subagents and reports. */
 export function testDetail(options: TestDetailOptions = {}): SessionDetailDto {
-  const { lead = testReport(), children = [], reports = {}, workflowRuns = [] } = options
+  const {
+    lead = testReport(),
+    children = [],
+    reports = {},
+    workflowRuns = [],
+    archived = false
+  } = options
   const ids: string[] = []
   const pending = [...children]
   for (let node = pending.pop(); node !== undefined; node = pending.pop()) {
@@ -106,6 +114,7 @@ export function testDetail(options: TestDetailOptions = {}): SessionDetailDto {
       models: [],
       totals: { transcriptUSD: null, transcriptPartial: false, recordedUSD: null }
     },
-    workflowRuns
+    workflowRuns,
+    archived
   }
 }

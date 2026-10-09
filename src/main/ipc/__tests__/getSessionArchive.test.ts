@@ -1,7 +1,9 @@
 import { stat } from 'node:fs/promises'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ARCHIVE_DETAIL_AFTER_DAYS, DAY_MS } from '../../archive/archiveConstants'
+import { testDetail } from '../../archive/testArchiveFixtures'
 import { createFakeArchiveWriter } from '../../archive/testFakeArchiveWriter'
+import { sessionRefKey } from '../sessionRefKey'
 import { errorWithCode } from '../../testErrorWithCode'
 import { getSessionHandler } from '../getSessionHandler'
 import type { IpcDeps } from '../ipcDeps'
@@ -74,5 +76,87 @@ describe('getSessionHandler archive', () => {
 
     expect(guarded).toEqual(plain)
     expect(warn.mock.calls).toEqual([['Beekeeper archive write failed (EDETAIL_THROWS).']])
+  })
+})
+
+const GONE_ID = '9f9f9f9f-9999-4999-8999-99999999999a'
+const GONE_REF = { projectDirName: TEST_PROJECT, sessionId: GONE_ID }
+
+/** An archive holding a detail for each given ref, whose own session id matches the ref's. */
+function archiveHolding(...refs: (typeof GONE_REF)[]): ReturnType<typeof createFakeArchiveWriter> {
+  return createFakeArchiveWriter(undefined, {
+    details: new Map(
+      refs.map((ref) => [sessionRefKey(ref), { ...testDetail('kept'), sessionId: ref.sessionId }])
+    )
+  })
+}
+
+describe('getSessionHandler archived sessions', () => {
+  it('marks a live session detail as not archived', async () => {
+    const result = await getSessionHandler({ ...ctx.deps, archive: archiveHolding() }, request)
+
+    expect(result.ok && result.value.archived).toBe(false)
+  })
+
+  it('returns the archived detail, marked archived, when the transcript is gone', async () => {
+    const archive = archiveHolding(GONE_REF)
+
+    const result = await getSessionHandler({ ...ctx.deps, archive }, GONE_REF)
+
+    expect(result).toEqual({
+      ok: true,
+      value: { ...testDetail('kept'), sessionId: GONE_ID, archived: true }
+    })
+  })
+
+  it('never replaces a live detail with the archived copy', async () => {
+    const archive = archiveHolding(request)
+
+    const result = await getSessionHandler({ ...ctx.deps, archive }, request)
+
+    expect(result.ok && result.value.archived).toBe(false)
+    expect(JSON.stringify(result)).not.toContain('kept')
+  })
+
+  it('answers not-found when the transcript is gone and the archive has no detail', async () => {
+    const result = await getSessionHandler({ ...ctx.deps, archive: archiveHolding() }, GONE_REF)
+
+    expect(result).toEqual({ ok: false, error: { code: 'not-found' } })
+  })
+
+  it('answers not-found, touching nothing, when no archive is set', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const result = await getSessionHandler({ ...ctx.deps, archive: null }, GONE_REF)
+
+    expect(result).toEqual({ ok: false, error: { code: 'not-found' } })
+    expect(warn).not.toHaveBeenCalled()
+  })
+
+  it('answers not-found for a project folder that is gone, even with an archived detail', async () => {
+    const gone = { projectDirName: '-no-such-project', sessionId: GONE_ID }
+
+    const result = await getSessionHandler({ ...ctx.deps, archive: archiveHolding(gone) }, gone)
+
+    expect(result).toEqual({ ok: false, error: { code: 'not-found' } })
+  })
+
+  it('answers invalid-request for a bad payload without reading the archive', async () => {
+    const result = await getSessionHandler(
+      { ...ctx.deps, archive: createFakeArchiveWriter(errorWithCode('EREAD_NEVER')) },
+      { projectDirName: TEST_PROJECT, sessionId: 'not-a-uuid' }
+    )
+
+    expect(result).toEqual({ ok: false, error: { code: 'invalid-request' } })
+  })
+
+  it('answers not-found and logs once when reading the archive throws', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const archive = createFakeArchiveWriter(errorWithCode('EDETAIL_READ_THROWS'))
+
+    const result = await getSessionHandler({ ...ctx.deps, archive }, GONE_REF)
+
+    expect(result).toEqual({ ok: false, error: { code: 'not-found' } })
+    expect(warn.mock.calls).toEqual([['Beekeeper archive read failed (EDETAIL_READ_THROWS).']])
   })
 })

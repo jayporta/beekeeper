@@ -68,7 +68,8 @@ export function mapSessionListItem(
       agentTerms: [],
       workflowRunNames: [],
       summary: errResult(toIpcErrorCode(entry.transcript.error)),
-      team: null
+      team: null,
+      archived: false
     }
   }
 
@@ -116,6 +117,7 @@ export function mapSessionListItem(
           transcriptTokens: summary.value.transcriptTokens
         })
       : errResult(toIpcErrorCode(summary.error)),
-    team: summary.ok ? team : null
+    team: summary.ok ? team : null,
+    archived: false
   }
 }

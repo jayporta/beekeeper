@@ -8,6 +8,7 @@ import { groupProjectFamily } from './groupProjectFamily'
 import type { IpcDeps } from './ipcDeps'
 import { errResult, okResult } from './ipcResults'
 import { mapSessionListItem, type ScannedSession } from './mapSessionListItem'
+import { readArchivedListItems } from './readArchivedListItems'
 import { readSessionAgentTerms } from './readSessionAgentTerms'
 import { readSessionWorkflowRunNames } from './readSessionWorkflowRunNames'
 import { sessionRefKey } from './sessionRefKey'
@@ -44,8 +45,9 @@ function isListedFor(projectDirName: string, { session, team }: ListedSession): 
  * workflow runs are read, through their caches and under the same scheduler,
  * only for the sessions the list holds. See {@link groupProjectFamily} for
  * how an unreadable sibling folder is treated. The folder's own sessions with
- * a readable summary are archived, and a failing archive write never changes
- * the result.
+ * a readable summary are archived, and the archived sessions whose transcripts
+ * are gone from the folder are appended, marked archived and without a team. A
+ * failing archive write or read never changes the live list.
  *
  * @param deps - The projects root, the summary, agent terms and workflow run
  * names caches, the summaries scheduler, and the archive.
@@ -91,5 +93,15 @@ export async function listSessionsHandler(
     projectDirName: project.dirName,
     listed: listedItems
   })
-  return okResult(listedItems.map(({ item }) => item))
+  const liveSessionIds = new Set<string>(
+    scanned
+      .filter((session) => session.projectDirName === project.dirName)
+      .map((session) => session.entry.sessionId)
+  )
+  const archived = readArchivedListItems({
+    archive: deps.archive,
+    projectDirName: project.dirName,
+    liveSessionIds
+  })
+  return okResult([...listedItems.map(({ item }) => item), ...archived])
 }
