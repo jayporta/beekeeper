@@ -1,3 +1,4 @@
+import type { AgentSignals } from '../signals/agentSignals'
 import type { SessionRole } from '../sessionRole'
 import type { TranscriptTeamSpawns } from '../teammateSpawn'
 import type { LeadUsage } from './leadUsage'
@@ -100,4 +101,11 @@ export interface SessionSummary {
    * scan keeps.
    */
   readonly leadUsage: LeadUsage | null
+  /**
+   * The off-the-rails counts for the transcript's own tool calls, results,
+   * compactions and agent kills. Excludes subagent transcripts. Its
+   * `partial` flag is set when the transcript held more events than the scan
+   * keeps.
+   */
+  readonly signals: AgentSignals
 }

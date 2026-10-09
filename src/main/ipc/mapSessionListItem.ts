@@ -10,6 +10,7 @@ import type { SessionTeamDto } from '../../shared/ipc/sessionTeamDto'
 import type { WorkflowCountsDto } from '../../shared/ipc/workflowRunDto'
 import { distinctRunIds } from './distinctRunIds'
 import { errResult, okResult } from './ipcResults'
+import { mapAgentSignals } from './mapAgentSignals'
 import { mapSessionRole } from './mapSessionRole'
 import { toIpcErrorCode } from './toIpcErrorCode'
 
@@ -113,7 +114,8 @@ export function mapSessionListItem(
                   window: summary.value.limitHit.window,
                   resetsAtMs: summary.value.limitHit.resetsAtMs
                 },
-          transcriptTokens: summary.value.transcriptTokens
+          transcriptTokens: summary.value.transcriptTokens,
+          signals: mapAgentSignals(summary.value.signals)
         })
       : errResult(toIpcErrorCode(summary.error)),
     team: summary.ok ? team : null

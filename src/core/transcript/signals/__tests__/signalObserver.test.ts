@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { commandHash } from '../commandHash'
 import { createSignalObserver, MAX_SIGNAL_EVENTS_PER_TRANSCRIPT } from '../signalObserver'
 import type { SignalObserver } from '../signalObserver'
-import { buildAssistantToolUseRecord, buildUserToolResultRecord } from '../../testFileTouchFixtures'
+import {
+  buildAssistantToolUseRecord,
+  buildToolResultBlock,
+  buildToolUseBlock,
+  buildUserToolResultRecord
+} from '../../testFileTouchFixtures'
 import { buildSystemRecord } from '../testSignalFixtures'
 
 function observed(...records: Record<string, unknown>[]): SignalObserver {
@@ -31,6 +36,56 @@ describe('createSignalObserver', () => {
       }
     ])
   })
+
+  it('uses the timestamp it is given instead of reading the record’s own', () => {
+    const observer = createSignalObserver()
+    observer.observe(
+      buildAssistantToolUseRecord({ toolUseId: 'a', timestamp: '2026-01-01T00:00:01.000Z' }),
+      42
+    )
+    observer.observe(
+      buildUserToolResultRecord({ toolUseId: 'a', timestamp: '2026-01-01T00:00:02.000Z' }),
+      99
+    )
+
+    expect(observer.events()).toMatchObject([{ atMs: 42 }, { atMs: 99 }])
+  })
+
+  it('takes a given null timestamp as the record having none', () => {
+    const observer = createSignalObserver()
+    observer.observe(
+      buildAssistantToolUseRecord({ toolUseId: 'a', timestamp: '2026-01-01T00:00:01.000Z' }),
+      null
+    )
+
+    expect(observer.events()).toMatchObject([{ atMs: null }])
+  })
+
+  it.each([
+    { type: 'assistant', block: buildToolUseBlock({ id: 'a', name: 'Read' }), kind: 'tool-call' },
+    { type: 'user', block: buildToolResultBlock({ tool_use_id: 'a' }), kind: 'tool-result' }
+  ])(
+    'does not parse the $type record’s blocks that are not tool blocks',
+    ({ type, block, kind }) => {
+      const observer = createSignalObserver()
+      let reads = 0
+      const textBlock = {
+        type: 'text',
+        get id(): unknown {
+          reads += 1
+          return 'x'
+        },
+        get tool_use_id(): unknown {
+          reads += 1
+          return 'x'
+        }
+      }
+      observer.observe({ type, message: { content: [textBlock, 'plain', null, block] } })
+
+      expect(observer.events()).toMatchObject([{ kind, toolUseId: 'a' }])
+      expect(reads).toBe(0)
+    }
+  )
 
   it('gives a call to another tool a null command hash', () => {
     const observer = observed(
@@ -104,6 +159,43 @@ describe('createSignalObserver', () => {
   it('ignores a system record whose uuid is not a bounded identifier', () => {
     const observer = observed(buildSystemRecord({ subtype: 'compact_boundary', uuid: '' }))
     expect(observer.events()).toEqual([])
+  })
+
+  it('keeps one event for a tool result repeated in the transcript', () => {
+    const result = buildUserToolResultRecord({ toolUseId: 'a', isError: true })
+
+    expect(observed(result, result).events()).toHaveLength(1)
+  })
+
+  it('keeps one event for a tool call repeated in the transcript', () => {
+    const call = buildAssistantToolUseRecord({ toolUseId: 'a', toolName: 'Read' })
+
+    expect(observed(call, call).events()).toHaveLength(1)
+  })
+
+  it('keeps one event for a compaction repeated in the transcript', () => {
+    const boundary = buildSystemRecord({ subtype: 'compact_boundary', uuid: 'u1' })
+
+    expect(observed(boundary, boundary).events()).toHaveLength(1)
+  })
+
+  it('keeps a call and a result that share an id as two events', () => {
+    const observer = observed(
+      buildAssistantToolUseRecord({ toolUseId: 'a' }),
+      buildUserToolResultRecord({ toolUseId: 'a' })
+    )
+
+    expect(observer.events()).toHaveLength(2)
+  })
+
+  it('does not report capped for a repeat that arrives with the list exactly full', () => {
+    const observer = createSignalObserver()
+    for (let index = 0; index < MAX_SIGNAL_EVENTS_PER_TRANSCRIPT; index += 1) {
+      observer.observe(buildUserToolResultRecord({ toolUseId: `t${index}` }))
+    }
+    observer.observe(buildUserToolResultRecord({ toolUseId: 't0' }))
+
+    expect(observer.capped()).toBe(false)
   })
 
   it('stops at the cap and reports capped', () => {
