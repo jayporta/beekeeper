@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, Menu } from 'electron'
+import { existsSync, watch } from 'node:fs'
 import { join } from 'path'
 import { optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -6,6 +7,7 @@ import { buildAppMenuTemplate } from './appMenu'
 import { createIpcDeps } from './ipc/createIpcDeps'
 import { registerIpcHandlers } from './ipc/registerIpcHandlers'
 import { isTrustedSender } from './ipc/senderValidation'
+import { createProjectsWatcher } from './live/createProjectsWatcher'
 import { hardenDefaultSession } from './security/session'
 import { hardenWebContents } from './security/windowSecurity'
 import { sendOpenAbout } from './sendOpenAbout'
@@ -74,12 +76,25 @@ app
   .then(() => {
     hardenDefaultSession({ rendererRoot, devServerUrl })
 
+    const deps = createIpcDeps(app.getPath('home'))
+
     // Registered once, before any window: `activate` recreates windows, and a
     // channel can't be registered twice.
     registerIpcHandlers({
       ipcMain,
       isTrusted: (event) => isTrustedSender(event, { rendererRoot, devServerUrl }),
-      deps: createIpcDeps(app.getPath('home'))
+      deps
+    })
+
+    // One watcher for the app's lifetime, on the same root the handlers read.
+    const projectsWatcher = createProjectsWatcher({
+      root: deps.projectsRoot,
+      watch,
+      exists: existsSync,
+      windows: () => BrowserWindow.getAllWindows()
+    })
+    app.on('will-quit', () => {
+      projectsWatcher.close()
     })
 
     // Set once, before any window: `activate` recreates windows, not the menu.
@@ -97,6 +112,7 @@ app
       // `zoom: true` keeps the toolkit from cancelling the zoom keys. Cancelling
       // a key event in the window also blocks the matching menu accelerator.
       optimizer.watchWindowShortcuts(window, { zoom: true })
+      projectsWatcher.notifyWindow(window)
     })
 
     createWindow()
