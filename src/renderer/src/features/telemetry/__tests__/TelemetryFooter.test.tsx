@@ -10,7 +10,7 @@ const LISTENING: OtelReceiverDto = {
   enabled: true,
   status: 'listening',
   failure: null,
-  port: 47318,
+  port: 23456,
   token: 'tok-tok-tok-tok-tok-tok-tok-tok-tok-tok-1'
 }
 

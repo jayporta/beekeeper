@@ -13,6 +13,8 @@ let costs: ReportedCostStore
 let receiver: OtelReceiver
 let port = 0
 
+const OTHER_TOKEN = 'another-token-another-token-another-token-12'
+
 /** Headers that pass every check, so a request with a short body waits for the rest of it. */
 const holdOpenHeaders = {
   authorization: `Bearer ${TEST_TOKEN}`,
@@ -23,8 +25,8 @@ const validBody = (): string => JSON.stringify(otlpLogsBody([logRecord(apiReques
 
 async function startReceiver(requestTimeoutMs?: number): Promise<void> {
   costs = createReportedCostStore()
-  receiver = createOtelReceiver({ costs, port: 0, requestTimeoutMs })
-  const state = await receiver.start(TEST_TOKEN)
+  receiver = createOtelReceiver({ costs, requestTimeoutMs })
+  const state = await receiver.start({ token: TEST_TOKEN, port: 0 })
   if (state.status !== 'listening') throw new Error('the test receiver did not start')
   port = state.port
 }
@@ -347,7 +349,7 @@ describe('createOtelReceiver binding', () => {
 
 describe('createOtelReceiver lifecycle', () => {
   it('is off until started', () => {
-    expect(createOtelReceiver({ costs: createReportedCostStore(), port: 0 }).state()).toEqual({
+    expect(createOtelReceiver({ costs: createReportedCostStore() }).state()).toEqual({
       status: 'off'
     })
   })
@@ -356,8 +358,30 @@ describe('createOtelReceiver lifecycle', () => {
     expect(receiver.state()).toEqual({ status: 'listening', port })
   })
 
-  it('returns the listening state when started twice', async () => {
-    expect(await receiver.start(TEST_TOKEN)).toEqual({ status: 'listening', port })
+  it('listens on the port it is started with', async () => {
+    await receiver.stop()
+
+    const state = await receiver.start({ token: TEST_TOKEN, port })
+
+    expect(state).toEqual({ status: 'listening', port })
+  })
+
+  it('returns the current state, and keeps the current token and port, when started while listening', async () => {
+    const state = await receiver.start({ token: OTHER_TOKEN, port: port === 1 ? 2 : 1 })
+
+    const [oldToken, newToken] = await Promise.all([
+      sendToReceiver({ port, body: validBody() }),
+      sendToReceiver({
+        port,
+        body: validBody(),
+        headers: { authorization: `Bearer ${OTHER_TOKEN}` }
+      })
+    ])
+    expect([state, oldToken.status, newToken.status]).toEqual([
+      { status: 'listening', port },
+      200,
+      401
+    ])
   })
 
   it('stops listening', async () => {
@@ -389,7 +413,7 @@ describe('createOtelReceiver lifecycle', () => {
   })
 
   it('does nothing when stopped without being started', async () => {
-    const idle = createOtelReceiver({ costs: createReportedCostStore(), port: 0 })
+    const idle = createOtelReceiver({ costs: createReportedCostStore() })
 
     await idle.stop()
 
@@ -398,7 +422,7 @@ describe('createOtelReceiver lifecycle', () => {
 
   it('accepts only the new token after a restart', async () => {
     await receiver.stop()
-    const state = await receiver.start('another-token-another-token-another-token-12')
+    const state = await receiver.start({ token: OTHER_TOKEN, port: 0 })
     if (state.status !== 'listening') throw new Error('the test receiver did not restart')
 
     const [oldToken, newToken] = await Promise.all([
@@ -406,7 +430,7 @@ describe('createOtelReceiver lifecycle', () => {
       sendToReceiver({
         port: state.port,
         body: validBody(),
-        headers: { authorization: 'Bearer another-token-another-token-another-token-12' }
+        headers: { authorization: `Bearer ${OTHER_TOKEN}` }
       })
     ])
 
@@ -414,26 +438,32 @@ describe('createOtelReceiver lifecycle', () => {
   })
 
   it('reports port-in-use when another listener holds the port', async () => {
-    const second = createOtelReceiver({ costs: createReportedCostStore(), port })
+    const second = createOtelReceiver({ costs: createReportedCostStore() })
 
-    expect(await second.start(TEST_TOKEN)).toEqual({ status: 'failed', failure: 'port-in-use' })
+    expect(await second.start({ token: TEST_TOKEN, port })).toEqual({
+      status: 'failed',
+      failure: 'port-in-use'
+    })
   })
 
   it('reports a generic failure for a port that cannot be bound', async () => {
-    const invalid = createOtelReceiver({ costs: createReportedCostStore(), port: 70000 })
+    const invalid = createOtelReceiver({ costs: createReportedCostStore() })
 
-    expect(await invalid.start(TEST_TOKEN)).toEqual({ status: 'failed', failure: 'failed' })
+    expect(await invalid.start({ token: TEST_TOKEN, port: 70000 })).toEqual({
+      status: 'failed',
+      failure: 'failed'
+    })
   })
 
   it('can start again after a failure', async () => {
     await receiver.stop()
-    const holder = createOtelReceiver({ costs: createReportedCostStore(), port })
-    await holder.start(TEST_TOKEN)
-    const contender = createOtelReceiver({ costs: createReportedCostStore(), port })
-    await contender.start(TEST_TOKEN)
+    const holder = createOtelReceiver({ costs: createReportedCostStore() })
+    await holder.start({ token: TEST_TOKEN, port })
+    const contender = createOtelReceiver({ costs: createReportedCostStore() })
+    await contender.start({ token: TEST_TOKEN, port })
 
     await holder.stop()
-    const retry = await contender.start(TEST_TOKEN)
+    const retry = await contender.start({ token: TEST_TOKEN, port })
 
     expect(retry).toEqual({ status: 'listening', port })
     await contender.stop()
@@ -442,7 +472,10 @@ describe('createOtelReceiver lifecycle', () => {
   it('serves a start and a stop issued together in order', async () => {
     await receiver.stop()
 
-    const [started] = await Promise.all([receiver.start(TEST_TOKEN), receiver.stop()])
+    const [started] = await Promise.all([
+      receiver.start({ token: TEST_TOKEN, port: 0 }),
+      receiver.stop()
+    ])
 
     expect([started.status, receiver.state()]).toEqual(['listening', { status: 'off' }])
   })

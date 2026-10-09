@@ -12,13 +12,17 @@
     "off": "Off. Nothing is listening.",
     "listening": "Listening on 127.0.0.1, port {{port}}.",
     "failure": {
-      "port-in-use": "Port {{port}} is in use. Another beekeeper window or app may be using it.",
-      "failed": "beekeeper couldn't start listening on port {{port}}."
+      "port-in-use": "Another app is using port {{port}}. Turn the receiver off and on again to get a new port and token.",
+      "failed": "beekeeper couldn't start listening on port {{port}}. Turn the receiver off and on again to get a new port and token."
+    },
+    "turnOnFailure": {
+      "port-in-use": "beekeeper couldn't find a free port, so the receiver stays off.",
+      "failed": "beekeeper couldn't start the receiver, so it stays off."
     }
   },
   "setup": {
     "label": "Environment variables for Claude Code",
-    "instructions": "Run these lines in the shell before you start Claude Code, or add them to your shell profile. Sessions that started before you set them won't report.",
+    "instructions": "Run these lines in the shell before you start Claude Code. The port and token change each time you turn the receiver on, so run them again after that. If you keep them in a file, make it readable only by you (chmod 600), not a shell profile other users can read. Sessions that started before you set them won't report.",
     "copy": "Copy",
     "copied": "Copied to clipboard.",
     "copyFailed": "beekeeper couldn't copy. Select the lines and copy them yourself.",

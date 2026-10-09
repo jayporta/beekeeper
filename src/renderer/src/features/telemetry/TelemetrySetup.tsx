@@ -20,7 +20,7 @@ interface TelemetrySetupProps {
  * about earlier sessions and the content flags.
  *
  * @example
- * <TelemetrySetup port={47318} token={token} />
+ * <TelemetrySetup port={23456} token={token} />
  */
 export function TelemetrySetup({ port, token }: TelemetrySetupProps): React.JSX.Element {
   const { t } = useTranslation('telemetry')

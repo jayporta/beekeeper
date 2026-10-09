@@ -6,13 +6,7 @@ import type { OtelReceiverDto } from '../../shared/ipc/otelReceiverDto'
 import type { ProjectDto } from '../../shared/ipc/projectDto'
 
 /** A telemetry receiver that is off, which is what an unstubbed `getOtelReceiver` reports. */
-export const TEST_OTEL_OFF: OtelReceiverDto = {
-  enabled: false,
-  status: 'off',
-  failure: null,
-  port: 47318,
-  token: null
-}
+export const TEST_OTEL_OFF: OtelReceiverDto = { enabled: false, status: 'off', failure: null }
 
 /** What makes a test project a worktree: the folder it belongs to and its name. Set together or not at all. */
 export interface TestWorktree {

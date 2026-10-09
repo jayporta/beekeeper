@@ -31,8 +31,8 @@ beekeeper is local-first and read-only. It makes zero outbound network calls and
 
 Claude Code can export its own per-request cost estimates over OpenTelemetry. If you want beekeeper to show them next to its own estimate, you can turn on a receiver. It is off by default, and nothing listens until you turn it on.
 
-- **Loopback only.** It binds `127.0.0.1` on port 47318, so nothing off your machine can reach it. It never makes an outbound request.
-- **Authenticated.** Claude Code must send a bearer token that beekeeper creates the first time you turn the receiver on and keeps in its app data folder (`otel-receiver.json`, readable only by you). A request without the token is refused.
+- **Loopback only.** It binds `127.0.0.1` on a random port that beekeeper chooses each time you turn the receiver on, so nothing off your machine can reach it. It never makes an outbound request.
+- **Authenticated.** Claude Code must send a bearer token that beekeeper creates each time you turn the receiver on and keeps, with the port, in its app data folder (`otel-receiver.json`, readable only by you). A request without the token is refused. Turning the receiver off deletes the token and the port, and turning it on again issues a new pair. A random port defeats a process that targets a known port, but not one that could bind the whole range while beekeeper is closed. Rotating the token limits what a captured token can do.
 - **Narrow.** It accepts only `POST /v1/logs` with a JSON body. It refuses any request that carries an `Origin` header or a `Host` other than `127.0.0.1` or `localhost`, so a web page can't use your browser to reach it. Compressed bodies and bodies over 2 MiB are refused.
 - **Only costs.** From each `claude_code.api_request` event beekeeper reads the session id, the cost, the token counts, the model, and the agent and request ids. It never stores or logs prompt or response content, headers, or the token, and it keeps what it hears in memory only, so nothing survives a restart.
 
@@ -63,7 +63,7 @@ beekeeper also keeps two preferences: the selected project and whether you've di
 - They live in IndexedDB in beekeeper's own app data folder, never in `~/.claude` or in a repository, and they're never sent anywhere.
 - No cached list is older than 7 days, and an update that changes the data format clears the cache. The two preferences stay until you change them.
 
-If you turn on the telemetry receiver, beekeeper also writes `otel-receiver.json` to its app data folder with your on or off choice and the bearer token, readable only by you. Costs the receiver hears about are held in memory and never written to disk.
+If you turn on the telemetry receiver, beekeeper also writes `otel-receiver.json` to its app data folder with your on or off choice and, while it is on, the bearer token and port, readable only by you. Costs the receiver hears about are held in memory and never written to disk.
 
 ## Permissions you may see
 

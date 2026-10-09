@@ -34,6 +34,9 @@ export interface ReportedCostStore {
    * session never reported or has been dropped.
    */
   get(sessionId: string): ReportedCostDto | null
+
+  /** Forgets every session and every request id seen. */
+  clear(): void
 }
 
 interface SessionTotals {
@@ -146,6 +149,9 @@ export function createReportedCostStore(): ReportedCostStore {
     get(sessionId) {
       const totals = sessions.get(sessionId)
       return totals === undefined ? null : snapshot(totals)
+    },
+    clear() {
+      sessions.clear()
     }
   }
 }

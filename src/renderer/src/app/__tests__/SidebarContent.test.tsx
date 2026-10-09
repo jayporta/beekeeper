@@ -29,7 +29,7 @@ describe('SidebarContent', () => {
       getOtelReceiver: () =>
         Promise.resolve({
           ok: true,
-          value: { enabled: true, status: 'listening', failure: null, port: 47318, token: 't' }
+          value: { enabled: true, status: 'listening', failure: null, port: 23456, token: 't' }
         })
     })
     renderApp()

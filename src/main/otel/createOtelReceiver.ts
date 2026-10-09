@@ -4,10 +4,8 @@ import type { OtelReceiverFailureDto } from '../../shared/ipc/otelReceiverFailur
 import { describeError } from '../describeError'
 import { createOtlpRequestHandler } from './createOtlpRequestHandler'
 import type { ReportedCostStore } from './createReportedCostStore'
+import type { OtelBinding } from './otelBinding'
 import { createSerialQueue } from './serialQueue'
-
-/** The fixed port the receiver listens on, chosen to stay clear of a user's own collector on 4317 or 4318. */
-export const OTEL_RECEIVER_PORT = 47318
 
 /** The only address the receiver binds, so nothing off this machine can reach it. */
 export const OTEL_RECEIVER_HOST = '127.0.0.1'
@@ -26,11 +24,12 @@ export interface OtelReceiver {
   /**
    * Starts listening on 127.0.0.1. Changes are applied one at a time, in order.
    *
-   * @param token - The bearer token every request must carry.
+   * @param binding - The bearer token every request must carry and the port to bind.
    * @returns The state afterwards. When already listening, that state is
-   * returned and the token in use doesn't change.
+   * returned and the token and port in use don't change, so a new token takes
+   * effect only after {@link OtelReceiver.stop}.
    */
-  start(token: string): Promise<OtelReceiverState>
+  start(binding: OtelBinding): Promise<OtelReceiverState>
 
   /** Stops listening and closes open connections. Does nothing when off. */
   stop(): Promise<void>
@@ -43,8 +42,6 @@ export interface OtelReceiver {
 export interface OtelReceiverOptions {
   /** Where accepted reports go. */
   readonly costs: ReportedCostStore
-  /** The port to bind. Defaults to {@link OTEL_RECEIVER_PORT}; 0 picks a free one. */
-  readonly port?: number
   /** How long a request may take to send its headers and body. Defaults to 10 seconds. */
   readonly requestTimeoutMs?: number
 }
@@ -88,20 +85,16 @@ function closeServer(server: Server): Promise<void> {
  * and never makes an outbound request. Its logs name an error by code, never
  * by request content.
  *
- * @param options - The store, and optionally the port and the request timeout.
+ * @param options - The store, and optionally the request timeout.
  * @returns A receiver that is not yet listening.
  */
 export function createOtelReceiver(options: OtelReceiverOptions): OtelReceiver {
-  const {
-    costs,
-    port = OTEL_RECEIVER_PORT,
-    requestTimeoutMs = DEFAULT_REQUEST_TIMEOUT_MS
-  } = options
+  const { costs, requestTimeoutMs = DEFAULT_REQUEST_TIMEOUT_MS } = options
   let server: Server | null = null
   let current: OtelReceiverState = { status: 'off' }
   const serialize = createSerialQueue()
 
-  async function startListening(token: string): Promise<OtelReceiverState> {
+  async function startListening({ token, port }: OtelBinding): Promise<OtelReceiverState> {
     if (server !== null) return current
     let boundPort = port
     const created = createServer(
@@ -137,7 +130,7 @@ export function createOtelReceiver(options: OtelReceiverOptions): OtelReceiver {
   }
 
   return {
-    start: (token) => serialize(() => startListening(token)),
+    start: (binding) => serialize(() => startListening(binding)),
     stop: () => serialize(stopListening),
     state: () => current
   }

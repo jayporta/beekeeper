@@ -28,6 +28,25 @@ function sessionId(n: number): string {
 }
 
 describe('createReportedCostStore', () => {
+  it('forgets every session and the request ids it saw when cleared', () => {
+    const store = createReportedCostStore()
+    store.record([request({ requestId: 'req_1' })])
+
+    store.clear()
+    store.record([request({ requestId: 'req_1' })])
+
+    expect(store.get(TEST_SESSION_ID)).toMatchObject({ costUsd: 1, requests: 1 })
+  })
+
+  it('reports nothing for a session after the store is cleared', () => {
+    const store = createReportedCostStore()
+    store.record([request()])
+
+    store.clear()
+
+    expect(store.get(TEST_SESSION_ID)).toBeNull()
+  })
+
   it('reports nothing for a session that never reported', () => {
     expect(createReportedCostStore().get(TEST_SESSION_ID)).toBeNull()
   })

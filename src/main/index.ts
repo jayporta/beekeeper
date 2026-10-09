@@ -5,7 +5,7 @@ import { optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { buildAppMenuTemplate } from './appMenu'
 import { createIpcDeps } from './ipc/createIpcDeps'
-import { createOtelRuntime } from './otel/createOtelRuntime'
+import { wireOtelReceiver } from './otel/wireOtelReceiver'
 import { registerIpcHandlers } from './ipc/registerIpcHandlers'
 import { isTrustedSender } from './ipc/senderValidation'
 import { createProjectsWatcher } from './live/createProjectsWatcher'
@@ -78,8 +78,9 @@ app
     hardenDefaultSession({ rendererRoot, devServerUrl })
 
     // The opt-in telemetry receiver: off unless the saved setting is on.
-    const otel = createOtelRuntime({
-      settingsPath: join(app.getPath('userData'), 'otel-receiver.json')
+    const otel = wireOtelReceiver({
+      settingsPath: join(app.getPath('userData'), 'otel-receiver.json'),
+      host: { onWillQuit: (listener) => app.on('will-quit', listener) }
     })
     const deps = {
       ...createIpcDeps(app.getPath('home')),
@@ -132,16 +133,6 @@ app
     })
 
     createWindow()
-    // Not awaited, so the window never waits on it. Reads of the receiver queue behind
-    // it, so the page never sees a receiver that is on but not yet started.
-    otel.receiver.startFromSettings().catch((error: unknown) => {
-      console.error(`Beekeeper could not start the telemetry receiver (${describeError(error)}).`)
-    })
-    app.on('will-quit', () => {
-      otel.receiver.stop().catch((error: unknown) => {
-        console.error(`Beekeeper could not stop the telemetry receiver (${describeError(error)}).`)
-      })
-    })
 
     app.on('activate', function () {
       // On macOS it's common to re-create a window when the dock icon is

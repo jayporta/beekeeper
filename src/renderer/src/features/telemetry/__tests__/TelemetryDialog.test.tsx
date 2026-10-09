@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { act } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -14,7 +14,7 @@ const LISTENING: OtelReceiverDto = {
   enabled: true,
   status: 'listening',
   failure: null,
-  port: 47318,
+  port: 23456,
   token: TOKEN
 }
 const ok = (value: OtelReceiverDto): Promise<{ ok: true; value: OtelReceiverDto }> =>
@@ -69,12 +69,12 @@ describe('TelemetryDialog', () => {
     await userEvent.click(checkbox())
 
     expect(api.setOtelReceiverEnabled).toHaveBeenCalledWith(true)
-    expect(await within(dialog()).findByText('Listening on 127.0.0.1, port 47318.')).toBeTruthy()
+    expect(await within(dialog()).findByText('Listening on 127.0.0.1, port 23456.')).toBeTruthy()
     expect((checkbox() as HTMLInputElement).checked).toBe(true)
     const lines = within(dialog()).getByRole('region', {
       name: 'Environment variables for Claude Code'
     })
-    expect(lines.textContent).toBe(telemetryEnvLines({ port: 47318, token: TOKEN }))
+    expect(lines.textContent).toBe(telemetryEnvLines({ port: 23456, token: TOKEN }))
   })
 
   it('makes the lines a keyboard-focusable region, so a long line scrolls', async () => {
@@ -120,7 +120,7 @@ describe('TelemetryDialog', () => {
 
     expect(
       await within(dialog()).findByText(
-        'Port 47318 is in use. Another beekeeper window or app may be using it.'
+        'Another app is using port 23456. Turn the receiver off and on again to get a new port and token.'
       )
     ).toBeTruthy()
   })
@@ -132,8 +132,62 @@ describe('TelemetryDialog', () => {
     renderDialog()
 
     expect(
-      await within(dialog()).findByText("beekeeper couldn't start listening on port 47318.")
+      await within(dialog()).findByText(
+        "beekeeper couldn't start listening on port 23456. Turn the receiver off and on again to get a new port and token."
+      )
     ).toBeTruthy()
+  })
+
+  it.each([
+    ['port-in-use', "beekeeper couldn't find a free port, so the receiver stays off."],
+    ['failed', "beekeeper couldn't start the receiver, so it stays off."]
+  ] as const)(
+    'says the receiver stays off when turning it on failed with %s, and shows no lines',
+    async (failure, message) => {
+      installBeekeeperApi({
+        setOtelReceiverEnabled: () => ok({ enabled: false, status: 'failed', failure })
+      })
+      renderDialog()
+      await within(dialog()).findByText('Off. Nothing is listening.')
+
+      await userEvent.click(checkbox())
+
+      expect(await within(dialog()).findByText(message)).toBeTruthy()
+      expect((checkbox() as HTMLInputElement).checked).toBe(false)
+      expect(within(dialog()).queryByRole('region')).toBeNull()
+    }
+  )
+
+  it('tells the person the port and token change each time, and to keep the lines private', async () => {
+    installBeekeeperApi({ getOtelReceiver: () => ok(LISTENING) })
+    renderDialog()
+    await within(dialog()).findByRole('region')
+
+    expect(
+      within(dialog()).getByText(/port and token change each time you turn the receiver on/)
+    ).toBeTruthy()
+    expect(within(dialog()).getByText(/readable only by you/)).toBeTruthy()
+  })
+
+  it('reads the receiver again after a change fails, so no stale port or token stays on screen', async () => {
+    let reads = 0
+    const api = installBeekeeperApi({
+      getOtelReceiver: () => {
+        reads += 1
+        return ok(reads === 1 ? LISTENING : TEST_OTEL_OFF)
+      },
+      setOtelReceiverEnabled: () => Promise.resolve({ ok: false, error: { code: 'internal' } })
+    })
+    renderDialog()
+    await within(dialog()).findByRole('region')
+
+    await userEvent.click(checkbox())
+
+    await waitFor(() => {
+      expect(within(dialog()).queryByRole('region')).toBeNull()
+    })
+    expect(api.getOtelReceiver).toHaveBeenCalledTimes(2)
+    expect((checkbox() as HTMLInputElement).checked).toBe(false)
   })
 
   it('says it could not read the setting when the receiver call fails', async () => {
@@ -192,7 +246,7 @@ describe('TelemetryDialog', () => {
       await Promise.resolve()
     })
 
-    await within(dialog()).findByText('Listening on 127.0.0.1, port 47318.')
+    await within(dialog()).findByText('Listening on 127.0.0.1, port 23456.')
     expect(document.activeElement).toBe(checkbox())
   })
 
@@ -224,7 +278,7 @@ describe('TelemetryDialog', () => {
 
     await userEvent.click(within(dialog()).getByRole('button', { name: 'Copy' }))
 
-    expect(copyText).toHaveBeenCalledWith(telemetryEnvLines({ port: 47318, token: TOKEN }))
+    expect(copyText).toHaveBeenCalledWith(telemetryEnvLines({ port: 23456, token: TOKEN }))
     expect(await within(dialog()).findByText('Copied to clipboard.')).toBeTruthy()
   })
 

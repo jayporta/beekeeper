@@ -1,4 +1,4 @@
-import { createOtelReceiver, OTEL_RECEIVER_PORT } from './createOtelReceiver'
+import { createOtelReceiver } from './createOtelReceiver'
 import {
   createOtelReceiverController,
   type OtelReceiverController
@@ -18,26 +18,27 @@ export interface OtelRuntime {
 export interface OtelRuntimeOptions {
   /** The settings file, such as `otel-receiver.json` in the app's data folder. */
   readonly settingsPath: string
-  /** The port to bind. Defaults to {@link OTEL_RECEIVER_PORT}; tests pass 0 for a free one. */
-  readonly port?: number
+  /** Picks the port to try each time the receiver is turned on. Defaults to a random port from 20000 to 29999; tests return 0 for a free one. */
+  readonly pickPort?: () => number
 }
 
 /**
  * Builds the telemetry receiver, off until the saved setting or a person turns
  * it on, and the store it reports into.
  *
- * @param options - The settings file and, optionally, the port.
+ * @param options - The settings file and, optionally, the port picker.
  * @returns The controller and the store the receiver writes to.
  */
 export function createOtelRuntime(options: OtelRuntimeOptions): OtelRuntime {
-  const { settingsPath, port = OTEL_RECEIVER_PORT } = options
+  const { settingsPath, pickPort } = options
   const costs = createReportedCostStore()
-  const receiver = createOtelReceiver({ costs, port })
+  const receiver = createOtelReceiver({ costs })
   return {
     receiver: createOtelReceiverController({
       settings: createOtelSettingsStore(settingsPath),
       receiver,
-      port
+      costs,
+      pickPort
     }),
     costs
   }

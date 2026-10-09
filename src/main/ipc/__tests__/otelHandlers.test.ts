@@ -5,17 +5,16 @@ import { getOtelReceiverHandler } from '../getOtelReceiverHandler'
 import { getReportedCostHandler } from '../getReportedCostHandler'
 import { setOtelReceiverEnabledHandler } from '../setOtelReceiverEnabledHandler'
 import type { OtelRuntime } from '../../otel/createOtelRuntime'
-import { OTEL_RECEIVER_PORT } from '../../otel/createOtelReceiver'
 import { TEST_SESSION_ID } from '../../otel/testOtlpLogs'
 
-const OFF: OtelReceiverDto = {
-  enabled: false,
-  status: 'off',
+const OFF: OtelReceiverDto = { enabled: false, status: 'off', failure: null }
+const ON: OtelReceiverDto = {
+  enabled: true,
+  status: 'listening',
   failure: null,
-  port: OTEL_RECEIVER_PORT,
-  token: null
+  port: 23456,
+  token: 'tok'
 }
-const ON: OtelReceiverDto = { ...OFF, enabled: true, status: 'listening', token: 'tok' }
 const REPORTED: ReportedCostDto = {
   costUsd: 1,
   requests: 2,
@@ -36,7 +35,8 @@ function fakeRuntime(calls: boolean[] = []): OtelRuntime {
     },
     costs: {
       record: () => undefined,
-      get: (sessionId) => (sessionId === TEST_SESSION_ID ? REPORTED : null)
+      get: (sessionId) => (sessionId === TEST_SESSION_ID ? REPORTED : null),
+      clear: () => undefined
     }
   }
 }
@@ -46,7 +46,7 @@ describe('getOtelReceiverHandler', () => {
     expect(await getOtelReceiverHandler({ otel: fakeRuntime() })).toEqual({ ok: true, value: OFF })
   })
 
-  it('reports an off receiver on the default port when the telemetry receiver is not wired', async () => {
+  it('reports an off receiver when the telemetry receiver is not wired', async () => {
     expect(await getOtelReceiverHandler({ otel: null })).toEqual({ ok: true, value: OFF })
   })
 })

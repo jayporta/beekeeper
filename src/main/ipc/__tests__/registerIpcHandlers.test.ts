@@ -64,7 +64,10 @@ describe('registerIpcHandlers', () => {
   })
 
   it('serves the telemetry receiver channels from the runtime it is given', async () => {
-    const runtime = createOtelRuntime({ settingsPath: join(tree.home, 'otel.json'), port: 0 })
+    const runtime = createOtelRuntime({
+      settingsPath: join(tree.home, 'otel.json'),
+      pickPort: () => 0
+    })
     const listeners = register(runtime)
     const on = await listeners.get(IPC_CHANNELS.setOtelReceiverEnabled)?.(trustedEvent, {
       enabled: true

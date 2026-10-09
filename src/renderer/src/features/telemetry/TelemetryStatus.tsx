@@ -14,7 +14,8 @@ interface TelemetryStatusProps {
 /**
  * The one polite status line of the telemetry dialog: that saving a change
  * failed, that the setting couldn't be read or is loading, or what the receiver
- * is doing (listening, off, or why it couldn't start). It stays mounted, so a
+ * is doing (listening, off, why it couldn't start, or why turning it on failed
+ * and it stays off). It stays mounted, so a
  * screen reader hears each change.
  *
  * @example
@@ -32,11 +33,13 @@ export function TelemetryStatus({
     if (receiver === undefined) {
       return loadFailed ? t('status.loadFailed') : t('status.loading')
     }
-    if (receiver.status === 'listening') return t('status.listening', { port: receiver.port })
-    if (receiver.status === 'failed') {
-      return t(`status.failure.${receiver.failure ?? 'failed'}`, { port: receiver.port })
+    if (!receiver.enabled) {
+      return receiver.status === 'failed'
+        ? t(`status.turnOnFailure.${receiver.failure}`)
+        : t('status.off')
     }
-    return t('status.off')
+    if (receiver.status === 'listening') return t('status.listening', { port: receiver.port })
+    return t(`status.failure.${receiver.failure ?? 'failed'}`, { port: receiver.port })
   }
 
   return <p role="status">{message()}</p>
