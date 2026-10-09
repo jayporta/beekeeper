@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isRecordObject } from '../isRecordObject'
 import { messageContentBlocks } from '../messageContentBlocks'
 import { toolResultBlockSchema, toolUseBlockSchema } from '../schemas'
 import { boundedIdentifierSchema } from '../schemas/boundedIdentifier'
@@ -27,16 +28,30 @@ const systemUuidSchema = boundedIdentifierSchema.min(1)
 /**
  * Defers reading a record's timestamp until a block needs it, so records with
  * no tool blocks (most assistant text and plain user turns) skip the parse.
+ * A timestamp the caller already read is used as is.
  */
-function lazyTimestampMs(record: Record<string, unknown>): () => number | null {
-  let cached: number | null | undefined
+function lazyTimestampMs(
+  record: Record<string, unknown>,
+  known: number | null | undefined
+): () => number | null {
+  let cached = known
   return () => (cached === undefined ? (cached = recordTimestampMs(record)) : cached)
+}
+
+/** Whether a content block is an object of the given `type`, so a text or thinking block skips its schema parse. */
+function isBlockOfType(block: unknown, type: string): boolean {
+  return isRecordObject(block) && block.type === type
 }
 
 /** Collects signal events from one transcript's records, in a single pass. */
 export interface SignalObserver {
-  /** Feeds one parsed record to the observer. Records must be observed in file order. */
-  observe(record: Record<string, unknown>): void
+  /**
+   * Feeds one parsed record to the observer. Records must be observed in file order.
+   * @param record - The parsed record.
+   * @param timestampMs - The record's timestamp in epoch milliseconds, or `null` when it has
+   * none, if the caller has already read it. Omit it to have the observer read the record's own.
+   */
+  observe(record: Record<string, unknown>, timestampMs?: number | null): void
   /** Every event kept so far, in the order observed. */
   events(): readonly SignalEvent[]
   /** Whether an event arrived after the list was full, so it was dropped. */
@@ -63,9 +78,13 @@ export function createSignalObserver(): SignalObserver {
     events.push(event)
   }
 
-  function observeToolCalls(record: Record<string, unknown>): void {
-    const timestamp = lazyTimestampMs(record)
+  function observeToolCalls(
+    record: Record<string, unknown>,
+    known: number | null | undefined
+  ): void {
+    const timestamp = lazyTimestampMs(record, known)
     for (const raw of messageContentBlocks(record)) {
+      if (!isBlockOfType(raw, 'tool_use')) continue
       const block = toolUseBlockSchema.safeParse(raw)
       if (!block.success) continue
       const { id, name } = block.data
@@ -80,9 +99,13 @@ export function createSignalObserver(): SignalObserver {
     }
   }
 
-  function observeToolResults(record: Record<string, unknown>): void {
-    const timestamp = lazyTimestampMs(record)
+  function observeToolResults(
+    record: Record<string, unknown>,
+    known: number | null | undefined
+  ): void {
+    const timestamp = lazyTimestampMs(record, known)
     for (const raw of messageContentBlocks(record)) {
+      if (!isBlockOfType(raw, 'tool_result')) continue
       const block = toolResultBlockSchema.safeParse(raw)
       if (!block.success) continue
       push({
@@ -103,14 +126,14 @@ export function createSignalObserver(): SignalObserver {
   }
 
   return {
-    observe(record) {
+    observe(record, timestampMs) {
       if (capped) return
       switch (record.type) {
         case 'assistant':
-          observeToolCalls(record)
+          observeToolCalls(record, timestampMs)
           break
         case 'user':
-          observeToolResults(record)
+          observeToolResults(record, timestampMs)
           break
         case 'system':
           observeSystem(record)

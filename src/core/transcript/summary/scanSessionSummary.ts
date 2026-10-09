@@ -86,7 +86,7 @@ export async function scanSessionSummary(
     limitHitObserver.observe(record)
     modelObserver.observe(record, timestampMs)
     tokenObserver.observe(record, timestampMs)
-    signalObserver.observe(record)
+    signalObserver.observe(record, timestampMs)
     if (record.type === 'ai-title') {
       const aiTitle = aiTitleRecordSchema.safeParse(record)
       if (aiTitle.success) title = truncateTitle(aiTitle.data.aiTitle)

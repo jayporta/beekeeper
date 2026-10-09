@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { commandHash } from '../commandHash'
 import { createSignalObserver, MAX_SIGNAL_EVENTS_PER_TRANSCRIPT } from '../signalObserver'
 import type { SignalObserver } from '../signalObserver'
-import { buildAssistantToolUseRecord, buildUserToolResultRecord } from '../../testFileTouchFixtures'
+import {
+  buildAssistantToolUseRecord,
+  buildToolResultBlock,
+  buildToolUseBlock,
+  buildUserToolResultRecord
+} from '../../testFileTouchFixtures'
 import { buildSystemRecord } from '../testSignalFixtures'
 
 function observed(...records: Record<string, unknown>[]): SignalObserver {
@@ -31,6 +36,56 @@ describe('createSignalObserver', () => {
       }
     ])
   })
+
+  it('uses the timestamp it is given instead of reading the record’s own', () => {
+    const observer = createSignalObserver()
+    observer.observe(
+      buildAssistantToolUseRecord({ toolUseId: 'a', timestamp: '2026-01-01T00:00:01.000Z' }),
+      42
+    )
+    observer.observe(
+      buildUserToolResultRecord({ toolUseId: 'a', timestamp: '2026-01-01T00:00:02.000Z' }),
+      99
+    )
+
+    expect(observer.events()).toMatchObject([{ atMs: 42 }, { atMs: 99 }])
+  })
+
+  it('takes a given null timestamp as the record having none', () => {
+    const observer = createSignalObserver()
+    observer.observe(
+      buildAssistantToolUseRecord({ toolUseId: 'a', timestamp: '2026-01-01T00:00:01.000Z' }),
+      null
+    )
+
+    expect(observer.events()).toMatchObject([{ atMs: null }])
+  })
+
+  it.each([
+    { type: 'assistant', block: buildToolUseBlock({ id: 'a', name: 'Read' }), kind: 'tool-call' },
+    { type: 'user', block: buildToolResultBlock({ tool_use_id: 'a' }), kind: 'tool-result' }
+  ])(
+    'does not parse the $type record’s blocks that are not tool blocks',
+    ({ type, block, kind }) => {
+      const observer = createSignalObserver()
+      let reads = 0
+      const textBlock = {
+        type: 'text',
+        get id(): unknown {
+          reads += 1
+          return 'x'
+        },
+        get tool_use_id(): unknown {
+          reads += 1
+          return 'x'
+        }
+      }
+      observer.observe({ type, message: { content: [textBlock, 'plain', null, block] } })
+
+      expect(observer.events()).toMatchObject([{ kind, toolUseId: 'a' }])
+      expect(reads).toBe(0)
+    }
+  )
 
   it('gives a call to another tool a null command hash', () => {
     const observer = observed(
