@@ -3,7 +3,7 @@ import type { OtelReceiverFailureDto } from './otelReceiverFailureDto'
 /**
  * Whether the telemetry receiver is accepting Claude Code's exports. It is
  * `starting` while it is turned on but the server hasn't started yet, which
- * is only the moment between launch and the first window finishing loading.
+ * is only the moment between launch and the start attempt.
  */
 export type OtelReceiverStatusDto = 'off' | 'starting' | 'listening' | 'failed'
 

@@ -105,11 +105,10 @@ app
       optimizer.watchWindowShortcuts(window, { zoom: true })
     })
 
-    // Started once the first page has loaded, so a busy port never delays the window.
-    createWindow().webContents.once('did-finish-load', () => {
-      otel.receiver.startFromSettings().catch((error: unknown) => {
-        console.error(`Beekeeper could not start the telemetry receiver (${describeError(error)}).`)
-      })
+    createWindow()
+    // Listening is asynchronous and a busy port fails at once, so starting here never delays the window.
+    otel.receiver.startFromSettings().catch((error: unknown) => {
+      console.error(`Beekeeper could not start the telemetry receiver (${describeError(error)}).`)
     })
     app.on('will-quit', () => {
       otel.receiver.stop().catch((error: unknown) => {
