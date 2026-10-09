@@ -314,6 +314,22 @@ describe('AgentInspector when the subagents folder could not be read', () => {
   })
 })
 
+describe('AgentInspector signals', () => {
+  it('shows the lead its agents killed count', () => {
+    renderInspectorScene()
+
+    expect(inspector().getByText('Agents killed')).toBeTruthy()
+  })
+
+  it('shows an agent in a session of its own its agents killed count', async () => {
+    renderInspectorScene()
+
+    await select(/^writer/)
+
+    await waitFor(() => expect(inspector().getByText('Agents killed')).toBeTruthy())
+  })
+})
+
 describe('AgentInspector for a subagent', () => {
   it('shows who it is and its own figures when its node is selected', async () => {
     renderInspectorScene()
@@ -361,6 +377,27 @@ describe('AgentInspector for a subagent', () => {
     await select(/^scout/)
 
     expect(inspector().getByText('Stopped')).toBeTruthy()
+  })
+
+  it('leaves out the agents killed count, which only an agent in a session of its own can have', async () => {
+    renderInspectorScene()
+
+    await select(/^scout/)
+
+    expect(inspector().queryByText('Agents killed')).toBeNull()
+  })
+
+  it('leaves out the agents killed count for a teammate recorded in the lead’s transcript', async () => {
+    const detail = testDetail({
+      children: [
+        testNode('a1', { meta: testMeta({ name: 'worker', spawnDepth: 0, teamName: 'auth' }) })
+      ]
+    })
+    renderInspectorScene({ detail })
+
+    await select(/^worker/)
+
+    expect(inspector().queryByText('Agents killed')).toBeNull()
   })
 
   it('names a teammate recorded in the lead’s transcript as one in the lead’s session', async () => {

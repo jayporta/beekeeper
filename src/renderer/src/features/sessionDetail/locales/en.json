@@ -151,6 +151,23 @@
       "shared": "Shares the worktree of subagent {{agent}} in the lead session, so its changes are part of that diff.",
       "showShared": "Show subagent {{agent}}"
     },
+    "signals": {
+      "heading": "Signals",
+      "toolErrors": "Tool errors",
+      "toolErrorsNote": "Includes calls a hook blocked or a person denied.",
+      "errorsWithStreak": "{{count, integer}} ({{streak}})",
+      "streak_one": "longest streak {{count, integer}}",
+      "streak_other": "longest streak {{count, integer}}",
+      "bashRepeat": "Same Bash command in a row",
+      "noRepeats": "No repeats",
+      "compactions": "Compactions",
+      "agentsKilled": "Agents killed",
+      "longestWait": "Longest tool wait",
+      "waitValue": "{{duration}} ({{tool}})",
+      "waitNote": "Includes time waiting for approval.",
+      "count": "{{count, integer}}",
+      "none": "None"
+    },
     "flags": {
       "stopped": "Stopped",
       "partial": "Partial transcript"
@@ -160,6 +177,7 @@
       "unreadableLines": "Some transcript lines couldn't be read, so these totals may be low.",
       "unpricedTokens": "Some tokens have no known price, so the cost may be low.",
       "incompleteFiles": "The file list may be missing files.",
+      "incompleteSignals": "This agent has more events than beekeeper counts, so its signal counts may be low.",
       "unrecordedTokens": "This agent's own tokens weren't recorded, so the total with the agents below may be low.",
       "subagentsUnreadable": "beekeeper couldn't read this session's subagents, so agents below may be missing and the total may be low.",
       "subagentsNotLoaded": "Some teammates' subagents aren't loaded, so the total may be low.",

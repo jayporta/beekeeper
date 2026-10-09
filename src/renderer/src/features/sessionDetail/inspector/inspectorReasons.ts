@@ -8,6 +8,7 @@ export type InspectorReason =
   | 'unreadableLines'
   | 'unpricedTokens'
   | 'incompleteFiles'
+  | 'incompleteSignals'
   | 'unrecordedTokens'
   | 'subagentsUnreadable'
   | 'subagentsNotLoaded'
@@ -47,6 +48,7 @@ export function inspectorReasons({
   if (report.skippedLines > 0) reasons.add('unreadableLines')
   if (cost.partial) reasons.add('unpricedTokens')
   if (report.fileListIncomplete) reasons.add('incompleteFiles')
+  if (report.signals.partial) reasons.add('incompleteSignals')
   if (rollup.below > 0 && reportTokens(report) === null) reasons.add('unrecordedTokens')
   if (subagentsUnreadable) reasons.add('subagentsUnreadable')
   if (rollup.subagentsNotLoaded) reasons.add('subagentsNotLoaded')
