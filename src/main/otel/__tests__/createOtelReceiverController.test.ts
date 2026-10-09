@@ -1,4 +1,4 @@
-import { chmodSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -114,16 +114,11 @@ describe('createOtelReceiverController', () => {
   })
 
   it('does not start the receiver when the setting cannot be saved', async () => {
-    const readOnly = join(dir, 'read-only')
-    mkdirSync(readOnly)
-    chmodSync(readOnly, 0o500)
-    const broken = build(join(readOnly, 'otel-receiver.json'), 0)
+    const blocker = join(dir, 'blocker')
+    writeFileSync(blocker, '')
+    const broken = build(join(blocker, 'otel-receiver.json'), 0)
 
-    try {
-      await expect(broken.controller.setEnabled(true)).rejects.toThrow()
-    } finally {
-      chmodSync(readOnly, 0o700)
-    }
+    await expect(broken.controller.setEnabled(true)).rejects.toThrow()
 
     expect(broken.receiver.state()).toEqual({ status: 'off' })
   })
@@ -133,13 +128,11 @@ describe('createOtelReceiverController', () => {
     mkdirSync(folder)
     const guarded = build(join(folder, 'otel-receiver.json'), 0)
     await guarded.controller.setEnabled(true)
-    chmodSync(folder, 0o500)
+    // A file where the folder was makes the next save fail for any user, root included.
+    rmSync(folder, { recursive: true })
+    writeFileSync(folder, '')
 
-    try {
-      await expect(guarded.controller.setEnabled(false)).rejects.toThrow()
-    } finally {
-      chmodSync(folder, 0o700)
-    }
+    await expect(guarded.controller.setEnabled(false)).rejects.toThrow()
 
     expect(guarded.receiver.state().status).toBe('listening')
     await guarded.stopAll()
