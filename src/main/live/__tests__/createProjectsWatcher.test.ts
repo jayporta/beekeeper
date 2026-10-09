@@ -53,7 +53,8 @@ function fakeWatch(script: readonly (Error | null)[] = [null]): FakeWatch {
   return { watch, watchers }
 }
 
-function start(
+/** A watcher that has not started watching yet. */
+function create(
   fake: FakeWatch,
   windows: readonly FakeWindow[],
   exists: () => boolean = () => true
@@ -64,6 +65,17 @@ function start(
     exists,
     windows: () => windows.map((w) => w.window)
   })
+}
+
+/** A watcher that has started. */
+function start(
+  fake: FakeWatch,
+  windows: readonly FakeWindow[],
+  exists: () => boolean = () => true
+): ProjectsWatcher {
+  const watcher = create(fake, windows, exists)
+  watcher.start()
+  return watcher
 }
 
 const batchesOf = (window: FakeWindow): unknown[] =>
@@ -81,6 +93,47 @@ describe('createProjectsWatcher', () => {
   afterEach(() => {
     vi.useRealTimers()
     warn.mockRestore()
+  })
+
+  describe('start', () => {
+    it('watches nothing until it is started', () => {
+      const fake = fakeWatch()
+      create(fake, [])
+      vi.advanceTimersByTime(ROOT_RETRY_INTERVAL_MS)
+      expect(fake.watch).not.toHaveBeenCalled()
+    })
+
+    it('does not watch twice when started twice', () => {
+      const fake = fakeWatch()
+      const watcher = create(fake, [])
+      watcher.start()
+      watcher.start()
+      expect(fake.watch).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not watch twice when started again while waiting for the root', () => {
+      const fake = fakeWatch([errorWithCode('ENOENT'), null])
+      const watcher = create(fake, [])
+      watcher.start()
+      watcher.start()
+      expect(fake.watch).toHaveBeenCalledTimes(1)
+    })
+
+    it('does nothing when started after it is closed', () => {
+      const fake = fakeWatch()
+      const watcher = create(fake, [])
+      watcher.close()
+      watcher.start()
+      expect(fake.watch).not.toHaveBeenCalled()
+    })
+
+    it('does not restart after becoming unavailable', () => {
+      const fake = fakeWatch([errorWithCode('EMFILE'), null])
+      const watcher = create(fake, [])
+      watcher.start()
+      watcher.start()
+      expect(fake.watch).toHaveBeenCalledTimes(1)
+    })
   })
 
   it('watches the root recursively', () => {
@@ -164,7 +217,7 @@ describe('createProjectsWatcher', () => {
       expect(fake.watch).toHaveBeenCalledTimes(4)
     })
 
-    it('closes the watcher and waits when the root disappears while watching', () => {
+    it('closes the watcher and waits when an event with no filename shows the root is gone', () => {
       const fake = fakeWatch([null, null])
       const live = fakeWindow()
       start(fake, [live], () => false)
@@ -175,13 +228,63 @@ describe('createProjectsWatcher', () => {
       expect(fake.watch).toHaveBeenCalledTimes(2)
     })
 
-    it('sends a refresh-everything batch when the root disappears', () => {
+    it('sends a refresh-everything batch when an event with an empty filename shows the root is gone', () => {
       const fake = fakeWatch([null, null])
       const live = fakeWindow()
       start(fake, [live], () => false)
       fake.watchers[0]?.emit('')
       vi.advanceTimersByTime(LIVE_UPDATE_INTERVAL_MS)
       expect(batchesOf(live)).toEqual([{ dirNames: [], foldersChanged: false, all: true }])
+    })
+
+    it('closes the watcher and waits when an event named for the root shows it is gone', () => {
+      const fake = fakeWatch([null, null])
+      const live = fakeWindow()
+      start(fake, [live], () => false)
+      fake.watchers[0]?.emit('projects')
+      expect(fake.watchers[0]?.close).toHaveBeenCalledTimes(1)
+      expect(unavailableCount(live)).toBe(0)
+      vi.advanceTimersByTime(ROOT_RETRY_INTERVAL_MS)
+      expect(fake.watch).toHaveBeenCalledTimes(2)
+    })
+
+    it('delivers events again after the root comes back', () => {
+      const fake = fakeWatch([null, null])
+      const live = fakeWindow()
+      let present = false
+      start(fake, [live], () => present)
+      fake.watchers[0]?.emit('projects')
+      present = true
+      vi.advanceTimersByTime(ROOT_RETRY_INTERVAL_MS + LIVE_UPDATE_INTERVAL_MS)
+      live.send.mockClear()
+
+      fake.watchers[1]?.emit('-Users-a/one.jsonl')
+      vi.advanceTimersByTime(LIVE_UPDATE_INTERVAL_MS)
+
+      expect(batchesOf(live)).toEqual([
+        { dirNames: ['-Users-a'], foldersChanged: false, all: false }
+      ])
+    })
+
+    it('widens to all, never naming the root as a folder, when an event named for the root finds it present', () => {
+      const fake = fakeWatch()
+      const live = fakeWindow()
+      start(fake, [live], () => true)
+      fake.watchers[0]?.emit('projects')
+      vi.advanceTimersByTime(LIVE_UPDATE_INTERVAL_MS)
+      expect(batchesOf(live)).toEqual([{ dirNames: [], foldersChanged: false, all: true }])
+      expect(fake.watchers[0]?.close).not.toHaveBeenCalled()
+    })
+
+    it('still maps a deeper path that starts with the root’s name to a folder', () => {
+      const fake = fakeWatch()
+      const live = fakeWindow()
+      start(fake, [live])
+      fake.watchers[0]?.emit('projects/one.jsonl')
+      vi.advanceTimersByTime(LIVE_UPDATE_INTERVAL_MS)
+      expect(batchesOf(live)).toEqual([
+        { dirNames: ['projects'], foldersChanged: false, all: false }
+      ])
     })
 
     it('stops retrying once closed', () => {

@@ -113,6 +113,13 @@ app
       // a key event in the window also blocks the matching menu accelerator.
       optimizer.watchWindowShortcuts(window, { zoom: true })
       projectsWatcher.notifyWindow(window)
+      // A recursive watch can walk a large tree before it returns, so it starts after the
+      // first page has loaded and painted. Starting again does nothing.
+      window.webContents.once('did-finish-load', () => {
+        setImmediate(() => {
+          projectsWatcher.start()
+        })
+      })
     })
 
     createWindow()

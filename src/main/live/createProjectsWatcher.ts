@@ -1,9 +1,10 @@
 import type { BrowserWindow } from 'electron'
+import { basename } from 'node:path'
 import { errorCode } from '../../core/shared/errorCode'
 import { IPC_EVENTS } from '../../shared/ipc/channels'
 import { describeError } from '../describeError'
 import { createChangeBatcher, type ChangeBatcherOptions } from './changeBatcher'
-import { changedFolder } from './changedFolder'
+import { changedFolder, type FolderChange } from './changedFolder'
 import { sendLiveEvent } from './sendLiveEvent'
 
 /** How long to wait before trying to watch a missing projects folder again. */
@@ -38,6 +39,12 @@ export interface ProjectsWatcherOptions {
 /** Watches the projects folder and tells the windows what changed. */
 export interface ProjectsWatcher {
   /**
+   * Starts watching. Call it once, after the first window has loaded: a
+   * recursive watch can walk the whole tree before it returns. It does
+   * nothing when watching has already started, or after {@link ProjectsWatcher.close}.
+   */
+  start(): void
+  /**
    * Starts telling a window when live updates are unavailable, now and after
    * every page load, because a reload loses what the page was told.
    * @param window - A newly created window.
@@ -47,7 +54,7 @@ export interface ProjectsWatcher {
   close(): void
 }
 
-type WatcherState = 'watching' | 'waiting' | 'unavailable' | 'closed'
+type WatcherState = 'idle' | 'watching' | 'waiting' | 'unavailable' | 'closed'
 
 const defaultTimers: Pick<ChangeBatcherOptions, 'setTimer' | 'clearTimer'> = {
   setTimer: (run, ms) => setTimeout(run, ms),
@@ -58,7 +65,8 @@ const defaultTimers: Pick<ChangeBatcherOptions, 'setTimer' | 'clearTimer'> = {
 
 /**
  * Watches the projects root recursively and sends the windows batches of
- * changed project folders. It has three live states. While `watching`, events
+ * changed project folders. It does nothing until `start` is called. It then
+ * has three live states. While `watching`, events
  * are batched. When the root is missing at start or disappears, it is
  * `waiting`: it sends nothing and retries every {@link ROOT_RETRY_INTERVAL_MS}
  * (the first-run screen already explains a missing root), and a retry that
@@ -67,7 +75,7 @@ const defaultTimers: Pick<ChangeBatcherOptions, 'setTimer' | 'clearTimer'> = {
  * code, never a path.
  *
  * @param options - The root, the watch function and the windows.
- * @returns The watcher, already started.
+ * @returns The watcher, not yet started.
  */
 export function createProjectsWatcher(options: ProjectsWatcherOptions): ProjectsWatcher {
   const { root, watch, exists, windows } = options
@@ -79,7 +87,8 @@ export function createProjectsWatcher(options: ProjectsWatcherOptions): Projects
     setTimer,
     clearTimer
   })
-  let state: WatcherState = 'waiting'
+  const rootName = basename(root)
+  let state: WatcherState = 'idle'
   let watcher: WatcherLike | null = null
   let retryTimer: unknown = null
 
@@ -111,12 +120,16 @@ export function createProjectsWatcher(options: ProjectsWatcherOptions): Projects
 
   function onEvent(_event: string, filename: string | null): void {
     if (state !== 'watching') return
-    const change = changedFolder(filename)
+    const mapped = changedFolder(filename)
+    // An event on the root itself arrives named for the root, such as when it is deleted or renamed.
+    const isRootEvent =
+      mapped.kind === 'folder' && mapped.isFolderItself && mapped.dirName === rootName
+    const change: FolderChange = isRootEvent ? { kind: 'unknown' } : mapped
     batcher.add(change)
     if (change.kind === 'unknown' && !exists(root)) wait()
   }
 
-  function start(): void {
+  function begin(): void {
     try {
       watcher = watch(root, { recursive: true }, onEvent)
     } catch (error) {
@@ -128,16 +141,19 @@ export function createProjectsWatcher(options: ProjectsWatcherOptions): Projects
     state = 'watching'
   }
 
+  function start(): void {
+    if (state === 'idle') begin()
+  }
+
   function retry(): void {
     retryTimer = null
-    start()
+    begin()
     // Folders may have appeared while the root was missing.
     if (state === 'watching') batcher.add({ kind: 'unknown' })
   }
 
-  start()
-
   return {
+    start,
     notifyWindow(window) {
       window.webContents.on('did-finish-load', () => {
         if (state === 'unavailable')
