@@ -3,9 +3,11 @@ import { vi } from 'vitest'
 
 /** A stand-in for a window, with the calls made on it recorded for assertions. */
 export interface FakeWindow {
+  /** The stub, typed as a window to pass to the code under test. */
   readonly window: BrowserWindow
   /** The order of the window calls made, with `send:<argument count>` for each send. */
   readonly calls: string[]
+  /** The web contents' `send`, to assert the event sent. */
   readonly send: ReturnType<typeof vi.fn>
   /** Finishes the page load, as Electron does by emitting `did-finish-load`. */
   finishLoad(): void
