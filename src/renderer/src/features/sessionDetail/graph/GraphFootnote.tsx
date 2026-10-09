@@ -45,7 +45,13 @@ export function GraphFootnote({
       {partialWorkflow && (
         <p id={GRAPH_WORKFLOW_FOOTNOTE_ID}>{t('graph.footnote.partialWorkflow')}</p>
       )}
-      {marks && <p aria-hidden="true">{t('graph.footnote.legend')}</p>}
+      {marks && (
+        <p aria-hidden="true" className={styles.legend}>
+          <span>{t('graph.footnote.legend.toolErrors')}</span>
+          <span>{t('graph.footnote.legend.compactions')}</span>
+          <span>{t('graph.footnote.legend.stopped')}</span>
+        </p>
+      )}
       {missingTeammates > 0 && (
         <p>{t('graph.footnote.missingTeammates', { count: missingTeammates })}</p>
       )}

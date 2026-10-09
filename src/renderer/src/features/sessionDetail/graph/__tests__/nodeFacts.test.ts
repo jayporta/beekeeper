@@ -162,9 +162,9 @@ describe('nodeAccessibleName', () => {
     expect(label).toBe('Lead, lead, 5 tokens, m, stopped, partial data')
   })
 
-  it('says a teammate is still loading its subagents, after the stopped flag', () => {
+  it('says a teammate is still loading its subagents, and leaves out what the node does not show while it loads', () => {
     expect(nameOf({ kind: 'teammate', tokens: 5, stopped: true }, { loading: true })).toBe(
-      'Lead, teammate, 5 tokens, stopped, loading subagents'
+      'Lead, teammate, 5 tokens, loading subagents'
     )
   })
 
@@ -187,6 +187,12 @@ describe('nodeAccessibleName marks', () => {
 
     expect(name).toContain('1 tool error')
     expect(name).not.toContain('compaction')
+  })
+
+  it('leaves out the marks while the node loads, as the node does', () => {
+    const name = nameOf({ marks: { toolErrors: 12, compactions: 1 } }, { loading: true })
+
+    expect(name).not.toMatch(/tool error|compaction/)
   })
 
   it('does not read the mark glyphs', () => {

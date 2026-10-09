@@ -16,8 +16,10 @@ interface GraphNodeFlagsProps {
 /**
  * The flags at the end of a node's second line. While the node loads it holds
  * only the loading flag. Otherwise it holds the tool error and compaction
- * marks, then the stopped flag, and renders nothing when there are none. The
- * node's accessible name says all of them in words.
+ * marks, then the stopped flag, and renders nothing when there are none. Beside
+ * marks the stopped flag is only its glyph, to leave the node's type and model
+ * room, and the footnote legend names it. The node's accessible name says all
+ * of them in words.
  *
  * @example
  * <GraphNodeFlags marks={{ toolErrors: 12, compactions: 0 }} stopped={false} loading={false} />
@@ -31,7 +33,13 @@ export function GraphNodeFlags({
 
   if (loading) return <span className={styles.flag}>{t('graph.node.loadingFlag')}</span>
 
-  const labels = [...markLabels(marks, t), ...(stopped ? [t('graph.node.stoppedFlag')] : [])]
+  const markTexts = markLabels(marks, t)
+  const labels = [
+    ...markTexts,
+    ...(stopped
+      ? [markTexts.length > 0 ? t('graph.node.stoppedGlyph') : t('graph.node.stoppedFlag')]
+      : [])
+  ]
   if (labels.length === 0) return null
 
   return (

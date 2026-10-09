@@ -25,6 +25,7 @@
       "tokensUnknown": "tokens not recorded",
       "stopped": "stopped",
       "stoppedFlag": "■ stopped",
+      "stoppedGlyph": "■",
       "errorsMark": "×{{count, integer}}",
       "compactionsMark": "▲{{count, integer}}",
       "toolErrors_one": "{{count, integer}} tool error",
@@ -37,9 +38,13 @@
       "loadingFlag": "loading…"
     },
     "footnote": {
-      "legend": "× tool errors  ▲ compactions  ■ stopped",
+      "legend": {
+        "toolErrors": "× tool errors",
+        "compactions": "▲ compactions",
+        "stopped": "■ stopped"
+      },
       "keyboard": "Up and Down move between siblings, Left goes to the parent and Right to the first child. Home and End go to the first and last agent. Enter selects.",
-      "partial": "¹ Partial: part of this agent's data couldn't be read, so its tokens or files may be incomplete.",
+      "partial": "¹ Partial: part of this agent's data couldn't be read or counted, so its tokens, files, or signal counts may be incomplete.",
       "partialWorkflow": "On a workflow, ¹ means some of its agents have partial data or no recorded tokens.",
       "missingTeammates_one": "{{count, integer}} teammate not found: the lead spawned it, but it isn't in the sessions list.",
       "missingTeammates_other": "{{count, integer}} teammates not found: the lead spawned them, but they aren't in the sessions list.",

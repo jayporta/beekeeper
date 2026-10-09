@@ -55,7 +55,7 @@ interface NodeNameOptions {
 
 /**
  * The accessible name of a node's button: its name, its kind and parent, its
- * tokens, its second line, then each flag. A workflow run's second line is its
+ * tokens, its second line, then each flag. While the node loads it says only that it is loading, as the node shows only the loading flag. A workflow run's second line is its
  * phase count, its id when its name isn't unique, then how many agents it
  * holds, since the kind is already said. It carries everything the node
  * shows, and the edge to its parent, so a screen reader hears the same facts a
@@ -74,8 +74,8 @@ export function nodeAccessibleName(
       ? t('graph.node.tokensUnknown')
       : t('graph.node.tokens', { count: node.tokens }),
     ...(node.kind === 'workflow' ? runDetails(node, t) : nodeDetail(node, t)),
-    ...markFacts(node.marks, t),
-    node.stopped ? t('graph.node.stopped') : null,
+    ...(loading ? [] : markFacts(node.marks, t)),
+    node.stopped && !loading ? t('graph.node.stopped') : null,
     loading ? t('graph.node.loading') : null,
     node.partial ? t('graph.node.partial') : null
   ].filter((part) => part !== null)
