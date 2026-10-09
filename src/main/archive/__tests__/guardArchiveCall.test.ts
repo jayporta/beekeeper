@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { errorWithCode } from '../../testErrorWithCode'
 import { guardArchiveCall } from '../guardArchiveCall'
-
-function collectLog(): { lines: string[]; log: (line: string) => void } {
-  const lines: string[] = []
-  return { lines, log: (line) => lines.push(line) }
-}
+import { collectLog } from '../testCollectLog'
 
 function failing(code: string): () => number {
   return () => {
@@ -41,6 +37,15 @@ describe('guardArchiveCall', () => {
     guardArchiveCall({ run: failing('EGUARD_TWO'), fallback: 0, kind: 'write', log })
 
     expect(lines).toHaveLength(1)
+  })
+
+  it('logs each different code', () => {
+    const { lines, log } = collectLog()
+
+    guardArchiveCall({ run: failing('EGUARD_FOUR'), fallback: 0, kind: 'read', log })
+    guardArchiveCall({ run: failing('EGUARD_FIVE'), fallback: 0, kind: 'read', log })
+
+    expect(lines).toHaveLength(2)
   })
 
   it('logs the same code again for the other kind of call', () => {

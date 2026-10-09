@@ -1,9 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 
 /** What {@link useFocusHandoff} gives the box and its target. */
 interface FocusHandoff<Target extends HTMLElement> {
-  /** Whether focus is, or last was, inside the box. */
-  readonly focusInside: boolean
   /** Goes on the box element as its `ref`. */
   readonly boxRef: (box: HTMLElement | null) => void
   /** Goes on the element focus moves to. */
@@ -12,45 +10,32 @@ interface FocusHandoff<Target extends HTMLElement> {
 
 /**
  * Keeps keyboard focus from falling to the page when the part of a box that
- * has it is replaced. It watches the box for focus entering and leaving it.
- * When a hand-off starts while focus was inside the box, focus moves to the
- * target. A hand-off while focus is anywhere else, or nowhere, changes
- * nothing.
- *
- * A blur that names no element is ignored, since it is also what removing the
- * focused element looks like, so the flag still says focus was inside. A blur
- * that names the element focus moved to clears the flag if that is outside.
+ * has it is replaced. When a hand-off starts, it checks whether the focused
+ * element is inside the box, in the render before the replacement removes
+ * anything, and if so moves focus to the target once the replacement is in
+ * place. Focus anywhere else, including on the page because the person clicked
+ * plain text, is left alone.
  *
  * @param handOff - Whether the box's content has been replaced and focus should land on the target.
- * @returns The flag, and the refs for the box and the target.
+ * @returns The refs for the box and the target.
  */
 export function useFocusHandoff<Target extends HTMLElement>(
   handOff: boolean
 ): FocusHandoff<Target> {
   const [box, boxRef] = useState<HTMLElement | null>(null)
-  const [focusInside, setFocusInside] = useState(false)
+  const [handedOff, setHandedOff] = useState(false)
+  const [landFocus, setLandFocus] = useState(false)
   const targetRef = useRef<Target>(null)
 
-  useEffect(() => {
-    if (box === null) return
-    const onFocusIn = (): void => {
-      setFocusInside(true)
-    }
-    const onFocusOut = (event: FocusEvent): void => {
-      const next = event.relatedTarget
-      if (next !== null) setFocusInside(next instanceof Node && box.contains(next))
-    }
-    box.addEventListener('focusin', onFocusIn)
-    box.addEventListener('focusout', onFocusOut)
-    return () => {
-      box.removeEventListener('focusin', onFocusIn)
-      box.removeEventListener('focusout', onFocusOut)
-    }
-  }, [box])
+  if (handOff !== handedOff) {
+    setHandedOff(handOff)
+    // Read now, before the replacement removes the element that has focus.
+    setLandFocus(box !== null && box.contains(document.activeElement))
+  }
 
   useLayoutEffect(() => {
-    if (handOff && focusInside) targetRef.current?.focus()
-  }, [handOff, focusInside])
+    if (handOff && landFocus) targetRef.current?.focus()
+  }, [handOff, landFocus])
 
-  return { focusInside, boxRef, targetRef }
+  return { boxRef, targetRef }
 }

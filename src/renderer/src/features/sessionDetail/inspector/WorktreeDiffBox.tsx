@@ -37,7 +37,9 @@ interface WorktreeDiffBoxProps {
  *
  * An archived session has no worktrees to diff, so the box says so in the same
  * status region that held the diffs, and nothing is requested. When a session
- * turns archived while focus is inside the box, focus moves to that message.
+ * turns archived while focus is inside the box, focus moves to that message. A
+ * teammate's box, which exists only for a shared worktree note, stays with the
+ * message once that note has been shown.
  *
  * @example
  * <WorktreeDiffBox sessionRef={ref} agentId="a1" branch="feature/x" />
@@ -61,9 +63,10 @@ export function WorktreeDiffBox({
   })
   const diffs = archived ? undefined : loaded
   const [patchOpen, setPatchOpen] = useState(false)
+  const [hadBox, setHadBox] = useState(false)
   // The dialog belongs to a live session's diff, so it doesn't come back if the session does.
   if (archived && patchOpen) setPatchOpen(false)
-  const { focusInside, boxRef, targetRef } = useFocusHandoff<HTMLDivElement>(archived)
+  const { boxRef, targetRef } = useFocusHandoff<HTMLDivElement>(archived)
   // The shared worktree belongs to a teammate session's own agent, not to its subagents.
   const shared = agentId === null ? (diffs?.sharedWorktree ?? null) : null
   const sharedNote =
@@ -78,11 +81,10 @@ export function WorktreeDiffBox({
       {announcement}
     </p>
   )
-  // A teammate's box has nothing to say about an archived session, unless focus was in it and
-  // needs somewhere to land.
-  if (agentId === null && shared === null && !(archived && focusInside)) {
-    return <>{status}</>
-  }
+  // A teammate's box is there only for its shared worktree note. Once it has been shown, it
+  // stays to say diffs are gone when the session turns archived, so focus in it has a place to land.
+  if (shared !== null && !hadBox) setHadBox(true)
+  if (agentId === null && shared === null && !(archived && hadBox)) return <>{status}</>
 
   const showShared = (): void => {
     if (shared === null) return

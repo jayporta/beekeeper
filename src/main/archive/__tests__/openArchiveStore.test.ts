@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { openArchiveStore } from '../openArchiveStore'
 import { listEntry, testListItem, TEST_SOURCE } from '../testArchiveFixtures'
+import { collectLog } from '../testCollectLog'
 
 let dir: string
 
@@ -15,11 +16,6 @@ beforeEach(async () => {
 afterEach(async () => {
   await rm(dir, { recursive: true, force: true })
 })
-
-function collectLog(): { lines: string[]; log: (line: string) => void } {
-  const lines: string[] = []
-  return { lines, log: (line) => lines.push(line) }
-}
 
 describe('openArchiveStore', () => {
   it('returns a store that saves to the archive file', () => {

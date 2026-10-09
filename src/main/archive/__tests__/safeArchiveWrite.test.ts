@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { errorWithCode } from '../../testErrorWithCode'
 import { safeArchiveWrite } from '../safeArchiveWrite'
-
-function collectLog(): { lines: string[]; log: (line: string) => void } {
-  const lines: string[] = []
-  return { lines, log: (line) => lines.push(line) }
-}
+import { collectLog } from '../testCollectLog'
 
 describe('safeArchiveWrite', () => {
   it('runs the write', () => {

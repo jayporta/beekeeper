@@ -1,5 +1,5 @@
 import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
-import { safeArchiveRead } from '../archive/safeArchiveRead'
+import { guardArchiveCall } from '../archive/guardArchiveCall'
 import type { IpcDeps } from './ipcDeps'
 
 /** Options for {@link readArchivedListItems}. */
@@ -26,7 +26,9 @@ export function readArchivedListItems(
 ): readonly SessionListItemDto[] {
   const { archive, projectDirName, liveSessionIds } = options
   if (archive === null) return []
-  return safeArchiveRead(() => archive.readListItems(projectDirName, liveSessionIds), []).map(
-    (item): SessionListItemDto => ({ ...item, archived: true, team: null })
-  )
+  return guardArchiveCall({
+    run: () => archive.readListItems(projectDirName, liveSessionIds),
+    fallback: [],
+    kind: 'read'
+  }).map((item): SessionListItemDto => ({ ...item, archived: true, team: null }))
 }

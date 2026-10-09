@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { openArchive } from '../openArchive'
+import { collectLog } from '../testCollectLog'
 
 let dir: string
 
@@ -14,11 +15,6 @@ beforeEach(async () => {
 afterEach(async () => {
   await rm(dir, { recursive: true, force: true })
 })
-
-function collectLog(): { lines: string[]; log: (line: string) => void } {
-  const lines: string[] = []
-  return { lines, log: (line) => lines.push(line) }
-}
 
 describe('openArchive', () => {
   it('opens an in-memory archive with the schema applied', () => {

@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { IpcResult } from '../../../../../../shared/ipc/ipcResult'
@@ -591,7 +591,7 @@ describe('WorktreeDiffBox for an archived session', () => {
     expect(api.getWorktreeDiffs).not.toHaveBeenCalled()
   })
 
-  it('removes a shared worktree note already shown once the teammate session turns archived', async () => {
+  it('replaces a shared worktree note already shown with the message once the teammate session turns archived', async () => {
     const shared: IpcResult<WorktreeDiffsDto> = {
       ok: true,
       value: {
@@ -611,10 +611,9 @@ describe('WorktreeDiffBox for an archived session', () => {
       )
     })
 
-    await waitFor(() => {
-      expect(inspector().queryByRole('heading', { name: 'Worktree diff' })).toBeNull()
-    })
+    expect(await inspector().findByText(NOT_AVAILABLE)).toBeTruthy()
     expect(inspector().queryByText(/Shares the worktree/, { ignore: VISIBLE_ONLY })).toBeNull()
+    expect(inspector().queryByRole('button', { name: /^Show subagent/ })).toBeNull()
   })
 })
 
@@ -749,21 +748,21 @@ describe('WorktreeDiffBox when a session turns archived', () => {
     expect(document.activeElement).toBe(scoutNode)
   })
 
-  it('still moves focus when the focused button reports a blur that names no element, as removing it does', async () => {
-    const { client, region } = await openWithDiffs()
+  it('leaves focus alone when the person clicked plain text after focusing the button', async () => {
+    const { client } = await openWithDiffs()
     const button = await inspector().findByRole('button', { name: 'Open diff' })
     act(() => {
       button.focus()
     })
-    fireEvent.focusOut(button, { relatedTarget: null })
+    await userEvent.click(inspector().getByText('feature/x'))
+    expect(document.activeElement).toBe(document.body)
 
     act(() => {
       client.setQueryData(LEAD_KEY, archivedDetail)
     })
 
-    await waitFor(() => {
-      expect(document.activeElement).toBe(region)
-    })
+    await inspector().findByText(NOT_AVAILABLE)
+    expect(document.activeElement).toBe(document.body)
   })
 
   it('moves focus to a message when it was on a teammate’s shared worktree link', async () => {

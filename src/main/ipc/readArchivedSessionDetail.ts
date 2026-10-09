@@ -1,6 +1,6 @@
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
-import { safeArchiveRead } from '../archive/safeArchiveRead'
+import { guardArchiveCall } from '../archive/guardArchiveCall'
 import type { IpcDeps } from './ipcDeps'
 
 /** Options for {@link readArchivedSessionDetail}. */
@@ -24,6 +24,10 @@ export function readArchivedSessionDetail(
 ): SessionDetailDto | null {
   const { archive, ref } = options
   if (archive === null) return null
-  const detail = safeArchiveRead(() => archive.readDetail(ref), null)
+  const detail = guardArchiveCall({
+    run: () => archive.readDetail(ref),
+    fallback: null,
+    kind: 'read'
+  })
   return detail === null ? null : { ...detail, archived: true }
 }
