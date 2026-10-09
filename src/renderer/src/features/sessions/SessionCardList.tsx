@@ -8,6 +8,7 @@ import { matchOf } from './sessionMatches'
 import { PartialFootnote } from './PartialFootnote'
 import { partialReasons, type PartialReason } from './partialReasons'
 import { SessionCard } from './SessionCard'
+import { SignalScopeNote } from './SignalScopeNote'
 import styles from './SessionCardList.module.css'
 import type { SessionRow } from './sessionRow'
 
@@ -38,9 +39,10 @@ interface SessionCardListProps {
 
 /**
  * The sessions as a list of cards under a column header row, then a legend
- * for the agent marks on screen and a footnote for any partial figure. The header row is visual only: each card says what
- * its figures are in words. It is memoized so a keystroke in the search box
- * skips it until the deferred filter catches up.
+ * for the agent marks on screen, a footnote for any partial figure, and a
+ * note on what the signal counts cover. The header row is visual only: each
+ * card says what its figures are in words. It is memoized so a keystroke in
+ * the search box skips it until the deferred filter catches up.
  *
  * @example
  * <SessionCardList rows={rows} labelledBy={headingId} selectedDirName="-Users-me-repo" query="" />
@@ -96,6 +98,7 @@ export const SessionCardList = memo(function SessionCardList({
       <div className={styles.notes}>
         <AgentLegend kinds={kinds} />
         <PartialFootnote reasons={allReasons} />
+        <SignalScopeNote rows={rows} />
       </div>
     </div>
   )

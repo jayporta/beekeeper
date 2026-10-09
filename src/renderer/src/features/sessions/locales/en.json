@@ -41,6 +41,12 @@
   "notes": {
     "team": "team {{name}}",
     "stopped": "stopped",
+    "toolErrors_one": "{{count, integer}} tool error",
+    "toolErrors_other": "{{count, integer}} tool errors",
+    "compactions_one": "{{count, integer}} compaction",
+    "compactions_other": "{{count, integer}} compactions",
+    "agentKills_one": "{{count, integer}} agent kill",
+    "agentKills_other": "{{count, integer}} agent kills",
     "leadIn": "lead in {{folder}}",
     "in": "in {{folder}}",
     "limitHit": {
@@ -50,6 +56,7 @@
       "sevenDayResets": "hit 7-day limit, resets {{value, shortDateTime}}"
     }
   },
+  "signalScope": "Card counts cover the lead and its teammates. Open a session to see its subagents.",
   "matchingSubagent": "matching subagent {{agent}}",
   "matchingWorkflow": "matching workflow {{workflow}}",
   "refresh": "Refresh",

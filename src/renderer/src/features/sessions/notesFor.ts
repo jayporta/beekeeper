@@ -1,6 +1,7 @@
 import { folderNote, stoppedNote } from './itemNotes'
 import { limitHitNote } from './limitHitNote'
 import type { SessionRow } from './sessionRow'
+import { signalNotes, signalTotalsOf } from './signalNotes'
 import type { SessionsT } from './sessionsT'
 
 /** What {@link notesFor} needs besides the row. */
@@ -15,7 +16,7 @@ export interface NotesOptions {
 
 /**
  * The muted notes after a session's name: its team, stopped state, plan limit
- * hit, and folders.
+ * hit, signal counts, and folders.
  *
  * @param row - The session's row.
  * @param options - The list's folder, the current time, and the translate function.
@@ -31,6 +32,7 @@ export function notesFor(row: SessionRow, { selectedDirName, nowMs, t }: NotesOp
   if (stopped !== null) notes.push(stopped)
   const limit = item.summary.ok ? limitHitNote(item.summary.value.limitHit, { nowMs, t }) : null
   if (limit !== null) notes.push(limit)
+  notes.push(...signalNotes(signalTotalsOf(item), t))
   if (leadFolder !== null) notes.push(t('notes.leadIn', { folder: leadFolder }))
   const folder = folderNote(item, selectedDirName, t)
   if (folder !== null) notes.push(folder)
