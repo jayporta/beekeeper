@@ -56,6 +56,18 @@ describe('applySchema', () => {
     expect(result).toEqual({ ok: false, error: 'newer-schema' })
   })
 
+  it('keeps the large text columns last so reading the small ones never walks an overflow chain', () => {
+    const db = new DatabaseSync(':memory:')
+
+    applySchema(db)
+
+    const columns = db
+      .prepare('PRAGMA table_info(sessions)')
+      .all()
+      .map((c) => String(c['name']))
+    expect(columns.slice(-2)).toEqual(['list_item', 'detail'])
+  })
+
   it('waits only a short time on a locked database', () => {
     const db = new DatabaseSync(':memory:')
 

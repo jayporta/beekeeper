@@ -3,7 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MAX_ARCHIVED_DETAIL_CHARS } from '../archiveConstants'
 import { createArchiveStore, type ArchiveStore } from '../createArchiveStore'
 import { openArchive } from '../openArchive'
-import { testDetail, testListItem, TEST_REF, TEST_SOURCE } from '../testArchiveFixtures'
+import {
+  testDetail,
+  testListItem,
+  testOkSummary,
+  TEST_REF,
+  TEST_SOURCE
+} from '../testArchiveFixtures'
 
 let db: DatabaseSync
 let clock: number
@@ -252,6 +258,101 @@ describe('hasDetail', () => {
     store.saveDetail(TEST_REF, { detail: testDetail(), source: TEST_SOURCE })
 
     expect(store.hasDetail({ ...TEST_REF, projectDirName: '-other' }, TEST_SOURCE)).toBe(false)
+  })
+})
+
+describe('hasListItem', () => {
+  it('is true only for the source state the item was stored with', () => {
+    store.saveListItem(testListItem(), TEST_SOURCE)
+
+    expect(store.hasListItem(TEST_REF, TEST_SOURCE)).toBe(true)
+    expect(store.hasListItem(TEST_REF, { ...TEST_SOURCE, size: 1 })).toBe(false)
+    expect(store.hasListItem(TEST_REF, { ...TEST_SOURCE, mtimeMs: 1 })).toBe(false)
+  })
+
+  it('is false for a session never stored', () => {
+    expect(store.hasListItem(TEST_REF, TEST_SOURCE)).toBe(false)
+  })
+
+  it('is true after the store is created over an archive that holds the item', () => {
+    store.saveListItem(testListItem(), TEST_SOURCE)
+
+    expect(newStore().hasListItem(TEST_REF, TEST_SOURCE)).toBe(true)
+  })
+
+  it('is false for a row stored in another format', () => {
+    db.prepare(
+      `INSERT INTO sessions (project_dir, session_id, source_mtime_ms, source_size, format,
+         list_item, archived_at_ms)
+       VALUES (?, ?, ?, ?, 0, '{}', 1)`
+    ).run(TEST_REF.projectDirName, TEST_REF.sessionId, TEST_SOURCE.mtimeMs, TEST_SOURCE.size)
+
+    expect(newStore().hasListItem(TEST_REF, TEST_SOURCE)).toBe(false)
+  })
+})
+
+describe('pendingDetails', () => {
+  const OTHER_REF = { ...TEST_REF, sessionId: '22222222-2222-4222-8222-222222222222' }
+
+  it('lists a session with an archived item and no detail, with its source state and last message', () => {
+    store.saveListItem(testListItem({ summary: testOkSummary(777) }), TEST_SOURCE)
+
+    expect(store.pendingDetails()).toEqual([
+      { ref: TEST_REF, source: TEST_SOURCE, activityLatestMs: 777 }
+    ])
+  })
+
+  it('has no last message for a summary without timestamps', () => {
+    store.saveListItem(testListItem({ summary: testOkSummary(null) }), TEST_SOURCE)
+
+    expect(store.pendingDetails()[0]?.activityLatestMs).toBeNull()
+  })
+
+  it('leaves out a session whose detail matches its source state', () => {
+    store.saveListItem(testListItem(), TEST_SOURCE)
+    store.saveDetail(TEST_REF, { detail: testDetail(), source: TEST_SOURCE })
+
+    expect(store.pendingDetails()).toEqual([])
+  })
+
+  it('lists a session again once its transcript changes after its detail was stored', () => {
+    store.saveListItem(testListItem(), TEST_SOURCE)
+    store.saveDetail(TEST_REF, { detail: testDetail(), source: TEST_SOURCE })
+    const changed = { ...TEST_SOURCE, size: 900 }
+
+    store.saveListItem(testListItem(), changed)
+
+    expect(store.pendingDetails().map((pending) => pending.source)).toEqual([changed])
+  })
+
+  it('leaves out a session whose detail was skipped as too large for its source state', () => {
+    store.saveListItem(testListItem(), TEST_SOURCE)
+    store.saveDetail(TEST_REF, {
+      detail: testDetail('x'.repeat(MAX_ARCHIVED_DETAIL_CHARS)),
+      source: TEST_SOURCE
+    })
+
+    expect(store.pendingDetails()).toEqual([])
+  })
+
+  it('leaves out a row stored in another format', () => {
+    db.prepare(
+      `INSERT INTO sessions (project_dir, session_id, source_mtime_ms, source_size, format,
+         list_item, archived_at_ms)
+       VALUES (?, ?, ?, ?, 0, '{}', 1)`
+    ).run(TEST_REF.projectDirName, TEST_REF.sessionId, TEST_SOURCE.mtimeMs, TEST_SOURCE.size)
+
+    expect(newStore().pendingDetails()).toEqual([])
+  })
+
+  it('lists sessions after the store is created over an archive that holds them', () => {
+    store.saveListItem(testListItem({ summary: testOkSummary(5) }), TEST_SOURCE)
+    store.saveListItem(testListItem({ sessionId: OTHER_REF.sessionId }), TEST_SOURCE)
+    store.saveDetail(OTHER_REF, { detail: testDetail(), source: TEST_SOURCE })
+
+    expect(newStore().pendingDetails()).toEqual([
+      { ref: TEST_REF, source: TEST_SOURCE, activityLatestMs: 5 }
+    ])
   })
 })
 

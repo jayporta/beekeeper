@@ -2,7 +2,9 @@ import { app, BrowserWindow, ipcMain, Menu } from 'electron'
 import { join } from 'path'
 import { optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { createAppArchiver } from './archive/createAppArchiver'
 import { openArchiveStore } from './archive/openArchiveStore'
+import { wireArchiver } from './archive/wireArchiver'
 import { buildAppMenuTemplate } from './appMenu'
 import { createIpcDeps } from './ipc/createIpcDeps'
 import { registerIpcHandlers } from './ipc/registerIpcHandlers'
@@ -75,15 +77,15 @@ app
   .then(() => {
     hardenDefaultSession({ rendererRoot, devServerUrl })
 
+    const archive = openArchiveStore(join(app.getPath('userData'), 'archive.sqlite'))
+    const deps = { ...createIpcDeps(app.getPath('home')), archive }
+
     // Registered once, before any window: `activate` recreates windows, and a
     // channel can't be registered twice.
     registerIpcHandlers({
       ipcMain,
       isTrusted: (event) => isTrustedSender(event, { rendererRoot, devServerUrl }),
-      deps: {
-        ...createIpcDeps(app.getPath('home')),
-        archive: openArchiveStore(join(app.getPath('userData'), 'archive.sqlite'))
-      }
+      deps
     })
 
     // Set once, before any window: `activate` recreates windows, not the menu.
@@ -103,7 +105,18 @@ app
       optimizer.watchWindowShortcuts(window, { zoom: true })
     })
 
-    createWindow()
+    const firstWindow = createWindow()
+    if (archive !== null) {
+      wireArchiver({
+        archiver: createAppArchiver({ deps, store: archive }),
+        close: () => archive.close(),
+        host: {
+          onFirstWindowLoaded: (listener) =>
+            firstWindow.webContents.once('did-finish-load', listener),
+          onWillQuit: (listener) => app.once('will-quit', listener)
+        }
+      })
+    }
 
     app.on('activate', function () {
       // On macOS it's common to re-create a window when the dock icon is

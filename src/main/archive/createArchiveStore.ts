@@ -3,6 +3,7 @@ import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
 import { sessionRefKey } from '../ipc/sessionRefKey'
 import { ARCHIVE_FORMAT, MAX_ARCHIVED_DETAIL_CHARS } from './archiveConstants'
+import { SELECT_STATES, UPDATE_DETAIL, UPSERT_LIST_ITEM } from './archiveSql'
 import type { ArchiveDb } from './openArchive'
 
 /** The state of a session's lead transcript that an archived copy was made from. */
@@ -52,8 +53,35 @@ export interface ArchiveStore {
    * @returns `true` when archiving the detail again would change nothing.
    */
   hasDetail(ref: SessionRefDto, source: SourceState): boolean
+  /**
+   * Whether the stored list item was built from this source state, at the
+   * current format.
+   *
+   * @param ref - The session to check.
+   * @param source - The lead transcript's current state.
+   * @returns `true` when saving the list item again would change nothing.
+   */
+  hasListItem(ref: SessionRefDto, source: SourceState): boolean
+  /**
+   * Lists the sessions with an archived list item at the current format whose
+   * detail isn't archived for the list item's source state, and wasn't
+   * skipped as too large for it. Answered from memory.
+   *
+   * @returns The sessions a detail could still be archived for.
+   */
+  pendingDetails(): readonly PendingDetail[]
   /** Closes the database. */
   close(): void
+}
+
+/** A session whose archived list item has no detail archived for its source state. */
+export interface PendingDetail {
+  /** The session. */
+  readonly ref: SessionRefDto
+  /** The lead transcript's state the list item was built from. */
+  readonly source: SourceState
+  /** The session's latest message time in epoch milliseconds, or `null` when it has none. */
+  readonly activityLatestMs: number | null
 }
 
 /** What the IPC handlers use of the store: the writes and the archiver's check, not `close`. */
@@ -67,36 +95,13 @@ export interface ArchiveStoreOptions {
   readonly log?: (line: string) => void
 }
 
-/** The source state and format of a stored list item. */
-interface StoredListState extends SourceState {
+/** A stored list item's session, source state, format, and last message time. */
+interface StoredListEntry {
+  readonly ref: SessionRefDto
+  readonly source: SourceState
   readonly format: number
+  readonly activityLatestMs: number | null
 }
-
-const SELECT_STATES = `
-SELECT project_dir, session_id, source_mtime_ms, source_size, format,
-       detail IS NOT NULL AS has_detail, detail_mtime_ms, detail_size
-FROM sessions`
-
-/** In an update, every right-hand side reads the old row, so `sessions.format` is the stored format. */
-const UPSERT_LIST_ITEM = `
-INSERT INTO sessions (project_dir, session_id, source_mtime_ms, source_size, format, list_item, archived_at_ms)
-VALUES (?, ?, ?, ?, ?, ?, ?)
-ON CONFLICT (project_dir, session_id) DO UPDATE SET
-  source_mtime_ms = excluded.source_mtime_ms,
-  source_size = excluded.source_size,
-  list_item = excluded.list_item,
-  detail = CASE WHEN sessions.format = excluded.format THEN sessions.detail END,
-  detail_mtime_ms = CASE WHEN sessions.format = excluded.format THEN sessions.detail_mtime_ms END,
-  detail_size = CASE WHEN sessions.format = excluded.format THEN sessions.detail_size END,
-  format = excluded.format,
-  archived_at_ms = excluded.archived_at_ms
-WHERE excluded.source_mtime_ms != sessions.source_mtime_ms
-  OR excluded.source_size != sessions.source_size
-  OR sessions.format != excluded.format`
-
-const UPDATE_DETAIL = `
-UPDATE sessions SET detail = ?, detail_mtime_ms = ?, detail_size = ?
-WHERE project_dir = ? AND session_id = ?`
 
 function sameSource(a: SourceState | undefined, b: SourceState): boolean {
   return a !== undefined && a.mtimeMs === b.mtimeMs && a.size === b.size
@@ -115,27 +120,36 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
   const { now = Date.now, log = console.warn } = options
   const upsertListItem = db.prepare(UPSERT_LIST_ITEM)
   const updateDetail = db.prepare(UPDATE_DETAIL)
-  const listStates = new Map<string, StoredListState>()
+  const listEntries = new Map<string, StoredListEntry>()
   const detailStates = new Map<string, SourceState>()
   const oversizedStates = new Map<string, SourceState>()
 
   for (const row of db.prepare(SELECT_STATES).all()) {
-    const key = sessionRefKey({
+    const ref = {
       projectDirName: String(row['project_dir']),
       sessionId: String(row['session_id'])
-    })
+    }
+    const key = sessionRefKey(ref)
     const format = Number(row['format'])
-    listStates.set(key, {
-      mtimeMs: Number(row['source_mtime_ms']),
-      size: Number(row['source_size']),
-      format
+    const activity = row['activity_latest_ms']
+    listEntries.set(key, {
+      ref,
+      source: { mtimeMs: Number(row['source_mtime_ms']), size: Number(row['source_size']) },
+      format,
+      activityLatestMs: activity === null ? null : Number(activity)
     })
-    if (format === ARCHIVE_FORMAT && row['has_detail'] === 1) {
+    if (format === ARCHIVE_FORMAT && row['detail_mtime_ms'] !== null) {
       detailStates.set(key, {
         mtimeMs: Number(row['detail_mtime_ms']),
         size: Number(row['detail_size'])
       })
     }
+  }
+
+  /** Whether the stored list item for a key was built from this source state at the current format. */
+  function isListItemCurrent(key: string, source: SourceState): boolean {
+    const entry = listEntries.get(key)
+    return entry?.format === ARCHIVE_FORMAT && sameSource(entry.source, source)
   }
 
   /** Whether archiving a detail for this source state would change nothing. */
@@ -146,23 +160,31 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
   return {
     saveListItem(item, source) {
       const key = sessionRefKey(item)
-      const stored = listStates.get(key)
-      if (stored?.format === ARCHIVE_FORMAT && sameSource(stored, source)) return
+      if (isListItemCurrent(key, source)) return
+      const activityLatestMs = item.summary.ok
+        ? (item.summary.value.activity?.latestMs ?? null)
+        : null
       upsertListItem.run(
         item.projectDirName,
         item.sessionId,
         source.mtimeMs,
         source.size,
         ARCHIVE_FORMAT,
+        activityLatestMs,
         JSON.stringify({ ...item, team: null }),
         now()
       )
-      listStates.set(key, { ...source, format: ARCHIVE_FORMAT })
+      listEntries.set(key, {
+        ref: { projectDirName: item.projectDirName, sessionId: item.sessionId },
+        source,
+        format: ARCHIVE_FORMAT,
+        activityLatestMs
+      })
     },
 
     saveDetail(ref, { detail, source }) {
       const key = sessionRefKey(ref)
-      if (listStates.get(key)?.format !== ARCHIVE_FORMAT) return
+      if (listEntries.get(key)?.format !== ARCHIVE_FORMAT) return
       if (isSettled(key, source)) return
       const json = JSON.stringify(detail)
       if (json.length > MAX_ARCHIVED_DETAIL_CHARS) {
@@ -177,6 +199,23 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
 
     hasDetail(ref, source) {
       return isSettled(sessionRefKey(ref), source)
+    },
+
+    hasListItem(ref, source) {
+      return isListItemCurrent(sessionRefKey(ref), source)
+    },
+
+    pendingDetails() {
+      const pending: PendingDetail[] = []
+      for (const [key, entry] of listEntries) {
+        if (entry.format !== ARCHIVE_FORMAT || isSettled(key, entry.source)) continue
+        pending.push({
+          ref: entry.ref,
+          source: entry.source,
+          activityLatestMs: entry.activityLatestMs
+        })
+      }
+      return pending
     },
 
     close() {

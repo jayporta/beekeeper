@@ -1,0 +1,87 @@
+import { DatabaseSync } from 'node:sqlite'
+import { stat } from 'node:fs/promises'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../../ipc/testIpcTree'
+import { ARCHIVE_DETAIL_AFTER_DAYS } from '../archiveConstants'
+import { createAppArchiver } from '../createAppArchiver'
+import { createArchiveStore, type ArchiveStore } from '../createArchiveStore'
+import { openArchive } from '../openArchive'
+
+const ctx = registerIpcTestTree()
+const DAY_MS = 86_400_000
+const REF = { projectDirName: TEST_PROJECT, sessionId: TEST_SESSION_ID }
+
+let db: DatabaseSync
+let store: ArchiveStore
+
+beforeEach(() => {
+  const opened = openArchive(':memory:')
+  if (opened === null) throw new Error('the in-memory archive should open')
+  db = opened
+  store = createArchiveStore(db, { log: () => {} })
+})
+
+function archiver(daysAfterSession: number): ReturnType<typeof createAppArchiver> {
+  const now = (): number => Date.now() + daysAfterSession * DAY_MS
+  return createAppArchiver({ deps: { ...ctx.deps, now }, store })
+}
+
+async function sourceState(): Promise<{ mtimeMs: number; size: number }> {
+  const info = await stat(ctx.tree.sessionPath)
+  return { mtimeMs: info.mtimeMs, size: info.size }
+}
+
+function detailRows(): number {
+  const row = db.prepare('SELECT COUNT(*) AS n FROM sessions WHERE detail IS NOT NULL').get()
+  return Number(row?.['n'])
+}
+
+describe('createAppArchiver', () => {
+  it('archives the list item of a session found in a project', async () => {
+    await archiver(0).runPass()
+
+    expect(store.hasListItem(REF, await sourceState())).toBe(true)
+  })
+
+  it('leaves the detail of a session still active', async () => {
+    await archiver(ARCHIVE_DETAIL_AFTER_DAYS - 1).runPass()
+
+    expect(detailRows()).toBe(0)
+  })
+
+  it('archives the detail of a session quiet for the waiting period', async () => {
+    await archiver(ARCHIVE_DETAIL_AFTER_DAYS).runPass()
+
+    expect(store.hasDetail(REF, await sourceState())).toBe(true)
+  })
+
+  it('does not list a project again when none of its sessions changed', async () => {
+    let summaryReads = 0
+    const deps = {
+      ...ctx.deps,
+      summaryCache: {
+        read: (file: Parameters<typeof ctx.deps.summaryCache.read>[0]) => {
+          summaryReads += 1
+          return ctx.deps.summaryCache.read(file)
+        }
+      }
+    }
+    const quiet = createAppArchiver({ deps, store })
+    await quiet.runPass()
+    const readsAfterFirst = summaryReads
+
+    await quiet.runPass()
+
+    expect(readsAfterFirst).toBeGreaterThan(0)
+    expect(summaryReads).toBe(readsAfterFirst)
+  })
+
+  it('archives a detail left pending by an earlier pass once the session has gone quiet', async () => {
+    await archiver(0).runPass()
+    expect(detailRows()).toBe(0)
+
+    await archiver(ARCHIVE_DETAIL_AFTER_DAYS).runPass()
+
+    expect(detailRows()).toBe(1)
+  })
+})

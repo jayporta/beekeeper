@@ -1,6 +1,7 @@
 import { EMPTY_AGENT_SIGNALS_DTO } from '../../shared/ipc/emptyAgentSignals'
+import type { IpcResult } from '../../shared/ipc/ipcResult'
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
-import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
+import type { SessionListItemDto, SessionSummaryDto } from '../../shared/ipc/sessionListDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
 import type { SourceState } from './createArchiveStore'
 
@@ -26,6 +27,23 @@ export function testListItem(overrides: Partial<SessionListItemDto> = {}): Sessi
     summary: { ok: false, error: { code: 'unreadable' } },
     team: null,
     ...overrides
+  }
+}
+
+/** A readable summary whose last message is at `latestMs`, or that has no timestamps when `null`. */
+export function testOkSummary(latestMs: number | null): IpcResult<SessionSummaryDto> {
+  return {
+    ok: true,
+    value: {
+      title: null,
+      usage: null,
+      activity: latestMs === null ? null : { earliestMs: 0, latestMs },
+      skippedLines: 0,
+      role: { kind: 'lead' },
+      model: null,
+      limitHit: null,
+      transcriptTokens: null
+    }
   }
 }
 

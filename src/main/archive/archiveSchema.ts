@@ -11,6 +11,7 @@ const SCHEMA_VERSION_KEY = 'schema_version'
 
 const CREATE_META = 'CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)'
 
+/** The large text columns come last, so reading the small ones never walks an overflow chain. */
 const CREATE_SESSIONS = `
 CREATE TABLE IF NOT EXISTS sessions (
   project_dir TEXT NOT NULL,
@@ -18,11 +19,12 @@ CREATE TABLE IF NOT EXISTS sessions (
   source_mtime_ms REAL NOT NULL,
   source_size INTEGER NOT NULL,
   format INTEGER NOT NULL,
-  list_item TEXT NOT NULL,
-  detail TEXT,
+  activity_latest_ms REAL,
   detail_mtime_ms REAL,
   detail_size INTEGER,
   archived_at_ms REAL NOT NULL,
+  list_item TEXT NOT NULL,
+  detail TEXT,
   PRIMARY KEY (project_dir, session_id)
 )`
 
