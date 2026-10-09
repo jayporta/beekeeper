@@ -11,11 +11,16 @@ interface LinkButtonProps {
    * @defaultValue false
    */
   readonly strong?: boolean
+  /**
+   * Adds inline padding, to line the text up with padded text beside it.
+   * @defaultValue false
+   */
+  readonly padded?: boolean
 }
 
 /**
- * A button that reads as an underlined link, for an action inside an
- * inspector box.
+ * A button that reads as an underlined link, for a secondary action such as one
+ * inside an inspector box or in the sidebar footer.
  *
  * @example
  * <LinkButton strong onClick={openPatch}>Open patch</LinkButton>
@@ -23,12 +28,15 @@ interface LinkButtonProps {
 export function LinkButton({
   children,
   onClick,
-  strong = false
+  strong = false,
+  padded = false
 }: LinkButtonProps): React.JSX.Element {
   return (
     <button
       type="button"
-      className={`${styles.link} ${strong ? styles.strong : styles.quiet}`}
+      className={[styles.link, strong ? styles.strong : styles.quiet, padded && styles.padded]
+        .filter(Boolean)
+        .join(' ')}
       onClick={onClick}
     >
       {children}

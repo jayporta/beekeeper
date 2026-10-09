@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { MutedText } from '@renderer/components/MutedText'
+import { useOtelReceiver } from '@renderer/features/telemetry/useOtelReceiver'
 import { useReportedCost } from '@renderer/features/telemetry/useReportedCost'
 import { formatUsd } from '@renderer/i18n/formatUsd'
 
@@ -29,7 +30,10 @@ export function ReportedCostNote({
 }: ReportedCostNoteProps): React.JSX.Element | null {
   const { t } = useTranslation('sessionDetail')
   const { data, isError } = useReportedCost(sessionId)
+  // A query that is no longer enabled keeps its last data, so the receiver decides what shows.
+  const { data: receiver } = useOtelReceiver()
 
+  if (receiver?.status !== 'listening') return null
   if (data === undefined && isError) {
     return <MutedText>{t('inspector.reportedCost.unavailable')}</MutedText>
   }

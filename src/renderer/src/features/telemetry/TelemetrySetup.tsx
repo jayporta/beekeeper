@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { DialogButton } from '@renderer/components/DialogButton'
 import { MutedText } from '@renderer/components/MutedText'
 import styles from './TelemetrySetup.module.css'
 import { telemetryEnvLines } from './telemetryEnvLines'
@@ -36,15 +37,13 @@ export function TelemetrySetup({ port, token }: TelemetrySetupProps): React.JSX.
         </pre>
       </div>
       <div className={styles.actions}>
-        <button
-          type="button"
-          className={styles.copy}
+        <DialogButton
           onClick={() => {
             void copy(lines)
           }}
         >
           {t('setup.copy')}
-        </button>
+        </DialogButton>
         <p role="status" className={styles.copyStatus}>
           {copyMessage}
         </p>

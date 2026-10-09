@@ -99,7 +99,7 @@ export interface BeekeeperApi {
   /**
    * Copies text to the system clipboard. The renderer's own clipboard access is denied, so the main process writes it.
    * @param text - The text to copy, at most 4096 characters.
-   * @returns `null` once copied, or `invalid-request` for text over the cap.
+   * @returns `null` once copied, `invalid-request` for text over the cap, or `internal` when the app has no clipboard writer.
    */
   copyText(text: string): Promise<IpcResult<null>>
 

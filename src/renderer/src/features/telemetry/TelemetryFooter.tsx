@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { LinkButton } from '@renderer/components/LinkButton'
 import { MutedText } from '@renderer/components/MutedText'
 import styles from './TelemetryFooter.module.css'
 import { TelemetryDialog } from './TelemetryDialog'
@@ -24,15 +25,14 @@ export function TelemetryFooter(): React.JSX.Element {
       <MutedText smaller className={styles.note}>
         {listening ? t('localOnlyListening') : t('localOnly', { ns: 'common' })}
       </MutedText>
-      <button
-        type="button"
-        className={styles.button}
+      <LinkButton
+        padded
         onClick={() => {
           setOpen(true)
         }}
       >
         {t('footerButton')}
-      </button>
+      </LinkButton>
       <TelemetryDialog
         open={open}
         onClose={() => {

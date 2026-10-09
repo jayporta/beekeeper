@@ -25,6 +25,9 @@ function renderDialog(onClose = vi.fn()): { onClose: () => void } {
   return { onClose }
 }
 
+const COPIED = 'Copied to clipboard.'
+const COPY_FAILED = "beekeeper couldn't copy. Select the lines and copy them yourself."
+
 const dialog = (): HTMLElement => screen.getByRole('dialog', { name: 'Claude Code telemetry' })
 const checkbox = (): HTMLElement =>
   within(dialog()).getByRole('checkbox', { name: "Receive Claude Code's cost estimates" })
@@ -55,7 +58,7 @@ describe('TelemetryDialog', () => {
     renderDialog()
 
     expect(within(dialog()).getByText('Checking the telemetry setting.')).toBeTruthy()
-    expect((checkbox() as HTMLInputElement).disabled).toBe(true)
+    expect(checkbox().getAttribute('aria-disabled')).toBe('true')
   })
 
   it('turns the receiver on, then shows it listening with the lines to set', async () => {
@@ -159,14 +162,58 @@ describe('TelemetryDialog', () => {
     expect((checkbox() as HTMLInputElement).checked).toBe(false)
   })
 
-  it('disables the checkbox while a change is saving', async () => {
+  it('marks the checkbox unavailable while a change is saving', async () => {
     installBeekeeperApi({ setOtelReceiverEnabled: () => new Promise(() => undefined) })
     renderDialog()
     await within(dialog()).findByText('Off. Nothing is listening.')
 
     await userEvent.click(checkbox())
 
-    expect((checkbox() as HTMLInputElement).disabled).toBe(true)
+    expect(checkbox().getAttribute('aria-disabled')).toBe('true')
+  })
+
+  it('keeps focus on the checkbox through a save', async () => {
+    let finish: (value: OtelReceiverDto) => void = () => undefined
+    installBeekeeperApi({
+      setOtelReceiverEnabled: () =>
+        new Promise((resolve) => {
+          finish = (value) => {
+            resolve({ ok: true, value })
+          }
+        })
+    })
+    renderDialog()
+    await within(dialog()).findByText('Off. Nothing is listening.')
+
+    await userEvent.click(checkbox())
+    expect(document.activeElement).toBe(checkbox())
+    await act(async () => {
+      finish(LISTENING)
+      await Promise.resolve()
+    })
+
+    await within(dialog()).findByText('Listening on 127.0.0.1, port 47318.')
+    expect(document.activeElement).toBe(checkbox())
+  })
+
+  it('ignores another click on the checkbox while a change is saving', async () => {
+    const api = installBeekeeperApi({ setOtelReceiverEnabled: () => new Promise(() => undefined) })
+    renderDialog()
+    await within(dialog()).findByText('Off. Nothing is listening.')
+
+    await userEvent.click(checkbox())
+    await userEvent.click(checkbox())
+
+    expect(api.setOtelReceiverEnabled).toHaveBeenCalledTimes(1)
+  })
+
+  it('ignores a click on the checkbox while the setting loads', async () => {
+    const api = installBeekeeperApi({ getOtelReceiver: () => new Promise(() => undefined) })
+    renderDialog()
+
+    await userEvent.click(checkbox())
+
+    expect(api.setOtelReceiverEnabled).not.toHaveBeenCalled()
   })
 
   it('copies the lines to the clipboard and says so', async () => {
@@ -209,11 +256,96 @@ describe('TelemetryDialog', () => {
 
     await userEvent.click(within(dialog()).getByRole('button', { name: 'Copy' }))
 
-    expect(
-      await within(dialog()).findByText(
-        "beekeeper couldn't copy. Select the lines and copy them yourself."
-      )
-    ).toBeTruthy()
+    expect(await within(dialog()).findByText(COPY_FAILED)).toBeTruthy()
+  })
+
+  it('keeps the copy failure showing past the time a success would clear', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    installBeekeeperApi({
+      getOtelReceiver: () => ok(LISTENING),
+      copyText: () => Promise.resolve({ ok: false, error: { code: 'internal' } })
+    })
+    renderDialog()
+    await within(dialog()).findByRole('region')
+    await userEvent.click(within(dialog()).getByRole('button', { name: 'Copy' }))
+    await within(dialog()).findByText(COPY_FAILED)
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(LIVE_COPY_CLEAR_MS * 3)
+    })
+
+    expect(within(dialog()).getByText(COPY_FAILED)).toBeTruthy()
+  })
+
+  it('forgets a copy failure when the dialog closes and opens again', async () => {
+    installBeekeeperApi({
+      getOtelReceiver: () => ok(LISTENING),
+      copyText: () => Promise.resolve({ ok: false, error: { code: 'internal' } })
+    })
+    const { rerender } = render(<TelemetryDialog open onClose={vi.fn()} />, {
+      wrapper: createQueryWrapper()
+    })
+    await within(dialog()).findByRole('region')
+    await userEvent.click(within(dialog()).getByRole('button', { name: 'Copy' }))
+    await within(dialog()).findByText(COPY_FAILED)
+
+    rerender(<TelemetryDialog open={false} onClose={vi.fn()} />)
+    rerender(<TelemetryDialog open onClose={vi.fn()} />)
+
+    await within(dialog()).findByRole('region')
+    expect(within(dialog()).queryByText(COPY_FAILED)).toBeNull()
+  })
+
+  it('clears the message when Copy is pressed, then says the new outcome, so each press is announced', async () => {
+    const pending: ((outcome: 'copied') => void)[] = []
+    installBeekeeperApi({
+      getOtelReceiver: () => ok(LISTENING),
+      copyText: () =>
+        new Promise((resolve) => {
+          pending.push(() => {
+            resolve({ ok: true, value: null })
+          })
+        })
+    })
+    renderDialog()
+    await within(dialog()).findByRole('region')
+    const copy = within(dialog()).getByRole('button', { name: 'Copy' })
+
+    await userEvent.click(copy)
+    await act(async () => {
+      pending[0]?.('copied')
+      await Promise.resolve()
+    })
+    await within(dialog()).findByText(COPIED)
+    await userEvent.click(copy)
+
+    expect(within(dialog()).queryByText(COPIED)).toBeNull()
+    await act(async () => {
+      pending[1]?.('copied')
+      await Promise.resolve()
+    })
+    expect(await within(dialog()).findByText(COPIED)).toBeTruthy()
+  })
+
+  it('clears an earlier failure as soon as Copy is pressed again', async () => {
+    let succeed = false
+    installBeekeeperApi({
+      getOtelReceiver: () => ok(LISTENING),
+      copyText: () =>
+        succeed
+          ? new Promise(() => undefined)
+          : Promise.resolve({ ok: false, error: { code: 'internal' } })
+    })
+    renderDialog()
+    await within(dialog()).findByRole('region')
+    const copy = within(dialog()).getByRole('button', { name: 'Copy' })
+    await userEvent.click(copy)
+    await within(dialog()).findByText(COPY_FAILED)
+    succeed = true
+
+    await userEvent.click(copy)
+
+    expect(within(dialog()).queryByText(COPY_FAILED)).toBeNull()
   })
 
   it('warns about sessions that started earlier and about the content flags', async () => {

@@ -9,7 +9,7 @@ import { useSetOtelReceiverEnabled } from './useSetOtelReceiverEnabled'
  * What the telemetry dialog holds: what the receiver is for, the checkbox that
  * turns it on or off, its status, and, while it has a token (it is on), the lines to set in
  * Claude Code's environment. The checkbox follows the saved setting and is
- * disabled while the setting loads or a change is saving.
+ * unavailable (`aria-disabled`, so it keeps focus) while the setting loads or a change is saving.
  *
  * @example
  * <TelemetryBody />
@@ -19,6 +19,8 @@ export function TelemetryBody(): React.JSX.Element {
   const receiver = useOtelReceiver()
   const setEnabled = useSetOtelReceiverEnabled()
   const { data } = receiver
+  // `aria-disabled`, not `disabled`: a disabled checkbox drops focus out of the dialog mid-save.
+  const busy = data === undefined || setEnabled.isPending
 
   return (
     <div className={styles.body}>
@@ -27,9 +29,9 @@ export function TelemetryBody(): React.JSX.Element {
         <input
           type="checkbox"
           checked={data?.enabled ?? false}
-          disabled={data === undefined || setEnabled.isPending}
+          aria-disabled={busy}
           onChange={(event) => {
-            setEnabled.mutate(event.target.checked)
+            if (!busy) setEnabled.mutate(event.target.checked)
           }}
         />
         {t('enable')}

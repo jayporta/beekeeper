@@ -1,10 +1,11 @@
-import { act, render, screen } from '@testing-library/react'
+import type { QueryClient } from '@tanstack/react-query'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { OtelReceiverDto } from '../../../../../../shared/ipc/otelReceiverDto'
 import type { ReportedCostDto } from '../../../../../../shared/ipc/reportedCostDto'
 import { REPORTED_COST_POLL_MS } from '@renderer/features/telemetry/useReportedCost'
 import { installBeekeeperApi, type TestBeekeeperApi } from '@renderer/testBeekeeperApi'
-import { createQueryWrapper } from '@renderer/testQueryWrapper'
+import { createQueryWrapper, createTestQueryClient } from '@renderer/testQueryWrapper'
 import { ReportedCostNote } from '../ReportedCostNote'
 
 const SESSION = '11111111-2222-4333-8444-555555555555'
@@ -40,10 +41,29 @@ function stub(
   })
 }
 
-function renderNote(agentId: string | null): HTMLElement {
-  return render(<ReportedCostNote sessionId={SESSION} agentId={agentId} />, {
-    wrapper: createQueryWrapper()
-  }).container
+const OFF: OtelReceiverDto = { ...LISTENING, enabled: false, status: 'off', token: null }
+
+function renderNote(agentId: string | null): { container: HTMLElement; client: QueryClient } {
+  const client = createTestQueryClient()
+  const { container } = render(<ReportedCostNote sessionId={SESSION} agentId={agentId} />, {
+    wrapper: createQueryWrapper(client)
+  })
+  return { container, client }
+}
+
+/**
+ * Waits until the receiver's state has been read and, when it is listening, the
+ * session's figures have too, so an assertion that nothing shows is made after
+ * everything has had the chance to show.
+ */
+async function settle(client: QueryClient, listening: boolean): Promise<void> {
+  await waitFor(() => {
+    expect(client.getQueryData(['otelReceiver'])).toBeDefined()
+    if (listening) {
+      const state = client.getQueryState(['reportedCost', SESSION])
+      expect([state?.status, state?.fetchStatus]).toEqual(['success', 'idle'])
+    }
+  })
 }
 
 describe('ReportedCostNote', () => {
@@ -69,43 +89,78 @@ describe('ReportedCostNote', () => {
   })
 
   it('shows nothing for a subagent with no share under its id', async () => {
-    const api = stub(reported())
-    const container = renderNote('sub-2')
-    await vi.waitFor(() => {
-      expect(api.getReportedCost).toHaveBeenCalled()
-    })
+    stub(reported())
+    const { container, client } = renderNote('sub-2')
+    await settle(client, true)
 
     expect(container.textContent).toBe('')
   })
 
   it('does not match a subagent id by prefix', async () => {
-    const api = stub(reported({ byAgent: [{ agentId: 'sub-10', costUsd: 9 }] }))
-    const container = renderNote('sub-1')
-    await vi.waitFor(() => {
-      expect(api.getReportedCost).toHaveBeenCalled()
-    })
+    stub(reported({ byAgent: [{ agentId: 'sub-10', costUsd: 9 }] }))
+    const { container, client } = renderNote('sub-1')
+    await settle(client, true)
 
     expect(container.textContent).toBe('')
   })
 
   it('shows nothing when the session reported nothing', async () => {
-    const api = stub(null)
-    const container = renderNote(null)
-    await vi.waitFor(() => {
-      expect(api.getReportedCost).toHaveBeenCalled()
-    })
+    stub(null)
+    const { container, client } = renderNote(null)
+    await settle(client, true)
 
     expect(container.textContent).toBe('')
   })
 
   it('does not ask for a reported cost while the receiver is off', async () => {
-    const api = stub(reported(), { ...LISTENING, enabled: false, status: 'off', token: null })
-    const container = renderNote(null)
-    await vi.waitFor(() => {
-      expect(api.getOtelReceiver).toHaveBeenCalled()
-    })
+    const api = stub(reported(), OFF)
+    const { container, client } = renderNote(null)
+    await settle(client, false)
 
     expect([api.getReportedCost.mock.calls.length, container.textContent]).toEqual([0, ''])
+  })
+
+  it('drops the figure when the receiver is turned off', async () => {
+    stub(reported())
+    const { client } = renderNote(null)
+    await screen.findByText("Claude Code's estimate for this session: $1.50")
+
+    act(() => {
+      client.setQueryData(['otelReceiver'], OFF)
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Claude Code's estimate/)).toBeNull()
+    })
+  })
+
+  it('drops the figure when the receiver is on but has stopped listening', async () => {
+    stub(reported())
+    const { client } = renderNote(null)
+    await screen.findByText("Claude Code's estimate for this session: $1.50")
+
+    act(() => {
+      client.setQueryData(['otelReceiver'], { ...LISTENING, status: 'failed', failure: 'failed' })
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Claude Code's estimate/)).toBeNull()
+    })
+  })
+
+  it('shows the figure again when the receiver is turned back on', async () => {
+    stub(reported())
+    const { client } = renderNote(null)
+    await screen.findByText("Claude Code's estimate for this session: $1.50")
+    act(() => {
+      client.setQueryData(['otelReceiver'], OFF)
+    })
+
+    act(() => {
+      client.setQueryData(['otelReceiver'], LISTENING)
+    })
+
+    expect(await screen.findByText("Claude Code's estimate for this session: $1.50")).toBeTruthy()
   })
 
   it('says the estimate is not available when the call fails', async () => {
