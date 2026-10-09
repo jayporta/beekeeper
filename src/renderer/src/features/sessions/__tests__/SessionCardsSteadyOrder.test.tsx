@@ -201,6 +201,44 @@ describe('session cards while the list refreshes in the background', () => {
       })
     })
 
+    it('does the same for a folder whose last load failed after its list was saved', async () => {
+      const OTHER = '-Users-a-other'
+      const other = (n: number, title: string, latestMs: number): SessionListItemDto =>
+        testSession(n, { projectDirName: OTHER, title, latestMs })
+      const client = createTestQueryClient()
+      const savedAt = staleUpdatedAt()
+      client.setQueryData(['sessions', OTHER], [other(3, 'Gamma', 200), other(4, 'Delta', 100)], {
+        updatedAt: savedAt
+      })
+      client
+        .getQueryCache()
+        .find({ queryKey: ['sessions', OTHER] })
+        ?.setState({ status: 'error', error: new Error('failed'), errorUpdatedAt: savedAt + 1000 })
+      installBeekeeperApi({
+        listProjects: () =>
+          Promise.resolve({ ok: true, value: [testProject(DIR), testProject(OTHER)] }),
+        listSessions: (dirName) =>
+          Promise.resolve({
+            ok: true,
+            value: dirName === DIR ? current : [other(3, 'Gamma', 200), other(4, 'Delta', 300)]
+          })
+      })
+      renderApp(client)
+      await screen.findByRole('heading', { level: 2, name: 'Alpha' })
+
+      act(() => {
+        useSelectedProjectStore.getState().select(OTHER)
+      })
+
+      await waitFor(() => {
+        expect(
+          within(screen.getByRole('list', { name: OTHER }))
+            .getAllByRole('heading', { level: 2 })
+            .map((heading) => heading.textContent)
+        ).toEqual(['Delta', 'Gamma'])
+      })
+    })
+
     it('does the same for a folder opened after a Refresh in another one', async () => {
       const user = userEvent.setup()
       const OTHER = '-Users-a-other'

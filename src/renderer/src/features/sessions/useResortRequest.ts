@@ -6,6 +6,8 @@ export interface ResortRequestOptions {
   readonly isStale: boolean
   /** When the cached list loaded, in epoch milliseconds, or 0 when none has. */
   readonly dataUpdatedAt: number
+  /** When a load of the list last failed, in epoch milliseconds, or 0 if none has. */
+  readonly errorUpdatedAt: number
 }
 
 /** A folder's pending resort request, as {@link useResortRequest} returns it. */
@@ -16,9 +18,16 @@ export interface ResortRequest {
   readonly requestResort: () => void
 }
 
-/** The request a folder opens with: the first list loaded after a stale one, or none. */
-const openingRequest = ({ isStale, dataUpdatedAt }: ResortRequestOptions): number =>
-  isStale ? dataUpdatedAt + 1 : 0
+/**
+ * The request a folder opens with: the first list loaded after the cached
+ * list and after its last failed load, which would otherwise drop it at once.
+ * None when the cached list is fresh.
+ */
+const openingRequest = ({
+  isStale,
+  dataUpdatedAt,
+  errorUpdatedAt
+}: ResortRequestOptions): number => (isStale ? Math.max(dataUpdatedAt, errorUpdatedAt) + 1 : 0)
 
 /**
  * Tracks when the open folder's session cards should sort again. Opening a
@@ -27,7 +36,7 @@ const openingRequest = ({ isStale, dataUpdatedAt }: ResortRequestOptions): numbe
  * be current. Switching to another folder starts over for it.
  *
  * @param dirName - The open folder.
- * @param options - Whether its cached list is stale, and when that list loaded.
+ * @param options - Whether its cached list is stale, and when it last loaded and last failed.
  * @returns The pending request and the function that makes a new one.
  */
 export function useResortRequest(dirName: string, options: ResortRequestOptions): ResortRequest {

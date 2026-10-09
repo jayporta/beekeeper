@@ -45,7 +45,11 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
     useSessions(dirName)
   // The cards re-sort on a Refresh press, and when a folder opens on a stale list (old, or
   // invalidated while hidden) that is refetched at once. Background updates keep the order.
-  const { resortAt, requestResort } = useResortRequest(dirName, { isStale, dataUpdatedAt })
+  const { resortAt, requestResort } = useResortRequest(dirName, {
+    isStale,
+    dataUpdatedAt,
+    errorUpdatedAt
+  })
   const typed = useSessionsViewStore((state) => state.query)
   // Filtering waits on the deferred text, and the list is memoized, so typing stays responsive.
   const query = useDeferredValue(typed)
