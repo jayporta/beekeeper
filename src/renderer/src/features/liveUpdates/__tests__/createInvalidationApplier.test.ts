@@ -485,18 +485,71 @@ describe('createInvalidationApplier', () => {
       expect(totals.queryFn).toHaveBeenCalledTimes(1)
     })
 
-    it('causes one more fetch of a session detail refreshed during its fetch', async () => {
+    it('holds a session detail’s follow-up until the next throttle flush', async () => {
       const detail = fetching(['session', A, SESSION], { data: { seed: true } })
       await vi.waitFor(() => {
         expect(detail.queryFn).toHaveBeenCalledTimes(1)
       })
-
       applier.apply(planFor([A]))
       timers.runAll()
+
       detail.resolve({ first: true })
+      await settle()
+      expect(detail.queryFn).toHaveBeenCalledTimes(1)
+
+      timers.runAll()
+      await vi.waitFor(() => {
+        expect(detail.queryFn).toHaveBeenCalledTimes(2)
+      })
+    })
+
+    it('follows up a session detail by its family, as the worktree folder’s parent', async () => {
+      client.setQueryData(
+        ['projects'],
+        [testProject(A), testProject(A_WORKTREE, { worktreeOf: A, worktreeName: 'feature' })]
+      )
+      const detail = fetching(['session', A_WORKTREE, SESSION], { data: { seed: true } })
+      await vi.waitFor(() => {
+        expect(detail.queryFn).toHaveBeenCalledTimes(1)
+      })
+      applier.apply(planFor([A]))
+      timers.runAll()
+
+      detail.resolve({ first: true })
+      await settle()
+      timers.runAll()
 
       await vi.waitFor(() => {
         expect(detail.queryFn).toHaveBeenCalledTimes(2)
+      })
+    })
+
+    it('causes no more fetches once cancelPending is called, as when live updates are paused', async () => {
+      const list = fetching(['sessions', A], { data: ['seed'] })
+      await vi.waitFor(() => {
+        expect(list.queryFn).toHaveBeenCalledTimes(1)
+      })
+      applier.apply(planFor([A]))
+
+      applier.cancelPending()
+      list.resolve(['first'])
+      await settle()
+
+      expect(list.queryFn).toHaveBeenCalledTimes(1)
+    })
+
+    it('follows up a change that arrives after cancelPending', async () => {
+      const list = fetching(['sessions', A], { data: ['seed'] })
+      await vi.waitFor(() => {
+        expect(list.queryFn).toHaveBeenCalledTimes(1)
+      })
+      applier.cancelPending()
+
+      applier.apply(planFor([A]))
+      list.resolve(['first'])
+
+      await vi.waitFor(() => {
+        expect(list.queryFn).toHaveBeenCalledTimes(2)
       })
     })
 

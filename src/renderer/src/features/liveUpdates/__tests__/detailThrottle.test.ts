@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createDetailThrottle,
   DETAIL_LIVE_INTERVAL_MS,
-  type DetailThrottle,
-  type Families
+  type DetailThrottle
 } from '../detailThrottle'
+import type { Families } from '../invalidationPlan'
 
 let flushed: Families[]
 let throttle: DetailThrottle

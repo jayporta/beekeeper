@@ -2,8 +2,8 @@ import type { Query, QueryClient } from '@tanstack/react-query'
 import type { ProjectDto } from '../../../../shared/ipc/projectDto'
 import { allowsBackgroundRefetch } from '@renderer/app/backgroundRefetchRules'
 import { TOTALS_ROOTS } from '@renderer/app/totalsRoots'
-import { createDetailThrottle, type DetailThrottle, type Families } from './detailThrottle'
-import { familyOf, type InvalidationPlan } from './invalidationPlan'
+import { createDetailThrottle, type DetailThrottle, type ThrottleTimers } from './detailThrottle'
+import { familyOf, isInFamilies, type Families, type InvalidationPlan } from './invalidationPlan'
 
 /** A fetch already running is left to finish, since a large scan can outlast the update interval. */
 const KEEP_RUNNING = { cancelRefetch: false } as const
@@ -16,15 +16,7 @@ interface Rule {
   readonly refetchType?: 'none'
 }
 
-/** The timer functions the applier's detail throttle uses. */
-export interface ApplierTimers {
-  /** Starts a timer that calls `run` once after `ms`, and returns a handle for `clearTimer`. */
-  readonly setTimer: (run: () => void, ms: number) => unknown
-  /** Cancels a timer started by `setTimer`. */
-  readonly clearTimer: (handle: unknown) => void
-}
-
-const DEFAULT_TIMERS: ApplierTimers = {
+const DEFAULT_TIMERS: ThrottleTimers = {
   setTimer: (run, ms) => setTimeout(run, ms),
   clearTimer: (handle) => {
     clearTimeout(handle as ReturnType<typeof setTimeout>)
@@ -41,7 +33,7 @@ export interface InvalidationApplier {
   apply(plan: InvalidationPlan): void
   /** Refreshes everything now, details included, as when live updates resume. */
   applyAll(): void
-  /** Drops the session details waiting for the throttle. */
+  /** Drops the session details waiting for the throttle, and the follow-ups owed to fetches in flight. */
   cancelPending(): void
   /** Drops the waiting details and stops following fetches. Call it when done. */
   dispose(): void
@@ -70,9 +62,11 @@ const EVERYTHING: InvalidationPlan = { projects: true, families: 'all', staleTot
  */
 export function createInvalidationApplier(
   client: QueryClient,
-  timers: ApplierTimers = DEFAULT_TIMERS
+  timers: ThrottleTimers = DEFAULT_TIMERS
 ): InvalidationApplier {
-  const watched = new WeakSet<Query>()
+  // The queries a plan covered mid-fetch, whose follow-up is still owed. A WeakSet can't be
+  // cleared, so it is replaced.
+  let watched = new WeakSet<Query>()
 
   function invalidate(rule: Rule): void {
     for (const query of client.getQueryCache().findAll({ predicate: rule.matches })) {
@@ -84,12 +78,33 @@ export function createInvalidationApplier(
     )
   }
 
-  // A fetch that was running when a plan covered its query ends: cover the query again.
+  function invalidateDetails(families: Families): void {
+    const projects = client.getQueryData<readonly ProjectDto[]>(['projects'])
+    invalidate({
+      matches: (query) =>
+        query.queryKey[0] === 'session' &&
+        isInFamilies(families, projects, query.queryKey) &&
+        allowsBackgroundRefetch(query)
+    })
+  }
+
+  const details: DetailThrottle = createDetailThrottle({
+    onFlush: invalidateDetails,
+    ...timers
+  })
+
+  // A fetch that was running when a plan covered its query ends: cover the query again. A
+  // session detail goes back through the throttle, so its follow-up waits for the next flush.
   const unsubscribe = client.getQueryCache().subscribe((event) => {
     if (event.type !== 'updated') return
     if (event.action.type !== 'success' && event.action.type !== 'error') return
     if (!watched.delete(event.query)) return
     const { queryKey } = event.query
+    if (queryKey[0] === 'session' && typeof queryKey[1] === 'string') {
+      const projects = client.getQueryData<readonly ProjectDto[]>(['projects'])
+      details.add(new Set([familyOf(queryKey[1], projects)]))
+      return
+    }
     void client.invalidateQueries(
       {
         queryKey,
@@ -100,28 +115,8 @@ export function createInvalidationApplier(
     )
   })
 
-  function invalidateDetails(families: Families): void {
-    const projects = client.getQueryData<readonly ProjectDto[]>(['projects'])
-    invalidate({
-      matches: (query) =>
-        query.queryKey[0] === 'session' &&
-        (families === 'all' ||
-          (typeof query.queryKey[1] === 'string' &&
-            families.has(familyOf(query.queryKey[1], projects)))) &&
-        allowsBackgroundRefetch(query)
-    })
-  }
-
-  const details: DetailThrottle = createDetailThrottle({
-    onFlush: invalidateDetails,
-    ...timers
-  })
-
   function applyNow(plan: InvalidationPlan): void {
     const projects = client.getQueryData<readonly ProjectDto[]>(['projects'])
-    const inFamilies = ({ queryKey }: Query): boolean =>
-      plan.families === 'all' ||
-      (typeof queryKey[1] === 'string' && plan.families.has(familyOf(queryKey[1], projects)))
     const hasStaleTotals = ({ queryKey }: Query): boolean =>
       plan.staleTotals === 'all' ||
       (typeof queryKey[1] === 'string' && plan.staleTotals.has(queryKey[1]))
@@ -133,7 +128,9 @@ export function createInvalidationApplier(
     }
     invalidate({
       matches: (query) =>
-        query.queryKey[0] === 'sessions' && inFamilies(query) && allowsBackgroundRefetch(query)
+        query.queryKey[0] === 'sessions' &&
+        isInFamilies(plan.families, projects, query.queryKey) &&
+        allowsBackgroundRefetch(query)
     })
     invalidate({
       matches: (query) => TOTALS_ROOTS.includes(query.queryKey[0]) && hasStaleTotals(query),
@@ -151,7 +148,10 @@ export function createInvalidationApplier(
       details.add('all')
       details.flush()
     },
-    cancelPending: details.cancel,
+    cancelPending() {
+      details.cancel()
+      watched = new WeakSet()
+    },
     dispose() {
       details.cancel()
       unsubscribe()

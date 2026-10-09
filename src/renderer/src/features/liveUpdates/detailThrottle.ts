@@ -1,17 +1,20 @@
+import type { Families } from './invalidationPlan'
+
 /** The least time between two refreshes of the session details: 10 seconds. A detail scan reads a whole session, so it is slower than a list's. */
 export const DETAIL_LIVE_INTERVAL_MS = 10_000
 
-/** The project families to refresh, or `all`. */
-export type Families = ReadonlySet<string> | 'all'
-
-/** What {@link createDetailThrottle} needs from its caller. */
-export interface DetailThrottleOptions {
-  /** Receives the merged families when the interval ends or on `flush`. */
-  readonly onFlush: (families: Families) => void
+/** The timer functions a throttle runs on, injected so tests control time. */
+export interface ThrottleTimers {
   /** Starts a timer that calls `run` once after `ms`, and returns a handle for `clearTimer`. */
   readonly setTimer: (run: () => void, ms: number) => unknown
   /** Cancels a timer started by `setTimer`. */
   readonly clearTimer: (handle: unknown) => void
+}
+
+/** What {@link createDetailThrottle} needs from its caller. */
+export interface DetailThrottleOptions extends ThrottleTimers {
+  /** Receives the merged families when the interval ends or on `flush`. */
+  readonly onFlush: (families: Families) => void
 }
 
 /** Holds back session detail refreshes so they run at most once per interval. */

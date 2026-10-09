@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { FilesChangedDto } from '../../../../../shared/ipc/filesChangedDto'
 import { testProject } from '@renderer/testBeekeeperApi'
-import { familyOf, invalidationPlan } from '../invalidationPlan'
+import { familyOf, invalidationPlan, isInFamilies } from '../invalidationPlan'
 
 const BASE = '-Users-a-repo'
 const WORKTREE = '-Users-a-repo--claude-worktrees-feature'
@@ -36,6 +36,25 @@ describe('familyOf', () => {
 
   it('names the folder itself when no projects are loaded', () => {
     expect(familyOf(WORKTREE, undefined)).toBe(WORKTREE)
+  })
+})
+
+describe('isInFamilies', () => {
+  it('is true for a folder whose family is in the set', () => {
+    expect(isInFamilies(new Set([BASE]), projects, ['sessions', WORKTREE])).toBe(true)
+  })
+
+  it('is false for a folder whose family is not in the set', () => {
+    expect(isInFamilies(new Set([BASE]), projects, ['sessions', OTHER])).toBe(false)
+  })
+
+  it('is true for any folder when the families are all', () => {
+    expect(isInFamilies('all', projects, ['sessions', OTHER])).toBe(true)
+  })
+
+  it('is false for a key with no folder name unless the families are all', () => {
+    expect(isInFamilies(new Set([BASE]), projects, ['sessions'])).toBe(false)
+    expect(isInFamilies(new Set([BASE]), projects, ['sessions', 3])).toBe(false)
   })
 })
 

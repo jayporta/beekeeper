@@ -1,11 +1,13 @@
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { LiveUpdatesToggle } from '../LiveUpdatesToggle'
 import { useLiveUpdatesStore } from '../state/useLiveUpdatesStore'
 
+const setPausedOriginal = useLiveUpdatesStore.getState().setPaused
+
 afterEach(() => {
-  useLiveUpdatesStore.setState({ paused: false, unavailable: false })
+  useLiveUpdatesStore.setState({ paused: false, unavailable: false, setPaused: setPausedOriginal })
 })
 
 const checkbox = (): HTMLInputElement =>
@@ -110,14 +112,15 @@ describe('LiveUpdatesToggle', () => {
       ).toBeTruthy()
     })
 
-    it('ignores a click and stays unchecked', async () => {
+    it('ignores a click: it never asks to change the pause, and stays unchecked', async () => {
       const user = userEvent.setup()
-      useLiveUpdatesStore.setState({ unavailable: true })
+      const setPaused = vi.fn()
+      useLiveUpdatesStore.setState({ unavailable: true, setPaused })
       render(<LiveUpdatesToggle />)
 
       await user.click(checkbox())
 
-      expect(useLiveUpdatesStore.getState().paused).toBe(false)
+      expect(setPaused).not.toHaveBeenCalled()
       expect(checkbox().checked).toBe(false)
     })
 
@@ -131,16 +134,16 @@ describe('LiveUpdatesToggle', () => {
       expect(useLiveUpdatesStore.getState().paused).toBe(true)
     })
 
-    it('ignores the space key and stays unchecked', async () => {
+    it('ignores the space key: it never asks to change the pause', async () => {
       const user = userEvent.setup()
-      useLiveUpdatesStore.setState({ unavailable: true })
+      const setPaused = vi.fn()
+      useLiveUpdatesStore.setState({ unavailable: true, setPaused })
       render(<LiveUpdatesToggle />)
       await user.tab()
 
       await user.keyboard(' ')
 
-      expect(useLiveUpdatesStore.getState().paused).toBe(false)
-      expect(checkbox().checked).toBe(false)
+      expect(setPaused).not.toHaveBeenCalled()
     })
 
     it('is unchecked even when it was not paused', () => {

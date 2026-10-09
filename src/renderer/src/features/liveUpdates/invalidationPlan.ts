@@ -1,12 +1,15 @@
 import type { FilesChangedDto } from '../../../../shared/ipc/filesChangedDto'
 import type { ProjectDto } from '../../../../shared/ipc/projectDto'
 
+/** The project families to refresh, or `all`. */
+export type Families = ReadonlySet<string> | 'all'
+
 /** Which cached queries a batch of file changes should refresh. */
 export interface InvalidationPlan {
   /** Whether to refetch the project list. */
   readonly projects: boolean
   /** The project families whose session lists and details refresh, or `all`. */
-  readonly families: ReadonlySet<string> | 'all'
+  readonly families: Families
   /** The folders whose totals and daily usage are marked stale, or `all`. */
   readonly staleTotals: ReadonlySet<string> | 'all'
 }
@@ -20,6 +23,25 @@ export interface InvalidationPlan {
  */
 export function familyOf(dirName: string, projects: readonly ProjectDto[] | undefined): string {
   return projects?.find((project) => project.dirName === dirName)?.worktreeOf ?? dirName
+}
+
+/**
+ * Whether a query's folder belongs to one of the families.
+ *
+ * @param families - The families to refresh, or `all`.
+ * @param projects - The cached project list, or `undefined` before it has loaded.
+ * @param queryKey - The query's key, whose second element is its folder name.
+ * @returns `true` for any key when the families are `all`, otherwise when the key's folder is in one of them.
+ */
+export function isInFamilies(
+  families: Families,
+  projects: readonly ProjectDto[] | undefined,
+  queryKey: readonly unknown[]
+): boolean {
+  const dirName = queryKey[1]
+  return (
+    families === 'all' || (typeof dirName === 'string' && families.has(familyOf(dirName, projects)))
+  )
 }
 
 /**
