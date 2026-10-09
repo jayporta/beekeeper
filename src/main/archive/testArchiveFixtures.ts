@@ -3,7 +3,7 @@ import type { IpcResult } from '../../shared/ipc/ipcResult'
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto, SessionSummaryDto } from '../../shared/ipc/sessionListDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
-import type { SourceState } from './createArchiveStore'
+import type { SourceState } from './archiveStoreTypes'
 
 /** The session the fixtures describe unless overridden. */
 export const TEST_REF: SessionRefDto = {

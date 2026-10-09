@@ -1,7 +1,7 @@
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
-import type { ArchiveWriter, SourceState } from './createArchiveStore'
+import type { ArchiveWriter, SourceState } from './archiveStoreTypes'
 
 /** A list item save the fake received. */
 export interface RecordedListSave {
@@ -23,8 +23,10 @@ export interface RecordedDetailSave {
 
 /** An {@link ArchiveWriter} that records its saves, or throws on every one. */
 export interface FakeArchiveWriter extends ArchiveWriter {
-  /** The list items saved, in order. */
+  /** The list items saved, in order, across every batch. */
   readonly listSaves: readonly RecordedListSave[]
+  /** The list item batches saved, in order. */
+  readonly listBatches: readonly (readonly RecordedListSave[])[]
   /** The details saved, in order. */
   readonly detailSaves: readonly RecordedDetailSave[]
 }
@@ -37,18 +39,20 @@ export interface FakeArchiveWriter extends ArchiveWriter {
  */
 export function createFakeArchiveWriter(failure?: Error): FakeArchiveWriter {
   const listSaves: RecordedListSave[] = []
+  const listBatches: RecordedListSave[][] = []
   const detailSaves: RecordedDetailSave[] = []
   return {
     listSaves,
+    listBatches,
     detailSaves,
-    saveListItem(item, source) {
+    saveListItems(entries) {
       if (failure !== undefined) throw failure
-      listSaves.push({ item, source })
+      listBatches.push([...entries])
+      listSaves.push(...entries)
     },
     saveDetail(ref, { detail, source }) {
       if (failure !== undefined) throw failure
       detailSaves.push({ ref, detail, source })
-    },
-    hasDetail: () => false
+    }
   }
 }

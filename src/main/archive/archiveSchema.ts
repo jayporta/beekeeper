@@ -29,8 +29,8 @@ CREATE TABLE IF NOT EXISTS sessions (
 )`
 
 /**
- * Prepares an archive database for use: sets WAL mode and a short busy
- * timeout, creates the tables, and records the schema version. A database
+ * Prepares an archive database for use: sets WAL mode with normal syncing,
+ * which WAL makes safe, and a short busy timeout, creates the tables, and records the schema version. A database
  * whose version is newer than this build's, or isn't a number, is left
  * untouched.
  *
@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 export function applySchema(db: DatabaseSync): Result<void, 'newer-schema'> {
   db.exec(`PRAGMA busy_timeout = ${BUSY_TIMEOUT_MS}`)
   db.exec('PRAGMA journal_mode = WAL')
+  db.exec('PRAGMA synchronous = NORMAL')
   db.exec(CREATE_META)
   const stored = db.prepare('SELECT value FROM meta WHERE key = ?').get(SCHEMA_VERSION_KEY)
   if (stored !== undefined) {

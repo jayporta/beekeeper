@@ -68,6 +68,14 @@ describe('applySchema', () => {
     expect(columns.slice(-2)).toEqual(['list_item', 'detail'])
   })
 
+  it('syncs at the normal level, which is safe in WAL mode', () => {
+    const db = new DatabaseSync(':memory:')
+
+    applySchema(db)
+
+    expect(db.prepare('PRAGMA synchronous').get()?.['synchronous']).toBe(1)
+  })
+
   it('waits only a short time on a locked database', () => {
     const db = new DatabaseSync(':memory:')
 

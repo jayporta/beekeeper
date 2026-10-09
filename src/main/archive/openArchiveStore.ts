@@ -1,4 +1,5 @@
-import { createArchiveStore, type ArchiveStore } from './createArchiveStore'
+import { createArchiveStore } from './createArchiveStore'
+import type { ArchiveStore } from './archiveStoreTypes'
 import { describeArchiveError } from './describeArchiveError'
 import { closeDiscarded, openArchive } from './openArchive'
 

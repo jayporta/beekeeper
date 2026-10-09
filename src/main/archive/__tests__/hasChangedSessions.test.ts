@@ -7,7 +7,7 @@ import { toSessionId } from '../../../core/transcript/ids'
 import { buildDiscoveryTree, type DiscoveryTree } from '../../../core/transcript/testDiscoveryTree'
 import { hasChangedSessions } from '../hasChangedSessions'
 import type { SessionRefDto } from '../../../shared/ipc/sessionRefDto'
-import type { SourceState } from '../createArchiveStore'
+import type { SourceState } from '../archiveStoreTypes'
 
 const PROJECT = '-work-app'
 const FIRST = '1a1a1a1a-1111-4111-8111-11111111111b'

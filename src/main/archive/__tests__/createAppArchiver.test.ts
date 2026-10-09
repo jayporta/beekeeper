@@ -4,7 +4,9 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../../ipc/testIpcTree'
 import { ARCHIVE_DETAIL_AFTER_DAYS } from '../archiveConstants'
 import { createAppArchiver } from '../createAppArchiver'
-import { createArchiveStore, type ArchiveStore } from '../createArchiveStore'
+import type { ArchiveStore } from '../archiveStoreTypes'
+import { testListItem } from '../testArchiveFixtures'
+import { createArchiveStore } from '../createArchiveStore'
 import { openArchive } from '../openArchive'
 
 const ctx = registerIpcTestTree()
@@ -83,5 +85,38 @@ describe('createAppArchiver', () => {
     await archiver(ARCHIVE_DETAIL_AFTER_DAYS).runPass()
 
     expect(detailRows()).toBe(1)
+  })
+
+  describe('a pending session whose transcript is gone', () => {
+    const GHOST = {
+      projectDirName: TEST_PROJECT,
+      sessionId: '9f9f9f9f-9999-4999-8999-99999999999a'
+    }
+
+    function countingDeps(counter: { scans: number }): typeof ctx.deps {
+      return {
+        ...ctx.deps,
+        now: () => Date.now() + ARCHIVE_DETAIL_AFTER_DAYS * DAY_MS,
+        scans: {
+          run: (key, task) => {
+            counter.scans += 1
+            return ctx.deps.scans.run(key, task)
+          }
+        }
+      }
+    }
+
+    it('is never scanned and is not pending in the next pass', async () => {
+      store.saveListItem(testListItem(GHOST), { mtimeMs: 1_000, size: 10 })
+      const counter = { scans: 0 }
+      const archiver = createAppArchiver({ deps: countingDeps(counter), store })
+
+      await archiver.runPass()
+      const pendingAfter = store.pendingDetails().map((pending) => pending.ref.sessionId)
+      await archiver.runPass()
+
+      expect(counter.scans).toBe(1)
+      expect(pendingAfter).not.toContain(GHOST.sessionId)
+    })
   })
 })

@@ -5,8 +5,8 @@ import {
   ARCHIVE_PASS_DELAY_MS,
   ARCHIVE_PASS_INTERVAL_MS
 } from '../archiveConstants'
-import { createArchiver, type ArchiverOptions } from '../createArchiver'
-import type { PendingDetail } from '../createArchiveStore'
+import { createArchiver, type ArchivableProject, type ArchiverOptions } from '../createArchiver'
+import type { PendingDetail } from '../archiveStoreTypes'
 import { errorWithCode } from '../../testErrorWithCode'
 
 const DAY_MS = 86_400_000
@@ -23,6 +23,22 @@ function pending(projectDirName: string, sessionId: string, lastMs: number): Pen
     ref: ref(projectDirName, sessionId),
     source: { mtimeMs: lastMs, size: 1 },
     activityLatestMs: lastMs
+  }
+}
+
+/** A project that has every session and records the details archived for it. */
+function projectOf(
+  dirName: string,
+  calls: string[],
+  overrides: Partial<ArchivableProject> = {}
+): ArchivableProject {
+  return {
+    has: () => true,
+    archiveDetail: (sessionId) => {
+      calls.push(`detail:${dirName}/${sessionId}`)
+      return Promise.resolve()
+    },
+    ...overrides
   }
 }
 
@@ -48,9 +64,12 @@ function setup(overrides: Partial<ArchiverOptions> = {}): {
       return Promise.resolve()
     },
     pendingDetails: () => [],
-    archiveDetail: (target) => {
-      calls.push(`detail:${target.projectDirName}/${target.sessionId}`)
-      return Promise.resolve()
+    openProject: (dir) => {
+      calls.push(`open:${dir}`)
+      return Promise.resolve(projectOf(dir, calls))
+    },
+    skipDetail: (target) => {
+      calls.push(`skip:${target.projectDirName}/${target.sessionId}`)
     },
     now: () => NOW,
     log: (line) => logs.push(line),
@@ -181,7 +200,7 @@ describe('createArchiver pass', () => {
 
     await createArchiver(options).runPass()
 
-    expect(calls).toEqual(['projects', 'detail:a/old'])
+    expect(calls).toEqual(['projects', 'open:a', 'detail:a/old'])
   })
 
   it('judges a session by its transcript time when it has no message time', async () => {
@@ -234,10 +253,17 @@ describe('createArchiver pass', () => {
         pending('a', 's2', OLD),
         pending('b', 's3', OLD)
       ],
-      archiveDetail: (target) => {
-        calls.push(`detail:${target.sessionId}`)
-        archiverRef.current?.stop()
-        return Promise.resolve()
+      openProject: (dir) => {
+        calls.push(`open:${dir}`)
+        return Promise.resolve(
+          projectOf(dir, calls, {
+            archiveDetail: (sessionId) => {
+              calls.push(`detail:${sessionId}`)
+              archiverRef.current?.stop()
+              return Promise.resolve()
+            }
+          })
+        )
       }
     })
     archiverRef.current = createArchiver(options)
@@ -245,6 +271,89 @@ describe('createArchiver pass', () => {
     await archiverRef.current.runPass()
 
     expect(calls.filter((call) => call.startsWith('detail:'))).toEqual(['detail:s1'])
+    expect(calls).not.toContain('open:b')
+  })
+
+  it('opens each project once for all its due sessions, in listed order', async () => {
+    const { options, calls } = setup({
+      changedSessions: () => Promise.resolve(false),
+      pendingDetails: () => [
+        pending('b', 's3', OLD),
+        pending('a', 's1', OLD),
+        pending('a', 's2', OLD)
+      ]
+    })
+
+    await createArchiver(options).runPass()
+
+    expect(calls).toEqual([
+      'projects',
+      'open:a',
+      'detail:a/s1',
+      'detail:a/s2',
+      'open:b',
+      'detail:b/s3'
+    ])
+  })
+
+  it('opens no project that has nothing due', async () => {
+    const { options, calls } = setup({
+      changedSessions: () => Promise.resolve(false),
+      pendingDetails: () => [pending('a', 'recent', RECENT)]
+    })
+
+    await createArchiver(options).runPass()
+
+    expect(calls).toEqual(['projects'])
+  })
+
+  it('skips a pending session its project no longer has, without scanning it', async () => {
+    const { options, calls } = setup({
+      changedSessions: () => Promise.resolve(false),
+      pendingDetails: () => [pending('a', 'gone', OLD), pending('a', 'here', OLD)],
+      openProject: (dir) => {
+        calls.push(`open:${dir}`)
+        return Promise.resolve(projectOf(dir, calls, { has: (sessionId) => sessionId !== 'gone' }))
+      }
+    })
+
+    await createArchiver(options).runPass()
+
+    expect(calls).toEqual(['projects', 'open:a', 'skip:a/gone', 'detail:a/here'])
+  })
+
+  it('does nothing for a project that cannot be opened because it is gone', async () => {
+    const { options, calls, logs } = setup({
+      changedSessions: () => Promise.resolve(false),
+      pendingDetails: () => [pending('a', 's1', OLD)],
+      openProject: (dir) => {
+        calls.push(`open:${dir}`)
+        return Promise.resolve(undefined)
+      }
+    })
+
+    await createArchiver(options).runPass()
+
+    expect(calls).toEqual(['projects', 'open:a'])
+    expect(logs).toEqual([])
+  })
+
+  it('continues with the next project after opening one fails, logging only its code', async () => {
+    const { options, calls, logs } = setup({
+      changedSessions: () => Promise.resolve(false),
+      pendingDetails: () => [pending('a', 's1', OLD), pending('b', 's2', OLD)],
+      openProject: (dir) => {
+        calls.push(`open:${dir}`)
+        return dir === 'a'
+          ? Promise.reject(errorWithCode('EPASS_OPEN'))
+          : Promise.resolve(projectOf(dir, calls))
+      }
+    })
+
+    await createArchiver(options).runPass()
+
+    expect(calls).toContain('detail:b/s2')
+    expect(logs).toEqual(['Beekeeper archive pass skipped a project (EPASS_OPEN).'])
   })
 
   it('stops checking projects once stopped mid-pass', async () => {
@@ -279,10 +388,15 @@ describe('createArchiver pass', () => {
     const { options, calls, logs } = setup({
       changedSessions: () => Promise.resolve(false),
       pendingDetails: () => [pending('a', 's1', OLD), pending('a', 's2', OLD)],
-      archiveDetail: (target) =>
-        target.sessionId === 's1'
-          ? Promise.reject(errorWithCode('EPASS_DETAIL'))
-          : (calls.push('detail:s2'), Promise.resolve())
+      openProject: (dir) =>
+        Promise.resolve(
+          projectOf(dir, calls, {
+            archiveDetail: (sessionId) =>
+              sessionId === 's1'
+                ? Promise.reject(errorWithCode('EPASS_DETAIL'))
+                : (calls.push('detail:s2'), Promise.resolve())
+          })
+        )
     })
 
     await createArchiver(options).runPass()

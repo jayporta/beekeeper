@@ -1,5 +1,5 @@
 import { discoverSessions } from '../../core/transcript/discoverSessions'
-import type { ArchiveStore } from './createArchiveStore'
+import type { ArchiveStore } from './archiveStoreTypes'
 
 /** Options for {@link hasChangedSessions}. */
 export interface HasChangedSessionsOptions {

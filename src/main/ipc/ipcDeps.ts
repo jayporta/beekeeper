@@ -1,5 +1,5 @@
 import type { SessionSummaryCache } from '../../core/transcript/summary/sessionSummaryCache'
-import type { ArchiveWriter } from '../archive/createArchiveStore'
+import type { ArchiveWriter } from '../archive/archiveStoreTypes'
 import type { GitLocation } from '../git/gitLocator'
 import type { DailyUsageCache } from '../overview/dailyUsageCache'
 import type { AgentTermsCache } from './agentTermsCache'

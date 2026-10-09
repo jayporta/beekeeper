@@ -1,9 +1,17 @@
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
 import { ARCHIVE_PASS_DELAY_MS, ARCHIVE_PASS_INTERVAL_MS } from './archiveConstants'
-import type { PendingDetail } from './createArchiveStore'
+import type { PendingDetail } from './archiveStoreTypes'
 import { describeArchiveError } from './describeArchiveError'
 import { isDetailDue } from './isDetailDue'
 import { lastActivityMs } from './lastActivityMs'
+
+/** A project's sessions, discovered once so each pending detail needs no further lookup. */
+export interface ArchivableProject {
+  /** Whether the project still has a readable transcript for the session. */
+  readonly has: (sessionId: string) => boolean
+  /** Scans one of the project's sessions, which archives its detail. */
+  readonly archiveDetail: (sessionId: string) => Promise<void>
+}
 
 /** What the archiver reads and does, injected so tests stay pure. */
 export interface ArchiverOptions {
@@ -15,8 +23,10 @@ export interface ArchiverOptions {
   readonly listSessions: (dirName: string) => Promise<void>
   /** The sessions whose detail could still be archived. */
   readonly pendingDetails: () => readonly PendingDetail[]
-  /** Scans one session, which archives its detail. */
-  readonly archiveDetail: (ref: SessionRefDto) => Promise<void>
+  /** Discovers a project's sessions, or returns `undefined` when the project is gone. */
+  readonly openProject: (dirName: string) => Promise<ArchivableProject | undefined>
+  /** Stops retrying a pending session whose transcript is gone. */
+  readonly skipDetail: (ref: SessionRefDto) => void
   /** The current time in epoch milliseconds. */
   readonly now: () => number
   /** Receives each one-line failure log. Defaults to `console.warn`. */
@@ -40,7 +50,8 @@ export interface Archiver {
 /**
  * Creates the background archiver. A pass lists each project whose sessions
  * changed, so their list items are archived, then archives the detail of every
- * pending session that has been quiet for the waiting period. A pass takes
+ * pending session that has been quiet for the waiting period. Each project's
+ * sessions are discovered once, however many details it archives. A pass takes
  * one step at a time, so it competes politely with the UI for reads, and one
  * failing project or session never ends it.
  *
@@ -62,12 +73,44 @@ export function createArchiver(options: ArchiverOptions): Archiver {
     }
   }
 
-  async function archiveDetailOf(ref: SessionRefDto): Promise<void> {
+  async function archiveProjectDetails(
+    dirName: string,
+    due: readonly SessionRefDto[]
+  ): Promise<void> {
+    let project: ArchivableProject | undefined
     try {
-      await options.archiveDetail(ref)
+      project = await options.openProject(dirName)
     } catch (error) {
-      log(`Beekeeper archive pass skipped a session detail (${describeArchiveError(error)}).`)
+      log(`Beekeeper archive pass skipped a project (${describeArchiveError(error)}).`)
+      return
     }
+    if (project === undefined) return
+    for (const ref of due) {
+      if (stopped) return
+      if (!project.has(ref.sessionId)) {
+        options.skipDetail(ref)
+        continue
+      }
+      try {
+        await project.archiveDetail(ref.sessionId)
+      } catch (error) {
+        log(`Beekeeper archive pass skipped a session detail (${describeArchiveError(error)}).`)
+      }
+    }
+  }
+
+  /** The refs of pending sessions quiet for the waiting period, by project folder. */
+  function dueByProject(projects: readonly string[]): ReadonlyMap<string, SessionRefDto[]> {
+    const listed = new Set(projects)
+    const due = new Map<string, SessionRefDto[]>()
+    for (const { ref, source, activityLatestMs } of options.pendingDetails()) {
+      const last = lastActivityMs({ activityLatestMs, modifiedMs: source.mtimeMs })
+      if (!listed.has(ref.projectDirName) || !isDetailDue(last, options.now())) continue
+      const refs = due.get(ref.projectDirName)
+      if (refs === undefined) due.set(ref.projectDirName, [ref])
+      else refs.push(ref)
+    }
+    return due
   }
 
   async function pass(): Promise<void> {
@@ -82,13 +125,11 @@ export function createArchiver(options: ArchiverOptions): Archiver {
       if (stopped) return
       await listChangedProject(dirName)
     }
-    const listed = new Set(projects)
-    for (const { ref, source, activityLatestMs } of options.pendingDetails()) {
+    const due = dueByProject(projects)
+    for (const dirName of projects) {
+      const refs = due.get(dirName)
       if (stopped) return
-      const last = lastActivityMs({ activityLatestMs, modifiedMs: source.mtimeMs })
-      if (listed.has(ref.projectDirName) && isDetailDue(last, options.now())) {
-        await archiveDetailOf(ref)
-      }
+      if (refs !== undefined) await archiveProjectDetails(dirName, refs)
     }
   }
 

@@ -4,10 +4,7 @@ import { archiveSessionDetail } from './archiveSessionDetail'
 import { findRequestedSession } from './findRequestedSession'
 import type { IpcDeps } from './ipcDeps'
 import { okResult } from './ipcResults'
-import { mapSessionScan } from './mapSessionScan'
-import { readWorkflowRuns } from './readWorkflowRuns'
-import { scanFoundSession } from './scanFoundSession'
-import { toIpcErrorCode } from './toIpcErrorCode'
+import { scanSessionDetail } from './scanSessionDetail'
 
 /**
  * Scans one session in full. Calls for the same session state (same lead
@@ -33,15 +30,7 @@ export async function getSessionHandler(
   if (!requested.ok) return requested
 
   const { projectDirName, sessionId, found, transcript } = requested.value
-  const scan = await scanFoundSession({ deps, found, transcript })
-  const { subagents } = found.session
-  const subagentsError = subagents.ok ? null : toIpcErrorCode(subagents.error)
-  // Run records are read per request, outside the cached scan, so a run that
-  // finishes after the scan was cached still shows its final record.
-  const workflowRuns = subagents.ok
-    ? await readWorkflowRuns(found.session.sessionDir, subagents.value)
-    : []
-  const detail = mapSessionScan({ sessionId, scan, subagentsError, workflowRuns })
+  const detail = await scanSessionDetail({ deps, sessionId, found, transcript })
   archiveSessionDetail({ deps, projectDirName, detail, transcript })
   return okResult(detail)
 }

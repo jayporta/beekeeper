@@ -1,7 +1,9 @@
 import type { DatabaseSync } from 'node:sqlite'
+import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MAX_ARCHIVED_DETAIL_CHARS } from '../archiveConstants'
-import { createArchiveStore, type ArchiveStore } from '../createArchiveStore'
+import type { ArchiveStore, SourceState } from '../archiveStoreTypes'
+import { createArchiveStore } from '../createArchiveStore'
 import { openArchive } from '../openArchive'
 import {
   testDetail,
@@ -10,6 +12,12 @@ import {
   TEST_REF,
   TEST_SOURCE
 } from '../testArchiveFixtures'
+
+/** One entry of a `saveListItems` batch. */
+interface ListEntry {
+  readonly item: SessionListItemDto
+  readonly source: SourceState
+}
 
 let db: DatabaseSync
 let clock: number
@@ -216,6 +224,172 @@ describe('saveDetail', () => {
     store.saveDetail(TEST_REF, { detail: huge, source: TEST_SOURCE })
 
     expect(stringify).not.toHaveBeenCalled()
+  })
+})
+
+describe('saveListItems', () => {
+  const SECOND = { ...TEST_REF, sessionId: '22222222-2222-4222-8222-222222222222' }
+  const THIRD = { ...TEST_REF, sessionId: '33333333-3333-4333-8333-333333333333' }
+
+  function entryFor(ref: typeof TEST_REF, source: SourceState = TEST_SOURCE): ListEntry {
+    return { item: testListItem({ sessionId: ref.sessionId }), source }
+  }
+
+  function entries(): ListEntry[] {
+    return [entryFor(TEST_REF), entryFor(SECOND), entryFor(THIRD)]
+  }
+
+  function statements(exec: { mock: { calls: unknown[][] } }, sql: string): number {
+    return exec.mock.calls.filter(([arg]) => arg === sql).length
+  }
+
+  it('stores every entry in one transaction', () => {
+    const exec = vi.spyOn(db, 'exec')
+
+    store.saveListItems(entries())
+
+    expect(rows()).toHaveLength(3)
+    expect([statements(exec, 'BEGIN'), statements(exec, 'COMMIT')]).toEqual([1, 1])
+  })
+
+  it('opens no transaction and serializes nothing when every entry is unchanged', () => {
+    store.saveListItems(entries())
+    const exec = vi.spyOn(db, 'exec')
+    const stringify = vi.spyOn(JSON, 'stringify')
+
+    store.saveListItems(entries())
+
+    expect(statements(exec, 'BEGIN')).toBe(0)
+    expect(stringify).not.toHaveBeenCalled()
+  })
+
+  it('writes only the changed entries of a batch', () => {
+    store.saveListItems(entries())
+    clock = 9_000
+
+    store.saveListItems([
+      entryFor(TEST_REF),
+      entryFor(SECOND, { ...TEST_SOURCE, size: 900 }),
+      entryFor(THIRD)
+    ])
+
+    expect(
+      rows()
+        .map((row) => row['archived_at_ms'])
+        .sort()
+    ).toEqual([5_000, 5_000, 9_000])
+  })
+
+  it('stores nothing and keeps the store consistent when an entry fails mid-batch', () => {
+    const failing = Object.assign(testListItem({ sessionId: SECOND.sessionId }), {
+      toJSON: (): never => {
+        throw new Error('serialization failed')
+      }
+    })
+
+    expect(() =>
+      store.saveListItems([entryFor(TEST_REF), { item: failing, source: TEST_SOURCE }])
+    ).toThrow('serialization failed')
+
+    expect(rows()).toEqual([])
+    expect(db.isTransaction).toBe(false)
+    expect(store.hasListItem(TEST_REF, TEST_SOURCE)).toBe(false)
+    store.saveListItem(testListItem(), TEST_SOURCE)
+    expect(rows()).toHaveLength(1)
+  })
+})
+
+describe('saveDetail oversized skip', () => {
+  const HUGE = testDetail('x'.repeat(MAX_ARCHIVED_DETAIL_CHARS))
+
+  it('stores the skipped source state on the row with no detail', () => {
+    store.saveListItem(testListItem(), TEST_SOURCE)
+
+    store.saveDetail(TEST_REF, { detail: HUGE, source: TEST_SOURCE })
+
+    expect(rows()[0]).toMatchObject({
+      detail: null,
+      detail_mtime_ms: TEST_SOURCE.mtimeMs,
+      detail_size: TEST_SOURCE.size
+    })
+  })
+
+  it('is remembered by a store created over the archive, which does not retry or log it', () => {
+    store.saveListItem(testListItem(), TEST_SOURCE)
+    store.saveDetail(TEST_REF, { detail: HUGE, source: TEST_SOURCE })
+    logged = []
+    const restarted = newStore()
+    const stringify = vi.spyOn(JSON, 'stringify')
+
+    restarted.saveDetail(TEST_REF, { detail: HUGE, source: TEST_SOURCE })
+
+    expect(restarted.pendingDetails()).toEqual([])
+    expect(restarted.hasDetail(TEST_REF, TEST_SOURCE)).toBe(true)
+    expect(stringify).not.toHaveBeenCalled()
+    expect(logged).toEqual([])
+  })
+
+  it('is replaced by a stored detail once the transcript changes to a size that fits', () => {
+    store.saveListItem(testListItem(), TEST_SOURCE)
+    store.saveDetail(TEST_REF, { detail: HUGE, source: TEST_SOURCE })
+    const next = { ...TEST_SOURCE, size: 700 }
+    store.saveListItem(testListItem(), next)
+
+    store.saveDetail(TEST_REF, { detail: testDetail(), source: next })
+
+    expect(rows()[0]).toMatchObject({ detail_size: 700 })
+    expect(rows()[0]?.['detail']).not.toBeNull()
+  })
+
+  it('lists the session again once its transcript changes after the skip', () => {
+    store.saveListItem(testListItem(), TEST_SOURCE)
+    store.saveDetail(TEST_REF, { detail: HUGE, source: TEST_SOURCE })
+
+    store.saveListItem(testListItem(), { ...TEST_SOURCE, size: 700 })
+
+    expect(store.pendingDetails()).toHaveLength(1)
+  })
+})
+
+describe('skipDetail', () => {
+  it('takes a pending session out of the pending list for its current source state', () => {
+    store.saveListItem(testListItem(), TEST_SOURCE)
+
+    store.skipDetail(TEST_REF)
+
+    expect(store.pendingDetails()).toEqual([])
+  })
+
+  it('lists the session again once its transcript changes', () => {
+    store.saveListItem(testListItem(), TEST_SOURCE)
+    store.skipDetail(TEST_REF)
+
+    store.saveListItem(testListItem(), { ...TEST_SOURCE, size: 900 })
+
+    expect(store.pendingDetails()).toHaveLength(1)
+  })
+
+  it('lasts only for the life of the store: a store created over the archive lists it again', () => {
+    store.saveListItem(testListItem(), TEST_SOURCE)
+    store.skipDetail(TEST_REF)
+
+    expect(newStore().pendingDetails()).toHaveLength(1)
+  })
+
+  it('writes nothing to the archive', () => {
+    store.saveListItem(testListItem(), TEST_SOURCE)
+    const changes = totalChanges()
+
+    store.skipDetail(TEST_REF)
+
+    expect(totalChanges()).toBe(changes)
+  })
+
+  it('does nothing for a session that was never archived', () => {
+    store.skipDetail(TEST_REF)
+
+    expect(store.pendingDetails()).toEqual([])
+    expect(store.hasListItem(TEST_REF, TEST_SOURCE)).toBe(false)
   })
 })
 

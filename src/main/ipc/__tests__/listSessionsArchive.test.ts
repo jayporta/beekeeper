@@ -38,6 +38,32 @@ describe('listSessionsHandler archive', () => {
     })
   })
 
+  it("saves a project's sessions in one batch", async () => {
+    await writeTranscript(ctx.tree.home, {
+      projectDirName: TEST_PROJECT,
+      sessionId: AGENT_SESSION_ID,
+      records: scoutRecords()
+    })
+    const archive = createFakeArchiveWriter()
+
+    await list({ ...ctx.deps, archive })
+
+    expect(archive.listBatches.map((batch) => batch.length)).toEqual([2])
+  })
+
+  it('saves nothing, not even an empty batch, when no session has a readable summary', async () => {
+    const archive = createFakeArchiveWriter()
+    const deps: IpcDeps = {
+      ...ctx.deps,
+      archive,
+      summaryCache: { read: () => Promise.resolve(err({ reason: 'unreadable', code: 'EIO' })) }
+    }
+
+    await list(deps)
+
+    expect(archive.listBatches).toEqual([])
+  })
+
   it('lists without touching an archive when none is set', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
