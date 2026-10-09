@@ -5,7 +5,7 @@ import { toolResultBlockSchema, toolUseBlockSchema } from '../schemas'
 import { boundedIdentifierSchema } from '../schemas/boundedIdentifier'
 import { recordTimestampMs } from '../summary/recordTimestampMs'
 import { commandHash } from './commandHash'
-import type { SignalEvent } from './signalEvent'
+import { signalEventKey, type SignalEvent } from './signalEvent'
 
 /**
  * The most signal events one transcript contributes. Past it, nothing more is
@@ -52,7 +52,7 @@ export interface SignalObserver {
    * none, if the caller has already read it. Omit it to have the observer read the record's own.
    */
   observe(record: Record<string, unknown>, timestampMs?: number | null): void
-  /** Every event kept so far, in the order observed. */
+  /** Every distinct event kept so far, in the order observed. */
   events(): readonly SignalEvent[]
   /** Whether an event arrived after the list was full, so it was dropped. */
   capped(): boolean
@@ -62,19 +62,25 @@ export interface SignalObserver {
  * Creates an observer that turns a transcript's tool calls, tool results,
  * compactions and agent kills into signal events. It validates only the
  * fields it reads and tolerates the rest. A Bash command is hashed as it is
- * read and the text is never kept.
+ * read and the text is never kept. An event repeated in the transcript, such
+ * as a line a resumed session wrote twice, is kept once, by its
+ * {@link signalEventKey}, and a repeat never counts toward the cap.
  *
  * @returns An observer ready to `observe` a transcript's records in order.
  */
 export function createSignalObserver(): SignalObserver {
   const events: SignalEvent[] = []
+  const seen = new Set<string>()
   let capped = false
 
   function push(event: SignalEvent): void {
+    const key = signalEventKey(event)
+    if (seen.has(key)) return
     if (events.length >= MAX_SIGNAL_EVENTS_PER_TRANSCRIPT) {
       capped = true
       return
     }
+    seen.add(key)
     events.push(event)
   }
 

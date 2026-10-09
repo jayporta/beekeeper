@@ -514,6 +514,29 @@ describe('session cards: signal notes', () => {
     expect((await cardOf('Team lead')).textContent).toContain('12 tool errors · 2 compactions')
   })
 
+  it('renders both cards when a teammate’s summary failed, counting it nowhere in the lead’s totals', async () => {
+    // Main gives an unreadable session no team entry and leaves it out of its lead's group,
+    // so the lead lists no teammate and counts it as missing.
+    const leadOfUnreadable = testSession(9, {
+      projectDirName: DIR,
+      title: 'Lead of a lost teammate',
+      signals: { ...EMPTY_AGENT_SIGNALS_DTO, toolErrors: 1 },
+      team: testLeadTeam([], testUsage({ missingTeammates: 1, signalTotals: counts }))
+    })
+    const lostTeammate = testSession(10, {
+      projectDirName: DIR,
+      role: testAgentRole('lost', 'code'),
+      unreadable: true
+    })
+    showSessions([leadOfUnreadable, lostTeammate])
+
+    const leadCard = await cardOf('Lead of a lost teammate')
+    const lostCard = await cardOf('Unreadable session')
+
+    expect(leadCard.textContent).toContain('12 tool errors · 2 compactions')
+    expect(lostCard.textContent).not.toContain('tool error')
+  })
+
   it('says what the counts cover once, below the list, when a card has a count', async () => {
     showSessions([noisy, solo])
     await cardOf('Went off the rails')

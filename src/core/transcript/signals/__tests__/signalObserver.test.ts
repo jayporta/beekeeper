@@ -161,6 +161,43 @@ describe('createSignalObserver', () => {
     expect(observer.events()).toEqual([])
   })
 
+  it('keeps one event for a tool result repeated in the transcript', () => {
+    const result = buildUserToolResultRecord({ toolUseId: 'a', isError: true })
+
+    expect(observed(result, result).events()).toHaveLength(1)
+  })
+
+  it('keeps one event for a tool call repeated in the transcript', () => {
+    const call = buildAssistantToolUseRecord({ toolUseId: 'a', toolName: 'Read' })
+
+    expect(observed(call, call).events()).toHaveLength(1)
+  })
+
+  it('keeps one event for a compaction repeated in the transcript', () => {
+    const boundary = buildSystemRecord({ subtype: 'compact_boundary', uuid: 'u1' })
+
+    expect(observed(boundary, boundary).events()).toHaveLength(1)
+  })
+
+  it('keeps a call and a result that share an id as two events', () => {
+    const observer = observed(
+      buildAssistantToolUseRecord({ toolUseId: 'a' }),
+      buildUserToolResultRecord({ toolUseId: 'a' })
+    )
+
+    expect(observer.events()).toHaveLength(2)
+  })
+
+  it('does not report capped for a repeat that arrives with the list exactly full', () => {
+    const observer = createSignalObserver()
+    for (let index = 0; index < MAX_SIGNAL_EVENTS_PER_TRANSCRIPT; index += 1) {
+      observer.observe(buildUserToolResultRecord({ toolUseId: `t${index}` }))
+    }
+    observer.observe(buildUserToolResultRecord({ toolUseId: 't0' }))
+
+    expect(observer.capped()).toBe(false)
+  })
+
   it('stops at the cap and reports capped', () => {
     const observer = createSignalObserver()
     for (let index = 0; index <= MAX_SIGNAL_EVENTS_PER_TRANSCRIPT; index += 1) {

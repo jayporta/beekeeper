@@ -64,6 +64,15 @@ describe('scanSessionSummary', () => {
     expect(summary.signals).toMatchObject({ toolErrors: 2, compactions: 1, partial: false })
   })
 
+  it('counts a tool result repeated in the transcript once', async () => {
+    const errored = buildUserToolResultRecord({ toolUseId: 'a', isError: true })
+    const filePath = writeTranscript(buildJsonlText([errored, errored]))
+
+    const summary = await scanSessionSummary(filePath)
+
+    expect(summary.signals.toolErrors).toBe(1)
+  })
+
   it('reports empty signals for a transcript with no tool activity', async () => {
     const filePath = writeTranscript(buildJsonlText([buildAssistantRecord()]))
 
