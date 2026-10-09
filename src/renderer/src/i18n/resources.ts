@@ -5,9 +5,20 @@ import overview from '@renderer/features/overview/locales/en.json'
 import projects from '@renderer/features/projects/locales/en.json'
 import sessionDetail from '@renderer/features/sessionDetail/locales/en.json'
 import sessions from '@renderer/features/sessions/locales/en.json'
+import telemetry from '@renderer/features/telemetry/locales/en.json'
 import common from './locales/en.json'
 
 /** Every namespace's English strings, bundled with the app. */
 export const resources = {
-  en: { common, about, firstRun, navigation, overview, projects, sessionDetail, sessions }
+  en: {
+    common,
+    about,
+    firstRun,
+    navigation,
+    overview,
+    projects,
+    sessionDetail,
+    sessions,
+    telemetry
+  }
 } as const

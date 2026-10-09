@@ -31,6 +31,13 @@ describe('shouldPersistQuery', () => {
     ])
   })
 
+  it.each([['otelReceiver'], ['reportedCost']])(
+    'never persists the telemetry query %s, since its data holds the receiver’s token or live figures',
+    (root) => {
+      expect(shouldPersistQuery(query([root, 'some-session']))).toBe(false)
+    }
+  )
+
   it.each([['projects'], ['sessions'], ['projectTotals'], ['projectDailyUsage']])(
     'persists a successful %s query',
     (root) => {

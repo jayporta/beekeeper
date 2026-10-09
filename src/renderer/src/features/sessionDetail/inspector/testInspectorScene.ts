@@ -8,6 +8,7 @@ import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDt
 import type { WorktreeDiffsDto } from '../../../../../shared/ipc/worktreeDiffDto'
 import type { WorktreePatchDto } from '../../../../../shared/ipc/worktreePatchDto'
 import { testRow } from '@renderer/features/sessions/testSessionRows'
+import type { BeekeeperApi } from '../../../../../shared/ipc/beekeeperApi'
 import { installBeekeeperApi, type TestBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { createQueryWrapper, createTestQueryClient } from '@renderer/testQueryWrapper'
 import { SCENE_ITEMS, SCENE_SESSION } from '../graph/testGraphScene'
@@ -88,6 +89,8 @@ interface InspectorSceneOptions {
   readonly patches?: Readonly<
     Record<string, IpcResult<WorktreePatchDto> | Promise<IpcResult<WorktreePatchDto>>>
   >
+  /** Stubs for other calls, such as the telemetry receiver's. They replace the scene's own only for a call it doesn't stub. */
+  readonly apiOverrides?: Partial<BeekeeperApi>
   /** What `getWorktreeDiffs` answers, by session id. Others answer with no worktree agents. */
   readonly diffs?: Readonly<
     Record<string, IpcResult<WorktreeDiffsDto> | Promise<IpcResult<WorktreeDiffsDto>>>
@@ -112,9 +115,11 @@ export function renderInspectorScene(
     diffs = {},
     client = createTestQueryClient(),
     detailUpdatedAt = Date.now(),
-    patches = {}
+    patches = {},
+    apiOverrides = {}
   } = options
   const api = installBeekeeperApi({
+    ...apiOverrides,
     getSession: (_folder, sessionId) =>
       Promise.resolve(
         sessionId === SCENE_SESSION.sessionId

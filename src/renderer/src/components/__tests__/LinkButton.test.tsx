@@ -33,4 +33,19 @@ describe('LinkButton', () => {
       screen.getByRole('button', { name: 'Quiet' }).className
     )
   })
+
+  it('styles a padded button differently from an unpadded one', () => {
+    render(
+      <>
+        <LinkButton onClick={vi.fn()}>Flush</LinkButton>
+        <LinkButton padded onClick={vi.fn()}>
+          Padded
+        </LinkButton>
+      </>
+    )
+
+    expect(screen.getByRole('button', { name: 'Padded' }).className).not.toBe(
+      screen.getByRole('button', { name: 'Flush' }).className
+    )
+  })
 })

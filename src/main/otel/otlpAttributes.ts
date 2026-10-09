@@ -22,8 +22,12 @@ const valueSchema = z.object({
 
 const attributeSchema = z.object({ key: z.string(), value: valueSchema })
 
-/** A plain decimal number, so `0x10`, `Infinity` and the empty string never coerce. */
-const DECIMAL = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/
+/**
+ * A plain decimal number, so `0x10`, `Infinity` and the empty string never
+ * coerce. Each digit run has one way to match, so a long run of digits that
+ * ends in a letter fails in linear time.
+ */
+const DECIMAL = /^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/
 
 function isWantedEntry(entry: unknown, wanted: ReadonlySet<string>): boolean {
   return (

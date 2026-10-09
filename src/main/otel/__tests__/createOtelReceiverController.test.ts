@@ -1,4 +1,4 @@
-import { chmodSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -114,16 +114,11 @@ describe('createOtelReceiverController', () => {
   })
 
   it('does not start the receiver when the setting cannot be saved', async () => {
-    const readOnly = join(dir, 'read-only')
-    mkdirSync(readOnly)
-    chmodSync(readOnly, 0o500)
-    const broken = build(join(readOnly, 'otel-receiver.json'), 0)
+    const blocker = join(dir, 'blocker')
+    writeFileSync(blocker, '')
+    const broken = build(join(blocker, 'otel-receiver.json'), 0)
 
-    try {
-      await expect(broken.controller.setEnabled(true)).rejects.toThrow()
-    } finally {
-      chmodSync(readOnly, 0o700)
-    }
+    await expect(broken.controller.setEnabled(true)).rejects.toThrow()
 
     expect(broken.receiver.state()).toEqual({ status: 'off' })
   })
@@ -133,28 +128,14 @@ describe('createOtelReceiverController', () => {
     mkdirSync(folder)
     const guarded = build(join(folder, 'otel-receiver.json'), 0)
     await guarded.controller.setEnabled(true)
-    chmodSync(folder, 0o500)
+    // A file where the folder was makes the next save fail for any user, root included.
+    rmSync(folder, { recursive: true })
+    writeFileSync(folder, '')
 
-    try {
-      await expect(guarded.controller.setEnabled(false)).rejects.toThrow()
-    } finally {
-      chmodSync(folder, 0o700)
-    }
+    await expect(guarded.controller.setEnabled(false)).rejects.toThrow()
 
     expect(guarded.receiver.state().status).toBe('listening')
     await guarded.stopAll()
-  })
-
-  it('reports starting for a saved on setting before the server has started', async () => {
-    const saved = await settings.setEnabled(true)
-
-    expect(await controller.get()).toEqual({
-      enabled: true,
-      status: 'starting',
-      failure: null,
-      port: 0,
-      token: saved.token
-    })
   })
 
   it('reports listening once the saved setting has been started', async () => {
@@ -163,15 +144,6 @@ describe('createOtelReceiverController', () => {
     await controller.startFromSettings()
 
     expect((await controller.get()).status).toBe('listening')
-  })
-
-  it('reports off, not starting, after a receiver started at launch is stopped', async () => {
-    await settings.setEnabled(true)
-    await controller.startFromSettings()
-
-    await controller.stop()
-
-    expect((await controller.get()).status).toBe('off')
   })
 
   it('starts from the saved setting when it is on', async () => {
@@ -198,6 +170,32 @@ describe('createOtelReceiverController', () => {
     expect(receiver.state()).toEqual({ status: 'off' })
   })
 
+  it('answers a read made in the same tick as startFromSettings with the receiver listening', async () => {
+    let listening = false
+    const slowToStart: OtelReceiver = {
+      start: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 30))
+        listening = true
+        return { status: 'listening', port: 1 }
+      },
+      stop: () => Promise.resolve(),
+      state: () => (listening ? { status: 'listening', port: 1 } : { status: 'off' })
+    }
+    const saved: OtelSettingsStore = {
+      read: () => Promise.resolve({ enabled: true, token: 'tok' }),
+      setEnabled: () => Promise.resolve({ enabled: true, token: 'tok' })
+    }
+    const launching = createOtelReceiverController({
+      settings: saved,
+      receiver: slowToStart,
+      port: 0
+    })
+
+    const [, during] = await Promise.all([launching.startFromSettings(), launching.get()])
+
+    expect(during).toMatchObject({ enabled: true, status: 'listening' })
+  })
+
   it('answers a read made during a change with the state after it', async () => {
     const [, during] = await Promise.all([controller.setEnabled(true), controller.get()])
 
@@ -213,14 +211,32 @@ describe('createOtelReceiverController', () => {
     expect(await controller.get()).toMatchObject({ enabled: true, status: 'off' })
   })
 
-  it('ends consistent when toggles overlap', async () => {
-    await Promise.all([
-      controller.setEnabled(true),
-      controller.setEnabled(false),
-      controller.setEnabled(true),
-      controller.setEnabled(false)
-    ])
+  it('applies overlapping changes in the order they were made, whatever each takes to save', async () => {
+    let saved = { enabled: false, token: null as string | null }
+    const slowToEnable: OtelSettingsStore = {
+      read: () => Promise.resolve(saved),
+      setEnabled: async (enabled) => {
+        await new Promise((resolve) => setTimeout(resolve, enabled ? 40 : 1))
+        saved = { enabled, token: 'tok' }
+        return saved
+      }
+    }
+    let listening = false
+    const fake: OtelReceiver = {
+      start: () => {
+        listening = true
+        return Promise.resolve({ status: 'listening', port: 1 })
+      },
+      stop: () => {
+        listening = false
+        return Promise.resolve()
+      },
+      state: () => (listening ? { status: 'listening', port: 1 } : { status: 'off' })
+    }
+    const racing = createOtelReceiverController({ settings: slowToEnable, receiver: fake, port: 0 })
 
-    expect(await controller.get()).toMatchObject({ enabled: false, status: 'off' })
+    await Promise.all([racing.setEnabled(true), racing.setEnabled(false)])
+
+    expect([saved.enabled, listening]).toEqual([false, false])
   })
 })

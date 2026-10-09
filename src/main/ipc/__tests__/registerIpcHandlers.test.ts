@@ -37,12 +37,15 @@ afterEach(async () => {
   await tree.cleanup()
 })
 
-function register(otel: IpcDeps['otel'] = null): Map<string, Listener> {
+function register(
+  otel: IpcDeps['otel'] = null,
+  copyToClipboard: IpcDeps['copyToClipboard'] = null
+): Map<string, Listener> {
   const { ipcMain, listeners } = fakeIpcMain()
   registerIpcHandlers({
     ipcMain,
     isTrusted: (event) => isTrustedSender(event, TEST_ORIGINS),
-    deps: { ...createIpcDeps(tree.home), otel }
+    deps: { ...createIpcDeps(tree.home), otel, copyToClipboard }
   })
   return listeners
 }
@@ -78,6 +81,20 @@ describe('registerIpcHandlers', () => {
     } finally {
       await runtime.receiver.stop()
     }
+  })
+
+  it('copies text for a trusted sender and refuses an untrusted one', async () => {
+    const copied: string[] = []
+    const listener = register(null, (text) => copied.push(text)).get(IPC_CHANNELS.copyText)
+
+    const trusted = await listener?.(trustedEvent, { text: 'a=b' })
+    const foreign = await listener?.({ senderFrame: null }, { text: 'c=d' })
+
+    expect([trusted, foreign, copied]).toEqual([
+      { ok: true, value: null },
+      { ok: false, error: { code: 'untrusted-sender' } },
+      ['a=b']
+    ])
   })
 
   it('serves the telemetry receiver channels as off when no runtime is wired', async () => {
