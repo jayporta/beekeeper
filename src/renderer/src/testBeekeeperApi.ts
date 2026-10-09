@@ -60,6 +60,11 @@ export function installBeekeeperApi(overrides: Partial<BeekeeperApi> = {}): Test
       overrides.getProjectDailyUsage ?? ((): Promise<never> => new Promise(() => undefined))
     ),
     getWorktreePatch: vi.fn(overrides.getWorktreePatch ?? unstubbed('getWorktreePatch')),
+    getOtelReceiver: vi.fn(overrides.getOtelReceiver ?? unstubbed('getOtelReceiver')),
+    setOtelReceiverEnabled: vi.fn(
+      overrides.setOtelReceiverEnabled ?? unstubbed('setOtelReceiverEnabled')
+    ),
+    getReportedCost: vi.fn(overrides.getReportedCost ?? unstubbed('getReportedCost')),
     onOpenAbout: vi.fn(
       overrides.onOpenAbout ??
         ((listener) => {

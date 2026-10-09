@@ -1,7 +1,9 @@
 import { IPC_CHANNELS, type IpcChannel } from '../../shared/ipc/channels'
 import type { IpcResult } from '../../shared/ipc/ipcResult'
+import { getOtelReceiverHandler } from './getOtelReceiverHandler'
 import { getProjectDailyUsageHandler } from './getProjectDailyUsageHandler'
 import { getProjectTotalsHandler } from './getProjectTotalsHandler'
+import { getReportedCostHandler } from './getReportedCostHandler'
 import { getSessionHandler } from './getSessionHandler'
 import { getWorktreeDiffsHandler } from './getWorktreeDiffsHandler'
 import { getWorktreePatchHandler } from './getWorktreePatchHandler'
@@ -10,6 +12,7 @@ import type { IpcDeps } from './ipcDeps'
 import { listProjectsHandler } from './listProjectsHandler'
 import { listSessionsHandler } from './listSessionsHandler'
 import type { SenderEvent } from './senderValidation'
+import { setOtelReceiverEnabledHandler } from './setOtelReceiverEnabledHandler'
 
 /** The part of Electron's `ipcMain` that registration uses. */
 export interface IpcMainLike {
@@ -44,7 +47,11 @@ export function registerIpcHandlers(options: RegisterIpcHandlersOptions): void {
     [IPC_CHANNELS.getWorktreeDiffs]: (payload) => getWorktreeDiffsHandler(deps, payload),
     [IPC_CHANNELS.getProjectTotals]: (payload) => getProjectTotalsHandler(deps, payload),
     [IPC_CHANNELS.getProjectDailyUsage]: (payload) => getProjectDailyUsageHandler(deps, payload),
-    [IPC_CHANNELS.getWorktreePatch]: (payload) => getWorktreePatchHandler(deps, payload)
+    [IPC_CHANNELS.getWorktreePatch]: (payload) => getWorktreePatchHandler(deps, payload),
+    [IPC_CHANNELS.getOtelReceiver]: () => getOtelReceiverHandler(deps),
+    [IPC_CHANNELS.setOtelReceiverEnabled]: (payload) =>
+      setOtelReceiverEnabledHandler(deps, payload),
+    [IPC_CHANNELS.getReportedCost]: (payload) => getReportedCostHandler(deps, payload)
   }
   for (const channel of Object.values(IPC_CHANNELS)) {
     ipcMain.handle(channel, guardIpc({ isTrusted, handle: handlers[channel] }))

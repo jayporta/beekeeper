@@ -1,6 +1,8 @@
 import { randomBytes } from 'node:crypto'
-import { readFile } from 'node:fs/promises'
+import { mkdir, readFile } from 'node:fs/promises'
+import { dirname } from 'node:path'
 import { z } from 'zod'
+import { createSerialQueue } from './serialQueue'
 import { writeFileAtomic } from './writeFileAtomic'
 
 /** The persisted opt-in for the telemetry receiver. */
@@ -29,7 +31,7 @@ export interface OtelSettingsStore {
    *
    * @param enabled - The new setting.
    * @returns The saved settings.
-   * @throws When the file can't be written.
+   * @throws When the file or its folder can't be written. The folder is created if missing.
    */
   setEnabled(enabled: boolean): Promise<OtelSettings>
 }
@@ -72,7 +74,7 @@ async function readSettings(filePath: string): Promise<OtelSettings> {
  * @returns A store over that file. Changes are applied one at a time.
  */
 export function createOtelSettingsStore(filePath: string): OtelSettingsStore {
-  let queue: Promise<unknown> = Promise.resolve()
+  const serialize = createSerialQueue()
 
   async function apply(enabled: boolean): Promise<OtelSettings> {
     const current = await readSettings(filePath)
@@ -81,16 +83,13 @@ export function createOtelSettingsStore(filePath: string): OtelSettingsStore {
       enabled,
       token: current.token ?? (enabled ? randomBytes(32).toString('base64url') : null)
     }
+    await mkdir(dirname(filePath), { recursive: true })
     await writeFileAtomic(filePath, JSON.stringify(next))
     return next
   }
 
   return {
     read: () => readSettings(filePath),
-    setEnabled(enabled) {
-      const result = queue.then(() => apply(enabled))
-      queue = result.catch(() => undefined)
-      return result
-    }
+    setEnabled: (enabled) => serialize(() => apply(enabled))
   }
 }

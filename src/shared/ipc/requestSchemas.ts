@@ -65,6 +65,12 @@ export const getWorktreePatchRequestSchema = z.strictObject({
   agentId: agentIdSchema
 })
 
+/** The payload of a `setOtelReceiverEnabled` call. */
+export const setOtelReceiverEnabledRequestSchema = z.strictObject({ enabled: z.boolean() })
+
+/** The payload of a `getReportedCost` call. */
+export const getReportedCostRequestSchema = z.strictObject({ sessionId: sessionIdSchema })
+
 /** A validated `listSessions` payload. */
 export type ListSessionsRequest = z.infer<typeof listSessionsRequestSchema>
 

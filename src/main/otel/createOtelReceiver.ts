@@ -3,6 +3,7 @@ import type { OtelReceiverFailureDto } from '../../shared/ipc/otelReceiverFailur
 import { describeError } from '../describeError'
 import { createOtlpRequestHandler } from './createOtlpRequestHandler'
 import type { ReportedCostStore } from './createReportedCostStore'
+import { createSerialQueue } from './serialQueue'
 
 /** The fixed port the receiver listens on, chosen to stay clear of a user's own collector on 4317 or 4318. */
 export const OTEL_RECEIVER_PORT = 47318
@@ -99,13 +100,7 @@ export function createOtelReceiver(options: OtelReceiverOptions): OtelReceiver {
   } = options
   let server: Server | null = null
   let current: OtelReceiverState = { status: 'off' }
-  let queue: Promise<unknown> = Promise.resolve()
-
-  function serialize<T>(task: () => Promise<T>): Promise<T> {
-    const result = queue.then(task)
-    queue = result.catch(() => undefined)
-    return result
-  }
+  const serialize = createSerialQueue()
 
   async function startListening(token: string): Promise<OtelReceiverState> {
     if (server !== null) return current

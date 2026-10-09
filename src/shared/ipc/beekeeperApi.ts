@@ -1,7 +1,9 @@
 import type { IpcResult } from './ipcResult'
+import type { OtelReceiverDto } from './otelReceiverDto'
 import type { ProjectDto } from './projectDto'
 import type { ProjectDailyUsageDto } from './projectDailyUsageDto'
 import type { ProjectTotalsDto, TotalsWindowDto } from './projectTotalsDto'
+import type { ReportedCostDto } from './reportedCostDto'
 import type { SessionDetailDto } from './sessionDetailDto'
 import type { SessionListItemDto } from './sessionListDto'
 import type { WorktreeDiffsDto } from './worktreeDiffDto'
@@ -73,6 +75,26 @@ export interface BeekeeperApi {
     sessionId: string,
     agentId: string
   ): Promise<IpcResult<WorktreePatchDto>>
+
+  /**
+   * Reads the opt-in telemetry receiver, which listens on 127.0.0.1 for Claude Code's own cost reports.
+   * @returns Whether it is turned on, whether it is listening, the port to export to, and, while it is on, the bearer token Claude Code must send.
+   */
+  getOtelReceiver(): Promise<IpcResult<OtelReceiverDto>>
+
+  /**
+   * Turns the telemetry receiver on or off. Turning it on saves the choice, creates the token the first time, and starts listening.
+   * @param enabled - Whether the receiver should run.
+   * @returns The receiver afterwards. A receiver that couldn't start comes back `failed` with the reason, and stays turned on.
+   */
+  setOtelReceiverEnabled(enabled: boolean): Promise<IpcResult<OtelReceiverDto>>
+
+  /**
+   * Reads what Claude Code's telemetry reported for one session since beekeeper started listening.
+   * @param sessionId - A session id from {@link BeekeeperApi.listSessions}.
+   * @returns Claude Code's own cost estimate and token totals, or `null` when the session reported nothing.
+   */
+  getReportedCost(sessionId: string): Promise<IpcResult<ReportedCostDto | null>>
 
   /**
    * Subscribes to the menu's request to open the About dialog.

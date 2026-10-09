@@ -4,6 +4,7 @@ import { optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { buildAppMenuTemplate } from './appMenu'
 import { createIpcDeps } from './ipc/createIpcDeps'
+import { createOtelRuntime } from './otel/createOtelRuntime'
 import { registerIpcHandlers } from './ipc/registerIpcHandlers'
 import { isTrustedSender } from './ipc/senderValidation'
 import { hardenDefaultSession } from './security/session'
@@ -74,12 +75,17 @@ app
   .then(() => {
     hardenDefaultSession({ rendererRoot, devServerUrl })
 
+    // The opt-in telemetry receiver: off unless the saved setting is on.
+    const otel = createOtelRuntime({
+      settingsPath: join(app.getPath('userData'), 'otel-receiver.json')
+    })
+
     // Registered once, before any window: `activate` recreates windows, and a
     // channel can't be registered twice.
     registerIpcHandlers({
       ipcMain,
       isTrusted: (event) => isTrustedSender(event, { rendererRoot, devServerUrl }),
-      deps: createIpcDeps(app.getPath('home'))
+      deps: { ...createIpcDeps(app.getPath('home')), otel }
     })
 
     // Set once, before any window: `activate` recreates windows, not the menu.
@@ -99,7 +105,17 @@ app
       optimizer.watchWindowShortcuts(window, { zoom: true })
     })
 
-    createWindow()
+    // Started once the first page has loaded, so a busy port never delays the window.
+    createWindow().webContents.once('did-finish-load', () => {
+      otel.receiver.startFromSettings().catch((error: unknown) => {
+        console.error(`Beekeeper could not start the telemetry receiver (${describeError(error)}).`)
+      })
+    })
+    app.on('will-quit', () => {
+      otel.receiver.stop().catch((error: unknown) => {
+        console.error(`Beekeeper could not stop the telemetry receiver (${describeError(error)}).`)
+      })
+    })
 
     app.on('activate', function () {
       // On macOS it's common to re-create a window when the dock icon is

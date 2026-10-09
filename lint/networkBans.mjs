@@ -1,6 +1,6 @@
 // @ts-check
 export const NETWORK_MODULE_MESSAGE =
-  'Beekeeper makes no network calls. See the no-network promise in the README.'
+  'Beekeeper makes no outbound network calls. The one exception is the opt-in loopback telemetry receiver in src/main/otel. See the privacy promise in the README.'
 
 /**
  * The imports that would let the app reach the network, as the `paths` option

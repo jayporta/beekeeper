@@ -116,17 +116,28 @@ describe('createOtelSettingsStore', () => {
     expect(readdirSync(dir)).toEqual(['otel-receiver.json'])
   })
 
-  it('rejects when the settings folder does not exist', async () => {
-    const missing = join(dir, 'missing', 'otel-receiver.json')
+  it('creates the settings folder when it does not exist', async () => {
+    const nested = join(dir, 'deeper', 'still', 'otel-receiver.json')
 
-    await expect(createOtelSettingsStore(missing).setEnabled(true)).rejects.toThrow()
+    await createOtelSettingsStore(nested).setEnabled(true)
+
+    expect(readdirSync(join(dir, 'deeper', 'still'))).toEqual(['otel-receiver.json'])
+  })
+
+  it('rejects when the settings folder cannot be created', async () => {
+    writeFileSync(join(dir, 'blocker'), '')
+
+    await expect(
+      createOtelSettingsStore(join(dir, 'blocker', 'otel-receiver.json')).setEnabled(true)
+    ).rejects.toThrow()
   })
 
   it('applies a change after an earlier one failed', async () => {
-    const nested = join(dir, 'later', 'otel-receiver.json')
-    const store = createOtelSettingsStore(nested)
+    const blocked = join(dir, 'later')
+    writeFileSync(blocked, '')
+    const store = createOtelSettingsStore(join(blocked, 'otel-receiver.json'))
     await expect(store.setEnabled(true)).rejects.toThrow()
-    mkdirSync(join(dir, 'later'))
+    rmSync(blocked)
 
     expect((await store.setEnabled(true)).enabled).toBe(true)
   })

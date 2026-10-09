@@ -3,9 +3,11 @@ import {
   MAX_AGENT_ID_LENGTH,
   MAX_PROJECT_DIR_NAME_LENGTH,
   agentIdSchema,
+  getReportedCostRequestSchema,
   getSessionRequestSchema,
   getWorktreePatchRequestSchema,
-  listSessionsRequestSchema
+  listSessionsRequestSchema,
+  setOtelReceiverEnabledRequestSchema
 } from '../requestSchemas'
 
 const SESSION_ID = '1a1a1a1a-1111-4111-8111-11111111111b'
@@ -121,5 +123,36 @@ describe('getWorktreePatchRequestSchema', () => {
     ['a path as the project', { ...valid, projectDirName: '../x' }]
   ])('rejects %s', (_label, payload) => {
     expect(getWorktreePatchRequestSchema.safeParse(payload).success).toBe(false)
+  })
+})
+
+describe('setOtelReceiverEnabledRequestSchema', () => {
+  it.each([true, false])('accepts enabled: %s', (enabled) => {
+    expect(setOtelReceiverEnabledRequestSchema.safeParse({ enabled }).success).toBe(true)
+  })
+
+  it.each([
+    ['no payload', undefined],
+    ['no field', {}],
+    ['a string', { enabled: 'true' }],
+    ['a number', { enabled: 1 }],
+    ['an extra field', { enabled: true, token: 'x' }]
+  ])('rejects %s', (_label, payload) => {
+    expect(setOtelReceiverEnabledRequestSchema.safeParse(payload).success).toBe(false)
+  })
+})
+
+describe('getReportedCostRequestSchema', () => {
+  it('accepts a session id', () => {
+    expect(getReportedCostRequestSchema.safeParse({ sessionId: SESSION_ID }).success).toBe(true)
+  })
+
+  it.each([
+    ['no payload', undefined],
+    ['a bad session id', { sessionId: 'nope' }],
+    ['an uppercase session id', { sessionId: SESSION_ID.toUpperCase() }],
+    ['an extra field', { sessionId: SESSION_ID, projectDirName: 'p' }]
+  ])('rejects %s', (_label, payload) => {
+    expect(getReportedCostRequestSchema.safeParse(payload).success).toBe(false)
   })
 })

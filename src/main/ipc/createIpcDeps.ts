@@ -32,6 +32,8 @@ export const SCAN_CACHE_CAPACITY = 4
  * cache, a scheduler for daily usage scans and their cache, the host's time zone, the clock, and a lazy git locator. Worktree diffs are never cached, since a worktree can
  * change while its transcript doesn't.
  *
+ * The telemetry receiver is `null`; the app supplies one.
+ *
  * @param homeDir - The user's home directory.
  * @returns The dependencies.
  */
@@ -50,6 +52,7 @@ export function createIpcDeps(homeDir: string): IpcDeps {
     timeZone: hostTimeZone,
     diffs: createScanScheduler({ maxConcurrent: MAX_CONCURRENT_DIFFS }),
     now: Date.now,
-    git: createGitLocator()
+    git: createGitLocator(),
+    otel: null
   }
 }
