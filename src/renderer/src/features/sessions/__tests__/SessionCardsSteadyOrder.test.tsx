@@ -200,6 +200,47 @@ describe('session cards while the list refreshes in the background', () => {
         ).toEqual(['Delta', 'Gamma'])
       })
     })
+
+    it('does the same for a folder opened after a Refresh in another one', async () => {
+      const user = userEvent.setup()
+      const OTHER = '-Users-a-other'
+      const other = (n: number, title: string, latestMs: number): SessionListItemDto =>
+        testSession(n, { projectDirName: OTHER, title, latestMs })
+      const client = createTestQueryClient()
+      // Saved long before the Refresh below, so its opening request is earlier than that one.
+      client.setQueryData(['sessions', OTHER], [other(3, 'Gamma', 200), other(4, 'Delta', 100)], {
+        updatedAt: staleUpdatedAt()
+      })
+      installBeekeeperApi({
+        listProjects: () =>
+          Promise.resolve({ ok: true, value: [testProject(DIR), testProject(OTHER)] }),
+        listSessions: (dirName) =>
+          Promise.resolve({
+            ok: true,
+            value: dirName === DIR ? current : [other(3, 'Gamma', 200), other(4, 'Delta', 300)]
+          })
+      })
+      renderApp(client)
+      await screen.findByRole('heading', { level: 2, name: 'Alpha' })
+      await user.click(screen.getByRole('button', { name: 'Refresh' }))
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', { name: 'Refresh' }).getAttribute('aria-disabled')
+        ).not.toBe('true')
+      })
+
+      act(() => {
+        useSelectedProjectStore.getState().select(OTHER)
+      })
+
+      await waitFor(() => {
+        expect(
+          within(screen.getByRole('list', { name: OTHER }))
+            .getAllByRole('heading', { level: 2 })
+            .map((heading) => heading.textContent)
+        ).toEqual(['Delta', 'Gamma'])
+      })
+    })
   })
 })
 
@@ -214,5 +255,53 @@ describe('the search announcement while the list refreshes in the background', (
 
     expect(titles()).toEqual(['Gamma', 'Alpha', 'Beta'])
     expect(screen.getByText('2 sessions match')).toBeTruthy()
+  })
+})
+
+describe('the search announcement after a Refresh', () => {
+  it('announces the match count of the list a Refresh press fetched', async () => {
+    const user = userEvent.setup()
+    useSessionsViewStore.setState({ query: 'a' })
+    renderApp()
+    const region = await screen.findByText('2 sessions match')
+    current = [session(3, 'Gamma', 300), session(1, 'Alpha', 200), session(2, 'Beta', 100)]
+
+    await user.click(screen.getByRole('button', { name: 'Refresh' }))
+
+    await waitFor(() => {
+      expect(region.textContent).toBe('3 sessions match')
+    })
+  })
+})
+
+describe('the search announcement across a folder switch', () => {
+  it('says the new folder’s match count in the region that was already on the page', async () => {
+    const OTHER = '-Users-a-other'
+    useSessionsViewStore.setState({ query: 'a' })
+    const client = createTestQueryClient()
+    client.setQueryData(
+      ['sessions', OTHER],
+      [testSession(3, { projectDirName: OTHER, title: 'Gamma' })]
+    )
+    installBeekeeperApi({
+      listProjects: () =>
+        Promise.resolve({ ok: true, value: [testProject(DIR), testProject(OTHER)] }),
+      listSessions: (dirName) =>
+        Promise.resolve({
+          ok: true,
+          value:
+            dirName === DIR ? current : [testSession(3, { projectDirName: OTHER, title: 'Gamma' })]
+        })
+    })
+    renderApp(client)
+    const region = await screen.findByText('2 sessions match')
+
+    act(() => {
+      useSelectedProjectStore.getState().select(OTHER)
+    })
+
+    await waitFor(() => {
+      expect(region.textContent).toBe('1 session matches')
+    })
   })
 })

@@ -11,6 +11,14 @@ export interface SteadyOrderOptions {
   readonly errorUpdatedAt: number
 }
 
+/** The rows in their steady order, and the resort request they last settled. */
+export interface SteadyOrder {
+  /** The rows in the steady order. The same array while that order and the rows are unchanged. */
+  readonly rows: readonly SessionRow[]
+  /** The last resort request that took effect or was dropped, or 0 for none. */
+  readonly settledResortAt: number
+}
+
 const sameKeys = (a: readonly string[], b: readonly string[]): boolean =>
   a.length === b.length && a.every((key, index) => key === b[index])
 
@@ -26,20 +34,21 @@ const sameKeys = (a: readonly string[], b: readonly string[]): boolean =>
  * after `resortAt`: those are shown as sorted, and the order holds from there.
  * A load that fails after the request, before any newer data, drops it, so a
  * later background update doesn't re-sort under the reader. Each request
- * applies once.
+ * applies once, and any other nonzero `resortAt`, earlier or later, is a new
+ * request, since a folder switch can request an earlier time than the last.
  *
  * @param rows - The top-level rows, sorted newest first.
  * @param options - The pending resort request and when the data last loaded.
- * @returns The rows in the steady order. The same array while that order and the rows are unchanged.
+ * @returns The rows in the steady order, and the request they last settled.
  */
 export function useSteadyOrder(
   rows: readonly SessionRow[],
   { resortAt, dataUpdatedAt, errorUpdatedAt }: SteadyOrderOptions
-): readonly SessionRow[] {
+): SteadyOrder {
   const [order, setOrder] = useState<readonly string[]>([])
   const [resortApplied, setResortApplied] = useState(0)
 
-  const pending = resortAt > resortApplied
+  const pending = resortAt !== 0 && resortAt !== resortApplied
   const resort = pending && dataUpdatedAt >= resortAt
   const dropped = pending && !resort && errorUpdatedAt >= resortAt
   const keys = useMemo(() => {
@@ -54,8 +63,9 @@ export function useSteadyOrder(
   if (resort || dropped) setResortApplied(resortAt)
   if (!sameKeys(nextOrder, order)) setOrder(nextOrder)
 
-  return useMemo(() => {
+  const ordered = useMemo(() => {
     const byKey = new Map(rows.map((row) => [row.key, row]))
     return nextOrder.flatMap((key) => byKey.get(key) ?? [])
   }, [rows, nextOrder])
+  return { rows: ordered, settledResortAt: resort || dropped ? resortAt : resortApplied }
 }

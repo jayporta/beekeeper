@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState } from 'react'
+import { useDeferredValue, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SelectedProjectHeading } from '@renderer/features/projects/SelectedProjectHeading'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
@@ -13,6 +13,7 @@ import { SessionsBody } from './SessionsBody'
 import { SessionCardList } from './SessionCardList'
 import { useSessionsViewStore } from './state/useSessionsViewStore'
 import { useMatchCountPerSearch } from './useMatchCountPerSearch'
+import { useResortRequest } from './useResortRequest'
 import { useReusedRows } from './useReusedRows'
 import { useSessions } from './useSessions'
 import { useSteadyOrder } from './useSteadyOrder'
@@ -30,9 +31,10 @@ interface SessionsContentProps {
  * refresh button, the live region that announces search results, and the
  * list. The cards keep their order while the list updates in the background,
  * and sort again on a refresh. The search box shows only once a non-empty list
- * has loaded, and not while the folder is gone. The region
- * is mounted in every state, so its text changes while it is mounted and is
- * announced.
+ * has loaded, and not while the folder is gone. The region stays mounted in
+ * every state and across folders, so its text changes while it is mounted and
+ * is announced. It gives the match count when the search, the folder or a
+ * Refresh press changes it, not on a background update.
  *
  * @example
  * <SessionsContent dirName="-Users-me-repo" headingId={headingId} />
@@ -41,17 +43,20 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
   const { t } = useTranslation('sessions')
   const { data, dataUpdatedAt, error, errorUpdatedAt, isFetching, isStale, refetch } =
     useSessions(dirName)
-  // The cards re-sort on a Refresh press, and when this view opens on a stale list (old, or
-  // invalidated while hidden) that is refetched at once, so what the person first sees is
-  // current. Background updates keep the order.
-  const [resortAt, setResortAt] = useState(() => (isStale ? Date.now() : 0))
+  // The cards re-sort on a Refresh press, and when a folder opens on a stale list (old, or
+  // invalidated while hidden) that is refetched at once. Background updates keep the order.
+  const { resortAt, requestResort } = useResortRequest(dirName, { isStale, dataUpdatedAt })
   const typed = useSessionsViewStore((state) => state.query)
   // Filtering waits on the deferred text, and the list is memoized, so typing stays responsive.
   const query = useDeferredValue(typed)
   const grouped = useMemo(() => (data === undefined ? [] : groupSessionRows(data, t)), [data, t])
   // Unchanged rows stay the same objects, so their memoized cards skip a background update.
   const sorted = useReusedRows(grouped)
-  const rows = useSteadyOrder(sorted, { resortAt, dataUpdatedAt, errorUpdatedAt })
+  const { rows, settledResortAt } = useSteadyOrder(sorted, {
+    resortAt,
+    dataUpdatedAt,
+    errorUpdatedAt
+  })
   const matching = useMemo(() => filterRows(rows, query), [rows, query])
   const matchCount = useMemo(() => countMatches(rows, query), [rows, query])
   // A gone folder's cached list is hidden behind its alert, so it isn't searchable.
@@ -59,7 +64,10 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
   const searchable = !gone && data !== undefined && data.length > 0
   // An empty or gone folder shows no search box, so a leftover query isn't a search.
   const searching = searchable && normalizeQuery(query) !== ''
-  const announcedCount = useMatchCountPerSearch(matchCount, searching ? query : null)
+  const announcedCount = useMatchCountPerSearch(
+    matchCount,
+    searching ? { dirName, query, settledResortAt } : null
+  )
 
   return (
     <>
@@ -68,13 +76,7 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
         actions={
           <>
             {searchable && <SessionSearch />}
-            <RefreshSessionsButton
-              key={dirName}
-              dirName={dirName}
-              onRefresh={() => {
-                setResortAt(Date.now())
-              }}
-            />
+            <RefreshSessionsButton key={dirName} dirName={dirName} onRefresh={requestResort} />
           </>
         }
       />

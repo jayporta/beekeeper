@@ -20,7 +20,7 @@ export function SessionsView(): React.JSX.Element {
       {dirName === null ? (
         <SelectedProjectHeading headingId={MAIN_HEADING_ID} />
       ) : (
-        <SessionsContent key={dirName} dirName={dirName} headingId={MAIN_HEADING_ID} />
+        <SessionsContent dirName={dirName} headingId={MAIN_HEADING_ID} />
       )}
     </div>
   )

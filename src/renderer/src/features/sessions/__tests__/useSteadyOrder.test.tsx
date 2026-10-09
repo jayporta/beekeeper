@@ -31,7 +31,7 @@ interface Props {
 }
 
 function setup(rows: readonly SessionRow[]): RenderHookResult<readonly SessionRow[], Props> {
-  return renderHook((props: Props) => useSteadyOrder(props.rows, props.options), {
+  return renderHook((props: Props) => useSteadyOrder(props.rows, props.options).rows, {
     initialProps: { rows, options: NO_RESORT }
   })
 }
