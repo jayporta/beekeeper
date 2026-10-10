@@ -54,6 +54,7 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
   const typed = useSessionsViewStore((state) => state.query)
   // Filtering waits on the deferred text, and the list is memoized, so typing stays responsive.
   const query = useDeferredValue(typed)
+  const normalized = normalizeQuery(query)
   const grouped = useMemo(() => (data === undefined ? [] : groupSessionRows(data, t)), [data, t])
   // Unchanged rows stay the same objects, so their memoized cards skip a background update.
   const sorted = useReusedRows(grouped)
@@ -68,14 +69,13 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
   const gone = IpcCallError.codeOf(error) === 'not-found'
   const searchable = !gone && data !== undefined && data.length > 0
   // An empty or gone folder shows no search box, so a leftover query isn't a search.
-  const searching = searchable && normalizeQuery(query) !== ''
-  // A pending resort brings a new list, which the count waits for.
-  const resortPending = resortAt !== 0 && resortAt !== settledResortAt
+  const searching = searchable && normalized !== ''
   const announcement = useMatchCountPerSearch({
     count: matchCount,
-    search: { dirName, query, settledResortAt },
+    search: { dirName, query: normalized, settledResortAt },
     searching,
-    settled: (data !== undefined || error !== null) && !resortPending
+    loaded: data !== undefined || error !== null,
+    resortPending: resortAt !== 0 && resortAt !== settledResortAt
   })
 
   return (
@@ -105,7 +105,7 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
           rows={matching}
           labelledBy={headingId}
           selectedDirName={dirName}
-          query={normalizeQuery(query)}
+          query={normalized}
         />
       </SessionsBody>
     </>

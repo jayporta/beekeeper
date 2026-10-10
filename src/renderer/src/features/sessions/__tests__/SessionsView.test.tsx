@@ -125,6 +125,24 @@ describe('SessionsView search announcements', () => {
     })
   })
 
+  it('keeps the count when the search changes only in spacing', async () => {
+    showSessions()
+    await screen.findByRole('list', { name: DIR })
+    const search = screen.getByRole('searchbox', { name: 'Search sessions' })
+    await userEvent.type(search, 'parser')
+    await waitFor(() => {
+      expect(searchStatus()?.textContent).toBe('1 session matches')
+    })
+    const before = searchStatus()?.firstElementChild
+
+    await userEvent.type(search, '  ')
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+
+    expect(before?.isConnected).toBe(true)
+  })
+
   it('mounts the count afresh when a new search matches as many sessions as the last', async () => {
     showSessions()
     await screen.findByRole('list', { name: DIR })
@@ -204,6 +222,54 @@ describe('SessionsView search announcements while a list loads', () => {
     await waitFor(() => {
       expect(searchStatus()?.textContent).toBe('1 session matches')
     })
+  })
+
+  it('announces the count as the person types while a stale list is refetched', async () => {
+    const api = installBeekeeperApi({ listSessions: () => new Promise(() => undefined) })
+    const client = createTestQueryClient()
+    client.setQueryData(['sessions', DIR], SESSIONS, {
+      updatedAt: Date.now() - LISTS_STALE_TIME_MS - 1
+    })
+    render(<SessionsContent dirName={DIR} headingId="h" />, {
+      wrapper: createQueryWrapper(client)
+    })
+    await waitFor(() => {
+      expect(api.listSessions).toHaveBeenCalledOnce()
+    })
+
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Search sessions' }), 'parser')
+
+    await waitFor(() => {
+      expect(searchStatus()?.textContent).toBe('1 session matches')
+    })
+  })
+
+  it('mounts the region empty, then adds a count that was ready as it mounted', async () => {
+    useSessionsViewStore.setState({ query: 'code' })
+    installBeekeeperApi({ listSessions: () => ok(SESSIONS) })
+    const client = createTestQueryClient()
+    client.setQueryData(['sessions', DIR], SESSIONS)
+    const addedToRegion: Node[] = []
+    const record = (records: MutationRecord[]): void => {
+      for (const { target, addedNodes } of records) {
+        if (target instanceof Element && target.getAttribute('role') === 'status') {
+          addedToRegion.push(...addedNodes)
+        }
+      }
+    }
+    const observer = new MutationObserver(record)
+    observer.observe(document.body, { childList: true, subtree: true })
+
+    render(<SessionsContent dirName={DIR} headingId="h" />, {
+      wrapper: createQueryWrapper(client)
+    })
+    await waitFor(() => {
+      expect(searchStatus()?.textContent).toBe('2 sessions match')
+    })
+    record(observer.takeRecords())
+    observer.disconnect()
+
+    expect(addedToRegion).toContain(searchStatus()?.firstChild)
   })
 
   it('announces nothing for a leftover search in a folder with no sessions', async () => {
