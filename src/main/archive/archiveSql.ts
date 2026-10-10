@@ -51,9 +51,9 @@ export const UPDATE_DETAIL = `
 UPDATE sessions SET detail = ?, detail_mtime_ms = ?, detail_size = ?
 WHERE project_dir = ? AND session_id = ?`
 
-/** A session's list item and its sidecars. */
+/** A session's list item and its team spawns. The lead slots are left unread: only usage over time needs them. */
 export const SELECT_SESSION_ROW = `
-SELECT list_item, team_spawns, lead_slots FROM sessions
+SELECT list_item, team_spawns FROM sessions
 WHERE project_dir = ? AND session_id = ? AND format = ?`
 
 export const SELECT_DETAIL = `

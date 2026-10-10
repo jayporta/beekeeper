@@ -6,6 +6,7 @@ import type { SessionListItemDto, SessionSummaryDto } from '../../shared/ipc/ses
 import type { SessionRoleDto } from '../../shared/ipc/sessionRoleDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
 import type { TranscriptTeamSpawns } from '../../core/transcript/teammateSpawn'
+import { NO_TEAM_SPAWNS } from '../ipc/summarizeArchivedSession'
 import type {
   ArchivedLeadSlots,
   ArchivedSession,
@@ -38,9 +39,6 @@ export function testListItem(overrides: Partial<SessionListItemDto> = {}): Sessi
     ...overrides
   }
 }
-
-/** A transcript that spawned and stopped nobody. */
-export const NO_TEAM_SPAWNS: TranscriptTeamSpawns = { spawns: [], stops: [], truncated: false }
 
 /** Team spawns with every part set. */
 export const TEST_TEAM_SPAWNS: TranscriptTeamSpawns = {
@@ -270,7 +268,6 @@ export function testArchivedSession(
       archived: true,
       summary: { ok: true, value: { ...summary.value, role, activity } }
     }),
-    teamSpawns,
-    leadSlots: null
+    teamSpawns
   }
 }

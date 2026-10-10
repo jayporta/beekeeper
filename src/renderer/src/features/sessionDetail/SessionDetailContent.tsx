@@ -57,7 +57,7 @@ export function SessionDetailContent({
       <SessionDetailBreadcrumb title={label.text} lead={lead} />
       {data === undefined ? (
         <>
-          {summaryOnly && <SessionDetailHeader label={label} row={row} archived />}
+          {summaryOnly && <SessionDetailHeader label={label} row={row} archived summaryOnly />}
           <SessionDetailStatus
             error={error}
             errorUpdatedAt={errorUpdatedAt}

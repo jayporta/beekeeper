@@ -42,11 +42,13 @@ CREATE TABLE IF NOT EXISTS sessions (
 /**
  * Prepares an archive database for use: sets a short busy timeout, checks the
  * schema version, then sets WAL mode with normal syncing (which WAL makes
- * safe). In one immediate transaction it then creates the tables, adds any
+ * safe). In one immediate transaction it then checks the version again, since
+ * another build may have migrated in between, creates the tables, adds any
  * sidecar column the `sessions` table lacks (found by looking at the table, not
  * at the recorded version, so a file with no version row or one another
  * instance half migrated is covered), and records the version. A database whose
- * version is newer than this build's, or isn't a number, is left untouched.
+ * version is newer than this build's, or isn't a number, is left untouched,
+ * and a version is never lowered.
  *
  * @param db - The open database.
  * @returns Success, or `newer-schema` when the database must not be used.
@@ -55,15 +57,16 @@ CREATE TABLE IF NOT EXISTS sessions (
 export function applySchema(db: DatabaseSync): Result<void, 'newer-schema'> {
   db.exec(`PRAGMA busy_timeout = ${BUSY_TIMEOUT_MS}`)
   db.exec(CREATE_META)
-  const stored = db.prepare('SELECT value FROM meta WHERE key = ?').get(SCHEMA_VERSION_KEY)
-  if (stored !== undefined) {
-    const version = Number(stored['value'])
-    if (!Number.isInteger(version) || version > ARCHIVE_SCHEMA_VERSION) return err('newer-schema')
-  }
+  if (!hasUsableVersion(db)) return err('newer-schema')
   db.exec('PRAGMA journal_mode = WAL')
   db.exec('PRAGMA synchronous = NORMAL')
   db.exec('BEGIN IMMEDIATE')
   try {
+    // Another build may have migrated since the first check, and the lock now keeps it from doing so again.
+    if (!hasUsableVersion(db)) {
+      rollBack(db)
+      return err('newer-schema')
+    }
     db.exec(CREATE_SESSIONS)
     addMissingSidecarColumns(db)
     db.prepare(
@@ -75,6 +78,14 @@ export function applySchema(db: DatabaseSync): Result<void, 'newer-schema'> {
     throw error
   }
   return ok(undefined)
+}
+
+/** Whether the recorded schema version, if there is one, is a number this build can use. */
+function hasUsableVersion(db: DatabaseSync): boolean {
+  const stored = db.prepare('SELECT value FROM meta WHERE key = ?').get(SCHEMA_VERSION_KEY)
+  if (stored === undefined) return true
+  const version = Number(stored['value'])
+  return Number.isInteger(version) && version <= ARCHIVE_SCHEMA_VERSION
 }
 
 /** Adds each sidecar column the `sessions` table doesn't have yet. */

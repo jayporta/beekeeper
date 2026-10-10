@@ -1,5 +1,5 @@
 import { compareCodeUnits } from '../../core/shared/compareCodeUnits'
-import type { Result } from '../../core/shared/result'
+import type { TranscriptTeamSpawns } from '../../core/transcript/teammateSpawn'
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
 import { sessionRefKey } from '../ipc/sessionRefKey'
@@ -9,7 +9,6 @@ import type { ArchivedSession, ArchiveReader } from './archiveStoreTypes'
 import type { ArchiveDb } from './openArchive'
 import {
   parseArchivedDetail,
-  parseArchivedLeadSlots,
   parseArchivedListItem,
   parseArchivedTeamSpawns,
   type ArchivedRowError
@@ -61,7 +60,7 @@ export function createArchiveReader(options: ArchiveReaderOptions): ArchiveReads
   const selectDetail = db.prepare(SELECT_DETAIL)
   const folders = new Map<string, FolderRows>()
   const loggedRowErrors = new Set<ArchivedRowError>()
-  const loggedSidecarErrors = new Set<string>()
+  const loggedSpawnsErrors = new Set<ArchivedRowError>()
   let lastDetail: { readonly key: string; readonly detail: SessionDetailDto } | null = null
 
   /** Logs a kind of unreadable row the first time it is seen. */
@@ -71,25 +70,19 @@ export function createArchiveReader(options: ArchiveReaderOptions): ArchiveReads
     log(`Beekeeper archive skipped an unreadable row (${error}).`)
   }
 
-  /** Parses a sidecar column, which is `null` when the row has none stored or it can't be read. */
-  function readSidecar<Value>(options: {
-    readonly stored: unknown
-    readonly label: string
-    readonly parse: (json: string) => Result<Value, ArchivedRowError>
-  }): Value | null {
-    const { stored, label, parse } = options
+  /** Parses the team spawns column, which is `null` when the row has none stored or they can't be read. */
+  function readTeamSpawns(stored: unknown): TranscriptTeamSpawns | null {
     if (typeof stored !== 'string') return null
-    const parsed = parse(stored)
+    const parsed = parseArchivedTeamSpawns(stored)
     if (parsed.ok) return parsed.value
-    const kind = `${label}:${parsed.error}`
-    if (!loggedSidecarErrors.has(kind)) {
-      loggedSidecarErrors.add(kind)
-      log(`Beekeeper archive skipped an unreadable ${label} column (${parsed.error}).`)
+    if (!loggedSpawnsErrors.has(parsed.error)) {
+      loggedSpawnsErrors.add(parsed.error)
+      log(`Beekeeper archive skipped unreadable team spawns (${parsed.error}).`)
     }
     return null
   }
 
-  /** Reads and parses one row and its sidecars, remembering the outcome. */
+  /** Reads and parses one row and its team spawns, remembering the outcome. */
   function readSession(folder: FolderRows, ref: SessionRefDto): ArchivedSession | null {
     const cached = folder.sessions.get(ref.sessionId)
     if (cached !== undefined) return cached
@@ -100,16 +93,7 @@ export function createArchiveReader(options: ArchiveReaderOptions): ArchiveReads
       if (parsed.ok) {
         session = {
           item: parsed.value,
-          teamSpawns: readSidecar({
-            stored: row['team_spawns'],
-            label: 'team spawns',
-            parse: parseArchivedTeamSpawns
-          }),
-          leadSlots: readSidecar({
-            stored: row['lead_slots'],
-            label: 'lead slots',
-            parse: parseArchivedLeadSlots
-          })
+          teamSpawns: readTeamSpawns(row['team_spawns'])
         }
       } else logUnreadableRow(parsed.error)
     }
@@ -150,10 +134,6 @@ export function createArchiveReader(options: ArchiveReaderOptions): ArchiveReads
     },
 
     readSessions,
-
-    readListItems(projectDirName, excluding) {
-      return readSessions(projectDirName, excluding).map(({ item }) => item)
-    },
 
     readDetail(ref) {
       if (isClosed()) return null

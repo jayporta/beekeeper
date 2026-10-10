@@ -2,7 +2,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { applySchema, ARCHIVE_SCHEMA_VERSION } from '../archiveSchema'
 
 function tableNames(db: DatabaseSync): string[] {
@@ -188,6 +188,45 @@ describe('applySchema sidecar columns', () => {
     expect(result.ok).toBe(true)
     expect(columnNames(db)).toEqual(columns)
     expect(db.prepare('SELECT COUNT(*) AS n FROM sessions').get()?.['n']).toBe(1)
+  })
+})
+
+describe('applySchema when a newer build migrates in between', () => {
+  /** Makes another build record version 3 just before this one takes its write lock. */
+  function newerBuildWinsTheRace(db: DatabaseSync): void {
+    const exec = db.exec.bind(db)
+    vi.spyOn(db, 'exec').mockImplementation((sql) => {
+      if (sql === 'BEGIN IMMEDIATE') {
+        exec(
+          "INSERT INTO meta (key, value) VALUES ('schema_version', '3') ON CONFLICT (key) DO UPDATE SET value = '3'"
+        )
+      }
+      return exec(sql)
+    })
+  }
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('refuses the database instead of lowering the version the newer build wrote', () => {
+    const db = versionOneDatabase({ withVersion: true })
+    newerBuildWinsTheRace(db)
+
+    const result = applySchema(db)
+
+    expect(result).toEqual({ ok: false, error: 'newer-schema' })
+    expect(storedVersion(db)).toBe('3')
+  })
+
+  it('leaves the sessions table alone and ends the transaction when it refuses', () => {
+    const db = versionOneDatabase({ withVersion: true })
+    newerBuildWinsTheRace(db)
+
+    applySchema(db)
+
+    expect(columnNames(db)).not.toContain('team_spawns')
+    expect(db.isTransaction).toBe(false)
   })
 })
 

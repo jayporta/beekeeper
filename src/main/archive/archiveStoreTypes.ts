@@ -93,9 +93,9 @@ export interface ArchiveStore {
    * Reads the archived sessions of a project folder, leaving out the sessions
    * named in `excluding` without reading their rows. A row at another format,
    * or one that fails to parse or doesn't carry its own keys, is left out, and
-   * each kind of unreadable row is logged once. A sidecar that is missing or
-   * fails to parse reads as `null` and never drops the session; a failure is
-   * logged once per column and kind. Rows are read one at a time, and kept in
+   * each kind of unreadable row is logged once. Team spawns that are missing or
+   * fail to parse read as `null` and never drop the session; a failure is
+   * logged once per kind. Rows are read one at a time, and kept in
    * memory until a save changes them, so the cost follows the sessions returned.
    *
    * @param projectDirName - The project folder.
@@ -103,18 +103,6 @@ export interface ArchiveStore {
    * @returns The sessions in session id order, or an empty list after the store is closed.
    */
   readSessions(projectDirName: string, excluding: ReadonlySet<string>): readonly ArchivedSession[]
-  /**
-   * Reads the archived list items of a project folder, as {@link ArchiveStore.readSessions}
-   * does, without their sidecars.
-   *
-   * @param projectDirName - The project folder.
-   * @param excluding - Session ids to leave out, such as the folder's live sessions.
-   * @returns The items in session id order, or an empty list after the store is closed.
-   */
-  readListItems(
-    projectDirName: string,
-    excluding: ReadonlySet<string>
-  ): readonly SessionListItemDto[]
   /**
    * Reads a session's archived detail.
    *
@@ -154,21 +142,19 @@ export interface ListItemEntry {
   readonly leadSlots: ArchivedLeadSlots | null
 }
 
-/** An archived session: its list item, and what was stored beside it for grouping and usage over time. */
+/** An archived session: its list item, and the team spawns stored beside it for grouping. */
 export interface ArchivedSession {
   /** The archived list item. */
   readonly item: SessionListItemDto
   /** The teammates the transcript spawned and stopped, or `null` when the row has none stored or they can't be read. */
   readonly teamSpawns: TranscriptTeamSpawns | null
-  /** The transcript's own usage per slot, or `null` when the row has none stored, the transcript had no usage, or it can't be read. */
-  readonly leadSlots: ArchivedLeadSlots | null
 }
 
 /** What the IPC handlers use of the store to write. */
 export type ArchiveWriter = Pick<ArchiveStore, 'saveListItems' | 'saveDetail'>
 
 /** What the IPC handlers use of the store to read. */
-export type ArchiveReader = Pick<ArchiveStore, 'readSessions' | 'readListItems' | 'readDetail'>
+export type ArchiveReader = Pick<ArchiveStore, 'readSessions' | 'readDetail'>
 
 /** Options for {@link createArchiveStore}. */
 export interface ArchiveStoreOptions {

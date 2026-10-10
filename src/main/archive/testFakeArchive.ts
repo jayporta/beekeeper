@@ -35,7 +35,7 @@ export interface FakeArchive extends ArchiveWriter, ArchiveReader {
 
 /** What a fake archive answers reads with. */
 export interface FakeArchiveReads {
-  /** The list items it holds, from any folder. Its sessions carry no team spawns or lead slots. */
+  /** The list items it holds, from any folder. Its sessions carry no team spawns. */
   readonly listItems?: readonly SessionListItemDto[]
   /** The sessions it holds, from any folder, after those built from `listItems`. */
   readonly sessions?: readonly ArchivedSession[]
@@ -62,7 +62,7 @@ export function createFakeArchive(failure?: Error, reads: FakeArchiveReads = {})
   ): readonly ArchivedSession[] {
     if (failure !== undefined) throw failure
     return [
-      ...(reads.listItems ?? []).map((item) => ({ item, teamSpawns: null, leadSlots: null })),
+      ...(reads.listItems ?? []).map((item) => ({ item, teamSpawns: null })),
       ...(reads.sessions ?? [])
     ].filter(({ item }) => item.projectDirName === projectDirName && !excluding.has(item.sessionId))
   }
@@ -81,9 +81,6 @@ export function createFakeArchive(failure?: Error, reads: FakeArchiveReads = {})
       detailSaves.push({ ref, detail, source })
     },
     readSessions,
-    readListItems(projectDirName, excluding) {
-      return readSessions(projectDirName, excluding).map(({ item }) => item)
-    },
     readDetail(ref) {
       if (failure !== undefined) throw failure
       return reads.details?.get(sessionRefKey(ref)) ?? null

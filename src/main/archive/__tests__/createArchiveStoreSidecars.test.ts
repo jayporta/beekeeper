@@ -3,9 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ArchiveStore } from '../archiveStoreTypes'
 import { createArchiveStore } from '../createArchiveStore'
 import { openArchive } from '../openArchive'
+import { NO_TEAM_SPAWNS } from '../../ipc/summarizeArchivedSession'
 import {
   listEntry,
-  NO_TEAM_SPAWNS,
   testDetail,
   testListItem,
   testOkSummary,
@@ -65,42 +65,29 @@ function setColumn(column: 'team_spawns' | 'lead_slots', value: string | null): 
 }
 
 describe('readSessions', () => {
-  it('returns the item with the team spawns and lead slots it was saved with', () => {
+  it('returns the item with the team spawns it was saved with', () => {
     const store = newStore()
-    store.saveListItems([
-      { ...listEntry(ITEM), teamSpawns: TEST_TEAM_SPAWNS, leadSlots: TEST_LEAD_SLOTS }
-    ])
+    store.saveListItems([{ ...listEntry(ITEM), teamSpawns: TEST_TEAM_SPAWNS }])
 
     expect(store.readSessions(FOLDER, NONE)).toEqual([
-      { item: { ...ITEM, team: null }, teamSpawns: TEST_TEAM_SPAWNS, leadSlots: TEST_LEAD_SLOTS }
+      { item: { ...ITEM, team: null }, teamSpawns: TEST_TEAM_SPAWNS }
     ])
   })
 
-  it('reads the sidecars saved by an earlier store over the same archive', () => {
-    newStore().saveListItems([
-      { ...listEntry(ITEM), teamSpawns: TEST_TEAM_SPAWNS, leadSlots: TEST_LEAD_SLOTS }
-    ])
+  it('reads the team spawns saved by an earlier store over the same archive', () => {
+    newStore().saveListItems([{ ...listEntry(ITEM), teamSpawns: TEST_TEAM_SPAWNS }])
 
     const [session] = newStore().readSessions(FOLDER, NONE)
 
-    expect(session).toMatchObject({ teamSpawns: TEST_TEAM_SPAWNS, leadSlots: TEST_LEAD_SLOTS })
+    expect(session?.teamSpawns).toEqual(TEST_TEAM_SPAWNS)
   })
 
-  it('returns null lead slots for a session with no lead usage, beside its spawns', () => {
-    const store = newStore()
-    store.saveListItems([{ ...listEntry(ITEM), teamSpawns: TEST_TEAM_SPAWNS, leadSlots: null }])
-
-    const [session] = store.readSessions(FOLDER, NONE)
-
-    expect(session).toMatchObject({ teamSpawns: TEST_TEAM_SPAWNS, leadSlots: null })
-  })
-
-  it('returns null sidecars, and logs nothing, for a row written before they existed', () => {
+  it('returns null team spawns, and logs nothing, for a row written before they existed', () => {
     seedUnbackfilledRow()
 
     const sessions = newStore().readSessions(FOLDER, NONE)
 
-    expect(sessions).toEqual([{ item: ITEM, teamSpawns: null, leadSlots: null }])
+    expect(sessions).toEqual([{ item: ITEM, teamSpawns: null }])
     expect(logged).toEqual([])
   })
 
@@ -111,39 +98,46 @@ describe('readSessions', () => {
     expect(store.readSessions(FOLDER, new Set([TEST_REF.sessionId]))).toEqual([])
   })
 
-  it('keeps readListItems answering the items alone', () => {
+  it('stores the lead slots beside the item without reading them back', () => {
     const store = newStore()
-    store.saveListItems([{ ...listEntry(ITEM), teamSpawns: TEST_TEAM_SPAWNS }])
+    store.saveListItems([
+      { ...listEntry(ITEM), teamSpawns: TEST_TEAM_SPAWNS, leadSlots: TEST_LEAD_SLOTS }
+    ])
+    setColumn('lead_slots', '{corrupt')
 
-    expect(store.readListItems(FOLDER, NONE)).toEqual([{ ...ITEM, team: null }])
+    const sessions = newStore().readSessions(FOLDER, NONE)
+
+    expect(sessions.map((session) => session.teamSpawns)).toEqual([TEST_TEAM_SPAWNS])
+    expect(logged).toEqual([])
+  })
+
+  it('writes the lead slots as JSON', () => {
+    newStore().saveListItems([
+      { ...listEntry(ITEM), teamSpawns: TEST_TEAM_SPAWNS, leadSlots: TEST_LEAD_SLOTS }
+    ])
+
+    const row = db.prepare('SELECT lead_slots FROM sessions').get()
+
+    expect(JSON.parse(String(row?.['lead_slots']))).toEqual(TEST_LEAD_SLOTS)
   })
 })
 
-describe('readSessions with a corrupt sidecar', () => {
+describe('readSessions with corrupt team spawns', () => {
   it.each([
-    ['team_spawns', '{corrupt', 'team spawns', 'invalid-json'],
-    ['team_spawns', '{"spawns":"no"}', 'team spawns', 'invalid-shape'],
-    ['lead_slots', '[', 'lead slots', 'invalid-json'],
-    ['lead_slots', '{"slots":[{"slot":"x"}]}', 'lead slots', 'invalid-shape']
-  ] as const)(
-    'reads %s as null, keeps the item and the other sidecar, and logs it',
-    (column, value, label, kind) => {
-      const store = newStore()
-      store.saveListItems([
-        { ...listEntry(ITEM), teamSpawns: TEST_TEAM_SPAWNS, leadSlots: TEST_LEAD_SLOTS }
-      ])
-      setColumn(column, value)
+    ['{corrupt', 'invalid-json'],
+    ['{"spawns":"no"}', 'invalid-shape']
+  ] as const)('reads %s as null, keeps the item, and logs it', (value, kind) => {
+    newStore().saveListItems([{ ...listEntry(ITEM), teamSpawns: TEST_TEAM_SPAWNS }])
+    setColumn('team_spawns', value)
 
-      const [session] = newStore().readSessions(FOLDER, NONE)
+    const [session] = newStore().readSessions(FOLDER, NONE)
 
-      expect(session?.item).toEqual({ ...ITEM, team: null })
-      expect(column === 'team_spawns' ? session?.teamSpawns : session?.leadSlots).toBeNull()
-      expect(column === 'team_spawns' ? session?.leadSlots : session?.teamSpawns).not.toBeNull()
-      expect(logged).toEqual([`Beekeeper archive skipped an unreadable ${label} column (${kind}).`])
-    }
-  )
+    expect(session?.item).toEqual({ ...ITEM, team: null })
+    expect(session?.teamSpawns).toBeNull()
+    expect(logged).toEqual([`Beekeeper archive skipped unreadable team spawns (${kind}).`])
+  })
 
-  it('logs each kind of corrupt sidecar once, across rows and reads', () => {
+  it('logs each kind of corrupt team spawns once, across rows and reads', () => {
     const store = newStore()
     const second = { ...TEST_REF, sessionId: '22222222-2222-4222-8222-222222222222' }
     store.saveListItems([
@@ -156,18 +150,14 @@ describe('readSessions with a corrupt sidecar', () => {
     fresh.readSessions(FOLDER, NONE)
     fresh.readSessions(FOLDER, NONE)
 
-    expect(logged).toEqual([
-      'Beekeeper archive skipped an unreadable team spawns column (invalid-json).'
-    ])
+    expect(logged).toEqual(['Beekeeper archive skipped unreadable team spawns (invalid-json).'])
   })
 })
 
 describe('readSessions caching', () => {
   it('parses a row and its sidecars once: a second read answers from memory', () => {
     const store = newStore()
-    store.saveListItems([
-      { ...listEntry(ITEM), teamSpawns: TEST_TEAM_SPAWNS, leadSlots: TEST_LEAD_SLOTS }
-    ])
+    store.saveListItems([{ ...listEntry(ITEM), teamSpawns: TEST_TEAM_SPAWNS }])
     const first = store.readSessions(FOLDER, NONE)
     const parse = vi.spyOn(JSON, 'parse')
 
@@ -204,14 +194,8 @@ describe('backfilling a row that has no sidecars', () => {
       { ...listEntry(ITEM), teamSpawns: TEST_TEAM_SPAWNS, leadSlots: TEST_LEAD_SLOTS }
     ])
 
-    expect(store.readSessions(FOLDER, NONE)[0]).toMatchObject({
-      teamSpawns: TEST_TEAM_SPAWNS,
-      leadSlots: TEST_LEAD_SLOTS
-    })
-    expect(newStore().readSessions(FOLDER, NONE)[0]).toMatchObject({
-      teamSpawns: TEST_TEAM_SPAWNS,
-      leadSlots: TEST_LEAD_SLOTS
-    })
+    expect(store.readSessions(FOLDER, NONE)[0]?.teamSpawns).toEqual(TEST_TEAM_SPAWNS)
+    expect(newStore().readSessions(FOLDER, NONE)[0]?.teamSpawns).toEqual(TEST_TEAM_SPAWNS)
     expect(store.hasListItem(TEST_REF, TEST_SOURCE)).toBe(true)
   })
 

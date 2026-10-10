@@ -354,6 +354,8 @@ describe('SessionDetailContent for an archived session whose detail was not arch
     testSession(1, { projectDirName: DIR, title: 'Kept', archived: true, totalTokens: 1500 })
   ]
   const NOTE = 'Only a summary was archived'
+  const SUMMARY_ONLY_SENTENCE =
+    "This session's transcript was removed. beekeeper archived only its summary."
 
   /** Renders the content with the archived row already cached but stale, so the list reloads on mount with `list`'s answer. */
   function renderWithStaleArchivedList(
@@ -383,9 +385,45 @@ describe('SessionDetailContent for an archived session whose detail was not arch
     expect(note.querySelector('h2')?.textContent).toBe(NOTE)
     expect(screen.getByRole('heading', { level: 1, name: 'Kept' })).toBeTruthy()
     expect(screen.getAllByText(/1\.5K tokens/).length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/Showing the copy beekeeper archived/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(SUMMARY_ONLY_SENTENCE).length).toBeGreaterThan(0)
     expect(screen.queryByRole('group', { name: 'Session not found' })).toBeNull()
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+  })
+
+  it('words the header for a summary, not for a copy of the whole session', async () => {
+    renderContent({
+      list: Promise.resolve({ ok: true, value: ARCHIVED_ROW }),
+      detail: Promise.resolve(NOT_FOUND)
+    })
+    await screen.findByRole('group', { name: NOTE })
+
+    expect(screen.queryByText(/Showing the copy beekeeper archived/)).toBeNull()
+    expect(screen.getAllByText(SUMMARY_ONLY_SENTENCE)).toHaveLength(1)
+  })
+
+  it('leaves the header’s status region empty, so the note’s alert is the one announcement', async () => {
+    renderContent({
+      list: Promise.resolve({ ok: true, value: ARCHIVED_ROW }),
+      detail: Promise.resolve(NOT_FOUND)
+    })
+    await screen.findByRole('group', { name: NOTE })
+
+    const regions = screen.getAllByRole('status')
+
+    expect(regions.map((region) => region.textContent)).toEqual(['', ''])
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
+  })
+
+  it('keeps the header sentence readable by assistive technology, since nothing else says it', async () => {
+    renderContent({
+      list: Promise.resolve({ ok: true, value: ARCHIVED_ROW }),
+      detail: Promise.resolve(NOT_FOUND)
+    })
+    await screen.findByRole('group', { name: NOTE })
+
+    const [sentence] = screen.getAllByText(SUMMARY_ONLY_SENTENCE)
+
+    expect(sentence?.closest('[aria-hidden="true"]')).toBeNull()
   })
 
   it('goes back to the sessions list from the note', async () => {

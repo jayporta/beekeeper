@@ -1,13 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import { EMPTY_AGENT_SIGNALS_DTO } from '../../../shared/ipc/emptyAgentSignals'
-import { parseArchivedDetail, parseArchivedListItem } from '../parseArchivedRow'
+import {
+  parseArchivedDetail,
+  parseArchivedLeadSlots,
+  parseArchivedListItem,
+  parseArchivedTeamSpawns
+} from '../parseArchivedRow'
 import {
   testDetail,
   testListItem,
   testOkSummary,
   testPopulatedDetail,
   testPopulatedListItem,
-  TEST_REF
+  TEST_LEAD_SLOTS,
+  TEST_REF,
+  TEST_TEAM_SPAWNS
 } from '../testArchiveFixtures'
 
 /** A list item the archive would hold: a readable summary and no team. */
@@ -217,5 +224,53 @@ describe('parseArchivedDetail', () => {
     const json = storedDetail({ tree: null }).replace('"tree":null', `"tree":${tree}`)
 
     expect(parseArchivedDetail(json, TEST_REF).ok).toBe(true)
+  })
+})
+
+describe('parseArchivedTeamSpawns', () => {
+  it('returns the spawns and stops a row holds', () => {
+    const parsed = parseArchivedTeamSpawns(JSON.stringify(TEST_TEAM_SPAWNS))
+
+    expect(parsed).toEqual({ ok: true, value: TEST_TEAM_SPAWNS })
+  })
+
+  it('keeps a field added later', () => {
+    const json = JSON.stringify({ ...TEST_TEAM_SPAWNS, future: 1 })
+
+    expect(parseArchivedTeamSpawns(json).ok).toBe(true)
+  })
+
+  it.each([
+    ['not JSON', '{nope', 'invalid-json'],
+    ['spawns that are not a list', '{"spawns":1,"stops":[],"truncated":false}', 'invalid-shape'],
+    ['a spawn with no name', '{"spawns":[{}],"stops":[],"truncated":false}', 'invalid-shape'],
+    ['no truncated flag', '{"spawns":[],"stops":[]}', 'invalid-shape']
+  ])('rejects %s', (_label, json, error) => {
+    expect(parseArchivedTeamSpawns(json)).toEqual({ ok: false, error })
+  })
+})
+
+describe('parseArchivedLeadSlots', () => {
+  it('returns the slots and counts a row holds', () => {
+    expect(parseArchivedLeadSlots(JSON.stringify(TEST_LEAD_SLOTS))).toEqual({
+      ok: true,
+      value: TEST_LEAD_SLOTS
+    })
+  })
+
+  it('returns null for a transcript that had no lead usage', () => {
+    expect(parseArchivedLeadSlots('null')).toEqual({ ok: true, value: null })
+  })
+
+  it.each([
+    ['not JSON', '[', 'invalid-json'],
+    [
+      'a slot with a text number',
+      '{"slots":[{"slot":"x","model":"m","tokens":1}],"undatedMessages":0,"invalidAssistantRecords":0}',
+      'invalid-shape'
+    ],
+    ['no counts', '{"slots":[]}', 'invalid-shape']
+  ])('rejects %s', (_label, json, error) => {
+    expect(parseArchivedLeadSlots(json)).toEqual({ ok: false, error })
   })
 })
