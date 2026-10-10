@@ -513,6 +513,23 @@ describe('SessionDetailContent for an archived session whose detail was not arch
     expect(screen.queryByText(/loaded/)).toBeNull()
   })
 
+  it('announces the note with a fresh alert when it replaces "Session not found" after the list refetches', async () => {
+    const { api, client } = renderContent({
+      list: Promise.resolve({ ok: true, value: [] }),
+      detail: Promise.resolve(NOT_FOUND)
+    })
+    await screen.findByRole('group', { name: 'Session not found' })
+    const first = screen.getByRole('alert')
+    api.listSessions.mockResolvedValue({ ok: true, value: ARCHIVED_ROW })
+
+    await refetchAndSettle(client, ['sessions', DIR])
+
+    expect(await screen.findByRole('group', { name: NOTE })).toBeTruthy()
+    const second = screen.getByRole('alert')
+    expect(second).not.toBe(first)
+    expect(second.textContent).toContain(NOTE)
+  })
+
   it('moves focus to the note when it replaces a focused Retry', async () => {
     const { api } = renderContent({
       list: Promise.resolve({ ok: true, value: ARCHIVED_ROW }),

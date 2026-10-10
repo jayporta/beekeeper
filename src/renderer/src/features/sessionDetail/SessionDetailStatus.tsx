@@ -58,10 +58,11 @@ export function SessionDetailStatus({
   const code = IpcCallError.codeOf(error)
   const gone = code === 'not-found'
   const notFoundShown = gone && !holdNotFound
-  // The trigger changes with each failed load, so a repeat after Retry is announced again.
+  // The trigger changes with each failed load, so a repeat after Retry is announced again,
+  // and when the message turns into the summary-only note or back, so the switch is too.
   const announceNotFound = useFocusOrAnnounce(
     notFoundMessage,
-    notFoundShown ? `not-found-${errorUpdatedAt}` : ''
+    notFoundShown ? `not-found-${summaryOnly ? 'summary' : 'gone'}-${errorUpdatedAt}` : ''
   )
 
   if (error === null || (gone && holdNotFound)) {
