@@ -55,9 +55,22 @@ describe('mapSessionTeams', () => {
         sessionsWithoutTokens: 1,
         missingTeammates: 1,
         teamListsTruncated: false,
-        signalTotals: { toolErrors: 7, compactions: 1, agentsKilled: 2 }
+        signalTotals: { toolErrors: 7, compactions: 1, agentsKilled: 2, partial: false }
       }
     })
+  })
+
+  it('marks a lead’s signal totals partial when a grouped teammate’s signals are partial', () => {
+    const capped = testAgent(testRef('p', 'a'), {
+      agentName: 'a',
+      teamName: 'team',
+      signals: { ...EMPTY_SIGNALS, partial: true }
+    })
+
+    const teams = mapSessionTeams(groupTeams([lead, capped]))
+    const entry = teams.get(key('lead'))
+
+    expect(entry?.kind === 'lead' && entry.usage.signalTotals.partial).toBe(true)
   })
 
   it('maps a stopped and an unstopped teammate to their lead with how they joined', () => {
@@ -135,7 +148,7 @@ describe('mapSessionTeams', () => {
         sessionsWithoutTokens: 0,
         missingTeammates: 1,
         teamListsTruncated: false,
-        signalTotals: { toolErrors: 0, compactions: 0, agentsKilled: 0 }
+        signalTotals: { toolErrors: 0, compactions: 0, agentsKilled: 0, partial: false }
       }
     })
   })
@@ -158,7 +171,7 @@ describe('mapSessionTeams', () => {
         sessionsWithoutTokens: 0,
         missingTeammates: 0,
         teamListsTruncated: true,
-        signalTotals: { toolErrors: 0, compactions: 0, agentsKilled: 0 }
+        signalTotals: { toolErrors: 0, compactions: 0, agentsKilled: 0, partial: false }
       }
     })
   })

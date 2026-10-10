@@ -64,6 +64,8 @@ export interface SignalTotalsDto {
   readonly compactions: number
   /** Agent kills, summed over the sessions. */
   readonly agentsKilled: number
+  /** Whether any summed session's signals are partial, because its transcript hit the per-transcript event cap. */
+  readonly partial: boolean
 }
 
 /**

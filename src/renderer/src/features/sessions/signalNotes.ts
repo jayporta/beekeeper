@@ -12,8 +12,8 @@ import type { SessionsT } from './sessionsT'
 export function signalTotalsOf(item: SessionListItemDto): SignalTotalsDto | null {
   if (item.team?.kind === 'lead') return item.team.usage.signalTotals
   if (!item.summary.ok) return null
-  const { toolErrors, compactions, agentsKilled } = item.summary.value.signals
-  return { toolErrors, compactions, agentsKilled }
+  const { toolErrors, compactions, agentsKilled, partial } = item.summary.value.signals
+  return { toolErrors, compactions, agentsKilled, partial }
 }
 
 /**

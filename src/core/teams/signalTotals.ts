@@ -8,6 +8,8 @@ export interface SignalTotals {
   readonly compactions: number
   /** Agent kills, summed over the sessions. */
   readonly agentsKilled: number
+  /** Whether any summed session's signals are partial, because its transcript hit the per-transcript event cap. */
+  readonly partial: boolean
 }
 
 /**
@@ -20,10 +22,12 @@ export function sumSignalTotals(sessions: readonly SummarizedSession[]): SignalT
   let toolErrors = 0
   let compactions = 0
   let agentsKilled = 0
+  let partial = false
   for (const { summary } of sessions) {
     toolErrors += summary.signals.toolErrors
     compactions += summary.signals.compactions
     agentsKilled += summary.signals.agentsKilled
+    partial ||= summary.signals.partial
   }
-  return { toolErrors, compactions, agentsKilled }
+  return { toolErrors, compactions, agentsKilled, partial }
 }

@@ -22,8 +22,20 @@ describe('sumSignalTotals', () => {
     expect(sumSignalTotals([lead, a, b])).toEqual({
       toolErrors: 12,
       compactions: 2,
-      agentsKilled: 3
+      agentsKilled: 3,
+      partial: false
     })
+  })
+
+  it('is partial when any summed session’s signals are partial', () => {
+    const lead = testLead(testRef('p', 'lead'))
+    const capped = testAgent(testRef('p', 'a'), {
+      agentName: 'a',
+      teamName: 'team',
+      signals: { ...EMPTY_SIGNALS, partial: true }
+    })
+
+    expect(sumSignalTotals([lead, capped]).partial).toBe(true)
   })
 
   it('includes a teammate that lives in another folder', () => {
@@ -41,7 +53,8 @@ describe('sumSignalTotals', () => {
     expect(sumSignalTotals([testLead(testRef('p', 'lead'))])).toEqual({
       toolErrors: 0,
       compactions: 0,
-      agentsKilled: 0
+      agentsKilled: 0,
+      partial: false
     })
   })
 })

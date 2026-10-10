@@ -87,7 +87,8 @@ describe('rollupTeamUsage', () => {
     expect(rollupOf([lead, a]).signalTotals).toEqual({
       toolErrors: 5,
       compactions: 1,
-      agentsKilled: 1
+      agentsKilled: 1,
+      partial: false
     })
   })
 

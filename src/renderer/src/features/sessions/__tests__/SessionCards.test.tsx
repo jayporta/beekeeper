@@ -481,7 +481,7 @@ describe('session cards: plan limit note', () => {
 })
 
 describe('session cards: signal notes', () => {
-  const counts = { toolErrors: 12, compactions: 2, agentsKilled: 0 }
+  const counts = { toolErrors: 12, compactions: 2, agentsKilled: 0, partial: false }
   const noisy = testSession(5, {
     projectDirName: DIR,
     title: 'Went off the rails',
