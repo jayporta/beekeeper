@@ -5,7 +5,7 @@ import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
 import { sessionRefKey } from '../ipc/sessionRefKey'
 import { ARCHIVE_FORMAT } from './archiveConstants'
 import { SELECT_DETAIL, SELECT_LEAD_SLOTS, SELECT_SESSION_ROW } from './archiveSql'
-import type { ArchivedSession, ArchiveReader } from './archiveStoreTypes'
+import type { ArchivedLeadSlots, ArchivedSession, ArchiveReader } from './archiveStoreTypes'
 import type { ArchiveDb } from './openArchive'
 import {
   parseArchivedDetail,
@@ -43,6 +43,8 @@ interface FolderRows {
   sorted: string[] | null
   /** A row's session once read, or `null` when the row can't be served. */
   readonly sessions: Map<string, ArchivedSession | null>
+  /** A row's lead slots once read, or `null` when it has none that can be served. */
+  readonly leadSlots: Map<string, ArchivedLeadSlots | null>
 }
 
 /**
@@ -50,7 +52,8 @@ interface FolderRows {
  * the first time a read asks for it, and only then: a session the caller
  * excludes is never touched. What was read stays in memory until the row
  * changes, so a list that is read every few seconds costs a pass over the ids
- * and no queries or parsing. The last detail read is kept the same way.
+ * and no queries or parsing. A row's lead slots, which only the overview asks
+ * for, and the last detail read are kept the same way.
  *
  * @param options - The database, where to log, and whether the store is closed.
  * @returns The reads, and `rowChanged` for the store to call after it writes.
@@ -86,6 +89,18 @@ export function createArchiveReader(options: ArchiveReaderOptions): ArchiveReads
     const parsed = parseArchivedTeamSpawns(stored)
     if (parsed.ok) return parsed.value
     logUnreadableColumn('team spawns', parsed.error)
+    return null
+  }
+
+  /** Reads and parses a row's lead slots column, which is `null` when it holds none or can't be read. */
+  function readLeadSlotsColumn(ref: SessionRefDto): ArchivedLeadSlots | null {
+    const stored = selectLeadSlots.get(ref.projectDirName, ref.sessionId, ARCHIVE_FORMAT)?.[
+      'lead_slots'
+    ]
+    if (typeof stored !== 'string') return null
+    const parsed = parseArchivedLeadSlots(stored)
+    if (parsed.ok) return parsed.value
+    logUnreadableColumn('lead slots', parsed.error)
     return null
   }
 
@@ -129,7 +144,7 @@ export function createArchiveReader(options: ArchiveReaderOptions): ArchiveReads
     rowChanged(ref) {
       let folder = folders.get(ref.projectDirName)
       if (folder === undefined) {
-        folder = { ids: new Set(), sorted: null, sessions: new Map() }
+        folder = { ids: new Set(), sorted: null, sessions: new Map(), leadSlots: new Map() }
         folders.set(ref.projectDirName, folder)
       }
       if (!folder.ids.has(ref.sessionId)) {
@@ -137,21 +152,20 @@ export function createArchiveReader(options: ArchiveReaderOptions): ArchiveReads
         folder.sorted = null
       }
       folder.sessions.delete(ref.sessionId)
+      folder.leadSlots.delete(ref.sessionId)
       if (lastDetail?.key === sessionRefKey(ref)) lastDetail = null
     },
 
     readSessions,
 
     readLeadSlots(ref) {
-      if (isClosed()) return null
-      const stored = selectLeadSlots.get(ref.projectDirName, ref.sessionId, ARCHIVE_FORMAT)?.[
-        'lead_slots'
-      ]
-      if (typeof stored !== 'string') return null
-      const parsed = parseArchivedLeadSlots(stored)
-      if (parsed.ok) return parsed.value
-      logUnreadableColumn('lead slots', parsed.error)
-      return null
+      const folder = folders.get(ref.projectDirName)
+      if (isClosed() || folder === undefined || !folder.ids.has(ref.sessionId)) return null
+      const cached = folder.leadSlots.get(ref.sessionId)
+      if (cached !== undefined) return cached
+      const slots = readLeadSlotsColumn(ref)
+      folder.leadSlots.set(ref.sessionId, slots)
+      return slots
     },
 
     readDetail(ref) {

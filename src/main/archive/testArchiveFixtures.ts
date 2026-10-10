@@ -56,7 +56,7 @@ export const TEST_LEAD_SLOTS: ArchivedLeadSlots = {
 
 /**
  * A list item to store with the transcript state it was built from, for
- * {@link TEST_REF} unless overridden. Its sidecars are empty: no spawns, and no lead usage.
+ * {@link TEST_REF} unless overridden. Its sidecars are empty: no spawns, and `null` lead slots.
  */
 export function listEntry(
   item: SessionListItemDto = testListItem(),

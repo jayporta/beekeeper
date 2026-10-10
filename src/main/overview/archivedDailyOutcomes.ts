@@ -5,6 +5,7 @@ import type { ArchivedSession } from '../archive/archiveStoreTypes'
 import { guardArchiveCall } from '../archive/guardArchiveCall'
 import type { IpcDeps } from '../ipc/ipcDeps'
 import { readArchivedSessions } from '../ipc/readArchivedSessions'
+import { archivedTimesOf } from './archivedTimes'
 import type { SessionDailyOutcome } from './folderDailyUsage'
 import { mayArchivedHaveDailyUsage } from './totalsWindow'
 
@@ -41,14 +42,8 @@ export function archivedDailyOutcomes(
   const { archive, window, dayKeyOf } = options
   if (archive === null) return []
   return readArchivedSessions(options)
-    .filter(({ item }) =>
-      mayArchivedHaveDailyUsage({ latestMs: latestMsOf(item), modifiedMs: item.modifiedMs }, window)
-    )
+    .filter(({ item }) => mayArchivedHaveDailyUsage(archivedTimesOf(item), window))
     .map((session) => outcomeOf({ session, archive, dayKeyOf }))
-}
-
-function latestMsOf({ summary }: ArchivedSession['item']): number | null {
-  return summary.ok ? (summary.value.activity?.latestMs ?? null) : null
 }
 
 function outcomeOf(options: {

@@ -1,9 +1,14 @@
 import type { IpcResult } from '../../shared/ipc/ipcResult'
 import type { ProjectTotalsDto } from '../../shared/ipc/projectTotalsDto'
 import { getProjectTotalsRequestSchema } from '../../shared/ipc/requestSchemas'
+import { archivedTimesOf } from '../overview/archivedTimes'
 import { archivedTotalsSession } from '../overview/archivedTotalsSession'
 import { folderTotals, type TotalsSession } from '../overview/folderTotals'
-import { mayCountInWindow, TOTALS_WINDOW_MS } from '../overview/totalsWindow'
+import {
+  mayArchivedCountInWindow,
+  mayCountInWindow,
+  TOTALS_WINDOW_MS
+} from '../overview/totalsWindow'
 import { findProject } from './findProject'
 import type { IpcDeps } from './ipcDeps'
 import { errResult, okResult } from './ipcResults'
@@ -35,8 +40,8 @@ function toTotalsSession({ entry, summary }: ScannedSession): TotalsSession {
  * longer on disk, are added from the archive, each from its list item, which
  * holds every figure the totals read. A session that is on disk is never
  * counted from the archive, even when the window left it unread. The archive
- * is held in memory, so none of them is skipped unread: the window cuts them
- * by their activity like the others. A failing archive read leaves the live
+ * is held in memory, so none of them is read: those last active before the
+ * window are cut before they are mapped, by the rule the totals apply. A failing archive read leaves the live
  * sessions' totals as they are.
  *
  * @param deps - The projects root, the summary cache, the summaries scheduler,
@@ -76,6 +81,9 @@ export async function getProjectTotalsHandler(
     projectDirName: project.dirName,
     liveSessionIds
   })
-  const sessions = [...scanned.map(toTotalsSession), ...archived.map(archivedTotalsSession)]
+  const inWindow = archived.filter(({ item }) =>
+    mayArchivedCountInWindow(archivedTimesOf(item), { nowMs, windowMs })
+  )
+  const sessions = [...scanned.map(toTotalsSession), ...inWindow.map(archivedTotalsSession)]
   return okResult(mapProjectTotals(folderTotals({ sessions, nowMs, windowMs })))
 }

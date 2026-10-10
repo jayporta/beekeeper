@@ -98,13 +98,15 @@ export interface ArchiveStore {
   readSessions(projectDirName: string, excluding: ReadonlySet<string>): readonly ArchivedSession[]
   /**
    * Reads a session's own usage per slot, which {@link ArchiveStore.readSessions}
-   * leaves out. It is read from the database each time, since only the overview
-   * asks for it, once per archived session in its window.
+   * leaves out because only the overview asks for it. The first read of a row
+   * queries and parses it, and what was read stays in memory until a save
+   * changes the row.
    *
    * @param ref - The session.
-   * @returns The slots, or `null` when the session has none at the current
-   * format (none stored, or its transcript had no lead usage), the column
-   * can't be read (logged once per kind), or the store is closed.
+   * @returns The slots (empty for a transcript with no usage), or `null` when
+   * the session has none at the current format (none stored, or its scan held
+   * more messages than it keeps), the column can't be read (logged once per
+   * kind), or the store is closed.
    */
   readLeadSlots(ref: SessionRefDto): ArchivedLeadSlots | null
   /**
@@ -142,7 +144,7 @@ export interface ListItemEntry {
   readonly source: SourceState
   /** The teammates the transcript spawned and stopped, which team grouping reads. */
   readonly teamSpawns: TranscriptTeamSpawns
-  /** The transcript's own usage per slot, or `null` when its summary has none. */
+  /** The transcript's own usage per slot, or `null` when its scan held more messages than it keeps. */
   readonly leadSlots: ArchivedLeadSlots | null
 }
 

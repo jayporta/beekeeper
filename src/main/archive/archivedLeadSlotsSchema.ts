@@ -3,7 +3,8 @@ import { z } from 'zod'
 /**
  * The parts of archived lead slots that usage over time reads, checked
  * leniently so a field added later doesn't invalidate rows. A transcript with
- * no lead usage is stored as JSON `null`.
+ * no usage stores empty slots. JSON `null` is stored when the scan held more
+ * messages than it keeps.
  */
 export const archivedLeadSlotsSchema = z
   .looseObject({

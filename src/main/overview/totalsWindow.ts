@@ -82,3 +82,23 @@ export function mayArchivedHaveDailyUsage(
   const newestMs = Math.max(latestMs ?? -Infinity, modifiedMs ?? -Infinity)
   return newestMs >= window.nowMs - window.windowMs - DAY_MS - SKIP_UNREAD_SLACK_MS
 }
+
+/**
+ * Decides whether an archived session may count in a window's totals, from the
+ * times its list item holds, by the rule the totals apply: it is out when it was
+ * last active, by its last message or else its file time, before the window's
+ * start. A session with no file time is kept, since the totals count it as
+ * unreadable.
+ *
+ * @param times - When the session's last message was, and when its transcript was last written, either `null` when unknown.
+ * @param window - The window's end, in milliseconds since the Unix epoch, and its length.
+ * @returns `true` to hand it to the totals.
+ */
+export function mayArchivedCountInWindow(
+  times: { readonly latestMs: number | null; readonly modifiedMs: number | null },
+  window: { readonly nowMs: number; readonly windowMs: number }
+): boolean {
+  const { latestMs, modifiedMs } = times
+  if (modifiedMs === null) return true
+  return (latestMs ?? modifiedMs) >= window.nowMs - window.windowMs
+}

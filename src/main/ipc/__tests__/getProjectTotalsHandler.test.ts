@@ -463,6 +463,13 @@ describe('getProjectTotalsHandler archived sessions', () => {
     expect(value(await totalsOf(withArchive(old)))).toMatchObject({ sessions: 0, tokens: 0 })
   })
 
+  it('counts an archived session last active exactly at the window start', async () => {
+    await removeTreeSession()
+    const edge = archived(100, { activity: { earliestMs: 1, latestMs: CUTOFF } })
+
+    expect(value(await totalsOf(withArchive(edge)))).toMatchObject({ sessions: 1 })
+  })
+
   it('counts an archived teammate as an agent, never as a session', async () => {
     await removeTreeSession()
     const role = { kind: 'agent', agentType: null, agentName: 'scout', teamName: 'team-1' } as const
