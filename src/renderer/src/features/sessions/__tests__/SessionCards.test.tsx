@@ -481,7 +481,7 @@ describe('session cards: plan limit note', () => {
 })
 
 describe('session cards: signal notes', () => {
-  const counts = { toolErrors: 12, compactions: 2, agentsKilled: 0 }
+  const counts = { toolErrors: 12, compactions: 2, agentsKilled: 0, partial: false }
   const noisy = testSession(5, {
     projectDirName: DIR,
     title: 'Went off the rails',
@@ -549,6 +549,70 @@ describe('session cards: signal notes', () => {
     cardOf('Plain session')
 
     expect(screen.queryByText(SCOPE)).toBeNull()
+  })
+
+  describe('when a transcript hit the event cap', () => {
+    const NOTE = 'counts partial, see the note below the list'
+    const SENTENCE = /Some transcripts have more events than beekeeper counts/
+    const capped = testSession(11, {
+      projectDirName: DIR,
+      title: 'Capped transcript',
+      totalTokens: 7,
+      costUSD: 0.5,
+      signals: { ...EMPTY_AGENT_SIGNALS_DTO, toolErrors: 2, partial: true }
+    })
+
+    it('marks the signal counts and explains why in the footnote', async () => {
+      await showSessions([capped])
+
+      const card = cardOf('Capped transcript')
+
+      expect(card.textContent).toContain(`2 tool errors¹ ${NOTE}`)
+      expect(screen.getByText(SENTENCE)).toBeTruthy()
+    })
+
+    it('leaves the token figure unmarked when only the signals are partial', async () => {
+      await showSessions([capped])
+
+      const card = cardOf('Capped transcript')
+
+      expect(card.querySelectorAll('sup')).toHaveLength(1)
+    })
+
+    it('marks a lead’s team counts when its team totals are partial', async () => {
+      const partialLead = testSession(12, {
+        projectDirName: DIR,
+        title: 'Partial team',
+        team: testLeadTeam(
+          [testRef(13, DIR)],
+          testUsage({ signalTotals: { ...counts, partial: true } })
+        )
+      })
+      await showSessions([partialLead])
+
+      expect(cardOf('Partial team').textContent).toContain(`2 compactions¹ ${NOTE}`)
+    })
+
+    it('marks nothing when the partial signals have every count at zero', async () => {
+      const quiet = testSession(14, {
+        projectDirName: DIR,
+        title: 'Quiet but capped',
+        totalTokens: 7,
+        costUSD: 0.5,
+        signals: { ...EMPTY_AGENT_SIGNALS_DTO, partial: true }
+      })
+      await showSessions([quiet])
+
+      expect(cardOf('Quiet but capped').querySelectorAll('sup')).toHaveLength(0)
+      expect(screen.queryByText(SENTENCE)).toBeNull()
+    })
+
+    it('says nothing about it when no signal counts are partial', async () => {
+      await showSessions([noisy])
+      cardOf('Went off the rails')
+
+      expect(screen.queryByText(SENTENCE)).toBeNull()
+    })
   })
 
   it('still renders a card whose summary failed, with no signal note or scope note', async () => {

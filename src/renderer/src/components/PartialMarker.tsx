@@ -8,7 +8,8 @@ interface PartialMarkerProps {
 
 /**
  * The marker after a partial figure: a superscript that assistive technology
- * skips, and a spoken note that sends the reader to the footnote.
+ * skips, and a spoken note that sends the reader to the footnote. A space
+ * keeps the note from reading run together with the figure.
  *
  * @example
  * <p>12.4M tokens<PartialMarker note={t('partialNote')} /></p>
@@ -18,7 +19,7 @@ export function PartialMarker({ note }: PartialMarkerProps): React.JSX.Element {
 
   return (
     <>
-      <sup aria-hidden="true">{t('partialMarker')}</sup>
+      <sup aria-hidden="true">{t('partialMarker')}</sup>{' '}
       <span className="visuallyHidden">{note}</span>
     </>
   )

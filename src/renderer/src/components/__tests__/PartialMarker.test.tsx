@@ -16,4 +16,15 @@ describe('PartialMarker', () => {
     expect(marker?.textContent).toBe('¹')
     expect(marker?.getAttribute('aria-hidden')).toBe('true')
   })
+
+  it('keeps a space before the spoken note, so it never reads run together with the figure', () => {
+    const { container } = render(
+      <p>
+        12 tokens
+        <PartialMarker note="partial, see below" />
+      </p>
+    )
+
+    expect(container.textContent).toBe('12 tokens¹ partial, see below')
+  })
 })
