@@ -8,6 +8,7 @@ import { openArchiveStore } from './archive/openArchiveStore'
 import { wireArchiver } from './archive/wireArchiver'
 import { buildAppMenuTemplate } from './appMenu'
 import { createIpcDeps } from './ipc/createIpcDeps'
+import { sendOtelReceiverChanged } from './otel/sendOtelReceiverChanged'
 import { wireOtelReceiver } from './otel/wireOtelReceiver'
 import { registerIpcHandlers } from './ipc/registerIpcHandlers'
 import { isTrustedSender } from './ipc/senderValidation'
@@ -99,7 +100,10 @@ if (!is.dev && !app.requestSingleInstanceLock()) {
       // The opt-in telemetry receiver: off unless the saved setting is on.
       const otel = wireOtelReceiver({
         settingsPath: join(app.getPath('userData'), 'otel-receiver.json'),
-        host: { onWillQuit: (listener) => app.on('will-quit', listener) }
+        host: {
+          onWillQuit: (listener) => app.on('will-quit', listener),
+          notifyReceiverChanged: () => sendOtelReceiverChanged(BrowserWindow.getAllWindows())
+        }
       })
       const archive = openArchiveStore(join(app.getPath('userData'), 'archive.sqlite'))
       const deps = {
