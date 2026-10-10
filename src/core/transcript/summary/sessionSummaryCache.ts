@@ -82,17 +82,17 @@ export const SUMMARY_CACHE_MAX_WEIGHT = 10_000_000
 /**
  * The default bound on the total weight of the scans a cache keeps to carry
  * on from, in UTF-16 code units. A scan weighs its message ids, usage slots,
- * signal events and teammates: a scan of 20 thousand messages weighs about 3.1
- * million and one of 50 thousand (the most message ids an observer tracks)
- * about 7.75 million, plus about a hundred for each 15-minute slot and model
- * it used, so this holds the handful of sessions that are growing at once,
+ * signal events and teammates. Each message costs about 150 to 170, by the
+ * length of its model id, so a scan of 20 thousand messages weighs about 3 to
+ * 3.4 million and one of 50 thousand (the most message ids an observer tracks)
+ * about 7.5 to 8.5 million, plus about a hundred for each 15-minute slot and
+ * model it used. This holds the handful of sessions that are growing at once,
  * even long ones. A scan is kept only if it weighs no more than a quarter of
- * the bound (see `KEPT_SCAN_BOUND_SHARE`), 8 million here, which covers the
- * largest scan an observer tracks unless it spans more than about two thousand
- * slots and models. A heavier one is not kept and is scanned in full each
- * time, as it would be without resuming, so it cannot push every other
- * session's scan out. What it accounts for takes at most 64 MB, at two bytes
- * per code unit.
+ * the bound (see `KEPT_SCAN_BOUND_SHARE`), 8 million here, which covers a scan
+ * of up to about 45 thousand messages. A heavier one is not kept and is
+ * scanned in full each time, as it would be without resuming, so it cannot
+ * push every other session's scan out. What it accounts for takes at most
+ * 64 MB, at two bytes per code unit.
  */
 export const RESUME_CACHE_MAX_WEIGHT = 32_000_000
 
