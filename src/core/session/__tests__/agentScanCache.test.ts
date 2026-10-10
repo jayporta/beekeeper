@@ -1,0 +1,311 @@
+import * as fs from 'node:fs'
+import {
+  appendFileSync,
+  renameSync,
+  rmSync,
+  truncateSync,
+  utimesSync,
+  writeFileSync
+} from 'node:fs'
+import { join } from 'node:path'
+import { Readable } from 'node:stream'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { feedLineScan } from '../../transcript/feedLineScan'
+import { resumableScanWeight, startScan, type ScanReadTuning } from '../../transcript/resumableScan'
+import type { TranscriptFileInfo } from '../../transcript/statTranscriptFile'
+import { subagentIdentity, leadIdentity } from '../agentIdentity'
+import { toAgentId } from '../../transcript/ids'
+import {
+  buildTrickyTranscript,
+  createGrowingTranscript,
+  TRICKY_MAX_LINE_CHARS,
+  type GrowingTranscript
+} from '../../transcript/summary/testGrowingTranscript'
+import { createTranscriptDir, type TranscriptDir } from '../../transcript/summary/testTranscriptDir'
+import { startsDuring } from '../../transcript/testReadStarts'
+import { statWrittenTranscript } from '../../transcript/testStatTranscript'
+import { createAgentScan, type AgentScanSnapshot } from '../agentScan'
+import { createAgentScanCache, type AgentScanCache } from '../agentScanCache'
+
+// Wraps the real `createReadStream` in a spy so a test can see where each
+// read began, which is how a resumed read tells from a rescan.
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>()
+  return { ...actual, createReadStream: vi.fn(actual.createReadStream) }
+})
+
+let dir: TranscriptDir
+
+beforeEach(() => {
+  dir = createTranscriptDir()
+  vi.mocked(fs.createReadStream).mockClear()
+})
+
+afterEach(() => {
+  dir.cleanup()
+})
+
+const TUNING: ScanReadTuning = { maxLineChars: TRICKY_MAX_LINE_CHARS }
+
+/** A modification time later than any a growing transcript carries, in seconds. */
+const LATER_SECONDS = 1_900_000_000
+
+/** The offset just past the last newline in `bytes`: what a scan of them consumes. */
+const consumedOffset = (bytes: Buffer): number => bytes.lastIndexOf(0x0a) + 1
+
+/** What a scan of the whole file, from its first byte, shows. */
+async function freshSnapshot(path: string): Promise<AgentScanSnapshot> {
+  const scan = createAgentScan({ identity: leadIdentity, trackCostState: true })
+  await feedLineScan(scan, { ...TUNING, filePath: path })
+  return scan.snapshot()
+}
+
+function readLead(cache: AgentScanCache, file: TranscriptFileInfo): Promise<AgentScanSnapshot> {
+  return cache.read({ file, identity: leadIdentity, trackCostState: true, tuning: TUNING })
+}
+
+/** Reads through the cache, checks the snapshot against a fresh scan, and returns where the cache's read began (-1 for none). */
+async function readAndCompare(cache: AgentScanCache, file: TranscriptFileInfo): Promise<number> {
+  let snapshot: AgentScanSnapshot | undefined
+  const starts = await startsDuring(async () => {
+    snapshot = await readLead(cache, file)
+  })
+  expect(snapshot).toEqual(await freshSnapshot(file.path))
+  return starts[0] ?? -1
+}
+
+function growingFrom(script: Buffer, name = 'session.jsonl'): GrowingTranscript {
+  return createGrowingTranscript({ path: join(dir.root, name), script, seed: 1, maxStep: 1 })
+}
+
+describe('createAgentScanCache', () => {
+  it('reads a transcript it has not seen from its first byte', async () => {
+    const growing = growingFrom(buildTrickyTranscript())
+    growing.growTo(3000)
+
+    expect(await readAndCompare(createAgentScanCache(), await growing.stat())).toBe(0)
+  })
+
+  it('serves an unchanged transcript without reading it again', async () => {
+    const growing = growingFrom(buildTrickyTranscript())
+    growing.growTo(3000)
+    const cache = createAgentScanCache()
+    const file = await growing.stat()
+    await readLead(cache, file)
+
+    const starts = await startsDuring(() => readLead(cache, file))
+
+    expect(starts).toEqual([])
+    expect(await readLead(cache, file)).toEqual(await freshSnapshot(file.path))
+  })
+
+  it('resumes a grown transcript from the offset it consumed', async () => {
+    const script = buildTrickyTranscript()
+    const growing = growingFrom(script)
+    const cache = createAgentScanCache()
+    growing.growTo(2000)
+    await readAndCompare(cache, await growing.stat())
+
+    growing.growTo(6000)
+
+    expect(await readAndCompare(cache, await growing.stat())).toBe(
+      consumedOffset(script.subarray(0, 2000))
+    )
+  })
+
+  it('leaves a snapshot it returned unchanged by a later read that resumes the scan', async () => {
+    const growing = growingFrom(buildTrickyTranscript())
+    const cache = createAgentScanCache()
+    growing.growTo(2000)
+    const earlier = await readLead(cache, await growing.stat())
+    const copy = structuredClone(earlier)
+
+    growing.growTo(8000)
+    await readLead(cache, await growing.stat())
+
+    expect(earlier).toEqual(copy)
+  })
+
+  describe('rescans in full', () => {
+    it('when the transcript shrank', async () => {
+      const growing = growingFrom(buildTrickyTranscript())
+      const cache = createAgentScanCache()
+      growing.growTo(6000)
+      await readLead(cache, await growing.stat())
+
+      truncateSync(growing.path, 1500)
+      utimesSync(growing.path, LATER_SECONDS, LATER_SECONDS)
+
+      expect(await readAndCompare(cache, await statWrittenTranscript(growing.path))).toBe(0)
+    })
+
+    it('when another file took its place', async () => {
+      const script = buildTrickyTranscript()
+      const growing = growingFrom(script)
+      const cache = createAgentScanCache()
+      growing.growTo(6000)
+      await readLead(cache, await growing.stat())
+
+      const replacement = join(dir.root, 'replacement.jsonl')
+      writeFileSync(replacement, Buffer.concat([script, Buffer.from('{"a":1}\n')]))
+      utimesSync(replacement, LATER_SECONDS, LATER_SECONDS)
+      renameSync(replacement, growing.path)
+
+      expect(await readAndCompare(cache, await statWrittenTranscript(growing.path))).toBe(0)
+    })
+
+    it('when the transcript grew but its modification time did not change', async () => {
+      const growing = growingFrom(buildTrickyTranscript())
+      const cache = createAgentScanCache()
+      growing.growTo(6000)
+      const before = await growing.stat()
+      await readLead(cache, before)
+
+      appendFileSync(growing.path, '{"type":"ai-title","aiTitle":"More"}\n')
+      utimesSync(growing.path, before.mtimeMs / 1000, before.mtimeMs / 1000)
+
+      expect(await readAndCompare(cache, await statWrittenTranscript(growing.path))).toBe(0)
+    })
+  })
+
+  describe('after a failure', () => {
+    it('rejects with the system error when the transcript is gone, and scans anew once it is back', async () => {
+      const script = buildTrickyTranscript()
+      const growing = growingFrom(script)
+      const cache = createAgentScanCache()
+      growing.growTo(2000)
+      const file = await growing.stat()
+      await readLead(cache, file)
+
+      rmSync(growing.path)
+      await expect(
+        readLead(cache, { ...file, size: file.size + 1, mtimeMs: 1 })
+      ).rejects.toMatchObject({
+        code: 'ENOENT'
+      })
+
+      writeFileSync(growing.path, script)
+      expect(await readAndCompare(cache, await statWrittenTranscript(growing.path))).toBe(0)
+    })
+
+    it('rescans in full after a read failed partway through the new lines', async () => {
+      const script = buildTrickyTranscript()
+      const growing = growingFrom(script)
+      const cache = createAgentScanCache()
+      growing.growTo(300)
+      await readLead(cache, await growing.stat())
+      const consumed = consumedOffset(script.subarray(0, 300))
+      growing.growTo(script.length)
+      const grown = await growing.stat()
+
+      // The next read delivers every new line, then fails.
+      async function* newLinesThenFailure(): AsyncGenerator<Buffer> {
+        yield Buffer.from(script.subarray(consumed))
+        throw Object.assign(new Error('read failed'), { code: 'EIO' })
+      }
+      vi.mocked(fs.createReadStream).mockImplementationOnce(
+        () => Readable.from(newLinesThenFailure()) as unknown as fs.ReadStream
+      )
+
+      await expect(readLead(cache, grown)).rejects.toMatchObject({ code: 'EIO' })
+      expect(await readAndCompare(cache, grown)).toBe(0)
+    })
+  })
+
+  describe('keeps scans apart', () => {
+    it('for transcripts at different paths', async () => {
+      const script = buildTrickyTranscript()
+      const one = growingFrom(script, 'one.jsonl')
+      const two = growingFrom(script, 'two.jsonl')
+      const cache = createAgentScanCache()
+      one.growTo(2000)
+      two.growTo(4000)
+      await readLead(cache, await one.stat())
+      await readLead(cache, await two.stat())
+      one.growTo(5000)
+      two.growTo(6000)
+
+      expect(await readAndCompare(cache, await one.stat())).toBe(
+        consumedOffset(script.subarray(0, 2000))
+      )
+      expect(await readAndCompare(cache, await two.stat())).toBe(
+        consumedOffset(script.subarray(0, 4000))
+      )
+    })
+
+    it('for one path read as two different agents', async () => {
+      const growing = growingFrom(buildTrickyTranscript())
+      const cache = createAgentScanCache()
+      growing.growTo(2000)
+      await readLead(cache, await growing.stat())
+      growing.growTo(6000)
+      const file = await growing.stat()
+
+      const starts = await startsDuring(() =>
+        cache.read({
+          file,
+          identity: subagentIdentity(toAgentId('a1')),
+          trackCostState: false,
+          tuning: TUNING
+        })
+      )
+
+      expect(starts).toEqual([0])
+    })
+  })
+
+  describe('bounds the scans it keeps', () => {
+    it('keeps none when a scan is heavier than the whole bound, but still reads', async () => {
+      const growing = growingFrom(buildTrickyTranscript())
+      const cache = createAgentScanCache({ maxWeight: 100 })
+      growing.growTo(2000)
+      await readLead(cache, await growing.stat())
+      growing.growTo(6000)
+
+      expect(await readAndCompare(cache, await growing.stat())).toBe(0)
+    })
+
+    it('evicts the scan read least recently first', async () => {
+      const script = buildTrickyTranscript()
+      const transcripts = ['a', 'b', 'c'].map((name) => growingFrom(script, `${name}.jsonl`))
+      const files: TranscriptFileInfo[] = []
+      for (const growing of transcripts) {
+        growing.growTo(1500)
+        files.push(await growing.stat())
+      }
+      const [a, b, c] = files as [TranscriptFileInfo, TranscriptFileInfo, TranscriptFileInfo]
+      // What one of these scans weighs once stored, so the bound can hold two but not three.
+      const one = resumableScanWeight(
+        await startScan({
+          file: a,
+          scan: createAgentScan({ identity: leadIdentity, trackCostState: true }),
+          tuning: TUNING
+        })
+      )
+      const cache = createAgentScanCache({ maxWeight: 2 * one + 100 })
+      for (const file of [a, b, c]) await readLead(cache, file)
+
+      const starts: number[][] = []
+      for (const file of [c, b, a]) starts.push(await startsDuring(() => readLead(cache, file)))
+
+      expect(starts).toEqual([[], [], [0]])
+    })
+  })
+
+  it('shares one read between overlapping reads of a transcript', async () => {
+    const script = buildTrickyTranscript()
+    const growing = growingFrom(script)
+    const cache = createAgentScanCache()
+    growing.growTo(2000)
+    await readLead(cache, await growing.stat())
+    growing.growTo(4000)
+    const grown = await growing.stat()
+
+    const starts = await startsDuring(async () => {
+      const results = await Promise.all([readLead(cache, grown), readLead(cache, { ...grown })])
+      expect(results[1]).toEqual(results[0])
+    })
+
+    expect(starts).toEqual([consumedOffset(script.subarray(0, 2000))])
+  })
+})
