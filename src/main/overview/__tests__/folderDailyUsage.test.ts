@@ -166,13 +166,13 @@ describe('folderDailyUsage', () => {
     expect(dto.partial.archivedWithoutSubagents).toBe(1)
   })
 
-  it('counts no missing subagents for a session archived without them whose usage is all outside the window', () => {
+  it('counts missing subagents for a session archived without them whose own usage is all outside the window, since theirs may be inside it', () => {
     const dto = folderDailyUsage({
       days: DAYS,
       sessions: [readable({ buckets: [bucket('2025-12-31', 'm', 5)] }, true, true)]
     })
 
-    expect(dto.partial.archivedWithoutSubagents).toBe(0)
+    expect(dto.partial.archivedWithoutSubagents).toBe(1)
   })
 
   it('has no models and no partial counts for no sessions', () => {

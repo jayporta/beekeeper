@@ -575,6 +575,26 @@ describe('getProjectDailyUsageHandler archived sessions', () => {
     expect(tokensOn(usage, '2026-03-08')).toBe(30)
   })
 
+  it('counts an archived session active in the window as missing its subagents’ usage when its own usage is all before it', async () => {
+    await removeTreeSession()
+    const slots = new Map([[100, slotsOf(slotAt('2026-02-20T10:00:00Z', 30))]])
+    const { deps } = withArchive([archived(100, { subagentCount: 2 })], slots)
+
+    expect((await usageOf(deps)).partial.archivedWithoutSubagents).toBe(1)
+  })
+
+  it('counts no missing subagents for an archived session that ended before the window and its slack', async () => {
+    await removeTreeSession()
+    const old = archived(100, {
+      subagentCount: 2,
+      activity: { earliestMs: 1, latestMs: NOW - TOTALS_WINDOW_MS['7d'] - 3 * DAY },
+      modifiedMs: NOW - TOTALS_WINDOW_MS['7d'] - 3 * DAY
+    })
+    const slots = new Map([[100, slotsOf(slotAt('2026-02-20T10:00:00Z', 30))]])
+
+    expect((await usageOf(withArchive([old], slots).deps)).partial.archivedWithoutSubagents).toBe(0)
+  })
+
   it('counts an archived session whose subagent count is unknown as missing their usage', async () => {
     await removeTreeSession()
     const slots = new Map([[100, slotsOf(slotAt('2026-03-08T10:00:00Z', 30))]])

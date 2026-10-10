@@ -14,7 +14,8 @@ export type SessionDailyOutcome =
       readonly subagentsListed: boolean
       /**
        * Whether the session has subagents whose usage the archive doesn't hold,
-       * so the usage here is the lead's alone.
+       * so the usage here is the lead's alone. Their days are unknown, so the
+       * caller sets it only for a session they may fall in the window for.
        * @defaultValue false
        */
       readonly subagentsNotArchived?: boolean
@@ -32,10 +33,11 @@ export interface FolderDailyUsageOptions {
  * Adds up one folder's sessions by day and model over a window. Only buckets
  * on the window's days count, and every day is listed, quiet or not. Each
  * session counts at most once under each partial reason. Unreadable lines and
- * undated messages, and subagents the archive doesn't hold count unless every
- * day the session has usage on is outside the window, so a session with no
- * usage at all counts, since what it could not read may have been in the
- * window. An unreadable session or subagent always counts.
+ * undated messages count unless every day the session has usage on is outside
+ * the window, so a session with no usage at all counts, since what it could not
+ * read may have been in the window. An unreadable session or subagent, and
+ * subagents the archive doesn't hold, always count, since the lead's days don't
+ * bound its subagents'.
  *
  * @param options - The window's days and the sessions' outcomes.
  * @returns The folder's usage for the window.
@@ -61,7 +63,7 @@ export function folderDailyUsage(options: FolderDailyUsageOptions): ProjectDaily
       usage.buckets.length > 0 && usage.buckets.every(({ day }) => !byDay.has(day))
     if (!outsideWindow && usage.skippedLines > 0) partial.skippedLines += 1
     if (!outsideWindow && usage.undatedMessages > 0) partial.undated += 1
-    if (!outsideWindow && subagentsNotArchived) partial.archivedWithoutSubagents += 1
+    if (subagentsNotArchived) partial.archivedWithoutSubagents += 1
     if (usage.unreadableSubagents > 0 || !subagentsListed) partial.unreadableSubagents += 1
 
     for (const { day, model, tokens } of usage.buckets) {

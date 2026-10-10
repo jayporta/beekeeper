@@ -28,7 +28,9 @@ export interface ArchivedDailyOutcomesOptions {
  * transcripts are no longer on disk. Only a session that may have usage in the
  * window has its lead slots read. Each slot lies wholly within one local day, so
  * it counts on the day its start falls on. The archive keeps no subagent usage,
- * so a session that had subagents reports the lead's usage alone and says so. A
+ * so a session that had subagents reports the lead's usage alone and says so,
+ * by the same window test, since its subagents ran while its transcript was
+ * still being written. A
  * session whose slots can't be had (none stored, unreadable, or a failing read)
  * is unreadable. A failing archive read is logged once per kind and never fails
  * the request.
