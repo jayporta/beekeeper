@@ -1,7 +1,7 @@
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ESLint } from 'eslint'
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const eslint = new ESLint({ cwd: repoRoot })
@@ -15,7 +15,15 @@ async function reportedRules(path: string, code: string): Promise<string[]> {
 const OTEL_FILE = 'src/main/otel/probe.ts'
 const OTHER_FILE = 'src/main/probe.ts'
 
+/** How long the first lint may take: it loads the config and builds the type-aware program. */
+const WARM_UP_TIMEOUT_MS = 60_000
+
 describe('network bans', () => {
+  // The first lint pays ESLint's start-up cost, which can pass a test's 5s timeout under full-suite load.
+  beforeAll(async () => {
+    await reportedRules(OTEL_FILE, '')
+  }, WARM_UP_TIMEOUT_MS)
+
   it.each(['node:http', 'http'])(
     'allows createServer and the server types from %s in the telemetry receiver folder',
     async (module) => {
