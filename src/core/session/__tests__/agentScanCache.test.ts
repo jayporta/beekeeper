@@ -23,11 +23,12 @@ import { toAgentId } from '../../transcript/ids'
 import {
   buildTrickyTranscript,
   createGrowingTranscript,
+  idleSeconds,
   TRICKY_MAX_LINE_CHARS,
   type GrowingTranscript
 } from '../../transcript/summary/testGrowingTranscript'
 import { createTranscriptDir, type TranscriptDir } from '../../transcript/summary/testTranscriptDir'
-import { startsDuring } from '../../transcript/testReadStarts'
+import { consumedOffset, startsDuring } from '../../transcript/testReadStarts'
 import { statWrittenTranscript } from '../../transcript/testStatTranscript'
 import { createAgentScan, type AgentScanSnapshot } from '../agentScan'
 import { createAgentScanCache, type AgentScanCache } from '../agentScanCache'
@@ -54,9 +55,6 @@ const TUNING: ScanReadTuning = { maxLineChars: TRICKY_MAX_LINE_CHARS }
 
 /** A modification time later than any a growing transcript carries, in seconds. */
 const LATER_SECONDS = Math.floor(Date.now() / 1000) + 3600
-
-/** The offset just past the last newline in `bytes`: what a scan of them consumes. */
-const consumedOffset = (bytes: Buffer): number => bytes.lastIndexOf(0x0a) + 1
 
 /** What a scan of the whole file, from its first byte, shows. */
 async function freshSnapshot(path: string): Promise<AgentScanSnapshot> {
@@ -325,21 +323,18 @@ describe('createAgentScanCache', () => {
   })
 
   describe('keeps scans while the session or the transcript is recent', () => {
-    /** An hour before now, in seconds: well outside the recent window. */
-    const IDLE_SECONDS = (): number => Math.floor(Date.now() / 1000) - 3600
-
     /** Writes a transcript to `bytes` bytes and dates it an hour ago. */
     async function idleTranscript(name: string, bytes: number): Promise<GrowingTranscript> {
       const growing = growingFrom(buildTrickyTranscript(), name)
       growing.growTo(bytes)
-      utimesSync(growing.path, IDLE_SECONDS(), IDLE_SECONDS())
+      utimesSync(growing.path, idleSeconds(), idleSeconds())
       return growing
     }
 
     /** Grows an idle transcript and dates it an hour ago again, one second off, so the stat differs. */
     async function growIdle(growing: GrowingTranscript, bytes: number): Promise<void> {
       growing.growTo(bytes)
-      utimesSync(growing.path, IDLE_SECONDS() - 1, IDLE_SECONDS() - 1)
+      utimesSync(growing.path, idleSeconds() - 1, idleSeconds() - 1)
     }
 
     function readUnder(

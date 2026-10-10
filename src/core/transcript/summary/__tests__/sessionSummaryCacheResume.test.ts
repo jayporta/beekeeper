@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReadJsonlLinesOptions } from '../../readJsonlLines'
 import { RESUME_ENTRY_OVERHEAD, RESUME_RECENT_MS, resumableScanWeight } from '../../resumableScan'
 import type { TranscriptFileInfo } from '../../statTranscriptFile'
+import { consumedOffset, startsDuring } from '../../testReadStarts'
 import { statWrittenTranscript } from '../../testStatTranscript'
 import { buildAiTitleRecord, buildJsonlText } from '../../testFixtures'
 import { scanSessionSummary } from '../scanSessionSummary'
@@ -58,21 +59,6 @@ const LATER_SECONDS = Math.floor(Date.now() / 1000) + 3600
 /** The scan tuning the tests share: the oversized line in the script is over the cap. */
 function tuning(highWaterMark?: number): ReadJsonlLinesOptions {
   return { maxLineChars: TRICKY_MAX_LINE_CHARS, highWaterMark }
-}
-
-/** Where each read began while `action` ran, in order. */
-async function startsDuring(action: () => Promise<unknown>): Promise<number[]> {
-  const before = vi.mocked(fs.createReadStream).mock.calls.length
-  await action()
-  return vi
-    .mocked(fs.createReadStream)
-    .mock.calls.slice(before)
-    .map(([, options]) => (typeof options === 'object' ? (options.start ?? 0) : 0))
-}
-
-/** The offset just past the last newline in `bytes`: what a scan of them consumes. */
-function consumedOffset(bytes: Buffer): number {
-  return bytes.lastIndexOf(0x0a) + 1
 }
 
 /**

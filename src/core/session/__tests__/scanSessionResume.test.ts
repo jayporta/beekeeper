@@ -3,7 +3,8 @@ import { chmodSync, utimesSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { toAgentId } from '../../transcript/ids'
 import { createTranscriptDir, type TranscriptDir } from '../../transcript/summary/testTranscriptDir'
-import { startsDuring } from '../../transcript/testReadStarts'
+import { idleSeconds } from '../../transcript/summary/testGrowingTranscript'
+import { consumedOffset, startsDuring } from '../../transcript/testReadStarts'
 import { createAgentScanCache, type AgentScanCache } from '../agentScanCache'
 import { scanSession, type SessionScan } from '../scanSession'
 import {
@@ -41,9 +42,6 @@ const EQUIVALENCE_TIMEOUT_MS = 30_000
 
 const bytes = (text: string): number => Buffer.byteLength(text)
 
-/** The offset just past the last newline in `text`: what a scan of it consumes. */
-const consumedOffset = (text: string): number => Buffer.from(text).lastIndexOf(0x0a) + 1
-
 /**
  * Scans the session through the cache and from scratch, checks that the two
  * agree, and reports where the cache's reads began.
@@ -74,9 +72,6 @@ function newSession(leadScript: string, seed = 1, maxStep = 1): GrowingSession {
 }
 
 describe('scanSession keeping scans while the session or a transcript is recent', () => {
-  /** An hour before now, in seconds: well outside the recent window. */
-  const idleSeconds = (): number => Math.floor(Date.now() / 1000) - 3600
-
   it('reads a finished subagent that is idle on its own only once as the session grows', async () => {
     const lead = agentLines('lead', [0, 30])
     const leadEarly = agentLines('lead', [0, 10])

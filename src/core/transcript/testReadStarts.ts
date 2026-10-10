@@ -2,6 +2,18 @@ import * as fs from 'node:fs'
 import { vi } from 'vitest'
 
 /**
+ * The offset just past the last newline in some content: where a scan of it
+ * stops, and so where a read that resumes it should begin.
+ *
+ * @param content - A transcript's bytes or text.
+ * @returns The offset in bytes, or 0 when the content holds no newline.
+ */
+export function consumedOffset(content: string | Buffer): number {
+  const bytes = typeof content === 'string' ? Buffer.from(content) : content
+  return bytes.lastIndexOf(0x0a) + 1
+}
+
+/**
  * Where each transcript read began while `action` ran, in order, so a test
  * can tell a read that resumed (it began past byte 0) from a rescan (it began
  * at 0) and from a cache hit (there was no read).

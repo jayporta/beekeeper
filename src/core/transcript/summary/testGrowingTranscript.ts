@@ -126,6 +126,17 @@ export interface GrowingTranscriptOptions {
   readonly maxStep: number
 }
 
+/**
+ * A modification time an hour before now, in seconds since the epoch: well
+ * outside the window in which a transcript counts as recently modified, so a
+ * test can make a transcript idle by setting it.
+ *
+ * @returns The time, in seconds.
+ */
+export function idleSeconds(): number {
+  return Math.floor(Date.now() / 1000) - 3600
+}
+
 /** A small seeded generator (mulberry32) returning numbers in `[0, 1)`. */
 function seededRandom(seed: number): () => number {
   let state = seed >>> 0
