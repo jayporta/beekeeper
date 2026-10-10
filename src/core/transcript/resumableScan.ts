@@ -18,6 +18,16 @@ export const RESUME_ENTRY_OVERHEAD = 512
  */
 export const RESUME_RECENT_MS = 10 * 60 * 1000
 
+/**
+ * How many scans of the same weight a cache's bound must hold for one to be
+ * kept: a scan weighing more than the bound divided by this is read in full
+ * each time instead. Without it a single heavy scan, which a weight-bounded
+ * map stores by evicting everything older until it fits, would push out every
+ * other session's scan, and two heavy sessions would evict each other on
+ * every call.
+ */
+export const KEPT_SCAN_BOUND_SHARE = 4
+
 /** The stream tuning a scan read takes: the parts of the reader's options that are not about where to read. */
 export type ScanReadTuning = Pick<ReadJsonlLinesOptions, 'highWaterMark' | 'maxLineChars'>
 
@@ -144,7 +154,10 @@ export interface AdvanceScanOptions<S extends LineScan> {
  * Only a transcript modified within {@link RESUME_RECENT_MS} of now has its
  * scan kept, and read for the mark that recognizes it later. An older one is
  * scanned in full with no scan retained and no extra open, so a project with
- * many idle sessions pays nothing for resuming.
+ * many idle sessions pays nothing for resuming. A scan weighing more than
+ * `1 / KEPT_SCAN_BOUND_SHARE` of the bound is returned but not kept, as
+ * {@link KEPT_SCAN_BOUND_SHARE} explains, so the next call reads that
+ * transcript in full.
  *
  * @param options - The scans kept, the key, the transcript, how to make a
  * scan, the clock and stream tuning.
@@ -166,6 +179,8 @@ export async function advanceScan<S extends LineScan>(options: AdvanceScanOption
   const resumed =
     previous === undefined ? null : await resumeScan({ file, resume: previous, tuning })
   const next = resumed ?? (await startScan({ file, scan: createScan(), tuning }))
-  states.set(key, next)
+  if (resumableScanWeight(next) * KEPT_SCAN_BOUND_SHARE <= states.maxWeight) {
+    states.set(key, next)
+  }
   return next.scan
 }

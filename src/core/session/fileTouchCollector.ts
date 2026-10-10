@@ -74,7 +74,7 @@ export interface FileTouchCollector {
 /**
  * Creates a collector that turns a transcript's `Edit`/`Write` tool calls and
  * the file changes a Bash result reports into file touches, reading the same
- * records `collectAgentReports` already reads so the transcript is scanned
+ * records the agent reports fold already reads so the transcript is scanned
  * only once.
  *
  * An assistant record's `tool_use` content blocks are remembered by id, so

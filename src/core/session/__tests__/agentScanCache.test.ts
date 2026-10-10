@@ -131,6 +131,34 @@ describe('createAgentScanCache', () => {
     expect(earlier).toEqual(copy)
   })
 
+  it('returns the same snapshot for an unchanged transcript while another one grows', async () => {
+    const script = buildTrickyTranscript()
+    const unchanged = growingFrom(script, 'unchanged.jsonl')
+    const growing = growingFrom(script, 'growing.jsonl')
+    const cache = createAgentScanCache()
+    unchanged.growTo(3000)
+    growing.growTo(2000)
+    const unchangedFile = await unchanged.stat()
+    const first = await readLead(cache, unchangedFile)
+    await readLead(cache, await growing.stat())
+
+    growing.growTo(6000)
+    await readLead(cache, await growing.stat())
+
+    expect(await readLead(cache, unchangedFile)).toBe(first)
+  })
+
+  it('returns a new snapshot once the transcript grew', async () => {
+    const growing = growingFrom(buildTrickyTranscript())
+    const cache = createAgentScanCache()
+    growing.growTo(2000)
+    const first = await readLead(cache, await growing.stat())
+
+    growing.growTo(6000)
+
+    expect(await readLead(cache, await growing.stat())).not.toBe(first)
+  })
+
   describe('rescans in full', () => {
     it('when the transcript shrank', async () => {
       const growing = growingFrom(buildTrickyTranscript())
@@ -307,30 +335,71 @@ describe('createAgentScanCache', () => {
       expect(await readAndCompare(cache, await growing.stat())).toBe(0)
     })
 
-    it('evicts the scan read least recently first', async () => {
+    /** Five transcripts of the same script, written to 1500 bytes and stat'd. */
+    async function fiveFiles(): Promise<TranscriptFileInfo[]> {
       const script = buildTrickyTranscript()
-      const transcripts = ['a', 'b', 'c'].map((name) => growingFrom(script, `${name}.jsonl`))
       const files: TranscriptFileInfo[] = []
-      for (const growing of transcripts) {
+      for (const name of ['a', 'b', 'c', 'd', 'e']) {
+        const growing = growingFrom(script, `${name}.jsonl`)
         growing.growTo(1500)
         files.push(await growing.stat())
       }
-      const [a, b, c] = files as [TranscriptFileInfo, TranscriptFileInfo, TranscriptFileInfo]
-      // What one of these scans weighs once stored, so the bound can hold two but not three.
-      const one = resumableScanWeight(
+      return files
+    }
+
+    /** What one of these scans weighs once stored. */
+    async function weightOfOne(file: TranscriptFileInfo): Promise<number> {
+      return resumableScanWeight(
         await startScan({
-          file: a,
+          file,
           scan: createAgentScan({ identity: leadIdentity, trackCostState: true }),
           tuning: TUNING
         })
       )
-      const cache = createAgentScanCache({ maxWeight: 2 * one + 100 })
-      for (const file of [a, b, c]) await readLead(cache, file)
+    }
+
+    it('evicts the scan read least recently first', async () => {
+      const files = await fiveFiles()
+      // A scan is kept only up to a quarter of the bound, so this bound keeps four scans, not five.
+      const cache = createAgentScanCache({
+        maxWeight: 4 * (await weightOfOne(files[0] as TranscriptFileInfo)) + 100
+      })
+      for (const file of files) await readLead(cache, file)
 
       const starts: number[][] = []
-      for (const file of [c, b, a]) starts.push(await startsDuring(() => readLead(cache, file)))
+      for (const file of [...files].reverse()) {
+        starts.push(await startsDuring(() => readLead(cache, file)))
+      }
 
-      expect(starts).toEqual([[], [], [0]])
+      expect(starts).toEqual([[], [], [], [], [0]])
+    })
+
+    it('keeps none for a scan weighing more than a quarter of the bound, though it would fit', async () => {
+      const [file] = await fiveFiles()
+      const cache = createAgentScanCache({
+        maxWeight: 4 * (await weightOfOne(file as TranscriptFileInfo)) - 1
+      })
+      await readLead(cache, file as TranscriptFileInfo)
+
+      expect(await startsDuring(() => readLead(cache, file as TranscriptFileInfo))).toEqual([0])
+    })
+
+    it('does not evict the scans of other transcripts to keep a heavy one', async () => {
+      const files = await fiveFiles()
+      const lights = files.slice(0, 3)
+      const growing = growingFrom(buildTrickyTranscript(), 'heavy.jsonl')
+      growing.growTo(Number.MAX_SAFE_INTEGER)
+      const heavy = await growing.stat()
+      const cache = createAgentScanCache({
+        maxWeight: 4 * (await weightOfOne(files[0] as TranscriptFileInfo)) + 100
+      })
+      for (const file of lights) await readLead(cache, file)
+
+      await readLead(cache, heavy)
+
+      for (const file of lights) {
+        expect(await startsDuring(() => readLead(cache, file))).toEqual([])
+      }
     })
   })
 

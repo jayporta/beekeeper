@@ -337,9 +337,11 @@ describe('createSessionSummaryCache resuming', () => {
       offset: 0
     })
 
-    /** Writes and reads three title-only files through `cache`, then appends to each. */
-    async function threeGrownFiles(cache: SessionSummaryCache): Promise<string[]> {
-      const paths = ['a', 'b', 'c'].map((name) => join(dir.root, `${name}.jsonl`))
+    /** Writes and reads title-only files through `cache`, then appends to each. */
+    async function grownFiles(cache: SessionSummaryCache, count: number): Promise<string[]> {
+      const paths = ['a', 'b', 'c', 'd', 'e']
+        .slice(0, count)
+        .map((name) => join(dir.root, `${name}.jsonl`))
       for (const path of paths) {
         writeFileSync(path, FIRST_TITLE)
         await cache.read(await statWrittenTranscript(path))
@@ -358,26 +360,37 @@ describe('createSessionSummaryCache resuming', () => {
     })
 
     it('resumes the scans it kept and rescans the one it evicted', async () => {
+      // A scan is kept only up to a quarter of the bound, so this bound keeps four scans, not five.
       const cache = createSessionSummaryCache({
         readOptions: options,
-        maxResumeWeight: 2 * ONE_SCAN + 200
+        maxResumeWeight: 4 * ONE_SCAN + 200
       })
-      const [a, b, c] = await threeGrownFiles(cache)
+      const paths = await grownFiles(cache, 5)
 
       const starts: number[] = []
-      for (const path of [c, b, a]) {
+      for (const path of [...paths].reverse()) {
         const [start] = await startsDuring(async () =>
-          cache.read(await statWrittenTranscript(path as string))
+          cache.read(await statWrittenTranscript(path))
         )
         starts.push(start ?? -1)
       }
 
-      expect(starts.map((start) => start > 0)).toEqual([true, true, false])
+      expect(starts.map((start) => start > 0)).toEqual([true, true, true, true, false])
+    })
+
+    it('does not keep a scan weighing more than a quarter of the bound, though it would fit', async () => {
+      const cache = createSessionSummaryCache({
+        readOptions: options,
+        maxResumeWeight: 4 * ONE_SCAN - 1
+      })
+      const [a] = await grownFiles(cache, 1)
+
+      expect(await readAndCompare(cache, await statWrittenTranscript(a as string), options)).toBe(0)
     })
 
     it('does not keep a scan heavier than the whole bound, but still returns its summary', async () => {
       const cache = createSessionSummaryCache({ readOptions: options, maxResumeWeight: 100 })
-      const [a] = await threeGrownFiles(cache)
+      const [a] = await grownFiles(cache, 1)
       const file = await statWrittenTranscript(a as string)
 
       expect(await readAndCompare(cache, file, options)).toBe(0)

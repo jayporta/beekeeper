@@ -96,9 +96,9 @@ export function createMessageReportCollector(identity: AgentIdentity): MessageRe
  * Reads one agent's parsed transcript records into its assistant message
  * reports, without touching the filesystem or a session's shared ledgers.
  *
- * Like {@link collectAgentReports}, it either resolves with everything it
- * read or rejects with nothing applied anywhere, so a caller applies the
- * reports only after the whole transcript has been read.
+ * It either resolves with everything it read or rejects with nothing applied
+ * anywhere, so a caller applies the reports only after the whole transcript
+ * has been read.
  *
  * @param records - The transcript's parsed records, in file order (as `readRecords` yields).
  * @param identity - The reporting agent's identity.

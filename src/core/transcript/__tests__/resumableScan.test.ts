@@ -15,7 +15,10 @@ import {
 } from '../resumableScan'
 import { statWrittenTranscript } from '../testStatTranscript'
 
-/** A scan that keeps the `n` of every record, and weighs one unit for each. */
+/** What each record a {@link NumberScan} has seen weighs. */
+const LINE_WEIGHT = 500
+
+/** A scan that keeps the `n` of every record, and weighs {@link LINE_WEIGHT} for each. */
 interface NumberScan extends LineScan {
   readonly seen: number[]
 }
@@ -27,7 +30,7 @@ function createNumberScan(): NumberScan {
     observe(input) {
       if (input.ok && typeof input.value['n'] === 'number') seen.push(input.value['n'])
     },
-    weight: () => seen.length
+    weight: () => seen.length * LINE_WEIGHT
   }
 }
 
@@ -174,7 +177,7 @@ describe('resumableScanWeight', () => {
     const resume = await started(lines(1, 2))
 
     expect(resumableScanWeight(resume)).toBe(
-      RESUME_ENTRY_OVERHEAD + 2 + Math.ceil(Buffer.byteLength(lines(1, 2)) / 2)
+      RESUME_ENTRY_OVERHEAD + 2 * LINE_WEIGHT + Math.ceil(Buffer.byteLength(lines(1, 2)) / 2)
     )
   })
 })
@@ -286,5 +289,80 @@ describe('advanceScan', () => {
       advanceScan({ states, key: path, file, createScan: createNumberScan, now: Date.now })
     ).rejects.toMatchObject({ code: 'ENOENT' })
     expect(states.size).toBe(0)
+  })
+
+  describe('keeps a scan only up to a quarter of the bound', () => {
+    /** What a one-line scan weighs once stored: the overhead, the line and half the prefix. */
+    const ONE_LINE =
+      RESUME_ENTRY_OVERHEAD + LINE_WEIGHT + Math.ceil(Buffer.byteLength(lines(1)) / 2)
+
+    /** Writes (or extends) a file and moves its modification time on. */
+    function writeFile(name: string, content: string, seconds: number): void {
+      const filePath = join(dir, name)
+      if (seconds === BASE_SECONDS + 1) writeFileSync(filePath, content)
+      else appendFileSync(filePath, content)
+      utimesSync(filePath, seconds, seconds)
+    }
+
+    async function advanceFile(states: NumberStates, name: string): Promise<NumberScan> {
+      return advanceScan({
+        states,
+        key: name,
+        file: await statWrittenTranscript(join(dir, name)),
+        createScan: createNumberScan,
+        now: Date.now
+      })
+    }
+
+    function boundedStates(maxWeight: number): NumberStates {
+      return createLruMap<string, ResumableScan<NumberScan>>({
+        maxWeight,
+        weigh: resumableScanWeight
+      })
+    }
+
+    it('keeps a scan weighing exactly a quarter of the bound', async () => {
+      const states = boundedStates(4 * ONE_LINE)
+      writeFile('light.jsonl', lines(1), BASE_SECONDS + 1)
+
+      await advanceFile(states, 'light.jsonl')
+
+      expect(states.size).toBe(1)
+    })
+
+    it('keeps no scan weighing more than a quarter of the bound, though it would fit', async () => {
+      const states = boundedStates(4 * ONE_LINE - 1)
+      writeFile('light.jsonl', lines(1), BASE_SECONDS + 1)
+
+      await advanceFile(states, 'light.jsonl')
+
+      expect(states.size).toBe(0)
+    })
+
+    it('evicts no other scan for one too heavy to keep', async () => {
+      // Seven lines weigh about four times a one-line scan: under the bound, over a quarter of it.
+      const states = boundedStates(4400)
+      writeFile('light.jsonl', lines(1), BASE_SECONDS + 1)
+      writeFile('heavy.jsonl', lines(1, 2, 3, 4, 5, 6, 7), BASE_SECONDS + 1)
+      await advanceFile(states, 'light.jsonl')
+
+      const heavy = await advanceFile(states, 'heavy.jsonl')
+
+      expect(heavy.seen).toEqual([1, 2, 3, 4, 5, 6, 7])
+      expect(states.get('light.jsonl')).toBeDefined()
+      expect(states.get('heavy.jsonl')).toBeUndefined()
+    })
+
+    it('reads a scan too heavy to keep in full when the file grows', async () => {
+      const states = boundedStates(4400)
+      writeFile('heavy.jsonl', lines(1, 2, 3, 4, 5, 6, 7), BASE_SECONDS + 1)
+      const first = await advanceFile(states, 'heavy.jsonl')
+
+      writeFile('heavy.jsonl', lines(8), BASE_SECONDS + 2)
+      const second = await advanceFile(states, 'heavy.jsonl')
+
+      expect(second).not.toBe(first)
+      expect(second.seen).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
+    })
   })
 })

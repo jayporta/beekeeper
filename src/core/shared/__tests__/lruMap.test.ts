@@ -7,6 +7,10 @@ function lengthMap(maxWeight: number): ReturnType<typeof createLruMap<string, st
 }
 
 describe('createLruMap', () => {
+  it('reports the bound it was created with', () => {
+    expect(lengthMap(7).maxWeight).toBe(7)
+  })
+
   it('returns a stored value and undefined for an absent key', () => {
     const map = lengthMap(10)
     map.set('a', 'xx')

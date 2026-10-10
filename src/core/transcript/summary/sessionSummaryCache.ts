@@ -84,9 +84,12 @@ export const SUMMARY_CACHE_MAX_WEIGHT = 10_000_000
  * and teammates: measured, a scan of 20 thousand messages weighs about 2.8
  * million and one of 50 thousand (the most message ids an observer tracks)
  * about 6.95 million, so this holds the handful of sessions that are growing
- * at once, even long ones. A scan heavier than the bound is not kept and is
- * scanned in full each time, as it would be without resuming. What it
- * accounts for takes at most 64 MB, at two bytes per code unit.
+ * at once, even long ones. A scan is kept only if it weighs no more than a
+ * quarter of the bound (see `KEPT_SCAN_BOUND_SHARE`), 8 million here, which
+ * still covers the largest scan an observer tracks. A heavier one is not kept
+ * and is scanned in full each time, as it would be without resuming, so it
+ * cannot push every other session's scan out. What it accounts for takes at
+ * most 64 MB, at two bytes per code unit.
  */
 export const RESUME_CACHE_MAX_WEIGHT = 32_000_000
 

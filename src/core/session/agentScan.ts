@@ -1,7 +1,7 @@
 import type { LineScan } from '../transcript/feedLineScan'
 import type { CostStateRecord } from '../transcript/schemas'
 import type { AgentIdentity } from './agentIdentity'
-import { createAgentReportsFold, type AgentReports } from './collectAgentReports'
+import { createAgentReportsFold, type AgentReports } from './agentReportsFold'
 import { createRecordedCostState } from './recordedCostState'
 import { createSpawnObserver, type TranscriptSpawns } from './spawnObserver'
 
@@ -31,7 +31,11 @@ export interface AgentScan extends LineScan {
   /**
    * What the lines observed so far showed. Reading it leaves the scan as it
    * was, so more lines can follow, and the result shares no list or map with
-   * the scan, so later lines never change a snapshot already returned.
+   * the scan, so later lines never change a snapshot already returned. The
+   * scan keeps the snapshot until the next line is observed and returns that
+   * same object again, so a transcript that has not grown costs nothing to
+   * read. The kept snapshot's lists hold a pointer per entry, which the
+   * per-entry weights allow for.
    */
   snapshot(): AgentScanSnapshot
 }
@@ -52,9 +56,11 @@ export function createAgentScan(options: AgentScanOptions): AgentScan {
   const reports = createAgentReportsFold(options.identity)
   const spawns = createSpawnObserver()
   const costState = options.trackCostState ? createRecordedCostState() : null
+  let kept: AgentScanSnapshot | undefined
 
   return {
     observe(input) {
+      kept = undefined
       reports.observe(input)
       if (!input.ok) return
       spawns.observe(input.value)
@@ -62,11 +68,12 @@ export function createAgentScan(options: AgentScanOptions): AgentScan {
     },
     snapshot() {
       const live = spawns.result()
-      return {
+      kept ??= {
         reports: reports.snapshot(),
         spawns: { ...live, spawns: new Map(live.spawns), timeline: [...live.timeline] },
         costState: costState?.latest() ?? null
       }
+      return kept
     },
     weight: () =>
       AGENT_SCAN_BASE_WEIGHT + reports.weight() + spawns.weight() + (costState?.weight() ?? 0)

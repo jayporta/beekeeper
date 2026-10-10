@@ -8,7 +8,7 @@ import {
 import { buildAssistantRecord, buildCostStateRecord } from '../../transcript/testFixtures'
 import { leadIdentity } from '../agentIdentity'
 import { AGENT_SCAN_BASE_WEIGHT, createAgentScan, type AgentScan } from '../agentScan'
-import { createAgentReportsFold } from '../collectAgentReports'
+import { createAgentReportsFold } from '../agentReportsFold'
 import { createRecordedCostState } from '../recordedCostState'
 import { createSpawnObserver } from '../spawnObserver'
 import { BASE_TIME, buildBranchRecord, buildSpawnRecord, stampRecord } from '../testSpawnFixtures'
@@ -62,6 +62,24 @@ describe('createAgentScan', () => {
     }
 
     expect(disturbed.snapshot()).toEqual(scanOf(LINES).snapshot())
+  })
+
+  describe('snapshot identity', () => {
+    it('returns the same snapshot for as long as no line is observed', () => {
+      const scan = scanOf(LINES)
+
+      expect(scan.snapshot()).toBe(scan.snapshot())
+    })
+
+    it('returns a new snapshot once a line is observed', () => {
+      const scan = scanOf(LINES.slice(0, 3))
+      const earlier = scan.snapshot()
+
+      scan.observe(ok(buildAssistantRecord({ messageId: 'msg_later' })))
+
+      expect(scan.snapshot()).not.toBe(earlier)
+      expect(scan.snapshot().reports.reports).toHaveLength(earlier.reports.reports.length + 1)
+    })
   })
 
   describe('a snapshot already taken', () => {

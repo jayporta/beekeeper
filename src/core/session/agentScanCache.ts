@@ -16,10 +16,11 @@ import { createAgentScan, type AgentScan, type AgentScanSnapshot } from './agent
  * touches, signal events and spawns: measured, a lead of 5 thousand messages
  * weighs about 1.2 million, one of 20 thousand about 3.8 million, and one of
  * 50 thousand about 8.8 million, so this holds the handful of sessions that
- * are growing at once, even long ones. A scan heavier than the bound, which
- * takes a lead of about 180 thousand messages, is not kept and is read in full
- * each time. What it accounts for takes at most 64 MB, at two bytes per code
- * unit.
+ * are growing at once, even long ones. A scan is kept only if it weighs no
+ * more than a quarter of the bound (see `KEPT_SCAN_BOUND_SHARE`), 8 million
+ * here, which a lead of about 45 thousand messages reaches. A heavier one is
+ * read in full each time, so it cannot push every other session's scan out.
+ * What it accounts for takes at most 64 MB, at two bytes per code unit.
  */
 export const AGENT_SCAN_CACHE_MAX_WEIGHT = 32_000_000
 
@@ -74,13 +75,13 @@ export interface AgentScanCache {
 /**
  * Creates an agent scan cache keyed by transcript path and agent. Scans are
  * evicted least recently used first once their total weight passes the bound
- * (see {@link resumableScanWeight}), and a scan heavier than the whole bound is
- * served but not kept. An entry is reused only while the file's `mtimeMs` and
- * `size` both match, the assumption the summary cache makes too.
+ * (see {@link resumableScanWeight}). An entry is reused only while the file's
+ * `mtimeMs` and `size` both match, the assumption the summary cache makes too.
  *
- * Only a transcript modified recently has its scan kept (see
- * {@link advanceScan}), so an idle session's transcripts are read in full,
- * with nothing retained. Reads of one path run one at a time, so overlapping
+ * Only a transcript modified recently has its scan kept, and not one weighing
+ * more than a quarter of the bound (see {@link advanceScan}), so an idle
+ * session's transcripts and a very long one are read in full, with nothing
+ * retained. Reads of one path run one at a time, so overlapping
  * reads of a growing transcript never feed the same scan twice.
  *
  * @param options - The weight bound and the clock.
