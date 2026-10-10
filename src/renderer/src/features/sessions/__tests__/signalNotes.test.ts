@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { EMPTY_AGENT_SIGNALS_DTO } from '../../../../../shared/ipc/emptyAgentSignals'
-import { signalNotes, signalTotalsOf } from '../signalNotes'
+import { signalNotes, signalsMarked, signalTotalsOf } from '../signalNotes'
 import {
   testLeadTeam,
   testRef,
@@ -84,5 +84,25 @@ describe('signalTotalsOf', () => {
 
   it('gives null for a session whose summary failed to read', () => {
     expect(signalTotalsOf(testSession(1, { unreadable: true }))).toBeNull()
+  })
+})
+
+describe('signalsMarked', () => {
+  const partialCounts = { ...COUNTS, partial: true }
+
+  it('marks partial totals that have a count', () => {
+    expect(signalsMarked(partialCounts)).toBe(true)
+  })
+
+  it('marks nothing for partial totals with every count at zero, since no notes show', () => {
+    expect(signalsMarked({ ...partialCounts, toolErrors: 0, compactions: 0 })).toBe(false)
+  })
+
+  it('marks nothing for complete totals', () => {
+    expect(signalsMarked(COUNTS)).toBe(false)
+  })
+
+  it('marks nothing for no totals', () => {
+    expect(signalsMarked(null)).toBe(false)
   })
 })

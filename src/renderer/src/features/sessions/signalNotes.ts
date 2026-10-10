@@ -29,6 +29,17 @@ export function hasSignalCounts(totals: SignalTotalsDto | null): boolean {
 }
 
 /**
+ * Whether the card's signal notes carry the partial marker. A partial set of
+ * all-zero counts shows no notes, so nothing is marked.
+ *
+ * @param totals - The counts from {@link signalTotalsOf}, or `null` for none.
+ * @returns `true` when the counts are partial and at least one is nonzero.
+ */
+export function signalsMarked(totals: SignalTotalsDto | null): boolean {
+  return totals !== null && totals.partial && hasSignalCounts(totals)
+}
+
+/**
  * The muted notes for a card's signal counts.
  *
  * @param totals - The counts from {@link signalTotalsOf}, or `null` for none.

@@ -108,6 +108,7 @@
     "unreadableLines": "Some transcript lines couldn't be read, so a total may be low.",
     "missingTeammates": "Some teammates the lead spawned aren't in this list, so a team total may be low.",
     "unrecordedUsage": "Some sessions recorded no usage, so a team total leaves them out.",
-    "subagentsExcluded": "A session still running or stopped early shows its transcript's tokens, which leave out its subagents."
+    "subagentsExcluded": "A session still running or stopped early shows its transcript's tokens, which leave out its subagents.",
+    "incompleteSignals": "Some transcripts have more events than beekeeper counts, so a card's tool error, compaction, or agent kill count may be low."
   }
 }
