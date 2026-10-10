@@ -27,15 +27,11 @@ describe('sumSignalTotals', () => {
     })
   })
 
-  it('is partial when any summed session’s signals are partial', () => {
-    const lead = testLead(testRef('p', 'lead'))
-    const capped = testAgent(testRef('p', 'a'), {
-      agentName: 'a',
-      teamName: 'team',
-      signals: { ...EMPTY_SIGNALS, partial: true }
-    })
+  it('stays partial when a clean session follows a partial one', () => {
+    const capped = testLead(testRef('p', 'lead'), { signals: { ...EMPTY_SIGNALS, partial: true } })
+    const clean = testAgent(testRef('p', 'a'), { agentName: 'a', teamName: 'team' })
 
-    expect(sumSignalTotals([lead, capped]).partial).toBe(true)
+    expect(sumSignalTotals([capped, clean]).partial).toBe(true)
   })
 
   it('includes a teammate that lives in another folder', () => {
