@@ -11,9 +11,12 @@ import { useSelectedProjectStore } from '@renderer/features/projects/state/useSe
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
 import { createTestQueryClient } from '@renderer/testQueryWrapper'
 import { useSessionsViewStore } from '../state/useSessionsViewStore'
+import { allowForAnnouncePause, waitPastAnnouncePause } from '../testAnnouncePause'
 import { testSession } from '../testSessionFixtures'
 
 const DIR = '-Users-a-repo'
+
+allowForAnnouncePause()
 
 const session = (n: number, title: string, latestMs: number): SessionListItemDto =>
   testSession(n, { projectDirName: DIR, title, latestMs })
@@ -295,6 +298,8 @@ describe('the search announcement while the list refreshes in the background', (
     current = [session(3, 'Gamma', 300), session(1, 'Alpha', 200), session(2, 'Beta', 100)]
     await refetchAfterChange(2)
 
+    await waitPastAnnouncePause()
+
     expect(titles()).toEqual(['Gamma', 'Alpha', 'Beta'])
     expect(screen.getByText('2 sessions match')).toBeTruthy()
   })
@@ -307,6 +312,7 @@ describe('the search announcement while the list refreshes in the background', (
 
     current = [session(1, 'Alpha', 200)]
     await refetchAfterChange(2)
+    await waitPastAnnouncePause()
 
     expect(titles()).toEqual(['Alpha'])
     expect(screen.queryByText('1 session matches')).toBeNull()
@@ -334,6 +340,7 @@ describe('the search announcement while the list refreshes in the background', (
     await screen.findByRole('heading', { name: 'No sessions in this project' })
     current = [session(1, 'Alpha', 200)]
     await refetchAfterChange(3)
+    await waitPastAnnouncePause()
 
     expect(titles()).toEqual(['Alpha'])
     expect(screen.queryByText('1 session matches')).toBeNull()
@@ -385,5 +392,27 @@ describe('the search announcement across a folder switch', () => {
     await waitFor(() => {
       expect(region?.textContent).toBe('1 session matches')
     })
+  })
+
+  it('drops a count not yet said when the person switches to a folder that is loading', async () => {
+    const OTHER = '-Users-a-other'
+    useSessionsViewStore.setState({ query: 'a' })
+    installBeekeeperApi({
+      listProjects: () =>
+        Promise.resolve({ ok: true, value: [testProject(DIR), testProject(OTHER)] }),
+      listSessions: (dirName) =>
+        dirName === DIR
+          ? Promise.resolve({ ok: true, value: current })
+          : new Promise(() => undefined)
+    })
+    renderApp()
+    await screen.findByRole('list', { name: DIR })
+
+    act(() => {
+      useSelectedProjectStore.getState().select(OTHER)
+    })
+    await waitPastAnnouncePause()
+
+    expect(screen.queryByText('2 sessions match')).toBeNull()
   })
 })

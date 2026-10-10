@@ -51,7 +51,8 @@ const queryOnlyChanged = (a: SearchTrigger, b: SearchTrigger): boolean =>
   a.dirName === b.dirName && a.settledResortAt === b.settledResortAt
 
 /**
- * A new search waits for its list to load, then announces the count if it is
+ * A new search drops the last count, so a count not yet said can't outlive
+ * its search. It waits for its list to load, then announces the count if it is
  * active. A new folder or resort also waits for a pending resort's list, so a
  * stale list's count isn't announced just before the fresh one; typing
  * doesn't, since the list shown is what the person is searching. A search that
@@ -61,7 +62,13 @@ function nextHeld(held: Held, options: MatchCountOptions): Held {
   const { count, search, searching, loaded, resortPending } = options
   const current = sameSearch(held.search, search)
     ? held
-    : { ...held, search, pending: true, waitsForResort: !queryOnlyChanged(held.search, search) }
+    : {
+        ...held,
+        search,
+        pending: true,
+        waitsForResort: !queryOnlyChanged(held.search, search),
+        announcement: null
+      }
   if (current.pending) {
     if (!loaded || (current.waitsForResort && resortPending)) return current
     const resolved = current.resolved + 1

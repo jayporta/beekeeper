@@ -15,6 +15,7 @@ import {
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
 import { SessionsContent } from '../SessionsContent'
 import { useSessionsViewStore } from '../state/useSessionsViewStore'
+import { allowForAnnouncePause, waitPastAnnouncePause } from '../testAnnouncePause'
 import {
   testAgentRole,
   testUsage,
@@ -25,6 +26,8 @@ import {
 } from '../testSessionFixtures'
 
 const DIR = '-Users-a-repo'
+
+allowForAnnouncePause()
 const ok = (
   value: readonly SessionListItemDto[]
 ): Promise<IpcResult<readonly SessionListItemDto[]>> => Promise.resolve({ ok: true, value })
@@ -173,11 +176,28 @@ describe('SessionsView search announcements', () => {
     const before = searchStatus()?.firstElementChild
 
     await userEvent.type(search, '  ')
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 0))
-    })
+    await waitPastAnnouncePause()
 
     expect(before?.isConnected).toBe(true)
+  })
+
+  it('never brings back a cleared search’s count when the person searches again', async () => {
+    showSessions()
+    await screen.findByRole('list', { name: DIR })
+    const search = screen.getByRole('searchbox', { name: 'Search sessions' })
+    await userEvent.type(search, 'parser')
+    await waitFor(() => {
+      expect(searchStatus()?.textContent).toBe('1 session matches')
+    })
+    await userEvent.clear(search)
+    const watch = watchStatusAdditions()
+
+    await userEvent.type(search, 'code')
+    await waitFor(() => {
+      expect(searchStatus()?.textContent).toBe('2 sessions match')
+    })
+
+    expect(watch.stop().map((node) => node.textContent)).toEqual(['2 sessions match'])
   })
 
   it('mounts the count afresh when a new search matches as many sessions as the last', async () => {
@@ -249,6 +269,7 @@ describe('SessionsView search announcements while a list loads', () => {
     await waitFor(() => {
       expect(api.listSessions).toHaveBeenCalledOnce()
     })
+    await waitPastAnnouncePause()
 
     expect(searchStatus()?.textContent).toBe('')
     await act(async () => {
@@ -304,6 +325,7 @@ describe('SessionsView search announcements while a list loads', () => {
     render(<SessionsContent dirName={DIR} headingId="h" />, { wrapper: createQueryWrapper() })
 
     await screen.findByRole('heading', { name: 'No sessions in this project' })
+    await waitPastAnnouncePause()
 
     expect(searchStatus()?.textContent).toBe('')
   })
@@ -327,6 +349,8 @@ describe('SessionsContent with an unreadable folder', () => {
     await refetchAndSettle(client, ['sessions', DIR])
 
     await screen.findByRole('list', { name: DIR })
+    await waitPastAnnouncePause()
+
     expect(searchStatus()?.textContent).toBe('')
   })
 
