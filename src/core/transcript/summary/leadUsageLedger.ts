@@ -50,7 +50,8 @@ export interface LeadUsageLedger {
   totalTokens(): number | null
   /**
    * What the ledger holds, in UTF-16 code units: {@link LEDGER_SLOT_OVERHEAD}
-   * plus the length of the key, the slot and the model, for each slot and model.
+   * plus the length of its key, which holds the slot and the model, for each
+   * slot and model.
    */
   weight(): number
 }

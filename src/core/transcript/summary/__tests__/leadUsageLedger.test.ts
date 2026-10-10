@@ -240,7 +240,7 @@ describe('createLeadUsageLedger', () => {
       expect(createLeadUsageLedger().weight()).toBe(0)
     })
 
-    it('charges each slot and model its overhead and its key, the slot and the model', () => {
+    it('charges each slot and model its overhead and the length of its key, which holds the slot and the model', () => {
       const ledger = ledgerOf([tracked({}), tracked({})])
 
       expect(ledger.weight()).toBe(
