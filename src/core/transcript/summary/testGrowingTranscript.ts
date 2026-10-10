@@ -138,8 +138,12 @@ function seededRandom(seed: number): () => number {
   }
 }
 
-/** The first modification time a growing transcript carries, in seconds since the epoch. */
-const FIRST_MTIME_SECONDS = 1_800_000_000
+/**
+ * The first modification time a growing transcript carries, in seconds since
+ * the epoch: the time the tests start, so a cache with the real clock always
+ * counts the transcript as recently modified.
+ */
+const FIRST_MTIME_SECONDS = Math.floor(Date.now() / 1000)
 
 /**
  * Creates an empty transcript file that grows into `script` in slices of

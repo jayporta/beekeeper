@@ -57,7 +57,7 @@ afterEach(() => {
 const EQUIVALENCE_TIMEOUT_MS = 30_000
 
 /** A modification time later than any a growing transcript carries, in seconds. */
-const LATER_SECONDS = 1_900_000_000
+const LATER_SECONDS = Math.floor(Date.now() / 1000) + 3600
 
 /** The scan tuning the tests share: the oversized line in the script is over the cap. */
 function tuning(highWaterMark?: number): ReadJsonlLinesOptions {
