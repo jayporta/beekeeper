@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { ProjectDto } from '../../../../../shared/ipc/projectDto'
@@ -346,5 +346,218 @@ describe('SessionDetailContent for an archived session', () => {
     })
     const [announced] = noticeElements().announced
     expect(regionsBefore).toContain(announced?.closest('[role="status"]'))
+  })
+})
+
+describe('SessionDetailContent for an archived session whose detail was not archived', () => {
+  const ARCHIVED_ROW: readonly SessionListItemDto[] = [
+    testSession(1, { projectDirName: DIR, title: 'Kept', archived: true, totalTokens: 1500 })
+  ]
+  const NOTE = 'Only a summary was archived'
+  const SUMMARY_ONLY_SENTENCE =
+    "This session's transcript was removed. beekeeper archived only its summary."
+
+  /** Renders the content with the archived row already cached but stale, so the list reloads on mount with `list`'s answer. */
+  function renderWithStaleArchivedList(
+    list: Promise<IpcResult<readonly SessionListItemDto[]>>
+  ): TestBeekeeperApi {
+    const client = createTestQueryClient()
+    client.setQueryData(['sessions', DIR], ARCHIVED_ROW, { updatedAt: 0 })
+    const api = installBeekeeperApi({
+      listProjects: () => Promise.resolve({ ok: true, value: [testProject(DIR)] }),
+      listSessions: () => list,
+      getSession: () => Promise.resolve(NOT_FOUND)
+    })
+    render(<SessionDetailContent sessionRef={REF} dirName={DIR} />, {
+      wrapper: createQueryWrapper(client)
+    })
+    return api
+  }
+
+  it('shows the header from the row and the summary-only note instead of "Session not found"', async () => {
+    renderContent({
+      list: Promise.resolve({ ok: true, value: ARCHIVED_ROW }),
+      detail: Promise.resolve(NOT_FOUND)
+    })
+
+    const note = await screen.findByRole('group', { name: NOTE })
+
+    expect(note.querySelector('h2')?.textContent).toBe(NOTE)
+    expect(screen.getByRole('heading', { level: 1, name: 'Kept' })).toBeTruthy()
+    expect(screen.getAllByText(/1\.5K tokens/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(SUMMARY_ONLY_SENTENCE).length).toBeGreaterThan(0)
+    expect(screen.queryByRole('group', { name: 'Session not found' })).toBeNull()
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+  })
+
+  it('words the header for a summary, not for a copy of the whole session', async () => {
+    renderContent({
+      list: Promise.resolve({ ok: true, value: ARCHIVED_ROW }),
+      detail: Promise.resolve(NOT_FOUND)
+    })
+    await screen.findByRole('group', { name: NOTE })
+
+    expect(screen.queryByText(/Showing the copy beekeeper archived/)).toBeNull()
+    expect(screen.getAllByText(SUMMARY_ONLY_SENTENCE)).toHaveLength(1)
+  })
+
+  it('leaves the header’s status region empty, so the note’s alert is the one announcement', async () => {
+    renderContent({
+      list: Promise.resolve({ ok: true, value: ARCHIVED_ROW }),
+      detail: Promise.resolve(NOT_FOUND)
+    })
+    await screen.findByRole('group', { name: NOTE })
+
+    const regions = screen.getAllByRole('status')
+
+    expect(regions.map((region) => region.textContent)).toEqual(['', ''])
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
+  })
+
+  it('keeps the header sentence readable by assistive technology, since nothing else says it', async () => {
+    renderContent({
+      list: Promise.resolve({ ok: true, value: ARCHIVED_ROW }),
+      detail: Promise.resolve(NOT_FOUND)
+    })
+    await screen.findByRole('group', { name: NOTE })
+
+    const [sentence] = screen.getAllByText(SUMMARY_ONLY_SENTENCE)
+
+    expect(sentence?.closest('[aria-hidden="true"]')).toBeNull()
+  })
+
+  it('goes back to the sessions list from the note', async () => {
+    useNavigationStore.getState().showSession(REF)
+    renderContent({
+      list: Promise.resolve({ ok: true, value: ARCHIVED_ROW }),
+      detail: Promise.resolve(NOT_FOUND)
+    })
+    await screen.findByRole('group', { name: NOTE })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Back to sessions' }))
+
+    expect(useNavigationStore.getState().view).toBe('sessions')
+  })
+
+  it('still says "Session not found" for a live row', async () => {
+    renderContent({ detail: Promise.resolve(NOT_FOUND) })
+
+    expect(await screen.findByRole('group', { name: 'Session not found' })).toBeTruthy()
+    expect(screen.queryByRole('group', { name: NOTE })).toBeNull()
+  })
+
+  it('shows loading, not the note, while the folder’s list loads', async () => {
+    const list = deferred<IpcResult<readonly SessionListItemDto[]>>()
+    const { api } = renderContent({ list: list.promise, detail: Promise.resolve(NOT_FOUND) })
+    await waitFor(() => {
+      expect(api.getSession).toHaveBeenCalled()
+    })
+    await settle()
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Loading session' })).toBeTruthy()
+    expect(screen.queryByRole('group')).toBeNull()
+
+    list.resolve({ ok: true, value: ARCHIVED_ROW })
+    expect(await screen.findByRole('group', { name: NOTE })).toBeTruthy()
+  })
+
+  it('shows loading, not the note, while a cached list that held the archived row refetches', async () => {
+    const list = deferred<IpcResult<readonly SessionListItemDto[]>>()
+    const api = renderWithStaleArchivedList(list.promise)
+    await waitFor(() => {
+      expect(api.getSession).toHaveBeenCalled()
+    })
+    await settle()
+
+    expect(screen.getAllByRole('heading', { level: 1 }).map((h) => h.textContent)).toEqual([
+      'Loading session'
+    ])
+    expect(screen.queryByRole('group')).toBeNull()
+
+    list.resolve({ ok: true, value: [] })
+    expect(await screen.findByRole('group', { name: 'Session not found' })).toBeTruthy()
+  })
+
+  it('says "Session not found" when the folder itself is gone, even if its cached list held the archived row', async () => {
+    renderWithStaleArchivedList(Promise.resolve(NOT_FOUND))
+
+    expect(await screen.findByRole('group', { name: 'Session not found' })).toBeTruthy()
+    expect(screen.queryByRole('group', { name: NOTE })).toBeNull()
+  })
+
+  it('shows the retry error, not the note, for a failure other than not found', async () => {
+    renderContent({
+      list: Promise.resolve({ ok: true, value: ARCHIVED_ROW }),
+      detail: Promise.resolve(UNREADABLE)
+    })
+
+    const alert = await screen.findByRole('alert')
+
+    expect(alert.textContent).toContain("Can't read this session")
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy()
+    expect(screen.queryByRole('group', { name: NOTE })).toBeNull()
+    expect(screen.queryByRole('heading', { level: 1, name: 'Kept' })).toBeNull()
+  })
+
+  it('announces the missing detail once, and not as a loaded session', async () => {
+    renderContent({
+      list: Promise.resolve({ ok: true, value: ARCHIVED_ROW }),
+      detail: Promise.resolve(NOT_FOUND)
+    })
+    await screen.findByRole('group', { name: NOTE })
+
+    const alerts = screen.getAllByRole('alert')
+
+    expect(alerts).toHaveLength(1)
+    expect(alerts[0]?.textContent).toContain(NOTE)
+    expect(screen.queryByText(/loaded/)).toBeNull()
+  })
+
+  it('announces the note with a fresh alert when it replaces "Session not found" after the list refetches', async () => {
+    const { api, client } = renderContent({
+      list: Promise.resolve({ ok: true, value: [] }),
+      detail: Promise.resolve(NOT_FOUND)
+    })
+    await screen.findByRole('group', { name: 'Session not found' })
+    const first = screen.getByRole('alert')
+    api.listSessions.mockResolvedValue({ ok: true, value: ARCHIVED_ROW })
+
+    await refetchAndSettle(client, ['sessions', DIR])
+
+    expect(await screen.findByRole('group', { name: NOTE })).toBeTruthy()
+    const second = screen.getByRole('alert')
+    expect(second).not.toBe(first)
+    expect(second.textContent).toContain(NOTE)
+  })
+
+  it('moves focus to the note when it replaces a focused Retry', async () => {
+    const { api } = renderContent({
+      list: Promise.resolve({ ok: true, value: ARCHIVED_ROW }),
+      detail: Promise.resolve(UNREADABLE)
+    })
+    const retry = await screen.findByRole('button', { name: 'Retry' })
+    api.getSession.mockResolvedValue(NOT_FOUND)
+    await userEvent.click(retry)
+
+    const note = await screen.findByRole('group', { name: NOTE })
+
+    expect(document.activeElement).toBe(note)
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('shows the note at once, and announces it, when a remount finds the not-found error cached', async () => {
+    const { client } = renderContent({
+      list: Promise.resolve({ ok: true, value: ARCHIVED_ROW }),
+      detail: Promise.resolve(NOT_FOUND)
+    })
+    await screen.findByRole('group', { name: NOTE })
+    cleanup()
+
+    render(<SessionDetailContent sessionRef={REF} dirName={DIR} />, {
+      wrapper: createQueryWrapper(client)
+    })
+
+    expect(await screen.findByRole('group', { name: NOTE })).toBeTruthy()
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
   })
 })

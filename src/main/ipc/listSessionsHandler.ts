@@ -8,7 +8,6 @@ import { groupProjectFamily } from './groupProjectFamily'
 import type { IpcDeps } from './ipcDeps'
 import { errResult, okResult } from './ipcResults'
 import { mapSessionListItem, type ScannedSession } from './mapSessionListItem'
-import { readArchivedListItems } from './readArchivedListItems'
 import { readSessionAgentTerms } from './readSessionAgentTerms'
 import { readSessionWorkflowRunNames } from './readSessionWorkflowRunNames'
 import { sessionRefKey } from './sessionRefKey'
@@ -26,9 +25,17 @@ interface ListedSession {
   readonly team: SessionTeamDto | null
 }
 
+/** A session's folder and team entry, which decide whether a list holds it. */
+interface FolderTeam {
+  /** The folder the session lives in. */
+  readonly folder: string
+  /** The session's team entry, or `null` when it has none. */
+  readonly team: SessionTeamDto | null
+}
+
 /** Whether a family session belongs in the list of `projectDirName`. */
-function isListedFor(projectDirName: string, { session, team }: ListedSession): boolean {
-  if (session.projectDirName === projectDirName) return true
+function isListedFor(projectDirName: string, { folder, team }: FolderTeam): boolean {
+  if (folder === projectDirName) return true
   return team?.kind === 'teammate' && team.lead.projectDirName === projectDirName
 }
 
@@ -45,9 +52,11 @@ function isListedFor(projectDirName: string, { session, team }: ListedSession): 
  * workflow runs are read, through their caches and under the same scheduler,
  * only for the sessions the list holds. See {@link groupProjectFamily} for
  * how an unreadable sibling folder is treated. The folder's own sessions with
- * a readable summary are archived, and the archived sessions whose transcripts
- * are gone from the folder are appended, marked archived and without a team. A
- * failing archive write or read never changes the live list.
+ * a readable summary are archived. The archived sessions whose transcripts
+ * are gone from their folder join the grouping, and are appended, marked
+ * archived, with the team they were grouped into: the folder's own, plus a
+ * sibling folder's archived teammate of one of the folder's leads, as for live
+ * sessions. A failing archive write or read never changes the live list.
  *
  * @param deps - The projects root, the summary, agent terms and workflow run
  * names caches, the summaries scheduler, and the archive.
@@ -69,13 +78,15 @@ export async function listSessionsHandler(
   const project = projects.find((entry) => entry.dirName === request.data.projectDirName)
   if (project === undefined) return errResult('not-found')
 
-  const { scanned, teams } = await groupProjectFamily({ deps, project, projects })
+  const { scanned, archived, teams } = await groupProjectFamily({ deps, project, projects })
 
   const items = scanned.map((session): ListedSession => ({
     session,
     team: teams.get(teamKeyOf(session)) ?? null
   }))
-  const listed = items.filter((item) => isListedFor(project.dirName, item))
+  const listed = items.filter(({ session, team }) =>
+    isListedFor(project.dirName, { folder: session.projectDirName, team })
+  )
   const listedItems = await Promise.all(
     listed.map(async ({ session, team }): Promise<ListedItem> => {
       const [agentTerms, workflowRunNames] = await Promise.all([
@@ -93,15 +104,11 @@ export async function listSessionsHandler(
     projectDirName: project.dirName,
     listed: listedItems
   })
-  const liveSessionIds = new Set<string>(
-    scanned
-      .filter((session) => session.projectDirName === project.dirName)
-      .map((session) => session.entry.sessionId)
-  )
-  const archived = readArchivedListItems({
-    archive: deps.archive,
-    projectDirName: project.dirName,
-    liveSessionIds
+  const archivedItems = archived.flatMap(({ item }): SessionListItemDto[] => {
+    const team = teams.get(sessionRefKey(item)) ?? null
+    return isListedFor(project.dirName, { folder: item.projectDirName, team })
+      ? [{ ...item, archived: true, team }]
+      : []
   })
-  return okResult([...listedItems.map(({ item }) => item), ...archived])
+  return okResult([...listedItems.map(({ item }) => item), ...archivedItems])
 }

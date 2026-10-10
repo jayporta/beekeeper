@@ -15,6 +15,8 @@ interface SessionDetailStatusProps {
   readonly errorUpdatedAt: number
   /** Whether to keep showing loading in place of a `not-found` error, while the folder's list can still say the folder is gone. */
   readonly holdNotFound: boolean
+  /** Whether the session is archived with its summary only, which the page shows under its own `h1`: `not-found` then says only the summary was archived. */
+  readonly summaryOnly: boolean
   /** Loads the session again. */
   readonly onRetry: () => void
 }
@@ -29,15 +31,24 @@ interface SessionDetailStatusProps {
  * When it replaces a focused control, focus moves to it. Otherwise a separate,
  * visually hidden alert announces it, then empties out. While `holdNotFound`
  * is set, loading shows in its place. The message is the whole view, so its
- * heading is the page's `h1`.
+ * heading is the page's `h1`. With `summaryOnly`, a `not-found` message instead
+ * says that only the session's summary was archived, and its heading is an `h2`
+ * under the header's `h1`.
  *
  * @example
- * <SessionDetailStatus error={error} errorUpdatedAt={at} holdNotFound={false} onRetry={retry} />
+ * <SessionDetailStatus
+ *   error={error}
+ *   errorUpdatedAt={at}
+ *   holdNotFound={false}
+ *   summaryOnly={false}
+ *   onRetry={retry}
+ * />
  */
 export function SessionDetailStatus({
   error,
   errorUpdatedAt,
   holdNotFound,
+  summaryOnly,
   onRetry
 }: SessionDetailStatusProps): React.JSX.Element {
   const { t } = useTranslation(['sessionDetail', 'common'])
@@ -47,10 +58,11 @@ export function SessionDetailStatus({
   const code = IpcCallError.codeOf(error)
   const gone = code === 'not-found'
   const notFoundShown = gone && !holdNotFound
-  // The trigger changes with each failed load, so a repeat after Retry is announced again.
+  // The trigger changes with each failed load, so a repeat after Retry is announced again,
+  // and when the message turns into the summary-only note or back, so the switch is too.
   const announceNotFound = useFocusOrAnnounce(
     notFoundMessage,
-    notFoundShown ? `not-found-${errorUpdatedAt}` : ''
+    notFoundShown ? `not-found-${summaryOnly ? 'summary' : 'gone'}-${errorUpdatedAt}` : ''
   )
 
   if (error === null || (gone && holdNotFound)) {
@@ -61,9 +73,9 @@ export function SessionDetailStatus({
     case 'not-found':
       return (
         <NotFoundMessage
-          heading={t('notFound.heading')}
-          headingLevel={1}
-          body={t('notFound.body')}
+          heading={t(summaryOnly ? 'summaryOnly.heading' : 'notFound.heading')}
+          headingLevel={summaryOnly ? 2 : 1}
+          body={t(summaryOnly ? 'summaryOnly.body' : 'notFound.body')}
           groupRef={notFoundMessage}
           announce={announceNotFound}
         >

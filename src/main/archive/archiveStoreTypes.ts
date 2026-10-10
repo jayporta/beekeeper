@@ -1,3 +1,5 @@
+import type { LeadUsage } from '../../core/transcript/summary/leadUsage'
+import type { TranscriptTeamSpawns } from '../../core/transcript/teammateSpawn'
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
@@ -9,6 +11,16 @@ export interface SourceState {
   /** The transcript's size in bytes. */
   readonly size: number
 }
+
+/**
+ * A session's own assistant usage per 15-minute slot, without the message ids
+ * that deduplicate it against subagents: what usage over time needs of an
+ * archived session.
+ */
+export type ArchivedLeadSlots = Pick<
+  LeadUsage,
+  'slots' | 'undatedMessages' | 'invalidAssistantRecords'
+>
 
 /** A session detail and the transcript state it was scanned from. */
 export interface ArchivedDetailEntry {
@@ -31,6 +43,10 @@ export interface ArchiveStore {
    * rolled back and the error is thrown, and the store behaves as if none of
    * it had been saved.
    *
+   * A row stored without its team spawns and lead slots (one written before
+   * they were kept) counts as out of date, so it is rewritten once with them,
+   * keeping a detail scanned from the same source state.
+   *
    * @param entries - The list items and the source states they were built from.
    */
   saveListItems(entries: readonly ListItemEntry[]): void
@@ -48,7 +64,7 @@ export interface ArchiveStore {
   saveDetail(ref: SessionRefDto, entry: ArchivedDetailEntry): void
   /**
    * Whether the stored list item was built from this source state, at the
-   * current format.
+   * current format, and has its team spawns and lead slots.
    *
    * @param ref - The session to check.
    * @param source - The lead transcript's current state.
@@ -74,20 +90,19 @@ export interface ArchiveStore {
    */
   skipDetail(ref: SessionRefDto): void
   /**
-   * Reads the archived list items of a project folder, leaving out the
-   * sessions named in `excluding` without reading their rows. A row at
-   * another format, or one that fails to parse or doesn't carry its own keys,
-   * is left out, and each kind of unreadable row is logged once. Rows are read
-   * one at a time, so the cost follows the sessions returned.
+   * Reads the archived sessions of a project folder, leaving out the sessions
+   * named in `excluding` without reading their rows. A row at another format,
+   * or one that fails to parse or doesn't carry its own keys, is left out, and
+   * each kind of unreadable row is logged once. Team spawns that are missing or
+   * fail to parse read as `null` and never drop the session; a failure is
+   * logged once per kind. Rows are read one at a time, and kept in
+   * memory until a save changes them, so the cost follows the sessions returned.
    *
    * @param projectDirName - The project folder.
    * @param excluding - Session ids to leave out, such as the folder's live sessions.
-   * @returns The items in session id order, or an empty list after the store is closed.
+   * @returns The sessions in session id order, or an empty list after the store is closed.
    */
-  readListItems(
-    projectDirName: string,
-    excluding: ReadonlySet<string>
-  ): readonly SessionListItemDto[]
+  readSessions(projectDirName: string, excluding: ReadonlySet<string>): readonly ArchivedSession[]
   /**
    * Reads a session's archived detail.
    *
@@ -121,13 +136,25 @@ export interface ListItemEntry {
   readonly item: SessionListItemDto
   /** The lead transcript's state the item was built from. */
   readonly source: SourceState
+  /** The teammates the transcript spawned and stopped, which team grouping reads. */
+  readonly teamSpawns: TranscriptTeamSpawns
+  /** The transcript's own usage per slot, or `null` when its summary has none. */
+  readonly leadSlots: ArchivedLeadSlots | null
+}
+
+/** An archived session: its list item, and the team spawns stored beside it for grouping. */
+export interface ArchivedSession {
+  /** The archived list item. */
+  readonly item: SessionListItemDto
+  /** The teammates the transcript spawned and stopped, or `null` when the row has none stored or they can't be read. */
+  readonly teamSpawns: TranscriptTeamSpawns | null
 }
 
 /** What the IPC handlers use of the store to write. */
 export type ArchiveWriter = Pick<ArchiveStore, 'saveListItems' | 'saveDetail'>
 
 /** What the IPC handlers use of the store to read. */
-export type ArchiveReader = Pick<ArchiveStore, 'readListItems' | 'readDetail'>
+export type ArchiveReader = Pick<ArchiveStore, 'readSessions' | 'readDetail'>
 
 /** Options for {@link createArchiveStore}. */
 export interface ArchiveStoreOptions {

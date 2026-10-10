@@ -127,8 +127,8 @@ describe('listSessionsHandler archive', () => {
 
     expect(withArchive).toEqual(without)
     expect(warn.mock.calls).toEqual([
-      ['Beekeeper archive write failed (ELIST_THROWS).'],
-      ['Beekeeper archive read failed (ELIST_THROWS).']
+      ['Beekeeper archive read failed (ELIST_THROWS).'],
+      ['Beekeeper archive write failed (ELIST_THROWS).']
     ])
   })
 })
