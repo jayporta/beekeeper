@@ -129,7 +129,7 @@ export const RESUME_RECENT_MS = 10 * 60 * 1000
  * with no scan retained and no extra open, so a project with many old
  * sessions pays nothing for the feature.
  *
- * @param options - The weight bounds.
+ * @param options - The weight bounds, the read tuning, and the clock that decides which transcripts are recent.
  * @returns A cache ready to read summaries through.
  */
 export function createSessionSummaryCache(
