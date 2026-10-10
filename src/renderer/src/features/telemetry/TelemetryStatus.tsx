@@ -54,11 +54,7 @@ export function TelemetryStatus({
   const settled = settledMessage()
   const saving = savingEnabled !== null
   const shown = saving ? t(savingEnabled ? 'status.turningOn' : 'status.turningOff') : settled
-  const announcement = useTelemetryAnnouncement({
-    message: settled,
-    saving,
-    settled: receiver !== undefined || loadFailed
-  })
+  const announcement = useTelemetryAnnouncement({ message: settled, saving })
 
   return (
     <>

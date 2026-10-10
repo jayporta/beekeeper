@@ -54,6 +54,50 @@ async function findStatusLine(text: string): Promise<HTMLElement> {
  */
 const outcomeRegion = (): HTMLElement => within(dialog()).getAllByRole('status')[0] as HTMLElement
 
+/** Records which texts the hidden region has been given, one per announcement. */
+interface AnnouncementWatch {
+  /** The elements that carried text in the region, in the order they appeared. */
+  readonly carriers: Set<Element>
+  /** Adds what the observer has not delivered yet. */
+  flush(): void
+}
+
+/**
+ * Starts watching `region` for announcements. Each announcement is a new text
+ * node under a new element, so the distinct elements that carried text count
+ * the announcements, including one that is replaced before anyone could read it.
+ */
+function watchAnnouncements(region: HTMLElement): AnnouncementWatch {
+  const carriers = new Set<Element>()
+  const note = (records: MutationRecord[]): void => {
+    for (const record of records) {
+      const touched =
+        record.type === 'characterData' ? [record.target] : Array.from(record.addedNodes)
+      for (const node of touched) {
+        const carrier = node instanceof Element ? node : node.parentElement
+        if (carrier !== null && carrier !== region) carriers.add(carrier)
+      }
+    }
+  }
+  const observer = new MutationObserver(note)
+  observer.observe(region, { childList: true, subtree: true, characterData: true })
+  return {
+    carriers,
+    flush: () => {
+      note(observer.takeRecords())
+    }
+  }
+}
+
+/** The non-empty texts announced so far, read after pending updates have settled. */
+async function settledAnnouncements(watch: AnnouncementWatch): Promise<string[]> {
+  await act(async () => {
+    await Promise.resolve()
+  })
+  watch.flush()
+  return [...watch.carriers].map((node) => node.textContent ?? '').filter((text) => text !== '')
+}
+
 /** Mounts the receiver-change subscription the sidebar footer provides, around the dialog. */
 function DialogWithReceiverChanges(): React.JSX.Element {
   useOtelReceiverChanges()
@@ -161,7 +205,7 @@ describe('TelemetryDialog', () => {
 
     expect(
       await findStatusLine(
-        "beekeeper couldn't start listening on port 23456. Turn the receiver off and on again to get a new port and token."
+        "beekeeper couldn't start listening on port 23456, or stopped listening on it. Turn the receiver off and on again to get a new port and token."
       )
     ).toBeTruthy()
   })
@@ -210,7 +254,7 @@ describe('TelemetryDialog', () => {
     expect(line.getAttribute('role')).toBeNull()
   })
 
-  it('announces nothing when the setting finishes loading after the dialog opens', async () => {
+  it('announces the loaded state once when the setting finishes loading after the dialog opens', async () => {
     let finishLoad: () => void = () => undefined
     installBeekeeperApi({
       getOtelReceiver: () =>
@@ -221,6 +265,7 @@ describe('TelemetryDialog', () => {
         })
     })
     renderDialog()
+    const announcements = watchAnnouncements(outcomeRegion())
 
     await act(async () => {
       finishLoad()
@@ -228,8 +273,84 @@ describe('TelemetryDialog', () => {
     })
 
     await findStatusLine('Off. Nothing is listening.')
-    expect(outcomeRegion().textContent).toBe('')
+    expect(await settledAnnouncements(announcements)).toEqual(['Off. Nothing is listening.'])
   })
+
+  it('announces that the setting could not be read when the load fails after the dialog opens', async () => {
+    let failLoad: () => void = () => undefined
+    installBeekeeperApi({
+      getOtelReceiver: () =>
+        new Promise((resolve) => {
+          failLoad = () => {
+            resolve({ ok: false, error: { code: 'untrusted-sender' } })
+          }
+        })
+    })
+    renderDialog()
+    const announcements = watchAnnouncements(outcomeRegion())
+
+    await act(async () => {
+      failLoad()
+      await Promise.resolve()
+    })
+
+    await findStatusLine("beekeeper couldn't read the telemetry setting.")
+    expect(await settledAnnouncements(announcements)).toEqual([
+      "beekeeper couldn't read the telemetry setting."
+    ])
+  })
+
+  it('announces nothing for the state showing when the dialog opens', async () => {
+    installBeekeeperApi({ getOtelReceiver: () => ok(LISTENING) })
+    const client = createTestQueryClient()
+    client.setQueryData(['otelReceiver'], LISTENING)
+    render(<TelemetryDialog open onClose={vi.fn()} />, { wrapper: createQueryWrapper(client) })
+    const announcements = watchAnnouncements(outcomeRegion())
+
+    await findStatusLine('Listening on 127.0.0.1, port 23456.')
+
+    expect(await settledAnnouncements(announcements)).toEqual([])
+  })
+
+  it.each([
+    [
+      'a successful turn-on',
+      { enabled: true, status: 'listening', failure: null, port: 23456, token: TOKEN },
+      'Listening on 127.0.0.1, port 23456.'
+    ],
+    [
+      'a failed turn-on',
+      { enabled: false, status: 'failed', failure: 'port-in-use' },
+      "beekeeper couldn't find a free port, so the receiver stays off."
+    ]
+  ] as const)(
+    'announces exactly one outcome for %s, never the state it replaced',
+    async (_name, outcome, text) => {
+      let finishSave: () => void = () => undefined
+      installBeekeeperApi({
+        setOtelReceiverEnabled: () =>
+          new Promise((resolve) => {
+            finishSave = () => {
+              resolve({ ok: true, value: outcome })
+            }
+          })
+      })
+      renderDialog()
+      await findStatusLine('Off. Nothing is listening.')
+      const announcements = watchAnnouncements(outcomeRegion())
+
+      await userEvent.click(checkbox())
+      // Held long enough for the state being replaced to be announced, if it were.
+      await findStatusLine('Turning the receiver on…')
+      await act(async () => {
+        finishSave()
+        await Promise.resolve()
+      })
+
+      await findStatusLine(text)
+      expect(await settledAnnouncements(announcements)).toEqual([text])
+    }
+  )
 
   it('announces the new state when main reports the receiver failed while the dialog is open', async () => {
     const failed: OtelReceiverDto = { ...LISTENING, status: 'failed', failure: 'failed' }
@@ -245,7 +366,7 @@ describe('TelemetryDialog', () => {
     })
 
     const failure =
-      "beekeeper couldn't start listening on port 23456. Turn the receiver off and on again to get a new port and token."
+      "beekeeper couldn't start listening on port 23456, or stopped listening on it. Turn the receiver off and on again to get a new port and token."
     await waitFor(() => {
       expect(outcomeRegion().textContent).toBe(failure)
     })

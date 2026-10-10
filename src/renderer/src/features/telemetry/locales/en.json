@@ -15,7 +15,7 @@
     "listening": "Listening on 127.0.0.1, port {{port}}.",
     "failure": {
       "port-in-use": "Another app is using port {{port}}. Turn the receiver off and on again to get a new port and token.",
-      "failed": "beekeeper couldn't start listening on port {{port}}. Turn the receiver off and on again to get a new port and token."
+      "failed": "beekeeper couldn't start listening on port {{port}}, or stopped listening on it. Turn the receiver off and on again to get a new port and token."
     },
     "turnOnFailure": {
       "port-in-use": "beekeeper couldn't find a free port, so the receiver stays off.",
