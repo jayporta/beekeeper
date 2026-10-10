@@ -3,15 +3,13 @@ import { createLruMap } from '../../shared/lruMap'
 import { ok, type Result } from '../../shared/result'
 import { captureSystemError } from '../captureSystemError'
 import {
+  advanceScan,
   resumableScanWeight,
-  resumeScan,
-  startScan,
   type ResumableScan,
   type ScanReadTuning
 } from '../resumableScan'
 import type { TranscriptFileInfo } from '../statTranscriptFile'
 import type { UnreadableError } from '../unreadableError'
-import { scanSessionSummary } from './scanSessionSummary'
 import type { SessionSummary } from './sessionSummary'
 import { createSummaryScan, type SummaryScan } from './summaryScan'
 import { summaryWeight } from './summaryWeight'
@@ -93,13 +91,6 @@ export const SUMMARY_CACHE_MAX_WEIGHT = 10_000_000
 export const RESUME_CACHE_MAX_WEIGHT = 32_000_000
 
 /**
- * How long after its last modification, in milliseconds, a transcript still
- * counts as growing. Only a transcript modified within it has a scan kept to
- * carry on from; an older one is scanned in full, once, as it changes.
- */
-export const RESUME_RECENT_MS = 10 * 60 * 1000
-
-/**
  * Creates a summary cache keyed by transcript path. Entries are evicted
  * least recently used first once their total {@link summaryWeight} passes
  * the bound, so a deleted or rotated transcript's entry ages out and a
@@ -118,17 +109,16 @@ export const RESUME_RECENT_MS = 10 * 60 * 1000
  * map of its own (see {@link resumableScanWeight}), and reads only the bytes
  * appended since, which yields the summary a full scan of the longer file
  * would. It does so only when the file is the same one only longer (see
- * {@link resumeScan}); a shrink, a rewrite, a replaced file, or a
+ * {@link advanceScan}); a shrink, a rewrite, a replaced file, or a
  * scan the second map evicted is scanned in full instead. A read that fails
  * drops the transcript's scan, since it may hold only some of the new lines.
  * Reads of one path run one at a time, so overlapping reads of a growing
  * transcript never feed the same scan twice.
  *
- * Only a transcript modified within {@link RESUME_RECENT_MS} of now has its
- * scan kept, and read for the mark that recognizes it later. An idle
- * session's transcript is scanned exactly as it would be without resuming,
- * with no scan retained and no extra open, so a project with many old
- * sessions pays nothing for the feature.
+ * Only a transcript modified recently has its scan kept, and read for the
+ * mark that recognizes it later. An idle session's transcript is scanned
+ * exactly as it would be without resuming, with no scan retained and no extra
+ * open, so a project with many old sessions pays nothing for the feature.
  *
  * @param options - The weight bounds, the read tuning, and the clock that decides which transcripts are recent.
  * @returns A cache ready to read summaries through.
@@ -148,22 +138,17 @@ export function createSessionSummaryCache(
   const tuning = options.readOptions
   const now = options.now ?? Date.now
 
-  /**
-   * Scans a transcript, carrying on from the scan kept for it when it can.
-   * The kept scan leaves the map first, so a failure along the way leaves none
-   * behind. A transcript not modified recently is scanned in full and kept
-   * nowhere.
-   */
+  /** Scans a transcript, carrying on from the scan kept for it when it can (see {@link advanceScan}). */
   async function scan(file: TranscriptFileInfo): Promise<SessionSummary> {
-    const previous = resumes.get(file.path)
-    resumes.delete(file.path)
-    if (now() - file.mtimeMs > RESUME_RECENT_MS) return scanSessionSummary(file.path, tuning)
-
-    const resumed =
-      previous === undefined ? null : await resumeScan({ file, resume: previous, tuning })
-    const next = resumed ?? (await startScan({ file, scan: createSummaryScan(), tuning }))
-    resumes.set(file.path, next)
-    return next.scan.summary()
+    const advanced = await advanceScan({
+      states: resumes,
+      key: file.path,
+      file,
+      createScan: createSummaryScan,
+      now,
+      tuning
+    })
+    return advanced.summary()
   }
 
   async function read(file: TranscriptFileInfo): Promise<Result<SessionSummary, UnreadableError>> {

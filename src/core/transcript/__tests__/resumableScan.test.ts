@@ -2,9 +2,12 @@ import { appendFileSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from '
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { createLruMap, type LruMap } from '../../shared/lruMap'
 import type { LineScan } from '../feedLineScan'
 import {
+  advanceScan,
   RESUME_ENTRY_OVERHEAD,
+  RESUME_RECENT_MS,
   resumableScanWeight,
   resumeScan,
   startScan,
@@ -28,6 +31,9 @@ function createNumberScan(): NumberScan {
   }
 }
 
+/** The time the tests start, in seconds, so the files they touch count as recently modified. */
+const BASE_SECONDS = Math.floor(Date.now() / 1000)
+
 let dir: string
 let path: string
 
@@ -49,7 +55,7 @@ function touch(seconds: number): void {
 
 async function started(content: string): Promise<ResumableScan<NumberScan>> {
   writeFileSync(path, content)
-  touch(1_800_000_001)
+  touch(BASE_SECONDS + 1)
   return startScan({ file: await statWrittenTranscript(path), scan: createNumberScan() })
 }
 
@@ -90,7 +96,7 @@ describe('resumeScan', () => {
     const resume = await started(`${lines(1, 2)}{"n":3`)
 
     appendFileSync(path, '}\n{"n":4}\n')
-    touch(1_800_000_002)
+    touch(BASE_SECONDS + 2)
     const resumed = await resumeScan({ file: await statWrittenTranscript(path), resume })
 
     expect(resumed?.scan).toBe(resume.scan)
@@ -101,7 +107,7 @@ describe('resumeScan', () => {
     const resume = await started(lines(1))
 
     appendFileSync(path, lines(2))
-    touch(1_800_000_002)
+    touch(BASE_SECONDS + 2)
     const file = await statWrittenTranscript(path)
     const resumed = await resumeScan({ file, resume })
 
@@ -118,7 +124,7 @@ describe('resumeScan', () => {
     ): Promise<number[]> {
       const resume = await started(lines(1))
       appendFileSync(path, lines(2))
-      touch(1_800_000_002)
+      touch(BASE_SECONDS + 2)
       const file = await statWrittenTranscript(path)
       change(resume)
       const result = await resumeScan({ file, resume })
@@ -136,7 +142,7 @@ describe('resumeScan', () => {
 
     it('when the modification time did not change', async () => {
       const seen = await declined((resume) => {
-        Object.assign(resume, { mtimeMs: 1_800_000_002_000 })
+        Object.assign(resume, { mtimeMs: (BASE_SECONDS + 2) * 1000 })
       })
 
       expect(seen).toEqual([1])
@@ -146,7 +152,7 @@ describe('resumeScan', () => {
       const resume = await started(lines(1))
       Object.assign(resume, { size: resume.offset - 5 })
       appendFileSync(path, lines(2))
-      touch(1_800_000_002)
+      touch(BASE_SECONDS + 2)
       const file = { ...(await statWrittenTranscript(path)), size: resume.offset - 1 }
 
       expect(await resumeScan({ file, resume })).toBeNull()
@@ -170,5 +176,115 @@ describe('resumableScanWeight', () => {
     expect(resumableScanWeight(resume)).toBe(
       RESUME_ENTRY_OVERHEAD + 2 + Math.ceil(Buffer.byteLength(lines(1, 2)) / 2)
     )
+  })
+})
+
+describe('advanceScan', () => {
+  type NumberStates = LruMap<string, ResumableScan<NumberScan>>
+
+  function createStates(): NumberStates {
+    return createLruMap<string, ResumableScan<NumberScan>>({
+      maxWeight: 1_000_000,
+      weigh: resumableScanWeight
+    })
+  }
+
+  async function advance(states: NumberStates, now: () => number = Date.now): Promise<NumberScan> {
+    return advanceScan({
+      states,
+      key: path,
+      file: await statWrittenTranscript(path),
+      createScan: createNumberScan,
+      now
+    })
+  }
+
+  it('reads a file it holds no scan for from its first byte, and keeps the scan', async () => {
+    writeFileSync(path, lines(1, 2))
+    touch(BASE_SECONDS + 1)
+    const states = createStates()
+
+    const scan = await advance(states)
+
+    expect({ seen: scan.seen, kept: states.size }).toEqual({ seen: [1, 2], kept: 1 })
+  })
+
+  it('carries the kept scan on over what the file gained', async () => {
+    writeFileSync(path, lines(1))
+    touch(BASE_SECONDS + 1)
+    const states = createStates()
+    const first = await advance(states)
+
+    appendFileSync(path, lines(2))
+    touch(BASE_SECONDS + 2)
+    const second = await advance(states)
+
+    expect(second).toBe(first)
+    expect(second.seen).toEqual([1, 2])
+  })
+
+  it('scans a file from its first byte when the kept scan cannot be carried on', async () => {
+    writeFileSync(path, lines(1, 2))
+    touch(BASE_SECONDS + 1)
+    const states = createStates()
+    await advance(states)
+
+    writeFileSync(path, lines(7))
+    touch(BASE_SECONDS + 2)
+    const scan = await advance(states)
+
+    expect(scan.seen).toEqual([7])
+  })
+
+  it('keeps no scan for a file not modified within the recent window', async () => {
+    writeFileSync(path, lines(1, 2))
+    touch(BASE_SECONDS + 1)
+    const states = createStates()
+    const fileTimeMs = (BASE_SECONDS + 1) * 1000
+
+    const scan = await advance(states, () => fileTimeMs + RESUME_RECENT_MS + 1)
+
+    expect({ seen: scan.seen, kept: states.size }).toEqual({ seen: [1, 2], kept: 0 })
+  })
+
+  it('keeps the scan of a file modified exactly the window ago', async () => {
+    writeFileSync(path, lines(1))
+    touch(BASE_SECONDS + 1)
+    const states = createStates()
+    const fileTimeMs = (BASE_SECONDS + 1) * 1000
+
+    await advance(states, () => fileTimeMs + RESUME_RECENT_MS)
+
+    expect(states.size).toBe(1)
+  })
+
+  it('drops the kept scan once the file is no longer recent', async () => {
+    writeFileSync(path, lines(1))
+    touch(BASE_SECONDS + 1)
+    const states = createStates()
+    await advance(states)
+
+    appendFileSync(path, lines(2))
+    touch(BASE_SECONDS + 2)
+    await advance(states, () => (BASE_SECONDS + 2) * 1000 + RESUME_RECENT_MS + 1)
+
+    expect(states.size).toBe(0)
+  })
+
+  it('removes the kept scan when the read fails', async () => {
+    writeFileSync(path, lines(1))
+    touch(BASE_SECONDS + 1)
+    const states = createStates()
+    await advance(states)
+
+    appendFileSync(path, lines(2))
+    touch(BASE_SECONDS + 2)
+    const file = await statWrittenTranscript(path)
+    rmSync(path)
+
+    await expect(
+      advanceScan({ states, key: path, file, createScan: createNumberScan, now: Date.now })
+    ).rejects.toMatchObject({ code: 'ENOENT' })
+    expect(states.size).toBe(0)
   })
 })

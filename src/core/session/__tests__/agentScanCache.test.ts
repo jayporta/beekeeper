@@ -11,7 +11,12 @@ import { join } from 'node:path'
 import { Readable } from 'node:stream'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { feedLineScan } from '../../transcript/feedLineScan'
-import { resumableScanWeight, startScan, type ScanReadTuning } from '../../transcript/resumableScan'
+import {
+  RESUME_RECENT_MS,
+  resumableScanWeight,
+  startScan,
+  type ScanReadTuning
+} from '../../transcript/resumableScan'
 import type { TranscriptFileInfo } from '../../transcript/statTranscriptFile'
 import { subagentIdentity, leadIdentity } from '../agentIdentity'
 import { toAgentId } from '../../transcript/ids'
@@ -48,7 +53,7 @@ afterEach(() => {
 const TUNING: ScanReadTuning = { maxLineChars: TRICKY_MAX_LINE_CHARS }
 
 /** A modification time later than any a growing transcript carries, in seconds. */
-const LATER_SECONDS = 1_900_000_000
+const LATER_SECONDS = Math.floor(Date.now() / 1000) + 3600
 
 /** The offset just past the last newline in `bytes`: what a scan of them consumes. */
 const consumedOffset = (bytes: Buffer): number => bytes.lastIndexOf(0x0a) + 1
@@ -251,6 +256,43 @@ describe('createAgentScanCache', () => {
       )
 
       expect(starts).toEqual([0])
+    })
+  })
+
+  describe('keeps the scan of a recently modified transcript only', () => {
+    /** A clock far enough on that no transcript the test writes counts as recently modified. */
+    const LATER_THAN_RECENT = (): number => Date.now() + 2 * RESUME_RECENT_MS
+
+    it('keeps none for a transcript modified longer ago than the recent window', async () => {
+      const growing = growingFrom(buildTrickyTranscript())
+      const cache = createAgentScanCache({ now: LATER_THAN_RECENT })
+      growing.growTo(2000)
+      await readLead(cache, await growing.stat())
+      growing.growTo(6000)
+
+      expect(await readAndCompare(cache, await growing.stat())).toBe(0)
+    })
+
+    it('still returns what a full scan shows for such a transcript', async () => {
+      const growing = growingFrom(buildTrickyTranscript())
+      const cache = createAgentScanCache({ now: LATER_THAN_RECENT })
+      growing.growTo(6000)
+      const file = await growing.stat()
+
+      expect(await readLead(cache, file)).toEqual(await freshSnapshot(file.path))
+    })
+
+    it('resumes a transcript modified within the recent window', async () => {
+      const script = buildTrickyTranscript()
+      const growing = growingFrom(script)
+      const cache = createAgentScanCache({ now: () => Date.now() + RESUME_RECENT_MS - 60_000 })
+      growing.growTo(2000)
+      await readLead(cache, await growing.stat())
+      growing.growTo(6000)
+
+      expect(await readAndCompare(cache, await growing.stat())).toBe(
+        consumedOffset(script.subarray(0, 2000))
+      )
     })
   })
 

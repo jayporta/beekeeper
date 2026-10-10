@@ -1,9 +1,8 @@
 import { createKeyedSerializer } from '../shared/keyedSerializer'
 import { createLruMap } from '../shared/lruMap'
 import {
+  advanceScan,
   resumableScanWeight,
-  resumeScan,
-  startScan,
   type ResumableScan,
   type ScanReadTuning
 } from '../transcript/resumableScan'
@@ -14,11 +13,13 @@ import { createAgentScan, type AgentScan, type AgentScanSnapshot } from './agent
 /**
  * The default bound on the total weight of the scans an agent scan cache
  * keeps, in UTF-16 code units. A scan weighs its message reports, file
- * touches, signal events and spawns, so a real session's transcripts weigh a
- * few million all together, and this holds the sessions being watched at
- * once. A scan heavier than the bound, such as a crafted transcript with
- * tens of thousands of messages, is not kept and is read in full each time.
- * What it accounts for takes at most 64 MB, at two bytes per code unit.
+ * touches, signal events and spawns: measured, a lead of 5 thousand messages
+ * weighs about 1.2 million, one of 20 thousand about 3.8 million, and one of
+ * 50 thousand about 8.8 million, so this holds the handful of sessions that
+ * are growing at once, even long ones. A scan heavier than the bound, which
+ * takes a lead of about 180 thousand messages, is not kept and is read in full
+ * each time. What it accounts for takes at most 64 MB, at two bytes per code
+ * unit.
  */
 export const AGENT_SCAN_CACHE_MAX_WEIGHT = 32_000_000
 
@@ -29,6 +30,12 @@ export interface AgentScanCacheOptions {
    * @defaultValue {@link AGENT_SCAN_CACHE_MAX_WEIGHT}
    */
   readonly maxWeight?: number
+  /**
+   * The clock that decides whether a transcript was modified recently enough
+   * to keep a scan for, in epoch milliseconds, mainly for tests.
+   * @defaultValue `Date.now`
+   */
+  readonly now?: () => number
 }
 
 /** Options for {@link AgentScanCache.read}. */
@@ -71,10 +78,12 @@ export interface AgentScanCache {
  * served but not kept. An entry is reused only while the file's `mtimeMs` and
  * `size` both match, the assumption the summary cache makes too.
  *
- * Reads of one path run one at a time, so overlapping reads of a growing
- * transcript never feed the same scan twice.
+ * Only a transcript modified recently has its scan kept (see
+ * {@link advanceScan}), so an idle session's transcripts are read in full,
+ * with nothing retained. Reads of one path run one at a time, so overlapping
+ * reads of a growing transcript never feed the same scan twice.
  *
- * @param options - The weight bound.
+ * @param options - The weight bound and the clock.
  * @returns An empty cache.
  */
 export function createAgentScanCache(options: AgentScanCacheOptions = {}): AgentScanCache {
@@ -83,26 +92,22 @@ export function createAgentScanCache(options: AgentScanCacheOptions = {}): Agent
     weigh: resumableScanWeight
   })
   const serializer = createKeyedSerializer()
+  const now = options.now ?? Date.now
 
-  /**
-   * Brings the transcript's scan up to date. The kept scan leaves the map
-   * first, so a failure along the way leaves none behind.
-   */
   async function update(request: ReadAgentScanOptions, key: string): Promise<AgentScanSnapshot> {
     const { file, identity, trackCostState, tuning } = request
-    const previous = scans.get(key)
-    if (previous?.mtimeMs === file.mtimeMs && previous.size === file.size) {
-      return previous.scan.snapshot()
-    }
-    scans.delete(key)
+    const kept = scans.get(key)
+    if (kept?.mtimeMs === file.mtimeMs && kept.size === file.size) return kept.scan.snapshot()
 
-    const resumed =
-      previous === undefined ? null : await resumeScan({ file, resume: previous, tuning })
-    const next =
-      resumed ??
-      (await startScan({ file, scan: createAgentScan({ identity, trackCostState }), tuning }))
-    scans.set(key, next)
-    return next.scan.snapshot()
+    const scan = await advanceScan({
+      states: scans,
+      key,
+      file,
+      createScan: () => createAgentScan({ identity, trackCostState }),
+      now,
+      tuning
+    })
+    return scan.snapshot()
   }
 
   return {

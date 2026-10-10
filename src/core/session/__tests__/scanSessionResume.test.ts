@@ -32,6 +32,13 @@ afterEach(() => {
   dir.cleanup()
 })
 
+/**
+ * The time each equivalence test gets, in milliseconds. They scan after every
+ * append, which takes well under a second alone but a loaded runner can
+ * stretch past the default.
+ */
+const EQUIVALENCE_TIMEOUT_MS = 30_000
+
 const bytes = (text: string): number => Buffer.byteLength(text)
 
 /** The offset just past the last newline in `text`: what a scan of it consumes. */
@@ -67,7 +74,7 @@ function newSession(leadScript: string, seed = 1, maxStep = 1): GrowingSession {
 }
 
 describe('scanSession resumed from cached transcript scans', () => {
-  describe('equals a full scan', () => {
+  describe('equals a full scan', { timeout: EQUIVALENCE_TIMEOUT_MS }, () => {
     it('when the lead grows after the subagents, taking back what they claimed', async () => {
       const lead = agentLines('lead', [0, 40])
       const leadEarly = agentLines('lead', [0, 30])

@@ -1,3 +1,4 @@
+import type { LruMap } from '../shared/lruMap'
 import { feedLineScan, type LineScan } from './feedLineScan'
 import type { ReadCursor, ReadJsonlLinesOptions } from './readJsonlLines'
 import type { TranscriptFileInfo } from './statTranscriptFile'
@@ -9,6 +10,13 @@ import { confirmTailMark, readTailMark, type TailMark } from './tailMark'
  * path it is keyed by.
  */
 export const RESUME_ENTRY_OVERHEAD = 512
+
+/**
+ * How long after its last modification, in milliseconds, a transcript still
+ * counts as growing. Only a transcript modified within it has a scan kept to
+ * carry on from; an older one is scanned in full, once, as it changes.
+ */
+export const RESUME_RECENT_MS = 10 * 60 * 1000
 
 /** The stream tuning a scan read takes: the parts of the reader's options that are not about where to read. */
 export type ScanReadTuning = Pick<ReadJsonlLinesOptions, 'highWaterMark' | 'maxLineChars'>
@@ -109,4 +117,55 @@ export async function resumeScan<S extends LineScan>(
   const readOptions = { ...tuning, filePath: file.path, start: resume.offset, cursor }
   await feedLineScan(resume.scan, readOptions)
   return { mtimeMs: file.mtimeMs, size: file.size, offset: cursor.offset, mark, scan: resume.scan }
+}
+
+/** Options for {@link advanceScan}. */
+export interface AdvanceScanOptions<S extends LineScan> {
+  /** The scans kept so far, by key. */
+  readonly states: LruMap<string, ResumableScan<S>>
+  /** What the transcript's scan is kept under. */
+  readonly key: string
+  /** The transcript, as discovery stat'd it. */
+  readonly file: TranscriptFileInfo
+  /** Makes a scan with nothing observed. */
+  readonly createScan: () => S
+  /** The clock, in epoch milliseconds. */
+  readonly now: () => number
+  /** Stream tuning, mainly for tests. */
+  readonly tuning?: ScanReadTuning
+}
+
+/**
+ * Brings a transcript's scan up to date: the kept scan is carried on when it
+ * can be (see {@link resumeScan}), and a new one reads the file from its first
+ * byte otherwise. The kept scan leaves `states` first, so a failure along the
+ * way leaves none behind, since it may hold only some of the new lines.
+ *
+ * Only a transcript modified within {@link RESUME_RECENT_MS} of now has its
+ * scan kept, and read for the mark that recognizes it later. An older one is
+ * scanned in full with no scan retained and no extra open, so a project with
+ * many idle sessions pays nothing for resuming.
+ *
+ * @param options - The scans kept, the key, the transcript, how to make a
+ * scan, the clock and stream tuning.
+ * @returns The scan, holding every complete line of the file. It is the one
+ * kept in `states` when the file is recent, so later calls carry it on.
+ * @throws {Error} When the file cannot be read, carrying the system error code.
+ */
+export async function advanceScan<S extends LineScan>(options: AdvanceScanOptions<S>): Promise<S> {
+  const { states, key, file, createScan, now, tuning } = options
+  const previous = states.get(key)
+  states.delete(key)
+
+  if (now() - file.mtimeMs > RESUME_RECENT_MS) {
+    const scan = createScan()
+    await feedLineScan(scan, { ...tuning, filePath: file.path })
+    return scan
+  }
+
+  const resumed =
+    previous === undefined ? null : await resumeScan({ file, resume: previous, tuning })
+  const next = resumed ?? (await startScan({ file, scan: createScan(), tuning }))
+  states.set(key, next)
+  return next.scan
 }

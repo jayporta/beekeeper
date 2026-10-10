@@ -5,16 +5,12 @@ import { join } from 'node:path'
 import { Readable } from 'node:stream'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReadJsonlLinesOptions } from '../../readJsonlLines'
-import { RESUME_ENTRY_OVERHEAD, resumableScanWeight } from '../../resumableScan'
+import { RESUME_ENTRY_OVERHEAD, RESUME_RECENT_MS, resumableScanWeight } from '../../resumableScan'
 import type { TranscriptFileInfo } from '../../statTranscriptFile'
 import { statWrittenTranscript } from '../../testStatTranscript'
 import { buildAiTitleRecord, buildJsonlText } from '../../testFixtures'
 import { scanSessionSummary } from '../scanSessionSummary'
-import {
-  createSessionSummaryCache,
-  RESUME_RECENT_MS,
-  type SessionSummaryCache
-} from '../sessionSummaryCache'
+import { createSessionSummaryCache, type SessionSummaryCache } from '../sessionSummaryCache'
 import { createSummaryScan } from '../summaryScan'
 import {
   buildTrickyTranscript,
