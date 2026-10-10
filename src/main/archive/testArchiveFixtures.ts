@@ -235,8 +235,20 @@ interface TestArchivedSessionOptions {
   readonly projectDirName?: string
   /** The session's role. Defaults to a lead. */
   readonly role?: SessionRoleDto
-  /** The first and last message times. Defaults to `{ earliestMs: 1, latestMs: 5 }`. */
-  readonly activity?: { readonly earliestMs: number; readonly latestMs: number }
+  /** The first and last message times, or `null` for a session with no timestamps. Defaults to `{ earliestMs: 1, latestMs: 5 }`. */
+  readonly activity?: { readonly earliestMs: number; readonly latestMs: number } | null
+  /** The transcript's last-modified time. Defaults to {@link TEST_SOURCE}'s. */
+  readonly modifiedMs?: number | null
+  /** How many subagent transcripts it had. Defaults to `0`. */
+  readonly subagentCount?: number | null
+  /** What it recorded about its own usage. Defaults to none. */
+  readonly usage?: { readonly totalUSD: number | null; readonly totalTokens: number | null } | null
+  /** The tokens its transcript reports. Defaults to `null`. */
+  readonly transcriptTokens?: number | null
+  /** Lines of its transcript that couldn't be read. Defaults to `0`. */
+  readonly skippedLines?: number
+  /** Its title. Defaults to `null`. */
+  readonly title?: string | null
   /** The teammates it spawned and stopped, or `null` for a row written before they were kept. Defaults to none. */
   readonly teamSpawns?: TranscriptTeamSpawns | null
 }
@@ -246,7 +258,7 @@ interface TestArchivedSessionOptions {
  * Its list item is archived and has no team, as the archive stores it.
  *
  * @param sessionId - The session's id.
- * @param options - The folder, role, activity and spawns to set instead of the defaults.
+ * @param options - The fields to set instead of the defaults.
  * @returns The archived session.
  */
 export function testArchivedSession(
@@ -257,16 +269,27 @@ export function testArchivedSession(
     projectDirName = TEST_REF.projectDirName,
     role = { kind: 'lead' },
     activity = { earliestMs: 1, latestMs: 5 },
-    teamSpawns = NO_TEAM_SPAWNS
+    teamSpawns = NO_TEAM_SPAWNS,
+    modifiedMs = TEST_SOURCE.mtimeMs,
+    subagentCount = 0,
+    usage = null,
+    transcriptTokens = null,
+    skippedLines = 0,
+    title = null
   } = options
-  const summary = testOkSummary(activity.latestMs)
+  const summary = testOkSummary(activity?.latestMs ?? null)
   if (!summary.ok) throw new Error('testOkSummary should be readable')
   return {
     item: testListItem({
       projectDirName,
       sessionId,
+      modifiedMs,
+      subagentCount,
       archived: true,
-      summary: { ok: true, value: { ...summary.value, role, activity } }
+      summary: {
+        ok: true,
+        value: { ...summary.value, role, activity, usage, transcriptTokens, skippedLines, title }
+      }
     }),
     teamSpawns
   }

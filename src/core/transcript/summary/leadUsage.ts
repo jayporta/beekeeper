@@ -19,3 +19,10 @@ export interface LeadUsage {
   /** Every valid assistant message id the transcript reported, counted or not. */
   readonly messageIds: ReadonlySet<string>
 }
+
+/**
+ * A transcript's own usage per slot, without the message ids that deduplicate
+ * it against subagents: what usage over time needs of a session whose
+ * subagents aren't read.
+ */
+export type LeadSlots = Pick<LeadUsage, 'slots' | 'undatedMessages' | 'invalidAssistantRecords'>

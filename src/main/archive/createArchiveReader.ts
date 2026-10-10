@@ -4,11 +4,12 @@ import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
 import { sessionRefKey } from '../ipc/sessionRefKey'
 import { ARCHIVE_FORMAT } from './archiveConstants'
-import { SELECT_DETAIL, SELECT_SESSION_ROW } from './archiveSql'
+import { SELECT_DETAIL, SELECT_LEAD_SLOTS, SELECT_SESSION_ROW } from './archiveSql'
 import type { ArchivedSession, ArchiveReader } from './archiveStoreTypes'
 import type { ArchiveDb } from './openArchive'
 import {
   parseArchivedDetail,
+  parseArchivedLeadSlots,
   parseArchivedListItem,
   parseArchivedTeamSpawns,
   type ArchivedRowError
@@ -58,9 +59,10 @@ export function createArchiveReader(options: ArchiveReaderOptions): ArchiveReads
   const { db, log, isClosed } = options
   const selectSessionRow = db.prepare(SELECT_SESSION_ROW)
   const selectDetail = db.prepare(SELECT_DETAIL)
+  const selectLeadSlots = db.prepare(SELECT_LEAD_SLOTS)
   const folders = new Map<string, FolderRows>()
   const loggedRowErrors = new Set<ArchivedRowError>()
-  const loggedSpawnsErrors = new Set<ArchivedRowError>()
+  const loggedColumnErrors = new Set<string>()
   let lastDetail: { readonly key: string; readonly detail: SessionDetailDto } | null = null
 
   /** Logs a kind of unreadable row the first time it is seen. */
@@ -70,15 +72,20 @@ export function createArchiveReader(options: ArchiveReaderOptions): ArchiveReads
     log(`Beekeeper archive skipped an unreadable row (${error}).`)
   }
 
+  /** Logs a kind of unreadable column the first time it is seen. */
+  function logUnreadableColumn(column: string, error: ArchivedRowError): void {
+    const kind = `${column}:${error}`
+    if (loggedColumnErrors.has(kind)) return
+    loggedColumnErrors.add(kind)
+    log(`Beekeeper archive skipped unreadable ${column} (${error}).`)
+  }
+
   /** Parses the team spawns column, which is `null` when the row has none stored or they can't be read. */
   function readTeamSpawns(stored: unknown): TranscriptTeamSpawns | null {
     if (typeof stored !== 'string') return null
     const parsed = parseArchivedTeamSpawns(stored)
     if (parsed.ok) return parsed.value
-    if (!loggedSpawnsErrors.has(parsed.error)) {
-      loggedSpawnsErrors.add(parsed.error)
-      log(`Beekeeper archive skipped unreadable team spawns (${parsed.error}).`)
-    }
+    logUnreadableColumn('team spawns', parsed.error)
     return null
   }
 
@@ -134,6 +141,18 @@ export function createArchiveReader(options: ArchiveReaderOptions): ArchiveReads
     },
 
     readSessions,
+
+    readLeadSlots(ref) {
+      if (isClosed()) return null
+      const stored = selectLeadSlots.get(ref.projectDirName, ref.sessionId, ARCHIVE_FORMAT)?.[
+        'lead_slots'
+      ]
+      if (typeof stored !== 'string') return null
+      const parsed = parseArchivedLeadSlots(stored)
+      if (parsed.ok) return parsed.value
+      logUnreadableColumn('lead slots', parsed.error)
+      return null
+    },
 
     readDetail(ref) {
       if (isClosed()) return null

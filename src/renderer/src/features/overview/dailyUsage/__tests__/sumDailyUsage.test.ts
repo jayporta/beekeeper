@@ -82,7 +82,10 @@ describe('sumDailyUsage', () => {
     const summary = sumDailyUsage(
       [
         ready({ '2026-03-10': {} }, { unreadable: 1, skippedLines: 2 }),
-        ready({ '2026-03-10': {} }, { skippedLines: 1, undated: 4, unreadableSubagents: 3 }),
+        ready(
+          { '2026-03-10': {} },
+          { skippedLines: 1, undated: 4, unreadableSubagents: 3, archivedWithoutSubagents: 2 }
+        ),
         FAILED
       ],
       1
@@ -92,7 +95,8 @@ describe('sumDailyUsage', () => {
       unreadable: 1,
       skippedLines: 3,
       undated: 4,
-      unreadableSubagents: 3
+      unreadableSubagents: 3,
+      archivedWithoutSubagents: 2
     })
   })
 

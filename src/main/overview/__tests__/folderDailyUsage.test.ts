@@ -4,10 +4,15 @@ import { folderDailyUsage, type SessionDailyOutcome } from '../folderDailyUsage'
 
 const DAYS = ['2026-01-01', '2026-01-02', '2026-01-03']
 
-function readable(usage: Partial<SessionDailyUsage>, subagentsListed = true): SessionDailyOutcome {
+function readable(
+  usage: Partial<SessionDailyUsage>,
+  subagentsListed = true,
+  subagentsNotArchived = false
+): SessionDailyOutcome {
   return {
     ok: true,
     subagentsListed,
+    subagentsNotArchived,
     usage: {
       buckets: [],
       undatedMessages: 0,
@@ -102,7 +107,8 @@ describe('folderDailyUsage', () => {
       unreadable: 2,
       skippedLines: 2,
       undated: 2,
-      unreadableSubagents: 3
+      unreadableSubagents: 3,
+      archivedWithoutSubagents: 0
     })
   })
 
@@ -118,7 +124,8 @@ describe('folderDailyUsage', () => {
       unreadable: 0,
       skippedLines: 0,
       undated: 0,
-      unreadableSubagents: 0
+      unreadableSubagents: 0,
+      archivedWithoutSubagents: 0
     })
   })
 
@@ -134,10 +141,50 @@ describe('folderDailyUsage', () => {
     expect(dto.partial.undated).toBe(1)
   })
 
+  it('counts each session archived without its subagents once, under its own reason', () => {
+    const dto = folderDailyUsage({
+      days: DAYS,
+      sessions: [
+        readable({ buckets: [inWindow] }, true, true),
+        readable({ buckets: [inWindow] }, true, true),
+        readable({ buckets: [inWindow] })
+      ]
+    })
+
+    expect(dto.partial).toEqual({
+      unreadable: 0,
+      skippedLines: 0,
+      undated: 0,
+      unreadableSubagents: 0,
+      archivedWithoutSubagents: 2
+    })
+  })
+
+  it('counts a session archived without its subagents that has no usage at all, since they may hold some in the window', () => {
+    const dto = folderDailyUsage({ days: DAYS, sessions: [readable({}, true, true)] })
+
+    expect(dto.partial.archivedWithoutSubagents).toBe(1)
+  })
+
+  it('counts no missing subagents for a session archived without them whose usage is all outside the window', () => {
+    const dto = folderDailyUsage({
+      days: DAYS,
+      sessions: [readable({ buckets: [bucket('2025-12-31', 'm', 5)] }, true, true)]
+    })
+
+    expect(dto.partial.archivedWithoutSubagents).toBe(0)
+  })
+
   it('has no models and no partial counts for no sessions', () => {
     expect(folderDailyUsage({ days: DAYS, sessions: [] })).toEqual({
       days: DAYS.map((day) => ({ day, models: [] })),
-      partial: { unreadable: 0, skippedLines: 0, undated: 0, unreadableSubagents: 0 }
+      partial: {
+        unreadable: 0,
+        skippedLines: 0,
+        undated: 0,
+        unreadableSubagents: 0,
+        archivedWithoutSubagents: 0
+      }
     })
   })
 })

@@ -24,6 +24,11 @@ export interface ProjectDailyUsagePartialDto {
   readonly undated: number
   /** Sessions with a subagent transcript, or a subagents folder, that couldn't be read. */
   readonly unreadableSubagents: number
+  /**
+   * Sessions archived without their subagents' usage, which isn't archived, other
+   * than those whose usage is all outside the window. Their days may be low.
+   */
+  readonly archivedWithoutSubagents: number
 }
 
 /**

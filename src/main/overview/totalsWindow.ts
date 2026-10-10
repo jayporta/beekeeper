@@ -61,3 +61,24 @@ export function mayHaveDailyUsage(
   )
   return newestMs >= window.nowMs - window.windowMs - DAY_MS - SKIP_UNREAD_SLACK_MS
 }
+
+/**
+ * Decides whether an archived session may have usage on a window's days, from
+ * the times its list item holds: not when its last message and its transcript's
+ * last write are both older than the window's length and a day back (the first
+ * calendar day can start that early) by more than {@link SKIP_UNREAD_SLACK_MS}.
+ * A session with neither time is kept, so it is counted as unreadable.
+ *
+ * @param times - When the session's last message was, and when its transcript was last written, either `null` when unknown.
+ * @param window - The window's end, in milliseconds since the Unix epoch, and its length.
+ * @returns `true` to read its slots.
+ */
+export function mayArchivedHaveDailyUsage(
+  times: { readonly latestMs: number | null; readonly modifiedMs: number | null },
+  window: { readonly nowMs: number; readonly windowMs: number }
+): boolean {
+  const { latestMs, modifiedMs } = times
+  if (latestMs === null && modifiedMs === null) return true
+  const newestMs = Math.max(latestMs ?? -Infinity, modifiedMs ?? -Infinity)
+  return newestMs >= window.nowMs - window.windowMs - DAY_MS - SKIP_UNREAD_SLACK_MS
+}

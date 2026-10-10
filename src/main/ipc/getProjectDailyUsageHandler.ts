@@ -2,6 +2,7 @@ import { discoverSessions } from '../../core/transcript/discoverSessions'
 import type { IpcResult } from '../../shared/ipc/ipcResult'
 import type { ProjectDailyUsageDto } from '../../shared/ipc/projectDailyUsageDto'
 import { getProjectDailyUsageRequestSchema } from '../../shared/ipc/requestSchemas'
+import { archivedDailyOutcomes } from '../overview/archivedDailyOutcomes'
 import { folderDailyUsage, type SessionDailyOutcome } from '../overview/folderDailyUsage'
 import { createDayKeyOf } from '../overview/localDayKey'
 import { readSessionDailyUsage } from '../overview/readSessionDailyUsage'
@@ -23,10 +24,15 @@ import { errResult, okResult } from './ipcResults'
  * through the daily usage cache, the shared summary cache and its background
  * lane for each lead, and the daily usage scheduler for subagents.
  * Like the totals, only the folder's own sessions are read.
+ * The folder's archived sessions, those whose transcripts are no longer on
+ * disk, are added from the archive by their lead slots, on the local day each
+ * slot starts in. A session that is on disk is never counted from the archive,
+ * even when the window left it unread. The archive keeps no subagent usage, so
+ * an archived session that had subagents is counted as missing it.
  *
  * @param deps - The projects root, the daily usage and summary caches and
- * schedulers, the clock, and the time zone that decides where a day begins,
- * read once per request.
+ * schedulers, the archive, the clock, and the time zone that decides where a
+ * day begins, read once per request.
  * @param payload - The renderer's payload, validated here.
  * @returns The usage, `invalid-request` for a bad payload, or `not-found` for
  * an unknown project. A folder that can't be read comes back as the code of
@@ -40,6 +46,7 @@ export async function getProjectDailyUsageHandler(
     | 'dailyUsageCache'
     | 'summaryCache'
     | 'summaries'
+    | 'archive'
     | 'now'
     | 'timeZone'
   >,
@@ -57,9 +64,8 @@ export async function getProjectDailyUsageHandler(
   const dayKeyOf = createDayKeyOf(timeZone)
   const days = windowDays({ todayKey: dayKeyOf(nowMs), window })
   const windowMs = TOTALS_WINDOW_MS[window]
-  const sessions = (await discoverSessions(project.path)).filter((entry) =>
-    mayHaveDailyUsage(entry, { nowMs, windowMs })
-  )
+  const onDisk = await discoverSessions(project.path)
+  const sessions = onDisk.filter((entry) => mayHaveDailyUsage(entry, { nowMs, windowMs }))
 
   const outcomes = await Promise.all(
     sessions.map(async (session): Promise<SessionDailyOutcome> => {
@@ -80,5 +86,12 @@ export async function getProjectDailyUsageHandler(
         : { ok: false }
     })
   )
-  return okResult(folderDailyUsage({ days, sessions: outcomes }))
+  const archived = archivedDailyOutcomes({
+    archive: deps.archive,
+    projectDirName: project.dirName,
+    liveSessionIds: new Set(onDisk.map((entry) => entry.sessionId)),
+    window: { nowMs, windowMs },
+    dayKeyOf
+  })
+  return okResult(folderDailyUsage({ days, sessions: [...outcomes, ...archived] }))
 }

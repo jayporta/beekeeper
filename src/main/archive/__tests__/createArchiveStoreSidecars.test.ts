@@ -230,3 +230,80 @@ describe('backfilling a row that has no sidecars', () => {
     expect(row).toEqual({ team_spawns: JSON.stringify(NO_TEAM_SPAWNS), lead_slots: 'null' })
   })
 })
+
+describe('readLeadSlots', () => {
+  it('returns the lead slots a session was saved with', () => {
+    const store = newStore()
+    store.saveListItems([{ ...listEntry(ITEM), leadSlots: TEST_LEAD_SLOTS }])
+
+    expect(store.readLeadSlots(TEST_REF)).toEqual(TEST_LEAD_SLOTS)
+  })
+
+  it('reads the slots saved by an earlier store over the same archive', () => {
+    newStore().saveListItems([{ ...listEntry(ITEM), leadSlots: TEST_LEAD_SLOTS }])
+
+    expect(newStore().readLeadSlots(TEST_REF)).toEqual(TEST_LEAD_SLOTS)
+  })
+
+  it('returns null for a session whose transcript had no lead usage', () => {
+    const store = newStore()
+    store.saveListItems([{ ...listEntry(ITEM), leadSlots: null }])
+
+    expect(store.readLeadSlots(TEST_REF)).toBeNull()
+  })
+
+  it('returns null, and logs nothing, for a row written before lead slots were kept', () => {
+    seedUnbackfilledRow()
+
+    expect(newStore().readLeadSlots(TEST_REF)).toBeNull()
+    expect(logged).toEqual([])
+  })
+
+  it('returns null for a session that was never archived and for the same id in another folder', () => {
+    const store = newStore()
+    store.saveListItems([{ ...listEntry(ITEM), leadSlots: TEST_LEAD_SLOTS }])
+
+    expect(store.readLeadSlots({ ...TEST_REF, sessionId: 'nope' })).toBeNull()
+    expect(store.readLeadSlots({ ...TEST_REF, projectDirName: '-other' })).toBeNull()
+  })
+
+  it('returns null for a row stored in another format', () => {
+    newStore().saveListItems([{ ...listEntry(ITEM), leadSlots: TEST_LEAD_SLOTS }])
+    db.prepare('UPDATE sessions SET format = 0').run()
+
+    expect(newStore().readLeadSlots(TEST_REF)).toBeNull()
+  })
+
+  it.each([
+    ['{corrupt', 'invalid-json'],
+    ['{"slots":[{"slot":"x"}]}', 'invalid-shape']
+  ] as const)('returns null for %s and logs the kind once, without a path', (value, kind) => {
+    newStore().saveListItems([{ ...listEntry(ITEM), leadSlots: TEST_LEAD_SLOTS }])
+    setColumn('lead_slots', value)
+    const fresh = newStore()
+
+    expect(fresh.readLeadSlots(TEST_REF)).toBeNull()
+    expect(fresh.readLeadSlots(TEST_REF)).toBeNull()
+
+    expect(logged).toEqual([`Beekeeper archive skipped unreadable lead slots (${kind}).`])
+  })
+
+  it('returns null after the store is closed', () => {
+    const store = newStore()
+    store.saveListItems([{ ...listEntry(ITEM), leadSlots: TEST_LEAD_SLOTS }])
+    store.close()
+
+    expect(store.readLeadSlots(TEST_REF)).toBeNull()
+  })
+
+  it('reads the row again after a save rewrites it', () => {
+    const store = newStore()
+    store.saveListItems([{ ...listEntry(ITEM), leadSlots: TEST_LEAD_SLOTS }])
+    store.readLeadSlots(TEST_REF)
+    const changed = { ...TEST_SOURCE, size: 900 }
+
+    store.saveListItems([{ ...listEntry(ITEM, changed), leadSlots: null }])
+
+    expect(store.readLeadSlots(TEST_REF)).toBeNull()
+  })
+})

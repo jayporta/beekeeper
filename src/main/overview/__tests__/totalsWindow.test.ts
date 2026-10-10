@@ -6,6 +6,7 @@ import { toAgentId } from '../../../core/transcript/ids'
 import {
   SKIP_UNREAD_SLACK_MS,
   TOTALS_WINDOW_MS,
+  mayArchivedHaveDailyUsage,
   mayCountInWindow,
   mayHaveDailyUsage
 } from '../totalsWindow'
@@ -96,5 +97,36 @@ describe('mayHaveDailyUsage', () => {
     }
 
     expect(mayHaveDailyUsage(entry, window)).toBe(true)
+  })
+})
+
+describe('mayArchivedHaveDailyUsage', () => {
+  const cutoff = NOW - 7 * DAY - DAY - SKIP_UNREAD_SLACK_MS
+
+  it('keeps a session whose last message is at the cutoff, and drops one a millisecond before', () => {
+    expect(mayArchivedHaveDailyUsage({ latestMs: cutoff, modifiedMs: null }, window)).toBe(true)
+    expect(mayArchivedHaveDailyUsage({ latestMs: cutoff - 1, modifiedMs: null }, window)).toBe(
+      false
+    )
+  })
+
+  it('judges by the file time when there is no message time', () => {
+    expect(mayArchivedHaveDailyUsage({ latestMs: null, modifiedMs: cutoff }, window)).toBe(true)
+    expect(mayArchivedHaveDailyUsage({ latestMs: null, modifiedMs: cutoff - 1 }, window)).toBe(
+      false
+    )
+  })
+
+  it('keeps a session when either time is recent, since a restored transcript has a file time later than its messages', () => {
+    expect(mayArchivedHaveDailyUsage({ latestMs: cutoff - 1, modifiedMs: cutoff }, window)).toBe(
+      true
+    )
+    expect(mayArchivedHaveDailyUsage({ latestMs: cutoff, modifiedMs: cutoff - 1 }, window)).toBe(
+      true
+    )
+  })
+
+  it('keeps a session with neither time, to count it as unreadable', () => {
+    expect(mayArchivedHaveDailyUsage({ latestMs: null, modifiedMs: null }, window)).toBe(true)
   })
 })
