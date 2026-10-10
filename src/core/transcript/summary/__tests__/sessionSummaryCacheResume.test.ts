@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { Readable } from 'node:stream'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReadJsonlLinesOptions } from '../../readJsonlLines'
+import { RESUME_ENTRY_OVERHEAD, resumableScanWeight } from '../../resumableScan'
 import type { TranscriptFileInfo } from '../../statTranscriptFile'
 import { statWrittenTranscript } from '../../testStatTranscript'
 import { buildAiTitleRecord, buildJsonlText } from '../../testFixtures'
@@ -15,7 +16,6 @@ import {
   type SessionSummaryCache
 } from '../sessionSummaryCache'
 import { createSummaryScan } from '../summaryScan'
-import { RESUME_ENTRY_OVERHEAD, resumeWeight } from '../summaryResume'
 import {
   buildTrickyTranscript,
   createGrowingTranscript,
@@ -333,7 +333,7 @@ describe('createSessionSummaryCache resuming', () => {
     const SECOND_TITLE = buildJsonlText([buildAiTitleRecord('title-bb')])
 
     /** What the scan of a title-only file weighs once stored, as the cache weighs it. */
-    const ONE_SCAN = resumeWeight({
+    const ONE_SCAN = resumableScanWeight({
       scan: createSummaryScan(),
       mark: { ino: 0, dev: 0, prefix: Buffer.from(FIRST_TITLE) },
       mtimeMs: 0,

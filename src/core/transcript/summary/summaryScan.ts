@@ -1,5 +1,4 @@
-import type { Result } from '../../shared/result'
-import type { SkippedLineError } from '../readRecords'
+import type { LineScan } from '../feedLineScan'
 import { createSessionRoleObserver } from '../sessionRoleObserver'
 import { costStateRecordSchema, aiTitleRecordSchema } from '../schemas'
 import { createSignalObserver } from '../signals/signalObserver'
@@ -20,16 +19,8 @@ import { truncateTitle } from './truncateTitle'
  */
 export const SUMMARY_SCAN_BASE_WEIGHT = 2048
 
-/** One transcript line as the reader reports it: a record, or why it could not be read as one. */
-export type SummaryScanInput = Result<Record<string, unknown>, SkippedLineError>
-
 /** A transcript summary built up one line at a time, and readable at any point. */
-export interface SummaryScan {
-  /**
-   * Folds in the next line of the transcript, in file order.
-   * @param input - The line, as `readRecords` reports it.
-   */
-  observe(input: SummaryScanInput): void
+export interface SummaryScan extends LineScan {
   /**
    * The summary of every line observed so far. Reading it leaves the scan
    * as it was, so more lines can follow, and the result shares no state with
@@ -37,9 +28,8 @@ export interface SummaryScan {
    */
   summary(): SessionSummary
   /**
-   * What the scan holds in memory, in UTF-16 code units, for bounding how
-   * many scans are kept: {@link SUMMARY_SCAN_BASE_WEIGHT} plus what its token,
-   * signal and teammate observers hold.
+   * What the scan holds in memory, in UTF-16 code units: {@link SUMMARY_SCAN_BASE_WEIGHT}
+   * plus what its token, signal and teammate observers hold.
    */
   weight(): number
 }

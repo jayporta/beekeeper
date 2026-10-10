@@ -9,8 +9,9 @@ import {
 } from '../../transcript/testFileTouchFixtures'
 import { buildAssistantRecord } from '../../transcript/testFixtures'
 import { leadIdentity } from '../agentIdentity'
-import { collectAgentReports } from '../collectAgentReports'
+import { collectAgentReports, createAgentReportsFold } from '../collectAgentReports'
 import { MAX_BASH_TOUCHES_PER_TRANSCRIPT } from '../fileTouchCollector'
+import { MESSAGE_REPORT_OVERHEAD } from '../collectMessageReports'
 
 type RecordResult = Result<Record<string, unknown>, SkippedLineError>
 
@@ -176,5 +177,89 @@ describe('collectAgentReports', () => {
       { kind: 'tool-result', toolUseId: 'toolu_1', isError: true }
     ])
     expect(signalsCapped).toBe(false)
+  })
+})
+
+describe('createAgentReportsFold', () => {
+  /** Lines that give every part of the reports something to hold, and one that can't be read. */
+  const LINES: readonly RecordResult[] = [
+    ok(buildAssistantRecord({ messageId: 'msg_1' })),
+    ok(buildAssistantToolUseRecord({ toolUseId: 'toolu_1', toolName: 'Edit' })),
+    err({ reason: 'invalid-json' }),
+    ok(
+      buildUserToolResultRecord({
+        toolUseId: 'toolu_1',
+        toolUseResult: buildEditToolUseResult('/a.ts'),
+        isError: true
+      })
+    ),
+    ok(buildAssistantToolUseRecord({ toolUseId: 'toolu_b', toolName: 'Bash' })),
+    ok(
+      buildUserToolResultRecord({
+        toolUseId: 'toolu_b',
+        toolUseResult: buildBashToolUseResult({ unavailable: true })
+      })
+    ),
+    ok(buildAssistantRecord({ messageId: 'msg_2' }))
+  ]
+
+  function foldOf(lines: readonly RecordResult[]): ReturnType<typeof createAgentReportsFold> {
+    const fold = createAgentReportsFold(leadIdentity)
+    for (const line of lines) fold.observe(line)
+    return fold
+  }
+
+  it('gives the same reports when read between lines as when read at the end', () => {
+    const undisturbed = foldOf(LINES)
+    const disturbed = createAgentReportsFold(leadIdentity)
+    for (const line of LINES) {
+      disturbed.observe(line)
+      disturbed.snapshot()
+    }
+
+    expect(disturbed.snapshot()).toEqual(undisturbed.snapshot())
+  })
+
+  it('leaves a snapshot unchanged by the lines observed after it', () => {
+    const fold = foldOf(LINES.slice(0, 4))
+    const snapshot = fold.snapshot()
+    const before = structuredClone(snapshot)
+
+    for (const line of LINES.slice(4)) fold.observe(line)
+
+    expect(snapshot).toEqual(before)
+  })
+
+  it('reports every part of a snapshot that a later line would have changed', () => {
+    const fold = foldOf(LINES.slice(0, 4))
+    const earlier = fold.snapshot()
+
+    for (const line of LINES.slice(4)) fold.observe(line)
+    const later = fold.snapshot()
+
+    expect({
+      reports: [earlier.reports.length, later.reports.length],
+      incomplete: [earlier.incompleteToolUseIds.length, later.incompleteToolUseIds.length],
+      signals: [earlier.signalEvents.length, later.signalEvents.length]
+    }).toEqual({ reports: [2, 4], incomplete: [0, 1], signals: [2, 4] })
+  })
+
+  it('weighs its message reports, file touches and signal events together', () => {
+    const fold = foldOf([ok(buildAssistantRecord({ messageId: 'msg_1', model: 'm' }))])
+
+    expect(fold.weight()).toBeGreaterThanOrEqual(MESSAGE_REPORT_OVERHEAD + 'msg_1'.length + 1)
+  })
+
+  it('grows as lines are observed', () => {
+    const fold = createAgentReportsFold(leadIdentity)
+    const weights = [fold.weight()]
+    for (const line of [LINES[0], LINES[1], LINES[3]]) {
+      fold.observe(line as RecordResult)
+      weights.push(fold.weight())
+    }
+
+    expect(
+      weights.every((weight, index) => index === 0 || weight > (weights[index - 1] ?? 0))
+    ).toBe(true)
   })
 })

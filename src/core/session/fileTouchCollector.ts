@@ -21,6 +21,14 @@ const TRACKED_TOOL_NAMES = new Set(['Edit', 'Write', 'Bash'])
  */
 export const MAX_BASH_TOUCHES_PER_TRANSCRIPT = 4096
 
+/**
+ * The weight, in UTF-16 code units, charged for each entry the collector
+ * holds beyond its strings: a touch, a remembered incomplete id, or a tracked
+ * call still waiting for its result. Covers the object or map entry and its
+ * string headers.
+ */
+export const FILE_TOUCH_ENTRY_OVERHEAD = 64
+
 /** How one tool call changed a file, as reported by its transcript record. */
 export interface FileTouch {
   /** The changed file's path, as the tool reported it. */
@@ -54,6 +62,13 @@ export interface FileTouchCollector {
    * a fork's copy.
    */
   incompleteOverflowed(): boolean
+  /**
+   * What the collector holds, in UTF-16 code units: {@link FILE_TOUCH_ENTRY_OVERHEAD}
+   * plus the strings of each touch, each remembered incomplete id, and each
+   * tracked call still waiting for its result. A call waits until its result
+   * arrives, so a transcript whose calls never get one weighs what it holds.
+   */
+  weight(): number
 }
 
 /**
@@ -81,12 +96,31 @@ export function createFileTouchCollector(): FileTouchCollector {
   const incompleteToolUseIds: string[] = []
   let bashTouchCount = 0
   let incompleteOverflowed = false
+  let weight = 0
+
+  function trackCall(toolUseId: string, toolName: string): void {
+    untrackCall(toolUseId)
+    toolNameByUseId.set(toolUseId, toolName)
+    weight += FILE_TOUCH_ENTRY_OVERHEAD + toolUseId.length + toolName.length
+  }
+
+  function untrackCall(toolUseId: string): void {
+    const toolName = toolNameByUseId.get(toolUseId)
+    if (toolName === undefined) return
+    toolNameByUseId.delete(toolUseId)
+    weight -= FILE_TOUCH_ENTRY_OVERHEAD + toolUseId.length + toolName.length
+  }
+
+  function addTouch(touch: FileTouch): void {
+    touches.push(touch)
+    weight += FILE_TOUCH_ENTRY_OVERHEAD + touch.filePath.length + touch.toolUseId.length
+  }
 
   function observeToolUse(record: Record<string, unknown>): void {
     for (const block of messageContentBlocks(record)) {
       const parsed = toolUseBlockSchema.safeParse(block)
       if (parsed.success && TRACKED_TOOL_NAMES.has(parsed.data.name)) {
-        toolNameByUseId.set(parsed.data.id, parsed.data.name)
+        trackCall(parsed.data.id, parsed.data.name)
       }
     }
   }
@@ -97,7 +131,7 @@ export function createFileTouchCollector(): FileTouchCollector {
 
     const toolName = toolNameByUseId.get(matched.tool_use_id)
     if (toolName === undefined) return
-    toolNameByUseId.delete(matched.tool_use_id)
+    untrackCall(matched.tool_use_id)
 
     if (toolName === 'Bash') {
       observeBashResult({ rawResult: record.toolUseResult, toolUseId: matched.tool_use_id })
@@ -108,7 +142,7 @@ export function createFileTouchCollector(): FileTouchCollector {
       rawResult: record.toolUseResult,
       toolUseId: matched.tool_use_id
     })
-    if (touch) touches.push(touch)
+    if (touch) addTouch(touch)
   }
 
   function observeBashResult(input: { rawResult: unknown; toolUseId: string }): void {
@@ -121,7 +155,7 @@ export function createFileTouchCollector(): FileTouchCollector {
         break
       }
       bashTouchCount += 1
-      touches.push({
+      addTouch({
         filePath: change.filePath,
         operation: change.operation,
         source: 'bash',
@@ -134,6 +168,7 @@ export function createFileTouchCollector(): FileTouchCollector {
   function markIncomplete(toolUseId: string): void {
     if (incompleteToolUseIds.length < MAX_BASH_TOUCHES_PER_TRANSCRIPT) {
       incompleteToolUseIds.push(toolUseId)
+      weight += FILE_TOUCH_ENTRY_OVERHEAD + toolUseId.length
     } else {
       incompleteOverflowed = true
     }
@@ -146,7 +181,8 @@ export function createFileTouchCollector(): FileTouchCollector {
     },
     touches: () => touches,
     incompleteToolUseIds: () => incompleteToolUseIds,
-    incompleteOverflowed: () => incompleteOverflowed
+    incompleteOverflowed: () => incompleteOverflowed,
+    weight: () => weight
   }
 }
 

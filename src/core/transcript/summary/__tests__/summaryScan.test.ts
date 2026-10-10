@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { err, ok } from '../../../shared/result'
+import type { LineScanInput } from '../../feedLineScan'
 import { buildAssistantToolUseRecord, buildUserToolResultRecord } from '../../testFileTouchFixtures'
 import {
   buildAiTitleRecord,
@@ -9,16 +10,11 @@ import {
 } from '../../testFixtures'
 import { buildTaskStopRecord, buildTeammateSpawnRecord } from '../../testTeammateFixtures'
 import { buildSessionSummary } from '../testSessionSummary'
-import {
-  createSummaryScan,
-  SUMMARY_SCAN_BASE_WEIGHT,
-  type SummaryScan,
-  type SummaryScanInput
-} from '../summaryScan'
+import { createSummaryScan, SUMMARY_SCAN_BASE_WEIGHT, type SummaryScan } from '../summaryScan'
 import { TRACKED_MESSAGE_OVERHEAD } from '../transcriptTokenObserver'
 
 /** A mixed run of lines that exercises every part of the summary, and a line that could not be read. */
-const MIXED_LINES: readonly SummaryScanInput[] = [
+const MIXED_LINES: readonly LineScanInput[] = [
   ok(buildAiTitleRecord('First title')),
   ok(buildAssistantRecord({ messageId: 'msg_1', timestamp: '2026-01-01T00:05:00.000Z' })),
   ok(
@@ -34,7 +30,7 @@ const MIXED_LINES: readonly SummaryScanInput[] = [
   ok(buildAiTitleRecord('Second title'))
 ]
 
-function observeAll(scan: SummaryScan, lines: readonly SummaryScanInput[]): void {
+function observeAll(scan: SummaryScan, lines: readonly LineScanInput[]): void {
   for (const line of lines) scan.observe(line)
 }
 

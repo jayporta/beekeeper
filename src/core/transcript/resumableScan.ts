@@ -1,8 +1,7 @@
-import type { ReadCursor, ReadJsonlLinesOptions } from '../readJsonlLines'
-import type { TranscriptFileInfo } from '../statTranscriptFile'
-import { confirmTailMark, readTailMark, type TailMark } from '../tailMark'
-import { feedSummaryScan } from './feedSummaryScan'
-import { createSummaryScan, type SummaryScan } from './summaryScan'
+import { feedLineScan, type LineScan } from './feedLineScan'
+import type { ReadCursor, ReadJsonlLinesOptions } from './readJsonlLines'
+import type { TranscriptFileInfo } from './statTranscriptFile'
+import { confirmTailMark, readTailMark, type TailMark } from './tailMark'
 
 /**
  * The weight, in UTF-16 code units, charged for each resumable scan beyond
@@ -11,14 +10,14 @@ import { createSummaryScan, type SummaryScan } from './summaryScan'
  */
 export const RESUME_ENTRY_OVERHEAD = 512
 
-/** The stream tuning a summary read takes: the parts of the reader's options that are not about where to read. */
-export type SummaryReadTuning = Pick<ReadJsonlLinesOptions, 'highWaterMark' | 'maxLineChars'>
+/** The stream tuning a scan read takes: the parts of the reader's options that are not about where to read. */
+export type ScanReadTuning = Pick<ReadJsonlLinesOptions, 'highWaterMark' | 'maxLineChars'>
 
 /**
  * A transcript scan that can carry on where it stopped: the scan itself, how
  * far into the file it got, and what the file looked like then.
  */
-export interface SummaryResume {
+export interface ResumableScan<S extends LineScan> {
   /** The file's modification time when the scan last read it. */
   readonly mtimeMs: number
   /** The size the file was stat'd at when the scan last read it. */
@@ -28,47 +27,54 @@ export interface SummaryResume {
   /** How the file began and where it lived, to tell it is still the same file. */
   readonly mark: TailMark
   /** The lines consumed so far. */
-  readonly scan: SummaryScan
+  readonly scan: S
 }
 
-/** Options for {@link startSummaryScan} and {@link resumeSummaryScan}. */
-export interface SummaryScanOptions {
+/** Options for {@link startScan}. */
+export interface StartScanOptions<S extends LineScan> {
   /** The transcript, as discovery stat'd it. */
   readonly file: TranscriptFileInfo
+  /** A scan with nothing observed, to read the file into. */
+  readonly scan: S
   /** Stream tuning, mainly for tests. */
-  readonly tuning?: SummaryReadTuning
+  readonly tuning?: ScanReadTuning
 }
 
-/** Options for {@link resumeSummaryScan}. */
-export interface ResumeSummaryScanOptions extends SummaryScanOptions {
+/** Options for {@link resumeScan}. */
+export interface ResumeScanOptions<S extends LineScan> {
+  /** The transcript, as discovery stat'd it. */
+  readonly file: TranscriptFileInfo
   /** The scan to carry on. */
-  readonly resume: SummaryResume
+  readonly resume: ResumableScan<S>
+  /** Stream tuning, mainly for tests. */
+  readonly tuning?: ScanReadTuning
 }
 
 /**
- * Weighs a resumable scan for the cache's memory bound: the entry overhead,
+ * Weighs a resumable scan for a cache's memory bound: the entry overhead,
  * what the scan holds, and the prefix the file is recognized by.
  *
  * @param resume - A resumable scan.
  * @returns The weight in UTF-16 code units.
  */
-export function resumeWeight(resume: SummaryResume): number {
+export function resumableScanWeight(resume: ResumableScan<LineScan>): number {
   return RESUME_ENTRY_OVERHEAD + resume.scan.weight() + Math.ceil(resume.mark.prefix.byteLength / 2)
 }
 
 /**
- * Scans a transcript from its first byte.
+ * Reads a transcript from its first byte into a fresh scan.
  *
- * @param options - The transcript and stream tuning.
+ * @param options - The transcript, the empty scan and stream tuning.
  * @returns The scan, resumable from where it stopped.
  * @throws {Error} When the file cannot be read, carrying the system error code.
  */
-export async function startSummaryScan(options: SummaryScanOptions): Promise<SummaryResume> {
-  const { file, tuning } = options
+export async function startScan<S extends LineScan>(
+  options: StartScanOptions<S>
+): Promise<ResumableScan<S>> {
+  const { file, scan, tuning } = options
   const mark = await readTailMark(file)
-  const scan = createSummaryScan()
   const cursor: ReadCursor = { offset: 0 }
-  await feedSummaryScan(scan, { ...tuning, filePath: file.path, cursor })
+  await feedLineScan(scan, { ...tuning, filePath: file.path, cursor })
   return { mtimeMs: file.mtimeMs, size: file.size, offset: cursor.offset, mark, scan }
 }
 
@@ -89,9 +95,9 @@ export async function startSummaryScan(options: SummaryScanOptions): Promise<Sum
  * `null` when the file cannot be carried on from.
  * @throws {Error} When the file cannot be read, carrying the system error code.
  */
-export async function resumeSummaryScan(
-  options: ResumeSummaryScanOptions
-): Promise<SummaryResume | null> {
+export async function resumeScan<S extends LineScan>(
+  options: ResumeScanOptions<S>
+): Promise<ResumableScan<S> | null> {
   const { file, resume, tuning } = options
   const grew = file.size > resume.size && file.size >= resume.offset
   if (!grew || file.mtimeMs === resume.mtimeMs) return null
@@ -101,6 +107,6 @@ export async function resumeSummaryScan(
 
   const cursor: ReadCursor = { offset: resume.offset }
   const readOptions = { ...tuning, filePath: file.path, start: resume.offset, cursor }
-  await feedSummaryScan(resume.scan, readOptions)
+  await feedLineScan(resume.scan, readOptions)
   return { mtimeMs: file.mtimeMs, size: file.size, offset: cursor.offset, mark, scan: resume.scan }
 }
