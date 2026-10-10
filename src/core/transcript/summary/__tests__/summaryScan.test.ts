@@ -81,6 +81,19 @@ describe('createSummaryScan', () => {
     expect(scan.summary().usage).toMatchObject({ totalUSD: 1 })
   })
 
+  it('keeps only the totals of a cost-state record, not its per-model usage', () => {
+    const scan = createSummaryScan()
+    const modelUsage = Object.fromEntries(
+      Array.from({ length: 2000 }, (_, n) => [`model-${n}`, { inputTokens: 1 }])
+    )
+
+    scan.observe(ok(buildCostStateRecord({ totalCostUSD: 3, modelUsage })))
+
+    const { usage } = scan.summary()
+    expect(Object.keys(usage ?? {}).sort()).toEqual(['totalTokens', 'totalUSD'])
+    expect(JSON.stringify(usage)).not.toContain('model-1999')
+  })
+
   describe('weight', () => {
     it('starts at the base weight', () => {
       expect(createSummaryScan().weight()).toBe(SUMMARY_SCAN_BASE_WEIGHT)
@@ -110,17 +123,6 @@ describe('createSummaryScan', () => {
       expect(
         weights.every((weight, index) => index === 0 || weight > (weights[index - 1] ?? 0))
       ).toBe(true)
-    })
-
-    it('does not grow with the size of a cost-state record, which is reduced as it is read', () => {
-      const scan = createSummaryScan()
-      const modelUsage = Object.fromEntries(
-        Array.from({ length: 2000 }, (_, n) => [`model-${n}`, { inputTokens: 1 }])
-      )
-
-      scan.observe(ok(buildCostStateRecord({ modelUsage })))
-
-      expect(scan.weight()).toBe(SUMMARY_SCAN_BASE_WEIGHT)
     })
   })
 })

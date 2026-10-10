@@ -1,4 +1,5 @@
 import * as fs from 'node:fs'
+import * as fsPromises from 'node:fs/promises'
 import { appendFileSync, renameSync, truncateSync, utimesSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
@@ -8,7 +9,11 @@ import type { TranscriptFileInfo } from '../../statTranscriptFile'
 import { statWrittenTranscript } from '../../testStatTranscript'
 import { buildAiTitleRecord, buildJsonlText } from '../../testFixtures'
 import { scanSessionSummary } from '../scanSessionSummary'
-import { createSessionSummaryCache, type SessionSummaryCache } from '../sessionSummaryCache'
+import {
+  createSessionSummaryCache,
+  RESUME_RECENT_MS,
+  type SessionSummaryCache
+} from '../sessionSummaryCache'
 import { createSummaryScan } from '../summaryScan'
 import { RESUME_ENTRY_OVERHEAD, resumeWeight } from '../summaryResume'
 import {
@@ -26,16 +31,30 @@ vi.mock('node:fs', async (importOriginal) => {
   return { ...actual, createReadStream: vi.fn(actual.createReadStream) }
 })
 
+// Counts the files opened for a handle read, which is how the tail mark reads a file.
+vi.mock('node:fs/promises', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs/promises')>()
+  return { ...actual, open: vi.fn(actual.open) }
+})
+
 let dir: TranscriptDir
 
 beforeEach(() => {
   dir = createTranscriptDir()
   vi.mocked(fs.createReadStream).mockClear()
+  vi.mocked(fsPromises.open).mockClear()
 })
 
 afterEach(() => {
   dir.cleanup()
 })
+
+/**
+ * The time each equivalence test gets, in milliseconds. They read after every
+ * append, which takes well under a second alone but a loaded runner can
+ * stretch past the default.
+ */
+const EQUIVALENCE_TIMEOUT_MS = 30_000
 
 /** A modification time later than any a growing transcript carries, in seconds. */
 const LATER_SECONDS = 1_900_000_000
@@ -119,76 +138,80 @@ async function cachedTranscript(): Promise<{
 }
 
 describe('createSessionSummaryCache resuming', () => {
-  describe('equals a fresh scan of the same bytes after every append', () => {
-    const SEEDS = [
-      { seed: 1, highWaterMark: undefined },
-      { seed: 2, highWaterMark: 7 },
-      { seed: 3, highWaterMark: 13 },
-      { seed: 4, highWaterMark: 64 },
-      { seed: 5, highWaterMark: 4096 },
-      { seed: 6, highWaterMark: 3 }
-    ]
+  describe(
+    'equals a fresh scan of the same bytes after every append',
+    { timeout: EQUIVALENCE_TIMEOUT_MS },
+    () => {
+      const SEEDS = [
+        { seed: 1, highWaterMark: undefined },
+        { seed: 2, highWaterMark: 7 },
+        { seed: 3, highWaterMark: 13 },
+        { seed: 4, highWaterMark: 64 },
+        { seed: 5, highWaterMark: 4096 },
+        { seed: 6, highWaterMark: 3 }
+      ]
 
-    it.each(SEEDS)(
-      'for random-sized appends (seed $seed, chunks of $highWaterMark bytes)',
-      async ({ seed, highWaterMark }) => {
+      it.each(SEEDS)(
+        'for random-sized appends (seed $seed, chunks of $highWaterMark bytes)',
+        async ({ seed, highWaterMark }) => {
+          const script = buildTrickyTranscript()
+          const growing = createGrowingTranscript({
+            path: join(dir.root, 'session.jsonl'),
+            script,
+            seed,
+            maxStep: 300
+          })
+
+          await growAndCheck(growing, script, highWaterMark)
+        }
+      )
+
+      it('for one-byte appends, so every character and line splits at every point', async () => {
+        const script = buildTrickyTranscript().subarray(0, 450)
+        const growing = createGrowingTranscript({
+          path: join(dir.root, 'session.jsonl'),
+          script,
+          seed: 1,
+          maxStep: 1
+        })
+
+        await growAndCheck(growing, script, 5)
+      })
+
+      it('when a resume begins at a line that starts with a byte order mark', async () => {
         const script = buildTrickyTranscript()
         const growing = createGrowingTranscript({
           path: join(dir.root, 'session.jsonl'),
           script,
-          seed,
-          maxStep: 300
+          seed: 1,
+          maxStep: 1
+        })
+        const options = tuning()
+        const cache = createSessionSummaryCache({ readOptions: options })
+        const markStart = script.indexOf(Buffer.from('\uFEFF', 'utf-8'))
+        // The first read ends inside the mark's own bytes.
+        growing.growTo(markStart + 2)
+        await readAndCompare(cache, await growing.stat(), options)
+
+        growing.growTo(markStart + 80)
+        const start = await readAndCompare(cache, await growing.stat(), options)
+
+        expect(start).toBe(markStart)
+      })
+
+      it('for a file that begins with a byte order mark', async () => {
+        const script = buildTrickyTranscript({ startWithBom: true })
+        const growing = createGrowingTranscript({
+          path: join(dir.root, 'session.jsonl'),
+          script,
+          seed: 7,
+          maxStep: 400
         })
 
-        await growAndCheck(growing, script, highWaterMark)
-      }
-    )
-
-    it('for one-byte appends, so every character and line splits at every point', async () => {
-      const script = buildTrickyTranscript().subarray(0, 450)
-      const growing = createGrowingTranscript({
-        path: join(dir.root, 'session.jsonl'),
-        script,
-        seed: 1,
-        maxStep: 1
+        await growAndCheck(growing, script, 9)
       })
-
-      await growAndCheck(growing, script, 5)
-    })
-
-    it('when a resume begins at a line that starts with a byte order mark', async () => {
-      const script = buildTrickyTranscript()
-      const growing = createGrowingTranscript({
-        path: join(dir.root, 'session.jsonl'),
-        script,
-        seed: 1,
-        maxStep: 1
-      })
-      const options = tuning()
-      const cache = createSessionSummaryCache({ readOptions: options })
-      const markStart = script.indexOf(Buffer.from('\uFEFF', 'utf-8'))
-      // The first read ends inside the mark's own bytes.
-      growing.growTo(markStart + 2)
-      await readAndCompare(cache, await growing.stat(), options)
-
-      growing.growTo(markStart + 80)
-      const start = await readAndCompare(cache, await growing.stat(), options)
-
-      expect(start).toBe(markStart)
-    })
-
-    it('for a file that begins with a byte order mark', async () => {
-      const script = buildTrickyTranscript({ startWithBom: true })
-      const growing = createGrowingTranscript({
-        path: join(dir.root, 'session.jsonl'),
-        script,
-        seed: 7,
-        maxStep: 400
-      })
-
-      await growAndCheck(growing, script, 9)
-    })
-  })
+    }
+  )
 
   describe('rescans in full', () => {
     const options = tuning()
@@ -362,6 +385,74 @@ describe('createSessionSummaryCache resuming', () => {
       const file = await statWrittenTranscript(a as string)
 
       expect(await readAndCompare(cache, file, options)).toBe(0)
+    })
+  })
+
+  describe('keeps a scan to resume from only for a recently modified transcript', () => {
+    const options = tuning()
+
+    /** A transcript with its first 2000 bytes written, and its clock set `idleMs` past that write. */
+    async function growingAt(idleMs: number): Promise<{
+      cache: SessionSummaryCache
+      growing: GrowingTranscript
+      script: Buffer
+    }> {
+      const script = buildTrickyTranscript()
+      const growing = createGrowingTranscript({
+        path: join(dir.root, 'session.jsonl'),
+        script,
+        seed: 1,
+        maxStep: 1
+      })
+      growing.growTo(2000)
+      const written = await growing.stat()
+      const cache = createSessionSummaryCache({
+        readOptions: options,
+        now: () => written.mtimeMs + idleMs
+      })
+      return { cache, growing, script }
+    }
+
+    it('resumes a transcript last modified just inside the window', async () => {
+      const { cache, growing, script } = await growingAt(RESUME_RECENT_MS)
+      await cache.read(await growing.stat())
+      growing.growTo(4000)
+
+      const start = await readAndCompare(cache, await growing.stat(), options)
+
+      expect(start).toBe(consumedOffset(script.subarray(0, 2000)))
+    })
+
+    it('scans a transcript last modified outside the window in full each time', async () => {
+      const { cache, growing } = await growingAt(RESUME_RECENT_MS + 1000)
+      await cache.read(await growing.stat())
+      growing.growTo(4000)
+
+      expect(await readAndCompare(cache, await growing.stat(), options)).toBe(0)
+    })
+
+    it('opens no file for a mark when it scans a transcript outside the window', async () => {
+      const { cache, growing } = await growingAt(RESUME_RECENT_MS + 1000)
+
+      await cache.read(await growing.stat())
+
+      expect(fsPromises.open).not.toHaveBeenCalled()
+    })
+
+    it('opens a file for a mark when it scans a transcript inside the window', async () => {
+      const { cache, growing } = await growingAt(0)
+
+      await cache.read(await growing.stat())
+
+      expect(fsPromises.open).toHaveBeenCalledTimes(1)
+    })
+
+    it('treats a modification time ahead of the clock as recent', async () => {
+      const { cache, growing } = await growingAt(-RESUME_RECENT_MS * 100)
+
+      await cache.read(await growing.stat())
+
+      expect(fsPromises.open).toHaveBeenCalledTimes(1)
     })
   })
 

@@ -29,8 +29,19 @@ export interface ConfirmTailMarkOptions {
   readonly offset: number
 }
 
+/** Options for {@link readBytes}. */
+interface ReadBytesOptions {
+  /** The open file to read. */
+  readonly handle: FileHandle
+  /** The byte offset to read from. */
+  readonly position: number
+  /** The most bytes to read. */
+  readonly length: number
+}
+
 /** Reads up to `length` bytes at `position`, fewer at the end of the file. */
-async function readBytes(handle: FileHandle, position: number, length: number): Promise<Buffer> {
+async function readBytes(options: ReadBytesOptions): Promise<Buffer> {
+  const { handle, position, length } = options
   const buffer = Buffer.alloc(length)
   const { bytesRead } = await handle.read(buffer, 0, length, position)
   return buffer.subarray(0, bytesRead)
@@ -49,7 +60,7 @@ async function readBytes(handle: FileHandle, position: number, length: number): 
 export async function readTailMark(file: TranscriptFileInfo): Promise<TailMark> {
   const handle = await open(file.path, 'r')
   try {
-    const prefix = await readBytes(handle, 0, TAIL_MARK_PREFIX_BYTES)
+    const prefix = await readBytes({ handle, position: 0, length: TAIL_MARK_PREFIX_BYTES })
     return { ino: file.ino, dev: file.dev, prefix: Buffer.from(prefix) }
   } finally {
     await handle.close()
@@ -77,7 +88,7 @@ export async function confirmTailMark(options: ConfirmTailMarkOptions): Promise<
 
   const handle = await open(file.path, 'r')
   try {
-    const prefix = await readBytes(handle, 0, TAIL_MARK_PREFIX_BYTES)
+    const prefix = await readBytes({ handle, position: 0, length: TAIL_MARK_PREFIX_BYTES })
     const held = mark.prefix.byteLength
     if (prefix.byteLength < held || !prefix.subarray(0, held).equals(mark.prefix)) return null
 
@@ -85,7 +96,7 @@ export async function confirmTailMark(options: ConfirmTailMarkOptions): Promise<
       const before =
         offset <= prefix.byteLength
           ? prefix.subarray(offset - 1, offset)
-          : await readBytes(handle, offset - 1, 1)
+          : await readBytes({ handle, position: offset - 1, length: 1 })
       if (before[0] !== NEWLINE_BYTE) return null
     }
 

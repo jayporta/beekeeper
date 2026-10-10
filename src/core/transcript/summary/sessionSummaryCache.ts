@@ -4,6 +4,7 @@ import { ok, type Result } from '../../shared/result'
 import { captureSystemError } from '../captureSystemError'
 import type { TranscriptFileInfo } from '../statTranscriptFile'
 import type { UnreadableError } from '../unreadableError'
+import { scanSessionSummary } from './scanSessionSummary'
 import type { SessionSummary } from './sessionSummary'
 import {
   resumeSummaryScan,
@@ -56,6 +57,12 @@ export interface SessionSummaryCacheOptions {
   readonly maxResumeWeight?: number
   /** Stream tuning for the scans, mainly for tests. */
   readonly readOptions?: SummaryReadTuning
+  /**
+   * The clock that decides whether a transcript was modified recently enough
+   * to keep a scan for, in epoch milliseconds, mainly for tests.
+   * @defaultValue `Date.now`
+   */
+  readonly now?: () => number
 }
 
 /**
@@ -75,14 +82,21 @@ export const SUMMARY_CACHE_MAX_WEIGHT = 10_000_000
 /**
  * The default bound on the total weight of the scans a cache keeps to carry
  * on from, in UTF-16 code units. A scan weighs its message ids, signal events
- * and teammates, so a real session in progress weighs a few hundred thousand
- * to a few million, and this holds the handful that are growing at once. A
- * scan heavier than the bound, such as a crafted transcript with tens of
- * thousands of message ids, is not kept and is scanned in full each time, as
- * it would be without resuming. What it accounts for takes at most 32 MB, at
- * two bytes per code unit.
+ * and teammates: measured, a scan of 20 thousand messages weighs about 2.8
+ * million and one of 50 thousand (the most message ids an observer tracks)
+ * about 6.95 million, so this holds the handful of sessions that are growing
+ * at once, even long ones. A scan heavier than the bound is not kept and is
+ * scanned in full each time, as it would be without resuming. What it
+ * accounts for takes at most 64 MB, at two bytes per code unit.
  */
-export const RESUME_CACHE_MAX_WEIGHT = 16_000_000
+export const RESUME_CACHE_MAX_WEIGHT = 32_000_000
+
+/**
+ * How long after its last modification, in milliseconds, a transcript still
+ * counts as growing. Only a transcript modified within it has a scan kept to
+ * carry on from; an older one is scanned in full, once, as it changes.
+ */
+export const RESUME_RECENT_MS = 10 * 60 * 1000
 
 /**
  * Creates a summary cache keyed by transcript path. Entries are evicted
@@ -109,6 +123,12 @@ export const RESUME_CACHE_MAX_WEIGHT = 16_000_000
  * Reads of one path run one at a time, so overlapping reads of a growing
  * transcript never feed the same scan twice.
  *
+ * Only a transcript modified within {@link RESUME_RECENT_MS} of now has its
+ * scan kept, and read for the mark that recognizes it later. An idle
+ * session's transcript is scanned exactly as it would be without resuming,
+ * with no scan retained and no extra open, so a project with many old
+ * sessions pays nothing for the feature.
+ *
  * @param options - The weight bounds.
  * @returns A cache ready to read summaries through.
  */
@@ -125,15 +145,18 @@ export function createSessionSummaryCache(
   })
   const serializer = createKeyedSerializer()
   const tuning = options.readOptions
+  const now = options.now ?? Date.now
 
   /**
    * Scans a transcript, carrying on from the scan kept for it when it can.
    * The kept scan leaves the map first, so a failure along the way leaves none
-   * behind.
+   * behind. A transcript not modified recently is scanned in full and kept
+   * nowhere.
    */
   async function scan(file: TranscriptFileInfo): Promise<SessionSummary> {
     const previous = resumes.get(file.path)
     resumes.delete(file.path)
+    if (now() - file.mtimeMs > RESUME_RECENT_MS) return scanSessionSummary(file.path, tuning)
 
     const resumed =
       previous === undefined ? null : await resumeSummaryScan({ file, resume: previous, tuning })

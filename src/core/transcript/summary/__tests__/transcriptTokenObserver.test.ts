@@ -158,6 +158,40 @@ describe('createTranscriptTokenObserver', () => {
       expect([...(observer.leadUsage()?.messageIds ?? [])]).toEqual(['msg_a', 'msg_b'])
     })
 
+    it('lists the ids of synthetic and zero-token messages though no slot counts them', () => {
+      const observer = createTranscriptTokenObserver()
+      feed(observer, buildAssistantRecord({ messageId: 'msg_syn', model: '<synthetic>' }))
+      feed(
+        observer,
+        buildAssistantRecord({ messageId: 'msg_zero', inputTokens: 0, outputTokens: 0 })
+      )
+
+      expect(observer.leadUsage()?.slots).toEqual([])
+      expect([...(observer.leadUsage()?.messageIds ?? [])]).toEqual(['msg_syn', 'msg_zero'])
+    })
+
+    it('leaves a usage it already returned unchanged by the records observed after it', () => {
+      const observer = createTranscriptTokenObserver()
+      feed(observer, buildAssistantRecord({ messageId: 'msg_a', inputTokens: 5 }))
+      const earlier = observer.leadUsage()
+      const slots = structuredClone(earlier?.slots)
+
+      feed(observer, buildAssistantRecord({ messageId: 'msg_a', inputTokens: 50 }))
+      feed(observer, buildAssistantRecord({ messageId: 'msg_b' }))
+
+      expect(earlier?.slots).toEqual(slots)
+      expect([...(earlier?.messageIds ?? [])]).toEqual(['msg_a'])
+    })
+
+    it('hands out the same ids again while no new id has arrived', () => {
+      const observer = createTranscriptTokenObserver()
+      feed(observer, buildAssistantRecord({ messageId: 'msg_a' }))
+      const first = observer.leadUsage()?.messageIds
+      feed(observer, buildAssistantRecord({ messageId: 'msg_a', inputTokens: 9 }))
+
+      expect(observer.leadUsage()?.messageIds).toBe(first)
+    })
+
     it('counts an assistant record that fails the schema', () => {
       const observer = createTranscriptTokenObserver()
       feed(observer, { type: 'assistant', message: { id: 'msg_x', model: 'm' } })
