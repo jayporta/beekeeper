@@ -39,10 +39,10 @@ function toTotalsSession({ entry, summary }: ScannedSession): TotalsSession {
  * behind them. The folder's archived sessions, those whose transcripts are no
  * longer on disk, are added from the archive, each from its list item, which
  * holds every figure the totals read. A session that is on disk is never
- * counted from the archive, even when the window left it unread. The archive
- * is held in memory, so none of them is read: those last active before the
- * window are cut before they are mapped, by the rule the totals apply. A failing archive read leaves the live
- * sessions' totals as they are.
+ * counted from the archive, even when the window left it unread. Archived
+ * rows are read once and kept until they change, and those last active before
+ * the window are cut before they are mapped, by the rule the totals apply. A
+ * failing archive read leaves the live sessions' totals as they are.
  *
  * @param deps - The projects root, the summary cache, the summaries scheduler,
  * the archive, and the clock, which gives the end of the window.

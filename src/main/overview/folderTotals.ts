@@ -1,5 +1,6 @@
 import type { SessionSummary } from '../../core/transcript/summary/sessionSummary'
 import { resolveSessionUsage } from '../../shared/usage/resolveSessionUsage'
+import { isBeforeTotalsWindow } from './totalsWindow'
 
 /** One session of a folder, as its totals are worked out from it. */
 export interface TotalsSession {
@@ -111,7 +112,7 @@ export function folderTotals(options: FolderTotalsOptions): FolderTotals {
       continue
     }
     const latestMs = summary?.activity?.latestMs ?? null
-    if ((latestMs ?? mtimeMs) < cutoff) continue
+    if (isBeforeTotalsWindow({ latestMs, mtimeMs }, cutoff)) continue
 
     agents += 1 + (session.subagentCount ?? 0)
     if (summary === null) {
