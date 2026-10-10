@@ -129,6 +129,19 @@ export async function resumeScan<S extends LineScan>(
   return { mtimeMs: file.mtimeMs, size: file.size, offset: cursor.offset, mark, scan: resume.scan }
 }
 
+/**
+ * Whether a transcript still counts as growing: it was modified within
+ * {@link RESUME_RECENT_MS} of now.
+ *
+ * @param file - The transcript, as discovery stat'd it.
+ * @param now - The clock, in epoch milliseconds.
+ * @returns Whether its last modification is within the window. A file dated in
+ * the future counts as recent.
+ */
+export function isRecentlyModified(file: TranscriptFileInfo, now: () => number): boolean {
+  return now() - file.mtimeMs <= RESUME_RECENT_MS
+}
+
 /** Options for {@link advanceScan}. */
 export interface AdvanceScanOptions<S extends LineScan> {
   /** The scans kept so far, by key. */
@@ -139,8 +152,12 @@ export interface AdvanceScanOptions<S extends LineScan> {
   readonly file: TranscriptFileInfo
   /** Makes a scan with nothing observed. */
   readonly createScan: () => S
-  /** The clock, in epoch milliseconds. */
-  readonly now: () => number
+  /**
+   * Whether the transcript is still growing, which the caller decides, since
+   * a caller may judge a group of transcripts together (see
+   * {@link isRecentlyModified}). Only then is the scan kept.
+   */
+  readonly recent: boolean
   /** Stream tuning, mainly for tests. */
   readonly tuning?: ScanReadTuning
 }
@@ -151,26 +168,26 @@ export interface AdvanceScanOptions<S extends LineScan> {
  * byte otherwise. The kept scan leaves `states` first, so a failure along the
  * way leaves none behind, since it may hold only some of the new lines.
  *
- * Only a transcript modified within {@link RESUME_RECENT_MS} of now has its
- * scan kept, and read for the mark that recognizes it later. An older one is
- * scanned in full with no scan retained and no extra open, so a project with
- * many idle sessions pays nothing for resuming. A scan weighing more than
+ * Only a recent transcript has its scan kept, and read for the mark that
+ * recognizes it later. Any other is scanned in full with no scan retained and
+ * no extra open, so a project with many idle sessions pays nothing for
+ * resuming. A scan weighing more than
  * `1 / KEPT_SCAN_BOUND_SHARE` of the bound is returned but not kept, as
  * {@link KEPT_SCAN_BOUND_SHARE} explains, so the next call reads that
  * transcript in full.
  *
  * @param options - The scans kept, the key, the transcript, how to make a
- * scan, the clock and stream tuning.
+ * scan, whether it is recent and stream tuning.
  * @returns The scan, holding every complete line of the file. It is the one
  * kept in `states` when the file is recent, so later calls carry it on.
  * @throws {Error} When the file cannot be read, carrying the system error code.
  */
 export async function advanceScan<S extends LineScan>(options: AdvanceScanOptions<S>): Promise<S> {
-  const { states, key, file, createScan, now, tuning } = options
+  const { states, key, file, createScan, recent, tuning } = options
   const previous = states.get(key)
   states.delete(key)
 
-  if (now() - file.mtimeMs > RESUME_RECENT_MS) {
+  if (!recent) {
     const scan = createScan()
     await feedLineScan(scan, { ...tuning, filePath: file.path })
     return scan

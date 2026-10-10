@@ -324,6 +324,94 @@ describe('createAgentScanCache', () => {
     })
   })
 
+  describe('keeps scans while the session or the transcript is recent', () => {
+    /** An hour before now, in seconds: well outside the recent window. */
+    const IDLE_SECONDS = (): number => Math.floor(Date.now() / 1000) - 3600
+
+    /** Writes a transcript to `bytes` bytes and dates it an hour ago. */
+    async function idleTranscript(name: string, bytes: number): Promise<GrowingTranscript> {
+      const growing = growingFrom(buildTrickyTranscript(), name)
+      growing.growTo(bytes)
+      utimesSync(growing.path, IDLE_SECONDS(), IDLE_SECONDS())
+      return growing
+    }
+
+    /** Grows an idle transcript and dates it an hour ago again, one second off, so the stat differs. */
+    async function growIdle(growing: GrowingTranscript, bytes: number): Promise<void> {
+      growing.growTo(bytes)
+      utimesSync(growing.path, IDLE_SECONDS() - 1, IDLE_SECONDS() - 1)
+    }
+
+    function readUnder(
+      cache: AgentScanCache,
+      file: TranscriptFileInfo,
+      sessionLead: TranscriptFileInfo
+    ): Promise<AgentScanSnapshot> {
+      return cache.read({
+        file,
+        identity: leadIdentity,
+        trackCostState: true,
+        tuning: TUNING,
+        sessionLead
+      })
+    }
+
+    it('keeps the scan of a transcript that is idle on its own while the session lead is recent', async () => {
+      const script = buildTrickyTranscript()
+      const recentLead = growingFrom(script, 'lead.jsonl')
+      recentLead.growTo(1000)
+      const idle = await idleTranscript('idle.jsonl', 2000)
+      const cache = createAgentScanCache()
+      await readUnder(cache, await idle.stat(), await recentLead.stat())
+      await growIdle(idle, 6000)
+
+      const starts = await startsDuring(async () =>
+        readUnder(cache, await idle.stat(), await recentLead.stat())
+      )
+
+      expect(starts).toEqual([consumedOffset(script.subarray(0, 2000))])
+    })
+
+    it('keeps the scan of a transcript that is recent itself while the session lead is idle', async () => {
+      const script = buildTrickyTranscript()
+      const idleLead = await idleTranscript('lead.jsonl', 1000)
+      const recent = growingFrom(script, 'recent.jsonl')
+      const cache = createAgentScanCache()
+      recent.growTo(2000)
+      await readUnder(cache, await recent.stat(), await idleLead.stat())
+      recent.growTo(6000)
+
+      const starts = await startsDuring(async () =>
+        readUnder(cache, await recent.stat(), await idleLead.stat())
+      )
+
+      expect(starts).toEqual([consumedOffset(script.subarray(0, 2000))])
+    })
+
+    it('keeps nothing for a transcript when it and the session lead are both idle', async () => {
+      const idleLead = await idleTranscript('lead.jsonl', 1000)
+      const idle = await idleTranscript('idle.jsonl', 2000)
+      const cache = createAgentScanCache()
+      await readUnder(cache, await idle.stat(), await idleLead.stat())
+      await growIdle(idle, 6000)
+
+      const starts = await startsDuring(async () =>
+        readUnder(cache, await idle.stat(), await idleLead.stat())
+      )
+
+      expect(starts).toEqual([0])
+    })
+
+    it('judges a transcript by its own recency when no session lead is given', async () => {
+      const idle = await idleTranscript('idle.jsonl', 2000)
+      const cache = createAgentScanCache()
+      await readLead(cache, await idle.stat())
+      await growIdle(idle, 6000)
+
+      expect(await readAndCompare(cache, await idle.stat())).toBe(0)
+    })
+  })
+
   describe('bounds the scans it keeps', () => {
     it('keeps none when a scan is heavier than the whole bound, but still reads', async () => {
       const growing = growingFrom(buildTrickyTranscript())

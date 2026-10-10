@@ -2,6 +2,7 @@ import { createKeyedSerializer } from '../shared/keyedSerializer'
 import { createLruMap } from '../shared/lruMap'
 import {
   advanceScan,
+  isRecentlyModified,
   resumableScanWeight,
   type ResumableScan,
   type ScanReadTuning
@@ -49,6 +50,15 @@ export interface ReadAgentScanOptions {
   readonly trackCostState: boolean
   /** Stream tuning, mainly for tests. */
   readonly tuning?: ScanReadTuning
+  /**
+   * The lead transcript of the session this transcript belongs to. A scan is
+   * kept while the lead or the transcript itself was modified recently, so a
+   * subagent that finished and went idle is still read only from where it
+   * stopped while its session is live, and one still writing keeps its scan
+   * while the lead waits. When both are idle nothing is kept.
+   * @defaultValue none, so the transcript is judged by its own last modification
+   */
+  readonly sessionLead?: TranscriptFileInfo
 }
 
 /**
@@ -78,11 +88,13 @@ export interface AgentScanCache {
  * (see {@link resumableScanWeight}). An entry is reused only while the file's
  * `mtimeMs` and `size` both match, the assumption the summary cache makes too.
  *
- * Only a transcript modified recently has its scan kept, and not one weighing
- * more than a quarter of the bound (see {@link advanceScan}), so an idle
- * session's transcripts and a very long one are read in full, with nothing
- * retained. Reads of one path run one at a time, so overlapping
- * reads of a growing transcript never feed the same scan twice.
+ * Only the transcripts of a recently modified session, and a recently
+ * modified transcript of any session, have their scans kept (see
+ * `ReadAgentScanOptions.sessionLead`), and not one weighing more than a
+ * quarter of the bound (see {@link advanceScan}), so an idle session's
+ * transcripts and a very long one are read in full, with nothing retained.
+ * Reads of one path run one at a time, so overlapping reads of a growing
+ * transcript never feed the same scan twice.
  *
  * @param options - The weight bound and the clock.
  * @returns An empty cache.
@@ -105,7 +117,9 @@ export function createAgentScanCache(options: AgentScanCacheOptions = {}): Agent
       key,
       file,
       createScan: () => createAgentScan({ identity, trackCostState }),
-      now,
+      recent:
+        isRecentlyModified(file, now) ||
+        (request.sessionLead !== undefined && isRecentlyModified(request.sessionLead, now)),
       tuning
     })
     return scan.snapshot()

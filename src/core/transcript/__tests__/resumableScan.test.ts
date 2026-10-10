@@ -6,6 +6,7 @@ import { createLruMap, type LruMap } from '../../shared/lruMap'
 import type { LineScan } from '../feedLineScan'
 import {
   advanceScan,
+  isRecentlyModified,
   RESUME_ENTRY_OVERHEAD,
   RESUME_RECENT_MS,
   resumableScanWeight,
@@ -182,6 +183,26 @@ describe('resumableScanWeight', () => {
   })
 })
 
+describe('isRecentlyModified', () => {
+  const file = { path: '/x.jsonl', mtimeMs: 1_000_000, size: 1, ino: 1, dev: 1 }
+
+  it('is true for a file modified exactly the window ago', () => {
+    expect(isRecentlyModified(file, () => file.mtimeMs + RESUME_RECENT_MS)).toBe(true)
+  })
+
+  it('is false for a file modified longer ago than the window', () => {
+    expect(isRecentlyModified(file, () => file.mtimeMs + RESUME_RECENT_MS + 1)).toBe(false)
+  })
+
+  it('is true for a file modified just now', () => {
+    expect(isRecentlyModified(file, () => file.mtimeMs)).toBe(true)
+  })
+
+  it('is true for a file dated in the future', () => {
+    expect(isRecentlyModified(file, () => file.mtimeMs - 5000)).toBe(true)
+  })
+})
+
 describe('advanceScan', () => {
   type NumberStates = LruMap<string, ResumableScan<NumberScan>>
 
@@ -192,13 +213,13 @@ describe('advanceScan', () => {
     })
   }
 
-  async function advance(states: NumberStates, now: () => number = Date.now): Promise<NumberScan> {
+  async function advance(states: NumberStates, recent = true): Promise<NumberScan> {
     return advanceScan({
       states,
       key: path,
       file: await statWrittenTranscript(path),
       createScan: createNumberScan,
-      now
+      recent
     })
   }
 
@@ -239,29 +260,17 @@ describe('advanceScan', () => {
     expect(scan.seen).toEqual([7])
   })
 
-  it('keeps no scan for a file not modified within the recent window', async () => {
+  it('keeps no scan when the caller says the transcript is not recent', async () => {
     writeFileSync(path, lines(1, 2))
     touch(BASE_SECONDS + 1)
     const states = createStates()
-    const fileTimeMs = (BASE_SECONDS + 1) * 1000
 
-    const scan = await advance(states, () => fileTimeMs + RESUME_RECENT_MS + 1)
+    const scan = await advance(states, false)
 
     expect({ seen: scan.seen, kept: states.size }).toEqual({ seen: [1, 2], kept: 0 })
   })
 
-  it('keeps the scan of a file modified exactly the window ago', async () => {
-    writeFileSync(path, lines(1))
-    touch(BASE_SECONDS + 1)
-    const states = createStates()
-    const fileTimeMs = (BASE_SECONDS + 1) * 1000
-
-    await advance(states, () => fileTimeMs + RESUME_RECENT_MS)
-
-    expect(states.size).toBe(1)
-  })
-
-  it('drops the kept scan once the file is no longer recent', async () => {
+  it('drops the kept scan once the caller says the transcript is no longer recent', async () => {
     writeFileSync(path, lines(1))
     touch(BASE_SECONDS + 1)
     const states = createStates()
@@ -269,7 +278,7 @@ describe('advanceScan', () => {
 
     appendFileSync(path, lines(2))
     touch(BASE_SECONDS + 2)
-    await advance(states, () => (BASE_SECONDS + 2) * 1000 + RESUME_RECENT_MS + 1)
+    await advance(states, false)
 
     expect(states.size).toBe(0)
   })
@@ -286,7 +295,7 @@ describe('advanceScan', () => {
     rmSync(path)
 
     await expect(
-      advanceScan({ states, key: path, file, createScan: createNumberScan, now: Date.now })
+      advanceScan({ states, key: path, file, createScan: createNumberScan, recent: true })
     ).rejects.toMatchObject({ code: 'ENOENT' })
     expect(states.size).toBe(0)
   })
@@ -310,7 +319,7 @@ describe('advanceScan', () => {
         key: name,
         file: await statWrittenTranscript(join(dir, name)),
         createScan: createNumberScan,
-        now: Date.now
+        recent: true
       })
     }
 

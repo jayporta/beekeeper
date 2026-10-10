@@ -1,5 +1,5 @@
 import * as fs from 'node:fs'
-import { chmodSync } from 'node:fs'
+import { chmodSync, utimesSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { toAgentId } from '../../transcript/ids'
 import { createTranscriptDir, type TranscriptDir } from '../../transcript/summary/testTranscriptDir'
@@ -72,6 +72,64 @@ function messagesOf(scan: SessionScan, agentId: string): number {
 function newSession(leadScript: string, seed = 1, maxStep = 1): GrowingSession {
   return createGrowingSession({ root: dir.root, leadScript, seed, maxStep })
 }
+
+describe('scanSession keeping scans while the session or a transcript is recent', () => {
+  /** An hour before now, in seconds: well outside the recent window. */
+  const idleSeconds = (): number => Math.floor(Date.now() / 1000) - 3600
+
+  it('reads a finished subagent that is idle on its own only once as the session grows', async () => {
+    const lead = agentLines('lead', [0, 30])
+    const leadEarly = agentLines('lead', [0, 10])
+    const session = newSession(lead, 1, 400)
+    const finished = session.addSubagent('done', agentLines('done', [0, 6]))
+    finished.growTo(Number.MAX_SAFE_INTEGER)
+    utimesSync(finished.path, idleSeconds(), idleSeconds())
+    session.lead.growTo(bytes(leadEarly))
+    const cache = createAgentScanCache()
+    await scanBoth(session, cache)
+
+    const starts: number[][] = []
+    for (let step = 0; step < 3; step += 1) {
+      session.lead.grow()
+      starts.push((await scanBoth(session, cache)).starts)
+    }
+
+    // Each step reads the lead from where it stopped and nothing else.
+    expect(starts.map((step) => step.length)).toEqual([1, 1, 1])
+    expect(starts.every(([start]) => (start ?? 0) > 0)).toBe(true)
+  })
+
+  it('resumes a subagent that is still writing while the lead has been idle', async () => {
+    const ownEarly = agentLines('busy', [0, 10])
+    const session = newSession(agentLines('lead', [0, 10]), 1, 400)
+    const busy = session.addSubagent('busy', agentLines('busy', [0, 30]))
+    session.lead.growTo(Number.MAX_SAFE_INTEGER)
+    utimesSync(session.lead.path, idleSeconds(), idleSeconds())
+    busy.growTo(bytes(ownEarly))
+    const cache = createAgentScanCache()
+    await scanBoth(session, cache)
+
+    busy.grow()
+    const { starts } = await scanBoth(session, cache)
+
+    // The idle lead is read in full; the subagent carries on from where it stopped.
+    expect(starts).toEqual([0, consumedOffset(ownEarly)])
+  })
+
+  it('keeps nothing for a session whose lead and subagents are all idle', async () => {
+    const session = newSession(agentLines('lead', [0, 10]))
+    const finished = session.addSubagent('done', agentLines('done', [0, 6]))
+    session.lead.growTo(Number.MAX_SAFE_INTEGER)
+    finished.growTo(Number.MAX_SAFE_INTEGER)
+    for (const file of [session.lead, finished]) utimesSync(file.path, idleSeconds(), idleSeconds())
+    const cache = createAgentScanCache()
+    await scanBoth(session, cache)
+
+    const { starts } = await scanBoth(session, cache)
+
+    expect(starts).toEqual([0, 0])
+  })
+})
 
 describe('scanSession resumed from cached transcript scans', () => {
   describe('equals a full scan', { timeout: EQUIVALENCE_TIMEOUT_MS }, () => {

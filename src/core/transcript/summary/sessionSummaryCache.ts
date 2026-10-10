@@ -4,6 +4,7 @@ import { ok, type Result } from '../../shared/result'
 import { captureSystemError } from '../captureSystemError'
 import {
   advanceScan,
+  isRecentlyModified,
   resumableScanWeight,
   type ResumableScan,
   type ScanReadTuning
@@ -148,7 +149,7 @@ export function createSessionSummaryCache(
       key: file.path,
       file,
       createScan: createSummaryScan,
-      now,
+      recent: isRecentlyModified(file, now),
       tuning
     })
     return advanced.summary()

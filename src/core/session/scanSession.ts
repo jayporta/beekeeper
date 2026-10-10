@@ -128,7 +128,8 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
     file: leadFile,
     identity: leadIdentity,
     trackCostState: true,
-    tuning
+    tuning,
+    sessionLead: leadFile
   })
   applyAgentReports({
     usageLedger,
@@ -147,7 +148,13 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
   for (const subagent of subagents) {
     const identity = subagentIdentity(subagent.agentId)
     const read = await captureSystemError(() =>
-      cache.read({ file: subagent.transcript, identity, trackCostState: false, tuning })
+      cache.read({
+        file: subagent.transcript,
+        identity,
+        trackCostState: false,
+        tuning,
+        sessionLead: leadFile
+      })
     )
     if (read.ok) {
       applyAgentReports({
