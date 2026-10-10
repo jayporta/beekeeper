@@ -12,13 +12,15 @@ import type {
 import { SELECT_STATES, UPDATE_DETAIL, UPSERT_LIST_ITEM } from './archiveSql'
 import { createArchiveReader } from './createArchiveReader'
 import type { ArchiveDb } from './openArchive'
+import { rollBack } from './rollBack'
 
-/** A stored list item's session, source state, format, and last message time. */
+/** A stored list item's session, source state, format, last message time, and whether its sidecars are stored. */
 interface StoredListEntry {
   readonly ref: SessionRefDto
   readonly source: SourceState
   readonly format: number
   readonly activityLatestMs: number | null
+  readonly hasSidecars: boolean
 }
 
 function activityLatestOf(item: SessionListItemDto): number | null {
@@ -65,7 +67,8 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
       ref,
       source: { mtimeMs: Number(row['source_mtime_ms']), size: Number(row['source_size']) },
       format,
-      activityLatestMs: activity === null ? null : Number(activity)
+      activityLatestMs: activity === null ? null : Number(activity),
+      hasSidecars: Number(row['has_sidecars']) === 1
     })
     if (format === ARCHIVE_FORMAT && row['detail_mtime_ms'] !== null) {
       settledStates.set(key, {
@@ -75,24 +78,19 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
     }
   }
 
-  /** Whether the stored list item for a key was built from this source state at the current format. */
+  /**
+   * Whether the stored list item for a key was built from this source state at
+   * the current format, with its sidecars. A row without them is out of date,
+   * so the next list rewrites it.
+   */
   function isListItemCurrent(key: string, source: SourceState): boolean {
     const entry = listEntries.get(key)
-    return entry?.format === ARCHIVE_FORMAT && sameSource(entry.source, source)
+    return entry?.format === ARCHIVE_FORMAT && entry.hasSidecars && sameSource(entry.source, source)
   }
 
   /** Whether archiving a detail for this source state would change nothing. */
   function isSettled(key: string, source: SourceState): boolean {
     return sameSource(settledStates.get(key), source)
-  }
-
-  /** Ends a failed transaction. A rollback that fails too must not replace the error that caused it. */
-  function rollBack(): void {
-    try {
-      db.exec('ROLLBACK')
-    } catch {
-      // The caller rethrows the failure that made the batch fail, which is the one worth reporting.
-    }
   }
 
   /** Upserts the entries whose stored row is out of date, in one transaction. */
@@ -104,7 +102,7 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
     if (writes.length === 0) return
     db.exec('BEGIN')
     try {
-      for (const { item, source } of writes) {
+      for (const { item, source, teamSpawns, leadSlots } of writes) {
         upsertListItem.run(
           item.projectDirName,
           item.sessionId,
@@ -112,13 +110,15 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
           source.size,
           ARCHIVE_FORMAT,
           activityLatestOf(item),
+          JSON.stringify(teamSpawns),
+          JSON.stringify(leadSlots),
           JSON.stringify({ ...item, team: null }),
           now()
         )
       }
       db.exec('COMMIT')
     } catch (error) {
-      rollBack()
+      rollBack(db)
       throw error
     }
     for (const { item, source } of writes) {
@@ -132,7 +132,8 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
         ref,
         source,
         format: ARCHIVE_FORMAT,
-        activityLatestMs: activityLatestOf(item)
+        activityLatestMs: activityLatestOf(item),
+        hasSidecars: true
       })
     }
   }
@@ -175,6 +176,8 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
       }
       return pending
     },
+
+    readSessions: reads.readSessions,
 
     readListItems: reads.readListItems,
 

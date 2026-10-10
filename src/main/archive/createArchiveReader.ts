@@ -1,15 +1,17 @@
 import { compareCodeUnits } from '../../core/shared/compareCodeUnits'
+import type { Result } from '../../core/shared/result'
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
-import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
 import { sessionRefKey } from '../ipc/sessionRefKey'
 import { ARCHIVE_FORMAT } from './archiveConstants'
-import { SELECT_DETAIL, SELECT_LIST_ITEM } from './archiveSql'
-import type { ArchiveReader } from './archiveStoreTypes'
+import { SELECT_DETAIL, SELECT_SESSION_ROW } from './archiveSql'
+import type { ArchivedSession, ArchiveReader } from './archiveStoreTypes'
 import type { ArchiveDb } from './openArchive'
 import {
   parseArchivedDetail,
+  parseArchivedLeadSlots,
   parseArchivedListItem,
+  parseArchivedTeamSpawns,
   type ArchivedRowError
 } from './parseArchivedRow'
 
@@ -39,26 +41,27 @@ interface FolderRows {
   readonly ids: Set<string>
   /** The ids in code unit order, or `null` once an id was added. */
   sorted: string[] | null
-  /** A row's list item once read, or `null` when the row can't be served. */
-  readonly items: Map<string, SessionListItemDto | null>
+  /** A row's session once read, or `null` when the row can't be served. */
+  readonly sessions: Map<string, ArchivedSession | null>
 }
 
 /**
- * Creates the archive's reads. A row is read and parsed the first time a read
- * asks for it, and only then: a session the caller excludes is never touched.
- * What was read stays in memory until the row changes, so a list that is read
- * every few seconds costs a pass over the ids and no queries. The last detail
- * read is kept the same way.
+ * Creates the archive's reads. A row is read and parsed, sidecars included,
+ * the first time a read asks for it, and only then: a session the caller
+ * excludes is never touched. What was read stays in memory until the row
+ * changes, so a list that is read every few seconds costs a pass over the ids
+ * and no queries or parsing. The last detail read is kept the same way.
  *
  * @param options - The database, where to log, and whether the store is closed.
  * @returns The reads, and `rowChanged` for the store to call after it writes.
  */
 export function createArchiveReader(options: ArchiveReaderOptions): ArchiveReads {
   const { db, log, isClosed } = options
-  const selectListItem = db.prepare(SELECT_LIST_ITEM)
+  const selectSessionRow = db.prepare(SELECT_SESSION_ROW)
   const selectDetail = db.prepare(SELECT_DETAIL)
   const folders = new Map<string, FolderRows>()
   const loggedRowErrors = new Set<ArchivedRowError>()
+  const loggedSidecarErrors = new Set<string>()
   let lastDetail: { readonly key: string; readonly detail: SessionDetailDto } | null = null
 
   /** Logs a kind of unreadable row the first time it is seen. */
@@ -68,47 +71,88 @@ export function createArchiveReader(options: ArchiveReaderOptions): ArchiveReads
     log(`Beekeeper archive skipped an unreadable row (${error}).`)
   }
 
-  /** Reads and parses one list item row, remembering the outcome. */
-  function readItem(folder: FolderRows, ref: SessionRefDto): SessionListItemDto | null {
-    const cached = folder.items.get(ref.sessionId)
+  /** Parses a sidecar column, which is `null` when the row has none stored or it can't be read. */
+  function readSidecar<Value>(options: {
+    readonly stored: unknown
+    readonly label: string
+    readonly parse: (json: string) => Result<Value, ArchivedRowError>
+  }): Value | null {
+    const { stored, label, parse } = options
+    if (typeof stored !== 'string') return null
+    const parsed = parse(stored)
+    if (parsed.ok) return parsed.value
+    const kind = `${label}:${parsed.error}`
+    if (!loggedSidecarErrors.has(kind)) {
+      loggedSidecarErrors.add(kind)
+      log(`Beekeeper archive skipped an unreadable ${label} column (${parsed.error}).`)
+    }
+    return null
+  }
+
+  /** Reads and parses one row and its sidecars, remembering the outcome. */
+  function readSession(folder: FolderRows, ref: SessionRefDto): ArchivedSession | null {
+    const cached = folder.sessions.get(ref.sessionId)
     if (cached !== undefined) return cached
-    const row = selectListItem.get(ref.projectDirName, ref.sessionId, ARCHIVE_FORMAT)
-    let item: SessionListItemDto | null = null
+    const row = selectSessionRow.get(ref.projectDirName, ref.sessionId, ARCHIVE_FORMAT)
+    let session: ArchivedSession | null = null
     if (row !== undefined) {
       const parsed = parseArchivedListItem(String(row['list_item']), ref)
-      if (parsed.ok) item = parsed.value
-      else logUnreadableRow(parsed.error)
+      if (parsed.ok) {
+        session = {
+          item: parsed.value,
+          teamSpawns: readSidecar({
+            stored: row['team_spawns'],
+            label: 'team spawns',
+            parse: parseArchivedTeamSpawns
+          }),
+          leadSlots: readSidecar({
+            stored: row['lead_slots'],
+            label: 'lead slots',
+            parse: parseArchivedLeadSlots
+          })
+        }
+      } else logUnreadableRow(parsed.error)
     }
-    folder.items.set(ref.sessionId, item)
-    return item
+    folder.sessions.set(ref.sessionId, session)
+    return session
+  }
+
+  /** The folder's readable sessions in session id order, leaving out the excluded ones. */
+  function readSessions(
+    projectDirName: string,
+    excluding: ReadonlySet<string>
+  ): readonly ArchivedSession[] {
+    const folder = folders.get(projectDirName)
+    if (isClosed() || folder === undefined) return []
+    folder.sorted ??= [...folder.ids].sort(compareCodeUnits)
+    const sessions: ArchivedSession[] = []
+    for (const sessionId of folder.sorted) {
+      if (excluding.has(sessionId)) continue
+      const session = readSession(folder, { projectDirName, sessionId })
+      if (session !== null) sessions.push(session)
+    }
+    return sessions
   }
 
   return {
     rowChanged(ref) {
       let folder = folders.get(ref.projectDirName)
       if (folder === undefined) {
-        folder = { ids: new Set(), sorted: null, items: new Map() }
+        folder = { ids: new Set(), sorted: null, sessions: new Map() }
         folders.set(ref.projectDirName, folder)
       }
       if (!folder.ids.has(ref.sessionId)) {
         folder.ids.add(ref.sessionId)
         folder.sorted = null
       }
-      folder.items.delete(ref.sessionId)
+      folder.sessions.delete(ref.sessionId)
       if (lastDetail?.key === sessionRefKey(ref)) lastDetail = null
     },
 
+    readSessions,
+
     readListItems(projectDirName, excluding) {
-      const folder = folders.get(projectDirName)
-      if (isClosed() || folder === undefined) return []
-      folder.sorted ??= [...folder.ids].sort(compareCodeUnits)
-      const items: SessionListItemDto[] = []
-      for (const sessionId of folder.sorted) {
-        if (excluding.has(sessionId)) continue
-        const item = readItem(folder, { projectDirName, sessionId })
-        if (item !== null) items.push(item)
-      }
-      return items
+      return readSessions(projectDirName, excluding).map(({ item }) => item)
     },
 
     readDetail(ref) {

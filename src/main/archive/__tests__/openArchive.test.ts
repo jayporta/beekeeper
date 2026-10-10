@@ -3,6 +3,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { ARCHIVE_SCHEMA_VERSION } from '../archiveSchema'
 import { openArchive } from '../openArchive'
 import { collectLog } from '../testCollectLog'
 
@@ -21,7 +22,7 @@ describe('openArchive', () => {
     const db = openArchive(':memory:')
 
     const row = db?.prepare("SELECT value FROM meta WHERE key = 'schema_version'").get()
-    expect(row?.['value']).toBe('1')
+    expect(row?.['value']).toBe(String(ARCHIVE_SCHEMA_VERSION))
   })
 
   it('creates the archive file and its missing parent folder', () => {
@@ -33,14 +34,14 @@ describe('openArchive', () => {
     const reopened = new DatabaseSync(path)
     const row = reopened.prepare("SELECT value FROM meta WHERE key = 'schema_version'").get()
     reopened.close()
-    expect(row?.['value']).toBe('1')
+    expect(row?.['value']).toBe(String(ARCHIVE_SCHEMA_VERSION))
   })
 
   it('returns null and logs once when the file holds a newer schema', () => {
     const path = join(dir, 'archive.sqlite')
     const seeded = new DatabaseSync(path)
     seeded.exec('CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)')
-    seeded.exec("INSERT INTO meta (key, value) VALUES ('schema_version', '2')")
+    seeded.exec("INSERT INTO meta (key, value) VALUES ('schema_version', '3')")
     seeded.close()
     const { lines, log } = collectLog()
 

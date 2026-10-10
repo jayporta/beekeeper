@@ -1,5 +1,6 @@
 import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
-import type { ListItemEntry } from '../archive/archiveStoreTypes'
+import type { LeadUsage } from '../../core/transcript/summary/leadUsage'
+import type { ArchivedLeadSlots, ListItemEntry } from '../archive/archiveStoreTypes'
 import { safeArchiveWrite } from '../archive/safeArchiveWrite'
 import type { IpcDeps } from './ipcDeps'
 import type { ScannedSession } from './mapSessionListItem'
@@ -22,11 +23,20 @@ export interface ArchiveListedSessionsOptions {
   readonly listed: readonly ListedItem[]
 }
 
+/** What usage over time keeps of a session's lead usage: its slots, without the message ids. */
+function leadSlotsOf(leadUsage: LeadUsage | null): ArchivedLeadSlots | null {
+  if (leadUsage === null) return null
+  const { slots, undatedMessages, invalidAssistantRecords } = leadUsage
+  return { slots, undatedMessages, invalidAssistantRecords }
+}
+
 /**
  * Archives the list items of a folder's own sessions whose summary was read.
  * A family teammate listed from another folder belongs to that folder's own
  * list, and a session whose summary failed has nothing worth keeping. The
- * items are saved in one batch. A failing write is logged once per kind and
+ * items are saved in one batch, each with the teammates its transcript spawned
+ * and stopped and its lead usage per slot, which the summary the item was
+ * mapped from holds. A failing write is logged once per kind and
  * never fails the list.
  *
  * @param options - The archive, the requested folder, and the listed items.
@@ -37,10 +47,14 @@ export function archiveListedSessions(options: ArchiveListedSessionsOptions): vo
   const entries: ListItemEntry[] = []
   for (const { session, item } of listed) {
     const { transcript } = session.entry
-    if (session.projectDirName !== projectDirName || !item.summary.ok || !transcript.ok) continue
+    const { summary } = session
+    if (session.projectDirName !== projectDirName || !item.summary.ok || !summary.ok) continue
+    if (!transcript.ok) continue
     entries.push({
       item,
-      source: { mtimeMs: transcript.value.mtimeMs, size: transcript.value.size }
+      source: { mtimeMs: transcript.value.mtimeMs, size: transcript.value.size },
+      teamSpawns: summary.value.teamSpawns,
+      leadSlots: leadSlotsOf(summary.value.leadUsage)
     })
   }
   if (entries.length > 0) safeArchiveWrite(() => archive.saveListItems(entries))

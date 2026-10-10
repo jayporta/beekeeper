@@ -4,7 +4,8 @@ import type { IpcResult } from '../../shared/ipc/ipcResult'
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto, SessionSummaryDto } from '../../shared/ipc/sessionListDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
-import type { ListItemEntry, SourceState } from './archiveStoreTypes'
+import type { TranscriptTeamSpawns } from '../../core/transcript/teammateSpawn'
+import type { ArchivedLeadSlots, ListItemEntry, SourceState } from './archiveStoreTypes'
 
 /** The session the fixtures describe unless overridden. */
 export const TEST_REF: SessionRefDto = {
@@ -32,12 +33,32 @@ export function testListItem(overrides: Partial<SessionListItemDto> = {}): Sessi
   }
 }
 
-/** A list item to store with the transcript state it was built from, for {@link TEST_REF} unless overridden. */
+/** A transcript that spawned and stopped nobody. */
+export const NO_TEAM_SPAWNS: TranscriptTeamSpawns = { spawns: [], stops: [], truncated: false }
+
+/** Team spawns with every part set. */
+export const TEST_TEAM_SPAWNS: TranscriptTeamSpawns = {
+  spawns: [{ agentName: 'scout', teamName: 'blue', agentType: 'Explore', rawToolUseId: 'toolu_1' }],
+  stops: [{ agentName: 'scout', teamName: 'blue' }],
+  truncated: true
+}
+
+/** Lead slots with every part set. */
+export const TEST_LEAD_SLOTS: ArchivedLeadSlots = {
+  slots: [{ slot: 1_900_000, model: 'claude-opus-4', tokens: 1_200 }],
+  undatedMessages: 2,
+  invalidAssistantRecords: 1
+}
+
+/**
+ * A list item to store with the transcript state it was built from, for
+ * {@link TEST_REF} unless overridden. Its sidecars are empty: no spawns, and no lead usage.
+ */
 export function listEntry(
   item: SessionListItemDto = testListItem(),
   source: SourceState = TEST_SOURCE
 ): ListItemEntry {
-  return { item, source }
+  return { item, source, teamSpawns: NO_TEAM_SPAWNS, leadSlots: null }
 }
 
 /** A readable summary whose last message is at `latestMs`, or that has no timestamps when `null`. */

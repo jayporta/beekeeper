@@ -1,8 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite'
-import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MAX_ARCHIVED_DETAIL_CHARS } from '../archiveConstants'
-import type { ArchiveStore, SourceState } from '../archiveStoreTypes'
+import type { ArchiveStore, ListItemEntry, SourceState } from '../archiveStoreTypes'
 import { createArchiveStore } from '../createArchiveStore'
 import { openArchive } from '../openArchive'
 import {
@@ -13,12 +12,6 @@ import {
   TEST_REF,
   TEST_SOURCE
 } from '../testArchiveFixtures'
-
-/** One entry of a `saveListItems` batch. */
-interface ListEntry {
-  readonly item: SessionListItemDto
-  readonly source: SourceState
-}
 
 let db: DatabaseSync
 let clock: number
@@ -327,11 +320,11 @@ describe('saveListItems', () => {
   const SECOND = { ...TEST_REF, sessionId: '22222222-2222-4222-8222-222222222222' }
   const THIRD = { ...TEST_REF, sessionId: '33333333-3333-4333-8333-333333333333' }
 
-  function entryFor(ref: typeof TEST_REF, source: SourceState = TEST_SOURCE): ListEntry {
-    return { item: testListItem({ sessionId: ref.sessionId }), source }
+  function entryFor(ref: typeof TEST_REF, source: SourceState = TEST_SOURCE): ListItemEntry {
+    return listEntry(testListItem({ sessionId: ref.sessionId }), source)
   }
 
-  function entries(): ListEntry[] {
+  function entries(): ListItemEntry[] {
     return [entryFor(TEST_REF), entryFor(SECOND), entryFor(THIRD)]
   }
 
@@ -389,7 +382,7 @@ describe('saveListItems', () => {
     })
 
     expect(() =>
-      store.saveListItems([entryFor(TEST_REF), { item: failing, source: TEST_SOURCE }])
+      store.saveListItems([entryFor(TEST_REF), listEntry(failing, TEST_SOURCE)])
     ).toThrow('serialization failed')
     expect(logged).toEqual([])
   })
@@ -402,7 +395,7 @@ describe('saveListItems', () => {
     })
 
     expect(() =>
-      store.saveListItems([entryFor(TEST_REF), { item: failing, source: TEST_SOURCE }])
+      store.saveListItems([entryFor(TEST_REF), listEntry(failing, TEST_SOURCE)])
     ).toThrow('serialization failed')
 
     expect(rows()).toEqual([])
@@ -1001,7 +994,7 @@ describe('after close', () => {
   it('ignores a list item batch without throwing or logging', () => {
     const changed = { ...TEST_SOURCE, size: 900 }
 
-    expect(() => store.saveListItems([{ item: testListItem(), source: changed }])).not.toThrow()
+    expect(() => store.saveListItems([listEntry(testListItem(), changed)])).not.toThrow()
     expect(logged).toEqual([])
   })
 
