@@ -4,6 +4,13 @@ import { totalTokenCount } from '../../pricing/totalTokenCount'
 import { QUARTER_HOUR_MS } from '../../shared/quarterHour'
 import type { LeadUsageSlot } from './leadUsage'
 
+/**
+ * The weight, in UTF-16 code units, charged for each slot and model the ledger
+ * holds beyond its key: the map entry, the key's string header, the running
+ * sum, and its frozen copy in the list `slots()` returns.
+ */
+export const LEDGER_SLOT_OVERHEAD = 80
+
 /** One message as the observer tracks it, merged across every record that carried its id. */
 export interface TrackedMessage {
   /** The raw model id of the first record that carried the id. */
@@ -41,6 +48,11 @@ export interface LeadUsageLedger {
   undatedMessages(): number
   /** The total across every token class of every message, or `null` when it is not finite. */
   totalTokens(): number | null
+  /**
+   * What the ledger holds, in UTF-16 code units: {@link LEDGER_SLOT_OVERHEAD}
+   * plus the length of the key, the slot and the model, for each slot and model.
+   */
+  weight(): number
 }
 
 /** One slot and model as the ledger sums it. */
@@ -89,6 +101,7 @@ export function createLeadUsageLedger(): LeadUsageLedger {
   let finiteTotal = 0
   let nonFiniteMessages = 0
   let sorted: readonly LeadUsageSlot[] | null = null
+  let weight = 0
 
   function place(placement: Placement, sign: 1 | -1): void {
     if (placement.kind === 'none') return
@@ -101,6 +114,7 @@ export function createLeadUsageLedger(): LeadUsageLedger {
     const key = `${placement.slot}\0${placement.model}`
     const existing = bySlot.get(key)
     if (existing === undefined) {
+      weight += LEDGER_SLOT_OVERHEAD + key.length
       bySlot.set(key, {
         slot: placement.slot,
         model: placement.model,
@@ -111,7 +125,10 @@ export function createLeadUsageLedger(): LeadUsageLedger {
     }
     existing.tokens += sign * placement.tokens
     existing.messages += sign
-    if (existing.messages === 0) bySlot.delete(key)
+    if (existing.messages === 0) {
+      bySlot.delete(key)
+      weight -= LEDGER_SLOT_OVERHEAD + key.length
+    }
   }
 
   function count(message: TrackedMessage, sign: 1 | -1): void {
@@ -138,6 +155,8 @@ export function createLeadUsageLedger(): LeadUsageLedger {
       return sorted
     },
     undatedMessages: () => undated,
-    totalTokens: () => (nonFiniteMessages > 0 || !Number.isFinite(finiteTotal) ? null : finiteTotal)
+    totalTokens: () =>
+      nonFiniteMessages > 0 || !Number.isFinite(finiteTotal) ? null : finiteTotal,
+    weight: () => weight
   }
 }

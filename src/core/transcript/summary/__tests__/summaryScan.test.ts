@@ -12,7 +12,8 @@ import { buildTaskStopRecord, buildTeammateSpawnRecord } from '../../testTeammat
 import { buildSessionSummary } from '../testSessionSummary'
 import { createSummaryScan, SUMMARY_SCAN_BASE_WEIGHT, type SummaryScan } from '../summaryScan'
 import { RECORDED_MODEL_OVERHEAD } from '../recordedCostState'
-import { TRACKED_MESSAGE_OVERHEAD } from '../transcriptTokenObserver'
+import { recordTimestampMs } from '../recordTimestampMs'
+import { createTranscriptTokenObserver } from '../transcriptTokenObserver'
 
 /** A mixed run of lines that exercises every part of the summary, and a line that could not be read. */
 const MIXED_LINES: readonly LineScanInput[] = [
@@ -110,12 +111,13 @@ describe('createSummaryScan', () => {
     })
 
     it('adds what the token observer holds', () => {
+      const record = buildAssistantRecord({ messageId: 'msg_a', model: 'model-one' })
       const scan = createSummaryScan()
-      scan.observe(ok(buildAssistantRecord({ messageId: 'msg_a', model: 'model-one' })))
+      const observer = createTranscriptTokenObserver()
+      scan.observe(ok(record))
+      observer.observe(record, recordTimestampMs(record))
 
-      expect(scan.weight()).toBe(
-        SUMMARY_SCAN_BASE_WEIGHT + TRACKED_MESSAGE_OVERHEAD + 'msg_a'.length + 'model-one'.length
-      )
+      expect(scan.weight()).toBe(SUMMARY_SCAN_BASE_WEIGHT + observer.weight())
     })
 
     it('adds what the recorded cost state holds', () => {

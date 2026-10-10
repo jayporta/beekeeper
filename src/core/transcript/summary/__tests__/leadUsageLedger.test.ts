@@ -6,6 +6,7 @@ import { QUARTER_HOUR_MS } from '../../../shared/quarterHour'
 import type { LeadUsageSlot } from '../leadUsage'
 import {
   createLeadUsageLedger,
+  LEDGER_SLOT_OVERHEAD,
   type LeadUsageLedger,
   type TrackedMessage
 } from '../leadUsageLedger'
@@ -231,6 +232,43 @@ describe('createLeadUsageLedger', () => {
       ledger.update({ before: undefined, after: tracked({ earliestMs: NOON + QUARTER_HOUR_MS }) })
 
       expect(earlier).toEqual(snapshot)
+    })
+  })
+
+  describe('weight', () => {
+    it('is zero before any message', () => {
+      expect(createLeadUsageLedger().weight()).toBe(0)
+    })
+
+    it('charges each slot and model its overhead and its key, the slot and the model', () => {
+      const ledger = ledgerOf([tracked({}), tracked({})])
+
+      expect(ledger.weight()).toBe(
+        LEDGER_SLOT_OVERHEAD + String(slotOf('2026-01-01T12:00:00.000Z')).length + 1 + MODEL.length
+      )
+    })
+
+    it('charges another slot for a message in a different slot', () => {
+      const one = ledgerOf([tracked({})])
+      const two = ledgerOf([
+        tracked({}),
+        tracked({ earliestMs: Date.parse('2026-01-01T13:00:00.000Z') })
+      ])
+
+      expect(two.weight()).toBe(2 * one.weight())
+    })
+
+    it('frees a slot once its last message has moved away', () => {
+      const later = tracked({ earliestMs: Date.parse('2026-01-01T13:00:00.000Z') })
+      const ledger = ledgerOf([later, tracked({})])
+
+      ledger.update({ before: later, after: { ...later, earliestMs: NOON } })
+
+      expect(ledger.weight()).toBe(ledgerOf([tracked({})]).weight())
+    })
+
+    it('charges nothing for undated messages', () => {
+      expect(ledgerOf([tracked({ earliestMs: null })]).weight()).toBe(0)
     })
   })
 

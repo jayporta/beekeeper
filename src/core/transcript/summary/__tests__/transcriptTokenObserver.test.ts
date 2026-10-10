@@ -4,6 +4,7 @@ import { recordTimestampMs } from '../recordTimestampMs'
 import {
   createTranscriptTokenObserver,
   MAX_MESSAGE_IDS,
+  SNAPSHOT_ID_OVERHEAD,
   TRACKED_MESSAGE_OVERHEAD,
   type TranscriptTokenObserver
 } from '../transcriptTokenObserver'
@@ -300,8 +301,9 @@ describe('createTranscriptTokenObserver', () => {
 
     it('charges each distinct message its overhead, its id and its model', () => {
       const observer = createTranscriptTokenObserver()
-      feed(observer, buildAssistantRecord({ messageId: 'msg_a', model: 'model-one' }))
-      feed(observer, buildAssistantRecord({ messageId: 'msg_bb', model: 'model-22' }))
+      // Undated, so the messages fill no slot.
+      observer.observe(buildAssistantRecord({ messageId: 'msg_a', model: 'model-one' }), null)
+      observer.observe(buildAssistantRecord({ messageId: 'msg_bb', model: 'model-22' }), null)
 
       expect(observer.weight()).toBe(
         2 * TRACKED_MESSAGE_OVERHEAD +
@@ -310,6 +312,31 @@ describe('createTranscriptTokenObserver', () => {
           'msg_bb'.length +
           'model-22'.length
       )
+    })
+
+    it('weighs more for messages spread over more slots', () => {
+      const oneSlot = createTranscriptTokenObserver()
+      const twoSlots = createTranscriptTokenObserver()
+      for (const [observer, laterAt] of [
+        [oneSlot, '2026-01-01T00:05:00.000Z'],
+        [twoSlots, '2026-01-01T00:20:00.000Z']
+      ] as const) {
+        feed(observer, buildAssistantRecord({ messageId: 'msg_a' }))
+        feed(observer, buildAssistantRecord({ messageId: 'msg_b', timestamp: laterAt }))
+      }
+
+      expect(twoSlots.weight()).toBeGreaterThan(oneSlot.weight())
+    })
+
+    it('charges the message ids it keeps once its lead usage is read', () => {
+      const observer = createTranscriptTokenObserver()
+      feed(observer, buildAssistantRecord({ messageId: 'msg_a' }))
+      feed(observer, buildAssistantRecord({ messageId: 'msg_b' }))
+      const unread = observer.weight()
+
+      observer.leadUsage()
+
+      expect(observer.weight()).toBe(unread + 2 * SNAPSHOT_ID_OVERHEAD)
     })
 
     it('does not charge a repeat of an id again', () => {

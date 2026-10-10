@@ -15,6 +15,12 @@ export const MAX_MESSAGE_IDS = 50_000
  */
 export const TRACKED_MESSAGE_OVERHEAD = 96
 
+/**
+ * The weight, in UTF-16 code units, charged for each message id in the copy
+ * `leadUsage()` keeps: its set entry. The id strings are the tracked ones.
+ */
+export const SNAPSHOT_ID_OVERHEAD = 16
+
 /** Totals and slots the tokens a transcript's own assistant records report. */
 export interface TranscriptTokenObserver {
   /**
@@ -40,8 +46,10 @@ export interface TranscriptTokenObserver {
   leadUsage(): LeadUsage | null
   /**
    * What the observer holds, in UTF-16 code units: {@link TRACKED_MESSAGE_OVERHEAD}
-   * plus the length of the id and of the model for each message tracked. Zero
-   * once the observer has given up on a transcript.
+   * plus the length of the id and of the model for each message tracked, the
+   * slots its ledger keeps, and
+   * {@link SNAPSHOT_ID_OVERHEAD} for each id in the copy `leadUsage()` keeps,
+   * while it keeps one. Zero once the observer has given up on a transcript.
    */
   weight(): number
 }
@@ -82,7 +90,7 @@ export function createTranscriptTokenObserver(): TranscriptTokenObserver {
   let idsSnapshot: ReadonlySet<string> | null = null
   let invalidAssistantRecords = 0
   let overflowed = false
-  let weight = 0
+  let messagesWeight = 0
 
   return {
     observe(record, timestampMs) {
@@ -100,13 +108,13 @@ export function createTranscriptTokenObserver(): TranscriptTokenObserver {
         ledger = createLeadUsageLedger()
         idsSnapshot = null
         overflowed = true
-        weight = 0
+        messagesWeight = 0
         return
       }
       const tokens = messageTokens(message.usage)
       let tracked: TrackedMessage
       if (existing === undefined) {
-        weight += TRACKED_MESSAGE_OVERHEAD + message.id.length + message.model.length
+        messagesWeight += TRACKED_MESSAGE_OVERHEAD + message.id.length + message.model.length
         idsSnapshot = null
         tracked = { model: message.model, tokens, earliestMs: timestampMs }
       } else {
@@ -132,6 +140,6 @@ export function createTranscriptTokenObserver(): TranscriptTokenObserver {
         messageIds: idsSnapshot
       }
     },
-    weight: () => weight
+    weight: () => messagesWeight + ledger.weight() + (idsSnapshot?.size ?? 0) * SNAPSHOT_ID_OVERHEAD
   }
 }
