@@ -21,8 +21,7 @@ export function idleSeconds(): number {
 }
 
 /**
- * Sets a file's access and modification times, so a stat tells it from the
- * one before.
+ * Sets a file's access and modification times to the same instant.
  * @param path - The file to touch.
  * @param seconds - The time to set, in seconds since the epoch.
  */
