@@ -1,5 +1,6 @@
 import type { ProjectDirName, SessionId } from '../transcript/ids'
-import type { SessionSummary } from '../transcript/summary/sessionSummary'
+import type { AgentSignals } from '../transcript/signals/agentSignals'
+import type { RecordedUsage, SessionSummary } from '../transcript/summary/sessionSummary'
 
 /** Identifies one session by its project folder and transcript id. */
 export interface SessionRef {
@@ -9,12 +10,25 @@ export interface SessionRef {
   readonly sessionId: SessionId
 }
 
+/**
+ * What team grouping and the team rollups read of a session's summary: its
+ * role, activity span, spawned and stopped teammates, recorded usage, and
+ * countable signals. A full {@link SessionSummary} fits, and so does what an
+ * archived session keeps.
+ */
+export interface TeamSummary extends Pick<SessionSummary, 'role' | 'activity' | 'teamSpawns'> {
+  /** What the session recorded about its own usage, or `null` when it recorded none. */
+  readonly usage: Pick<RecordedUsage, 'totalUSD' | 'totalTokens'> | null
+  /** The counts that add across a team, and whether they are partial. */
+  readonly signals: Pick<AgentSignals, 'toolErrors' | 'compactions' | 'agentsKilled' | 'partial'>
+}
+
 /** A session's summary, alongside the ref that locates its transcript. */
 export interface SummarizedSession {
   /** The ref that locates the session's transcript. */
   readonly ref: SessionRef
-  /** The session's summary. */
-  readonly summary: SessionSummary
+  /** What grouping reads of the session's summary. */
+  readonly summary: TeamSummary
 }
 
 /** One agent session grouped under the lead session that spawned it. */

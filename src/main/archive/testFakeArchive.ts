@@ -37,6 +37,8 @@ export interface FakeArchive extends ArchiveWriter, ArchiveReader {
 export interface FakeArchiveReads {
   /** The list items it holds, from any folder. Its sessions carry no team spawns or lead slots. */
   readonly listItems?: readonly SessionListItemDto[]
+  /** The sessions it holds, from any folder, after those built from `listItems`. */
+  readonly sessions?: readonly ArchivedSession[]
   /** The details it holds, keyed by {@link sessionRefKey}. */
   readonly details?: ReadonlyMap<string, SessionDetailDto>
 }
@@ -59,9 +61,10 @@ export function createFakeArchive(failure?: Error, reads: FakeArchiveReads = {})
     excluding: ReadonlySet<string>
   ): readonly ArchivedSession[] {
     if (failure !== undefined) throw failure
-    return (reads.listItems ?? [])
-      .filter((item) => item.projectDirName === projectDirName && !excluding.has(item.sessionId))
-      .map((item) => ({ item, teamSpawns: null, leadSlots: null }))
+    return [
+      ...(reads.listItems ?? []).map((item) => ({ item, teamSpawns: null, leadSlots: null })),
+      ...(reads.sessions ?? [])
+    ].filter(({ item }) => item.projectDirName === projectDirName && !excluding.has(item.sessionId))
   }
 
   return {

@@ -100,7 +100,9 @@ export interface SessionListItemDto {
   /**
    * Whether this entry is beekeeper's archived copy of a session whose
    * transcript is no longer on disk. A live session is `false`. An archived
-   * entry takes no part in team grouping, so its `team` is `null`.
+   * entry takes part in team grouping like a live one, so its `team` is set
+   * the same way. A lead archived before its spawned teammates were kept
+   * claims none.
    */
   readonly archived: boolean
 }

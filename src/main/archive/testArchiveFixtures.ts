@@ -3,9 +3,15 @@ import { EMPTY_AGENT_SIGNALS_DTO } from '../../shared/ipc/emptyAgentSignals'
 import type { IpcResult } from '../../shared/ipc/ipcResult'
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto, SessionSummaryDto } from '../../shared/ipc/sessionListDto'
+import type { SessionRoleDto } from '../../shared/ipc/sessionRoleDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
 import type { TranscriptTeamSpawns } from '../../core/transcript/teammateSpawn'
-import type { ArchivedLeadSlots, ListItemEntry, SourceState } from './archiveStoreTypes'
+import type {
+  ArchivedLeadSlots,
+  ArchivedSession,
+  ListItemEntry,
+  SourceState
+} from './archiveStoreTypes'
 
 /** The session the fixtures describe unless overridden. */
 export const TEST_REF: SessionRefDto = {
@@ -222,5 +228,49 @@ export function testPopulatedDetail(): SessionDetailDto {
       { runId: 'run-1', record: { name: 'nightly', completed: true, phases: ['plan', 'build'] } },
       { runId: 'run-2', record: null }
     ]
+  }
+}
+
+/** Options for {@link testArchivedSession}. */
+interface TestArchivedSessionOptions {
+  /** The session's folder. Defaults to {@link TEST_REF}'s. */
+  readonly projectDirName?: string
+  /** The session's role. Defaults to a lead. */
+  readonly role?: SessionRoleDto
+  /** The first and last message times. Defaults to `{ earliestMs: 1, latestMs: 5 }`. */
+  readonly activity?: { readonly earliestMs: number; readonly latestMs: number }
+  /** The teammates it spawned and stopped, or `null` for a row written before they were kept. Defaults to none. */
+  readonly teamSpawns?: TranscriptTeamSpawns | null
+}
+
+/**
+ * An archived session with a readable summary, for the session id `sessionId`.
+ * Its list item is archived and has no team, as the archive stores it.
+ *
+ * @param sessionId - The session's id.
+ * @param options - The folder, role, activity and spawns to set instead of the defaults.
+ * @returns The archived session.
+ */
+export function testArchivedSession(
+  sessionId: string,
+  options: TestArchivedSessionOptions = {}
+): ArchivedSession {
+  const {
+    projectDirName = TEST_REF.projectDirName,
+    role = { kind: 'lead' },
+    activity = { earliestMs: 1, latestMs: 5 },
+    teamSpawns = NO_TEAM_SPAWNS
+  } = options
+  const summary = testOkSummary(activity.latestMs)
+  if (!summary.ok) throw new Error('testOkSummary should be readable')
+  return {
+    item: testListItem({
+      projectDirName,
+      sessionId,
+      archived: true,
+      summary: { ok: true, value: { ...summary.value, role, activity } }
+    }),
+    teamSpawns,
+    leadSlots: null
   }
 }
