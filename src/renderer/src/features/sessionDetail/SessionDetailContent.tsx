@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import type { SessionRefDto } from '../../../../shared/ipc/sessionRefDto'
+import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import { SessionDetailBody } from './SessionDetailBody'
 import { SessionDetailBreadcrumb } from './SessionDetailBreadcrumb'
 import { sessionDetailLabel } from './sessionDetailLabel'
@@ -22,9 +23,12 @@ interface SessionDetailContentProps {
  * inspector once its detail has loaded, otherwise the loading or failure
  * message. Loaded data wins over a failed background refresh, so a session on
  * screen stays on screen. A session reported not found waits for the folder's
- * list to settle first, since the folder itself may be gone. A load that was on
- * screen is announced once, by a status region that is always mounted and
- * empty until then.
+ * list to settle first, since the folder itself may be gone. Once it has, an
+ * archived row whose detail wasn't archived keeps its header and gets a
+ * summary-only note instead of the not-found message, unless the folder is gone.
+ * That also covers a project that isn't listed, so a stale archived row can reach it.
+ * A load that was on screen is announced once, by a status region that is
+ * always mounted and empty until then.
  *
  * @example
  * <SessionDetailContent sessionRef={ref} dirName="-Users-me-repo" />
@@ -35,8 +39,15 @@ export function SessionDetailContent({
 }: SessionDetailContentProps): React.JSX.Element {
   const { t } = useTranslation('sessionDetail')
   const { data, error, errorUpdatedAt, refetch } = useSessionDetail(sessionRef)
-  const { row, listPending } = useSessionRow(sessionRef, dirName)
+  const { row, listPending, folderGone } = useSessionRow(sessionRef, dirName)
   const announceLoaded = useAnnounceLoaded(data !== undefined, !listPending)
+
+  // The folder's list keeps its last data when the folder goes, so a gone folder never counts.
+  const summaryOnly =
+    IpcCallError.codeOf(error) === 'not-found' &&
+    !listPending &&
+    !folderGone &&
+    row?.item.archived === true
 
   const label = sessionDetailLabel(row, sessionRef, t)
   const lead = row?.item.team?.kind === 'teammate' ? row.item.team.lead : null
@@ -45,14 +56,18 @@ export function SessionDetailContent({
     <>
       <SessionDetailBreadcrumb title={label.text} lead={lead} />
       {data === undefined ? (
-        <SessionDetailStatus
-          error={error}
-          errorUpdatedAt={errorUpdatedAt}
-          holdNotFound={listPending}
-          onRetry={() => {
-            void refetch()
-          }}
-        />
+        <>
+          {summaryOnly && <SessionDetailHeader label={label} row={row} archived />}
+          <SessionDetailStatus
+            error={error}
+            errorUpdatedAt={errorUpdatedAt}
+            holdNotFound={listPending}
+            summaryOnly={summaryOnly}
+            onRetry={() => {
+              void refetch()
+            }}
+          />
+        </>
       ) : (
         <>
           <SessionDetailHeader label={label} row={row} archived={data.archived} />
