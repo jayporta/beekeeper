@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { IpcResult } from '../../../../../shared/ipc/ipcResult'
 import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
+import { LISTS_STALE_TIME_MS } from '@renderer/app/listsStaleTime'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useSelectedProjectStore } from '@renderer/features/projects/state/useSelectedProjectStore'
 import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
@@ -14,6 +15,7 @@ import {
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
 import { SessionsContent } from '../SessionsContent'
 import { useSessionsViewStore } from '../state/useSessionsViewStore'
+import { allowForAnnouncePause, waitPastAnnouncePause } from '../testAnnouncePause'
 import {
   testAgentRole,
   testUsage,
@@ -24,6 +26,8 @@ import {
 } from '../testSessionFixtures'
 
 const DIR = '-Users-a-repo'
+
+allowForAnnouncePause()
 const ok = (
   value: readonly SessionListItemDto[]
 ): Promise<IpcResult<readonly SessionListItemDto[]>> => Promise.resolve({ ok: true, value })
@@ -93,6 +97,30 @@ const searchStatus = (): HTMLElement | undefined =>
     )
     .at(-1)
 
+/**
+ * Records the nodes added inside a status region from now on, apart from any
+ * the region mounts with. `stop` ends the watch and returns them.
+ */
+function watchStatusAdditions(): { stop: () => Node[] } {
+  const added: Node[] = []
+  const record = (records: MutationRecord[]): void => {
+    for (const { target, addedNodes } of records) {
+      if (target instanceof Element && target.getAttribute('role') === 'status') {
+        added.push(...addedNodes)
+      }
+    }
+  }
+  const observer = new MutationObserver(record)
+  observer.observe(document.body, { childList: true, subtree: true })
+  return {
+    stop: () => {
+      record(observer.takeRecords())
+      observer.disconnect()
+      return added
+    }
+  }
+}
+
 describe('SessionsView search announcements', () => {
   it('has an empty polite status region before anything is typed', async () => {
     showSessions()
@@ -122,6 +150,73 @@ describe('SessionsView search announcements', () => {
     await waitFor(() => {
       expect(searchStatus()?.textContent).toBe('No matching sessions')
     })
+  })
+
+  it('announces the count once when the person pauses, not once per keystroke', async () => {
+    showSessions()
+    await screen.findByRole('list', { name: DIR })
+    const watch = watchStatusAdditions()
+
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Search sessions' }), 'parser')
+    await waitFor(() => {
+      expect(searchStatus()?.textContent).toBe('1 session matches')
+    })
+
+    expect(watch.stop()).toHaveLength(1)
+  })
+
+  it('keeps the count when the search changes only in spacing', async () => {
+    showSessions()
+    await screen.findByRole('list', { name: DIR })
+    const search = screen.getByRole('searchbox', { name: 'Search sessions' })
+    await userEvent.type(search, 'parser')
+    await waitFor(() => {
+      expect(searchStatus()?.textContent).toBe('1 session matches')
+    })
+    const before = searchStatus()?.firstElementChild
+
+    await userEvent.type(search, '  ')
+    await waitPastAnnouncePause()
+
+    expect(before?.isConnected).toBe(true)
+  })
+
+  it('never brings back a cleared search’s count when the person searches again', async () => {
+    showSessions()
+    await screen.findByRole('list', { name: DIR })
+    const search = screen.getByRole('searchbox', { name: 'Search sessions' })
+    await userEvent.type(search, 'parser')
+    await waitFor(() => {
+      expect(searchStatus()?.textContent).toBe('1 session matches')
+    })
+    await userEvent.clear(search)
+    const watch = watchStatusAdditions()
+
+    await userEvent.type(search, 'code')
+    await waitFor(() => {
+      expect(searchStatus()?.textContent).toBe('2 sessions match')
+    })
+
+    expect(watch.stop().map((node) => node.textContent)).toEqual(['2 sessions match'])
+  })
+
+  it('mounts the count afresh when a new search matches as many sessions as the last', async () => {
+    showSessions()
+    await screen.findByRole('list', { name: DIR })
+    const search = screen.getByRole('searchbox', { name: 'Search sessions' })
+    await userEvent.type(search, 'parse')
+    await waitFor(() => {
+      expect(searchStatus()?.textContent).toBe('1 session matches')
+    })
+    const before = searchStatus()?.firstElementChild
+
+    await userEvent.type(search, 'r')
+
+    await waitFor(() => {
+      expect(searchStatus()?.firstElementChild).not.toBe(before)
+    })
+    expect(before?.isConnected).toBe(false)
+    expect(searchStatus()?.textContent).toBe('1 session matches')
   })
 })
 
@@ -159,18 +254,121 @@ describe('SessionsView search announcements while a list loads', () => {
     expect(searchStatus()).toBe(region)
   })
 
+  it('waits for the list that replaces a stale cached one before announcing', async () => {
+    useSessionsViewStore.setState({ query: 'code' })
+    let resolve: (value: IpcResult<readonly SessionListItemDto[]>) => void = () => undefined
+    const api = installBeekeeperApi({ listSessions: () => new Promise((r) => (resolve = r)) })
+    const client = createTestQueryClient()
+    client.setQueryData(['sessions', DIR], SESSIONS, {
+      updatedAt: Date.now() - LISTS_STALE_TIME_MS - 1
+    })
+    render(<SessionsContent dirName={DIR} headingId="h" />, {
+      wrapper: createQueryWrapper(client)
+    })
+    await screen.findByRole('list', { name: DIR })
+    await waitFor(() => {
+      expect(api.listSessions).toHaveBeenCalledOnce()
+    })
+    await waitPastAnnouncePause()
+
+    expect(searchStatus()?.textContent).toBe('')
+    await act(async () => {
+      resolve({ ok: true, value: [mateA] })
+      await Promise.resolve()
+    })
+
+    await waitFor(() => {
+      expect(searchStatus()?.textContent).toBe('1 session matches')
+    })
+  })
+
+  it('announces the count as the person types while a stale list is refetched', async () => {
+    const api = installBeekeeperApi({ listSessions: () => new Promise(() => undefined) })
+    const client = createTestQueryClient()
+    client.setQueryData(['sessions', DIR], SESSIONS, {
+      updatedAt: Date.now() - LISTS_STALE_TIME_MS - 1
+    })
+    render(<SessionsContent dirName={DIR} headingId="h" />, {
+      wrapper: createQueryWrapper(client)
+    })
+    await waitFor(() => {
+      expect(api.listSessions).toHaveBeenCalledOnce()
+    })
+
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Search sessions' }), 'parser')
+
+    await waitFor(() => {
+      expect(searchStatus()?.textContent).toBe('1 session matches')
+    })
+  })
+
+  it('mounts the region empty, then adds a count that was ready as it mounted', async () => {
+    useSessionsViewStore.setState({ query: 'code' })
+    installBeekeeperApi({ listSessions: () => ok(SESSIONS) })
+    const client = createTestQueryClient()
+    client.setQueryData(['sessions', DIR], SESSIONS)
+    const watch = watchStatusAdditions()
+
+    render(<SessionsContent dirName={DIR} headingId="h" />, {
+      wrapper: createQueryWrapper(client)
+    })
+    await waitFor(() => {
+      expect(searchStatus()?.textContent).toBe('2 sessions match')
+    })
+
+    expect(watch.stop()).toContain(searchStatus()?.firstChild)
+  })
+
   it('announces nothing for a leftover search in a folder with no sessions', async () => {
     useSessionsViewStore.setState({ query: 'code' })
     installBeekeeperApi({ listSessions: () => ok([]) })
     render(<SessionsContent dirName={DIR} headingId="h" />, { wrapper: createQueryWrapper() })
 
     await screen.findByRole('heading', { name: 'No sessions in this project' })
+    await waitPastAnnouncePause()
 
     expect(searchStatus()?.textContent).toBe('')
   })
 })
 
 describe('SessionsContent with an unreadable folder', () => {
+  const unreadable = (): Promise<IpcResult<readonly SessionListItemDto[]>> =>
+    Promise.resolve({ ok: false, error: { code: 'unreadable' } })
+
+  it('announces nothing when a background load replaces the error under a leftover search', async () => {
+    useSessionsViewStore.setState({ query: 'code' })
+    let readable = false
+    installBeekeeperApi({ listSessions: () => (readable ? ok(SESSIONS) : unreadable()) })
+    const client = createTestQueryClient()
+    render(<SessionsContent dirName={DIR} headingId="h" />, {
+      wrapper: createQueryWrapper(client)
+    })
+    await screen.findByRole('alert')
+
+    readable = true
+    await refetchAndSettle(client, ['sessions', DIR])
+
+    await screen.findByRole('list', { name: DIR })
+    await waitPastAnnouncePause()
+
+    expect(searchStatus()?.textContent).toBe('')
+  })
+
+  it('announces the match count once Retry loads the sessions', async () => {
+    useSessionsViewStore.setState({ query: 'code' })
+    let readable = false
+    installBeekeeperApi({ listSessions: () => (readable ? ok(SESSIONS) : unreadable()) })
+    render(<SessionsContent dirName={DIR} headingId="h" />, { wrapper: createQueryWrapper() })
+    await screen.findByRole('alert')
+
+    readable = true
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
+
+    await waitFor(() => {
+      expect(searchStatus()?.textContent).toBe('2 sessions match')
+    })
+  })
+
   it('says the folder is unreadable, with Retry', async () => {
     installBeekeeperApi({
       listSessions: () => Promise.resolve({ ok: false, error: { code: 'unreadable' } })

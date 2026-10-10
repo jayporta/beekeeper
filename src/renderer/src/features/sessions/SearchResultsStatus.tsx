@@ -1,36 +1,35 @@
 import { useTranslation } from 'react-i18next'
+import { useAnnouncementAfterPause } from './useAnnouncementAfterPause'
+import type { MatchCountAnnouncement } from './useMatchCountPerSearch'
 
 /** Props for {@link SearchResultsStatus}. */
 interface SearchResultsStatusProps {
-  /** How many sessions match the search. */
-  readonly count: number
-  /** Whether a search is active. A blank search announces nothing. */
-  readonly searching: boolean
+  /** The match count to announce, or `null` to announce nothing. */
+  readonly announcement: MatchCountAnnouncement | null
 }
 
 /**
  * A polite live region that announces the number of matches after a search,
  * for screen readers that can't see the list change (WCAG 4.1.3). It is
- * always rendered and empty until a search is active, so the region exists
- * before its text changes.
+ * always rendered and empty until there is a count to announce, so the region
+ * exists before its text changes, even when a count is ready as it mounts. A
+ * count waits for a pause in typing, and each one mounts its text afresh, so a
+ * count equal to the last one is announced too.
  *
  * @example
- * <SearchResultsStatus count={3} searching />
+ * <SearchResultsStatus announcement={{ count: 3, id: 1 }} />
  */
-export function SearchResultsStatus({
-  count,
-  searching
-}: SearchResultsStatusProps): React.JSX.Element {
+export function SearchResultsStatus({ announcement }: SearchResultsStatusProps): React.JSX.Element {
   const { t } = useTranslation('sessions')
-  const message = !searching
-    ? ''
-    : count === 0
-      ? t('search.noMatches')
-      : t('search.matches', { count })
+  const shown = useAnnouncementAfterPause(announcement)
 
   return (
     <p role="status" className="visuallyHidden">
-      {message}
+      {shown !== null && (
+        <span key={shown.id}>
+          {shown.count === 0 ? t('search.noMatches') : t('search.matches', { count: shown.count })}
+        </span>
+      )}
     </p>
   )
 }

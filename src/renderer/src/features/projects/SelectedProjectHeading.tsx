@@ -28,7 +28,7 @@ interface SelectedProjectHeadingProps {
  * breadcrumb. With no project selected it shows only a fixed heading.
  *
  * @example
- * <SelectedProjectHeading actions={<RefreshSessionsButton key={dirName} dirName={dirName} />} />
+ * <SelectedProjectHeading actions={<RefreshSessionsButton key={dirName} dirName={dirName} onRefresh={resort} />} />
  */
 export function SelectedProjectHeading({
   headingId,

@@ -22,6 +22,7 @@ import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
 import App from '@renderer/App'
 import { SessionsContent } from '../SessionsContent'
 import { useSessionsViewStore } from '../state/useSessionsViewStore'
+import { allowForAnnouncePause, waitPastAnnouncePause } from '../testAnnouncePause'
 import { testSession } from '../testSessionFixtures'
 
 const ALPHA = '-Users-a-alpha'
@@ -66,6 +67,8 @@ beforeEach(() => {
 })
 
 afterEach(resetPersistedState)
+
+allowForAnnouncePause()
 
 /** Waits so a change that would follow can happen, before an assertion that nothing did. */
 async function settleFor(ms: number): Promise<void> {
@@ -349,8 +352,27 @@ describe('a list that was loaded before its folder went missing', () => {
     })
 
     await screen.findByRole('alert')
+    await waitPastAnnouncePause()
+
     expect(screen.queryByRole('searchbox')).toBeNull()
     expect(screen.queryByText('1 session matches')).toBeNull()
+  })
+
+  it('announces the match count once Retry brings back a folder whose list was cached', async () => {
+    useSessionsViewStore.setState({ query: 'Alpha' })
+    let back = false
+    installBeekeeperApi({ listSessions: () => (back ? loaded([alphaSession]) : notFound()) })
+    const client = createTestQueryClient()
+    client.setQueryData(['sessions', ALPHA], [alphaSession], { updatedAt: staleUpdatedAt })
+    render(<SessionsContent dirName={ALPHA} headingId="h" />, {
+      wrapper: createQueryWrapper(client)
+    })
+    await screen.findByRole('alert')
+
+    back = true
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
+
+    expect(await screen.findByText('1 session matches')).toBeTruthy()
   })
 
   it('announces that the project folder was not found, and shows the message with Retry', async () => {
