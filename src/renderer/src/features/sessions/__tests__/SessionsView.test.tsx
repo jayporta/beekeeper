@@ -94,6 +94,30 @@ const searchStatus = (): HTMLElement | undefined =>
     )
     .at(-1)
 
+/**
+ * Records the nodes added inside a status region from now on, apart from any
+ * the region mounts with. `stop` ends the watch and returns them.
+ */
+function watchStatusAdditions(): { stop: () => Node[] } {
+  const added: Node[] = []
+  const record = (records: MutationRecord[]): void => {
+    for (const { target, addedNodes } of records) {
+      if (target instanceof Element && target.getAttribute('role') === 'status') {
+        added.push(...addedNodes)
+      }
+    }
+  }
+  const observer = new MutationObserver(record)
+  observer.observe(document.body, { childList: true, subtree: true })
+  return {
+    stop: () => {
+      record(observer.takeRecords())
+      observer.disconnect()
+      return added
+    }
+  }
+}
+
 describe('SessionsView search announcements', () => {
   it('has an empty polite status region before anything is typed', async () => {
     showSessions()
@@ -123,6 +147,19 @@ describe('SessionsView search announcements', () => {
     await waitFor(() => {
       expect(searchStatus()?.textContent).toBe('No matching sessions')
     })
+  })
+
+  it('announces the count once when the person pauses, not once per keystroke', async () => {
+    showSessions()
+    await screen.findByRole('list', { name: DIR })
+    const watch = watchStatusAdditions()
+
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Search sessions' }), 'parser')
+    await waitFor(() => {
+      expect(searchStatus()?.textContent).toBe('1 session matches')
+    })
+
+    expect(watch.stop()).toHaveLength(1)
   })
 
   it('keeps the count when the search changes only in spacing', async () => {
@@ -249,16 +286,7 @@ describe('SessionsView search announcements while a list loads', () => {
     installBeekeeperApi({ listSessions: () => ok(SESSIONS) })
     const client = createTestQueryClient()
     client.setQueryData(['sessions', DIR], SESSIONS)
-    const addedToRegion: Node[] = []
-    const record = (records: MutationRecord[]): void => {
-      for (const { target, addedNodes } of records) {
-        if (target instanceof Element && target.getAttribute('role') === 'status') {
-          addedToRegion.push(...addedNodes)
-        }
-      }
-    }
-    const observer = new MutationObserver(record)
-    observer.observe(document.body, { childList: true, subtree: true })
+    const watch = watchStatusAdditions()
 
     render(<SessionsContent dirName={DIR} headingId="h" />, {
       wrapper: createQueryWrapper(client)
@@ -266,10 +294,8 @@ describe('SessionsView search announcements while a list loads', () => {
     await waitFor(() => {
       expect(searchStatus()?.textContent).toBe('2 sessions match')
     })
-    record(observer.takeRecords())
-    observer.disconnect()
 
-    expect(addedToRegion).toContain(searchStatus()?.firstChild)
+    expect(watch.stop()).toContain(searchStatus()?.firstChild)
   })
 
   it('announces nothing for a leftover search in a folder with no sessions', async () => {

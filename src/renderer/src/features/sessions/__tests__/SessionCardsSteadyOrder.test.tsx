@@ -312,6 +312,18 @@ describe('the search announcement while the list refreshes in the background', (
     expect(screen.queryByText('1 session matches')).toBeNull()
   })
 
+  it('empties the announcement when a background update leaves no sessions to search', async () => {
+    useSessionsViewStore.setState({ query: 'a' })
+    renderApp()
+    const region = await findStatusSaying('2 sessions match')
+
+    current = []
+    await refetchAfterChange(2)
+    await screen.findByRole('heading', { name: 'No sessions in this project' })
+
+    expect(region?.textContent).toBe('')
+  })
+
   it('announces nothing when a list that emptied gains matches again', async () => {
     useSessionsViewStore.setState({ query: 'a' })
     renderApp()
