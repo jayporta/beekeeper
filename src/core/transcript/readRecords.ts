@@ -21,9 +21,12 @@ export interface SkippedLineError {
  * schema still happens in the caller.
  *
  * @param filePath - Absolute path to the `.jsonl` transcript to read.
- * @param options - Stream tuning, mainly for tests.
+ * @param options - Where to start, a cursor to report the consumed offset
+ * through (both as {@link readJsonlLines} defines them), and stream tuning,
+ * mainly for tests.
  * @returns An async generator of record results, in file order.
  * @throws {Error} When `filePath` does not exist or cannot be read.
+ * @throws {RangeError} When `options.start` is negative or not an integer.
  */
 export async function* readRecords(
   filePath: string,
