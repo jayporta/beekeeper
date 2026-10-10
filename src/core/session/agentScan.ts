@@ -1,8 +1,8 @@
 import type { LineScan } from '../transcript/feedLineScan'
 import type { CostStateRecord } from '../transcript/schemas'
+import { createRecordedCostState } from '../transcript/summary/recordedCostState'
 import type { AgentIdentity } from './agentIdentity'
 import { createAgentReportsFold, type AgentReports } from './agentReportsFold'
-import { createRecordedCostState } from './recordedCostState'
 import { createSpawnObserver, type TranscriptSpawns } from './spawnObserver'
 
 /** The weight, in UTF-16 code units, an agent scan carries before any line: its observers and their bookkeeping. */

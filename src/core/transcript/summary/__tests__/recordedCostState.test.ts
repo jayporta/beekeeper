@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { costStateRecordSchema } from '../../transcript/schemas'
-import { buildCostStateRecord } from '../../transcript/testFixtures'
+import { buildCostStateRecord } from '../../testFixtures'
 import { createRecordedCostState, RECORDED_MODEL_OVERHEAD } from '../recordedCostState'
-import { reconcileUsage } from '../reconcileUsage'
 
 function observed(
   ...records: Record<string, unknown>[]
@@ -84,22 +82,45 @@ describe('createRecordedCostState', () => {
     expect(state.latest()).toEqual({ type: 'cost-state', totalCostUSD: 4 })
   })
 
-  it('reconciles exactly as the full record does', () => {
-    const record = buildCostStateRecord({
-      totalCostUSD: 9.5,
-      unknownTopLevel: { nested: true },
-      modelUsage: {
-        'claude-opus-5[1m]': FULL_ENTRY,
-        'claude-opus-5': { inputTokens: 10, costUSD: 1 },
-        'claude-haiku-5': { outputTokens: 7, extra: 'dropped' },
-        ['unprintable\u0007key']: FULL_ENTRY
-      }
+  describe('totalTokens', () => {
+    it('is null before a cost state is observed', () => {
+      expect(observed({ type: 'user' }).totalTokens()).toBeNull()
     })
-    const input = { agents: [], unreadableAgents: 0 }
 
-    expect(reconcileUsage({ ...input, costState: observed(record).latest() })).toEqual(
-      reconcileUsage({ ...input, costState: costStateRecordSchema.parse(record) })
-    )
+    it('adds the four token classes of every model', () => {
+      const state = observed(
+        buildCostStateRecord({
+          modelUsage: { 'model-a': FULL_ENTRY, 'model-b': { inputTokens: 10, costUSD: 1 } }
+        })
+      )
+
+      expect(state.totalTokens()).toBe(1 + 2 + 3 + 4 + 10)
+    })
+
+    it('counts a model whose key is not a bounded identifier, which the kept record drops', () => {
+      const state = observed(
+        buildCostStateRecord({
+          modelUsage: { 'good-model': { inputTokens: 3 }, ['bad\u0007model']: { outputTokens: 4 } }
+        })
+      )
+
+      expect(Object.keys(state.latest()?.modelUsage ?? {})).toEqual(['good-model'])
+      expect(state.totalTokens()).toBe(7)
+    })
+
+    it('is null for a record with no model usage', () => {
+      expect(observed({ type: 'cost-state', totalCostUSD: 4 }).totalTokens()).toBeNull()
+    })
+
+    it('follows the last valid record', () => {
+      const state = observed(
+        buildCostStateRecord({ modelUsage: { m: { inputTokens: 5 } } }),
+        buildCostStateRecord({ modelUsage: { m: { inputTokens: 9 } } }),
+        buildCostStateRecord({ modelUsage: 'not a record' })
+      )
+
+      expect(state.totalTokens()).toBe(9)
+    })
   })
 
   describe('weight', () => {

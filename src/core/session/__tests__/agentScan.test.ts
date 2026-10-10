@@ -9,7 +9,7 @@ import { buildAssistantRecord, buildCostStateRecord } from '../../transcript/tes
 import { leadIdentity } from '../agentIdentity'
 import { AGENT_SCAN_BASE_WEIGHT, createAgentScan, type AgentScan } from '../agentScan'
 import { createAgentReportsFold } from '../agentReportsFold'
-import { createRecordedCostState } from '../recordedCostState'
+import { createRecordedCostState } from '../../transcript/summary/recordedCostState'
 import { createSpawnObserver } from '../spawnObserver'
 import { BASE_TIME, buildBranchRecord, buildSpawnRecord, stampRecord } from '../testSpawnFixtures'
 

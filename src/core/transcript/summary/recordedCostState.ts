@@ -1,5 +1,6 @@
-import { costStateRecordSchema, type CostStateRecord, type ModelUsage } from '../transcript/schemas'
-import { isBoundedIdentifier } from '../transcript/schemas/boundedIdentifier'
+import { costStateRecordSchema, type CostStateRecord, type ModelUsage } from '../schemas'
+import { isBoundedIdentifier } from '../schemas/boundedIdentifier'
+import { recordedTokenTotal } from './recordedTokenTotal'
 
 /**
  * The weight, in UTF-16 code units, charged for the cost state itself and for
@@ -8,12 +9,22 @@ import { isBoundedIdentifier } from '../transcript/schemas/boundedIdentifier'
  */
 export const RECORDED_MODEL_OVERHEAD = 96
 
-/** Tracks the last valid `cost-state` record, reduced to what a usage reconciliation reads. */
+/**
+ * Tracks the last valid `cost-state` record, reduced to what a usage
+ * reconciliation and a session summary read.
+ */
 export interface RecordedCostState {
   /** Feeds one parsed record, in file order. Records that are not valid `cost-state` records are ignored. */
   observe(record: Record<string, unknown>): void
   /** The last valid `cost-state` record observed, reduced, or `null` when there was none. */
   latest(): CostStateRecord | null
+  /**
+   * The latest record's recorded token total across every model entry, which
+   * counts entries whose keys {@link RecordedCostState.latest} leaves out, as
+   * {@link recordedTokenTotal} does. `null` when there is no record, it has
+   * no model usage, or the sum is not finite.
+   */
+  totalTokens(): number | null
   /**
    * What the tracker holds, in UTF-16 code units: {@link RECORDED_MODEL_OVERHEAD}
    * for the record and for each model it keeps, plus the length of each key.
@@ -61,6 +72,7 @@ function reduce(costState: CostStateRecord): CostStateRecord {
  */
 export function createRecordedCostState(): RecordedCostState {
   let latest: CostStateRecord | null = null
+  let totalTokens: number | null = null
   let weight = 0
 
   return {
@@ -70,12 +82,14 @@ export function createRecordedCostState(): RecordedCostState {
       if (!parsed.success) return
 
       latest = reduce(parsed.data)
+      totalTokens = recordedTokenTotal(parsed.data)
       weight = RECORDED_MODEL_OVERHEAD
       for (const model of Object.keys(latest.modelUsage ?? {})) {
         weight += RECORDED_MODEL_OVERHEAD + model.length
       }
     },
     latest: () => latest,
+    totalTokens: () => totalTokens,
     weight: () => weight
   }
 }
