@@ -608,16 +608,20 @@ describe('getProjectDailyUsageHandler archived sessions', () => {
     ).toBe(1)
   })
 
-  it('counts no missing subagents for an archived session that ended before the window and its slack', async () => {
+  it('counts missing subagents for an archived session whose last message is on the window’s first local day', async () => {
     await removeTreeSession()
-    const old = archived(100, {
+    // 03-03 20:00Z is 03-04 05:00 in Tokyo, the 7-day window's first day there.
+    const lastAt = Date.parse('2026-03-03T20:00:00Z')
+    const edge = archived(100, {
       subagentCount: 2,
-      activity: { earliestMs: 1, latestMs: NOW - TOTALS_WINDOW_MS['7d'] - 3 * DAY },
-      modifiedMs: NOW - TOTALS_WINDOW_MS['7d'] - 3 * DAY
+      activity: { earliestMs: 1, latestMs: lastAt },
+      modifiedMs: lastAt
     })
-    const slots = new Map([[100, slotsOf(slotAt('2026-02-20T10:00:00Z', 30))]])
+    const slots = new Map([[100, slotsOf(slotAt('2026-03-03T19:00:00Z', 30))]])
 
-    expect((await usageOf(withArchive([old], slots).deps)).partial.archivedWithoutSubagents).toBe(0)
+    const usage = await usageOf(withArchive([edge], slots, 'Asia/Tokyo').deps)
+
+    expect(usage.partial.archivedWithoutSubagents).toBe(1)
   })
 
   it('counts an archived session whose subagent count is unknown as missing their usage', async () => {
