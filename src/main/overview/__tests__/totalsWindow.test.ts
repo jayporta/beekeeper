@@ -15,7 +15,7 @@ const NOW = 1000 * DAY
 const window = { nowMs: NOW, windowMs: 7 * DAY }
 
 const entryAt = (mtimeMs: number): Pick<SessionEntry, 'transcript'> => ({
-  transcript: ok({ path: '/x.jsonl', mtimeMs, size: 1 })
+  transcript: ok({ path: '/x.jsonl', mtimeMs, size: 1, ino: 1, dev: 1 })
 })
 
 describe('the totals windows', () => {
@@ -56,7 +56,7 @@ describe('mayHaveDailyUsage', () => {
   const cutoff = NOW - window.windowMs - DAY - SKIP_UNREAD_SLACK_MS
   const subagentAt = (mtimeMs: number): SubagentEntry => ({
     agentId: toAgentId('a1'),
-    transcript: { path: '/a1.jsonl', mtimeMs, size: 1 },
+    transcript: { path: '/a1.jsonl', mtimeMs, size: 1, ino: 1, dev: 1 },
     metaPath: null,
     workflowRunId: null
   })
@@ -64,7 +64,7 @@ describe('mayHaveDailyUsage', () => {
     leadMtimeMs: number,
     subagentMtimesMs: readonly number[] = []
   ): Pick<SessionEntry, 'transcript' | 'subagents'> => ({
-    transcript: ok({ path: '/x.jsonl', mtimeMs: leadMtimeMs, size: 1 }),
+    transcript: ok({ path: '/x.jsonl', mtimeMs: leadMtimeMs, size: 1, ino: 1, dev: 1 }),
     subagents: ok(subagentMtimesMs.map(subagentAt))
   })
 
@@ -82,7 +82,7 @@ describe('mayHaveDailyUsage', () => {
 
   it('judges by the lead file alone when the subagents could not be listed', () => {
     const entry = {
-      transcript: ok({ path: '/x.jsonl', mtimeMs: cutoff - 1, size: 1 }),
+      transcript: ok({ path: '/x.jsonl', mtimeMs: cutoff - 1, size: 1, ino: 1, dev: 1 }),
       subagents: err({ reason: 'unreadable' as const, code: 'EACCES' })
     }
 

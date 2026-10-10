@@ -4,6 +4,7 @@ import { recordTimestampMs } from '../recordTimestampMs'
 import {
   createTranscriptTokenObserver,
   MAX_MESSAGE_IDS,
+  TRACKED_MESSAGE_OVERHEAD,
   type TranscriptTokenObserver
 } from '../transcriptTokenObserver'
 
@@ -252,6 +253,54 @@ describe('createTranscriptTokenObserver', () => {
       feed(observer, buildAssistantRecord({ messageId: 'msg_0', inputTokens: 5, outputTokens: 0 }))
 
       expect(observer.total()).toBe(MAX_MESSAGE_IDS + 4)
+    })
+  })
+
+  describe('weight', () => {
+    it('is zero before any assistant record', () => {
+      const observer = createTranscriptTokenObserver()
+      feed(observer, { type: 'user' })
+
+      expect(observer.weight()).toBe(0)
+    })
+
+    it('charges each distinct message its overhead, its id and its model', () => {
+      const observer = createTranscriptTokenObserver()
+      feed(observer, buildAssistantRecord({ messageId: 'msg_a', model: 'model-one' }))
+      feed(observer, buildAssistantRecord({ messageId: 'msg_bb', model: 'model-22' }))
+
+      expect(observer.weight()).toBe(
+        2 * TRACKED_MESSAGE_OVERHEAD +
+          'msg_a'.length +
+          'model-one'.length +
+          'msg_bb'.length +
+          'model-22'.length
+      )
+    })
+
+    it('does not charge a repeat of an id again', () => {
+      const observer = createTranscriptTokenObserver()
+      feed(observer, buildAssistantRecord({ messageId: 'msg_a', model: 'model-one' }))
+      const once = observer.weight()
+      feed(observer, buildAssistantRecord({ messageId: 'msg_a', model: 'model-two' }))
+
+      expect(observer.weight()).toBe(once)
+    })
+
+    it('does not charge an assistant record that fails validation', () => {
+      const observer = createTranscriptTokenObserver()
+      feed(observer, { type: 'assistant', message: { id: 'msg_x' } })
+
+      expect(observer.weight()).toBe(0)
+    })
+
+    it('drops to zero once the observer gives up past the id cap', () => {
+      const observer = createTranscriptTokenObserver()
+      for (let i = 0; i <= MAX_MESSAGE_IDS; i += 1) {
+        feed(observer, buildAssistantRecord({ messageId: `msg_${i}` }))
+      }
+
+      expect(observer.weight()).toBe(0)
     })
   })
 })

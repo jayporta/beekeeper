@@ -1,18 +1,7 @@
-import { createLastCostState } from '../lastCostState'
 import type { ReadJsonlLinesOptions } from '../readJsonlLines'
-import { readRecords } from '../readRecords'
-import { aiTitleRecordSchema } from '../schemas'
-import { createSessionRoleObserver } from '../sessionRoleObserver'
-import { createSignalObserver } from '../signals/signalObserver'
-import { summarizeSignals } from '../signals/summarizeSignals'
-import { createTeammateSpawnObserver } from '../teammateSpawnObserver'
-import { createLatestModelObserver } from './latestModelObserver'
-import { createLimitHitObserver } from './limitHitObserver'
-import { recordedTokenTotal } from './recordedTokenTotal'
-import { recordTimestampMs } from './recordTimestampMs'
-import type { ActivitySpan, RecordedUsage, SessionSummary } from './sessionSummary'
-import { createTranscriptTokenObserver } from './transcriptTokenObserver'
-import { truncateTitle } from './truncateTitle'
+import { feedSummaryScan } from './feedSummaryScan'
+import type { SessionSummary } from './sessionSummary'
+import { createSummaryScan } from './summaryScan'
 
 /**
  * Reads a transcript once and reports what a sessions list needs to show:
@@ -55,63 +44,7 @@ export async function scanSessionSummary(
   filePath: string,
   options: ReadJsonlLinesOptions = {}
 ): Promise<SessionSummary> {
-  let title: string | null = null
-  const lastCostState = createLastCostState()
-  const roleObserver = createSessionRoleObserver()
-  const teammateObserver = createTeammateSpawnObserver()
-  const modelObserver = createLatestModelObserver()
-  const limitHitObserver = createLimitHitObserver()
-  const tokenObserver = createTranscriptTokenObserver()
-  const signalObserver = createSignalObserver()
-  let earliestMs: number | null = null
-  let latestMs: number | null = null
-  let skippedLines = 0
-
-  for await (const result of readRecords(filePath, options)) {
-    if (!result.ok) {
-      skippedLines += 1
-      continue
-    }
-
-    const record = result.value
-    const timestampMs = recordTimestampMs(record)
-    if (timestampMs !== null) {
-      if (earliestMs === null || timestampMs < earliestMs) earliestMs = timestampMs
-      if (latestMs === null || timestampMs > latestMs) latestMs = timestampMs
-    }
-
-    lastCostState.observe(record)
-    roleObserver.observe(record)
-    teammateObserver.observe(record)
-    limitHitObserver.observe(record)
-    modelObserver.observe(record, timestampMs)
-    tokenObserver.observe(record, timestampMs)
-    signalObserver.observe(record, timestampMs)
-    if (record.type === 'ai-title') {
-      const aiTitle = aiTitleRecordSchema.safeParse(record)
-      if (aiTitle.success) title = truncateTitle(aiTitle.data.aiTitle)
-    }
-  }
-
-  const costState = lastCostState.latest()
-  const usage: RecordedUsage | null = costState
-    ? { totalUSD: costState.totalCostUSD ?? null, totalTokens: recordedTokenTotal(costState) }
-    : null
-
-  const activity: ActivitySpan | null =
-    earliestMs === null || latestMs === null ? null : { earliestMs, latestMs }
-
-  return {
-    title,
-    usage,
-    activity,
-    skippedLines,
-    role: roleObserver.role(),
-    teamSpawns: teammateObserver.result(),
-    model: modelObserver.model(),
-    limitHit: limitHitObserver.latest(),
-    transcriptTokens: tokenObserver.total(),
-    leadUsage: tokenObserver.leadUsage(),
-    signals: summarizeSignals(signalObserver.events(), { partial: signalObserver.capped() })
-  }
+  const scan = createSummaryScan()
+  await feedSummaryScan(scan, { ...options, filePath })
+  return scan.summary()
 }

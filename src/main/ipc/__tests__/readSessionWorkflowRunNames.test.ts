@@ -11,7 +11,13 @@ import type { WorkflowRunNamesCache } from '../workflowRunNamesCache'
 function subagent(agentId: string, runId: string | null): SubagentEntry {
   return {
     agentId: toAgentId(agentId),
-    transcript: { path: `/x/s/subagents/agent-${agentId}.jsonl`, mtimeMs: 1, size: 1 },
+    transcript: {
+      path: `/x/s/subagents/agent-${agentId}.jsonl`,
+      mtimeMs: 1,
+      size: 1,
+      ino: 1,
+      dev: 1
+    },
     metaPath: null,
     workflowRunId: runId === null ? null : parseWorkflowRunId(runId)
   }
@@ -21,7 +27,7 @@ function sessionWith(overrides: Partial<SessionEntry>): SessionEntry {
   return {
     sessionId: toSessionId('11111111-1111-4111-8111-111111111111'),
     sessionDir: '/x/s',
-    transcript: ok({ path: '/x/s.jsonl', mtimeMs: 1, size: 1 }),
+    transcript: ok({ path: '/x/s.jsonl', mtimeMs: 1, size: 1, ino: 1, dev: 1 }),
     subagents: ok([]),
     ...overrides
   }

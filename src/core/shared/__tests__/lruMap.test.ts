@@ -100,4 +100,44 @@ describe('createLruMap', () => {
 
     expect(map.get('a')).toBe('xxx')
   })
+
+  describe('delete', () => {
+    it('removes a stored value and its weight', () => {
+      const map = lengthMap(10)
+      map.set('a', 'xxx')
+      map.set('b', 'xx')
+
+      map.delete('a')
+
+      expect({ a: map.get('a'), size: map.size, weight: map.weight }).toEqual({
+        a: undefined,
+        size: 1,
+        weight: 2
+      })
+    })
+
+    it('leaves the map unchanged for an absent key', () => {
+      const map = lengthMap(10)
+      map.set('a', 'xx')
+
+      map.delete('missing')
+
+      expect({ a: map.get('a'), size: map.size, weight: map.weight }).toEqual({
+        a: 'xx',
+        size: 1,
+        weight: 2
+      })
+    })
+
+    it('frees room, so a later set evicts nothing', () => {
+      const map = lengthMap(4)
+      map.set('a', 'xx')
+      map.set('b', 'xx')
+
+      map.delete('b')
+      map.set('c', 'xx')
+
+      expect([map.get('a'), map.get('c')]).toEqual(['xx', 'xx'])
+    })
+  })
 })

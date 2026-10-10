@@ -14,6 +14,13 @@ import { signalEventKey, type SignalEvent } from './signalEvent'
  */
 export const MAX_SIGNAL_EVENTS_PER_TRANSCRIPT = 4096
 
+/**
+ * The weight, in UTF-16 code units, charged for each kept event beyond its
+ * strings: the event object and its fields, the list slot, and the dedupe
+ * set's entry.
+ */
+export const SIGNAL_EVENT_OVERHEAD = 64
+
 /** The system record subtypes that become signal events. */
 const SYSTEM_SUBTYPE_KINDS = {
   compact_boundary: 'compaction',
@@ -56,6 +63,25 @@ export interface SignalObserver {
   events(): readonly SignalEvent[]
   /** Whether an event arrived after the list was full, so it was dropped. */
   capped(): boolean
+  /**
+   * What the observer holds, in UTF-16 code units: {@link SIGNAL_EVENT_OVERHEAD}
+   * plus the length of the dedupe key and of the event's id and tool name for
+   * each event kept.
+   */
+  weight(): number
+}
+
+/** The UTF-16 code units of the strings an event holds besides its dedupe key. */
+function eventTextLength(event: SignalEvent): number {
+  switch (event.kind) {
+    case 'tool-call':
+      return event.toolUseId.length + event.tool.length
+    case 'tool-result':
+      return event.toolUseId.length
+    case 'compaction':
+    case 'agents-killed':
+      return event.uuid.length
+  }
 }
 
 /**
@@ -72,6 +98,7 @@ export function createSignalObserver(): SignalObserver {
   const events: SignalEvent[] = []
   const seen = new Set<string>()
   let capped = false
+  let weight = 0
 
   function push(event: SignalEvent): void {
     const key = signalEventKey(event)
@@ -82,6 +109,7 @@ export function createSignalObserver(): SignalObserver {
     }
     seen.add(key)
     events.push(event)
+    weight += SIGNAL_EVENT_OVERHEAD + key.length + eventTextLength(event)
   }
 
   function observeToolCalls(
@@ -147,6 +175,7 @@ export function createSignalObserver(): SignalObserver {
       }
     },
     events: () => events,
-    capped: () => capped
+    capped: () => capped,
+    weight: () => weight
   }
 }

@@ -9,12 +9,30 @@ import type { TeammateSpawn, TeammateStop, TranscriptTeamSpawns } from './teamma
 /** The most spawns and, separately, the most stops kept. */
 const MAX_TEAMMATE_ENTRIES = 128
 
+/**
+ * The weight, in UTF-16 code units, charged for each entry the observer
+ * holds beyond its strings: the object or map entry and its string headers.
+ */
+export const TEAMMATE_ENTRY_OVERHEAD = 48
+
 /** Collects a transcript's teammate spawns and stops from the records it observes. */
 export interface TeammateSpawnObserver {
   /** Feeds one parsed record, in file order. Records that spawn or stop no teammate are ignored. */
   observe(record: Record<string, unknown>): void
   /** What has been collected so far. */
   result(): TranscriptTeamSpawns
+  /**
+   * What the observer holds, in UTF-16 code units: {@link TEAMMATE_ENTRY_OVERHEAD}
+   * plus the strings of each spawn and its dedupe key, each name's latest
+   * team, each stop candidate, and each stop call still awaiting its result.
+   * Bounded by the entry caps, since every collection is.
+   */
+  weight(): number
+}
+
+/** The UTF-16 code units of an optional string. */
+function lengthOf(value: string | null | undefined): number {
+  return value === null || value === undefined ? 0 : value.length
 }
 
 /** The `TaskStop` `task_type` of a teammate, as its result record reports it. */
@@ -185,6 +203,24 @@ export function createTeammateSpawnObserver(): TeammateSpawnObserver {
       spawns: [...spawns],
       stops: resolvedStops(),
       truncated
-    })
+    }),
+    weight() {
+      let weight = 0
+      for (const { agentName, teamName, agentType, rawToolUseId } of spawns) {
+        // The dedupe key is the team, a separator and the name.
+        const keyLength = lengthOf(teamName) + 1 + agentName.length
+        weight += TEAMMATE_ENTRY_OVERHEAD + keyLength + agentName.length + lengthOf(teamName)
+        weight += lengthOf(agentType) + lengthOf(rawToolUseId)
+      }
+      for (const [name, team] of latestTeamByName) {
+        weight += TEAMMATE_ENTRY_OVERHEAD + name.length + lengthOf(team)
+      }
+      for (const { agentName, statedTeam, observedTeam } of candidates) {
+        weight += TEAMMATE_ENTRY_OVERHEAD + agentName.length + lengthOf(statedTeam)
+        weight += lengthOf(observedTeam)
+      }
+      for (const id of pendingById.keys()) weight += TEAMMATE_ENTRY_OVERHEAD + id.length
+      return weight
+    }
   }
 }

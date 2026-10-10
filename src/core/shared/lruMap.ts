@@ -26,6 +26,12 @@ export interface LruMap<K, V> {
    * @param value - The value to store.
    */
   set(key: K, value: V): void
+  /**
+   * Removes a key and its value, freeing its weight. Does nothing for an
+   * absent key.
+   * @param key - The key to remove.
+   */
+  delete(key: K): void
   /** How many entries are stored. */
   readonly size: number
   /** The total weight of the stored entries, never above the bound. */
@@ -78,6 +84,7 @@ export function createLruMap<K, V>(options: LruMapOptions<V>): LruMap<K, V> {
         remove(oldest.value)
       }
     },
+    delete: remove,
     get size() {
       return entries.size
     },

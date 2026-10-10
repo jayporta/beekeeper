@@ -2,7 +2,7 @@ import type { Stats } from 'node:fs'
 import { lstat } from 'node:fs/promises'
 import { isMissingEntryError } from './isMissingEntryError'
 
-/** A transcript file's location and size on disk, as reported by `lstat`. */
+/** A transcript file's location, size and identity on disk, as reported by `lstat`. */
 export interface TranscriptFileInfo {
   /** The file's absolute path. */
   readonly path: string
@@ -10,6 +10,10 @@ export interface TranscriptFileInfo {
   readonly mtimeMs: number
   /** The file's size in bytes. */
   readonly size: number
+  /** The file's inode number, which a file replaced at the same path does not share. */
+  readonly ino: number
+  /** The id of the device the file lives on. */
+  readonly dev: number
 }
 
 /**
@@ -29,5 +33,11 @@ export async function statTranscriptFile(filePath: string): Promise<TranscriptFi
     throw error
   }
   if (!stats.isFile()) return null
-  return { path: filePath, mtimeMs: stats.mtimeMs, size: stats.size }
+  return {
+    path: filePath,
+    mtimeMs: stats.mtimeMs,
+    size: stats.size,
+    ino: stats.ino,
+    dev: stats.dev
+  }
 }

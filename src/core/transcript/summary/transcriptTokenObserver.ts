@@ -9,6 +9,13 @@ import type { LeadUsage } from './leadUsage'
 /** The most distinct message ids an observer tracks before it gives up on a transcript. */
 export const MAX_MESSAGE_IDS = 50_000
 
+/**
+ * The weight, in UTF-16 code units, charged for each tracked message beyond
+ * its id and model: the map entry, the id's string header, the tracked
+ * object and its token counts.
+ */
+export const TRACKED_MESSAGE_OVERHEAD = 96
+
 /** Totals and slots the tokens a transcript's own assistant records report. */
 export interface TranscriptTokenObserver {
   /**
@@ -30,6 +37,12 @@ export interface TranscriptTokenObserver {
    * more than {@link MAX_MESSAGE_IDS} distinct message ids.
    */
   leadUsage(): LeadUsage | null
+  /**
+   * What the observer holds, in UTF-16 code units: {@link TRACKED_MESSAGE_OVERHEAD}
+   * plus the length of the id and of the model for each message tracked. Zero
+   * once the observer has given up on a transcript.
+   */
+  weight(): number
 }
 
 /**
@@ -51,8 +64,8 @@ export interface TranscriptTokenObserver {
  * `invalidAssistantRecords` for the full scan's skipped-line rule.
  *
  * Holds at most {@link MAX_MESSAGE_IDS} entries, one per distinct message id,
- * each id capped by the schema's identifier bound, and lives only for one
- * scan. A transcript with more distinct ids is not totaled: the observer
+ * each id capped by the schema's identifier bound, and lives as long as the
+ * scan it belongs to, which `weight()` sizes. A transcript with more distinct ids is not totaled: the observer
  * drops what it holds, ignores the rest of the records, and both `total()`
  * and `leadUsage()` return `null`.
  *
@@ -62,6 +75,7 @@ export function createTranscriptTokenObserver(): TranscriptTokenObserver {
   const byMessageId = new Map<string, TrackedMessage>()
   let invalidAssistantRecords = 0
   let overflowed = false
+  let weight = 0
 
   return {
     observe(record, timestampMs) {
@@ -77,9 +91,13 @@ export function createTranscriptTokenObserver(): TranscriptTokenObserver {
       if (existing === undefined && byMessageId.size >= MAX_MESSAGE_IDS) {
         byMessageId.clear()
         overflowed = true
+        weight = 0
         return
       }
       const tokens = messageTokens(message.usage)
+      if (existing === undefined) {
+        weight += TRACKED_MESSAGE_OVERHEAD + message.id.length + message.model.length
+      }
       byMessageId.set(
         message.id,
         existing === undefined
@@ -99,6 +117,7 @@ export function createTranscriptTokenObserver(): TranscriptTokenObserver {
     },
     leadUsage() {
       return overflowed ? null : buildLeadUsage({ messages: byMessageId, invalidAssistantRecords })
-    }
+    },
+    weight: () => weight
   }
 }

@@ -5,12 +5,12 @@ import type { SubagentEntry } from '../../../core/transcript/discoverSubagents'
 import { toAgentId, toSessionId } from '../../../core/transcript/ids'
 import { sessionFilesKey } from '../sessionFilesKey'
 
-const transcript = { path: '/lead.jsonl', mtimeMs: 10, size: 100 }
+const transcript = { path: '/lead.jsonl', mtimeMs: 10, size: 100, ino: 1, dev: 1 }
 
 function subagent(overrides: Partial<SubagentEntry['transcript']> = {}): SubagentEntry {
   return {
     agentId: toAgentId('a1'),
-    transcript: { path: '/a1.jsonl', mtimeMs: 20, size: 200, ...overrides },
+    transcript: { path: '/a1.jsonl', mtimeMs: 20, size: 200, ino: 2, dev: 1, ...overrides },
     metaPath: null,
     workflowRunId: null
   }

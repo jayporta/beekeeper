@@ -60,7 +60,13 @@ export function createSessionScanDir(): SessionScanDir {
 
       return {
         agentId: toAgentId(agentId),
-        transcript: { path, mtimeMs: stats.mtimeMs, size: stats.size },
+        transcript: {
+          path,
+          mtimeMs: stats.mtimeMs,
+          size: stats.size,
+          ino: stats.ino,
+          dev: stats.dev
+        },
         metaPath,
         workflowRunId: null
       }
@@ -69,7 +75,7 @@ export function createSessionScanDir(): SessionScanDir {
       const path = join(root, `agent-${agentId}.jsonl`)
       return {
         agentId: toAgentId(agentId),
-        transcript: { path, mtimeMs: 0, size: 0 },
+        transcript: { path, mtimeMs: 0, size: 0, ino: 0, dev: 0 },
         metaPath: null,
         workflowRunId: null
       }
