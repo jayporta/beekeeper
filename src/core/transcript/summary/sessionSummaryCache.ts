@@ -2,17 +2,17 @@ import { createKeyedSerializer } from '../../shared/keyedSerializer'
 import { createLruMap } from '../../shared/lruMap'
 import { ok, type Result } from '../../shared/result'
 import { captureSystemError } from '../captureSystemError'
+import {
+  advanceScan,
+  isRecentlyModified,
+  resumableScanWeight,
+  type ResumableScan,
+  type ScanReadTuning
+} from '../resumableScan'
 import type { TranscriptFileInfo } from '../statTranscriptFile'
 import type { UnreadableError } from '../unreadableError'
-import { scanSessionSummary } from './scanSessionSummary'
 import type { SessionSummary } from './sessionSummary'
-import {
-  resumeSummaryScan,
-  resumeWeight,
-  startSummaryScan,
-  type SummaryReadTuning,
-  type SummaryResume
-} from './summaryResume'
+import { createSummaryScan, type SummaryScan } from './summaryScan'
 import { summaryWeight } from './summaryWeight'
 
 /** A cached summary, alongside the file state it was scanned from. */
@@ -50,13 +50,13 @@ export interface SessionSummaryCacheOptions {
    */
   readonly maxWeight?: number
   /**
-   * The most total {@link resumeWeight}, in UTF-16 code units, the cache keeps
+   * The most total {@link resumableScanWeight}, in UTF-16 code units, the cache keeps
    * in scans it can carry on from.
    * @defaultValue {@link RESUME_CACHE_MAX_WEIGHT}
    */
   readonly maxResumeWeight?: number
   /** Stream tuning for the scans, mainly for tests. */
-  readonly readOptions?: SummaryReadTuning
+  readonly readOptions?: ScanReadTuning
   /**
    * The clock that decides whether a transcript was modified recently enough
    * to keep a scan for, in epoch milliseconds, mainly for tests.
@@ -85,18 +85,14 @@ export const SUMMARY_CACHE_MAX_WEIGHT = 10_000_000
  * and teammates: measured, a scan of 20 thousand messages weighs about 2.8
  * million and one of 50 thousand (the most message ids an observer tracks)
  * about 6.95 million, so this holds the handful of sessions that are growing
- * at once, even long ones. A scan heavier than the bound is not kept and is
- * scanned in full each time, as it would be without resuming. What it
- * accounts for takes at most 64 MB, at two bytes per code unit.
+ * at once, even long ones. A scan is kept only if it weighs no more than a
+ * quarter of the bound (see `KEPT_SCAN_BOUND_SHARE`), 8 million here, which
+ * still covers the largest scan an observer tracks. A heavier one is not kept
+ * and is scanned in full each time, as it would be without resuming, so it
+ * cannot push every other session's scan out. What it accounts for takes at
+ * most 64 MB, at two bytes per code unit.
  */
 export const RESUME_CACHE_MAX_WEIGHT = 32_000_000
-
-/**
- * How long after its last modification, in milliseconds, a transcript still
- * counts as growing. Only a transcript modified within it has a scan kept to
- * carry on from; an older one is scanned in full, once, as it changes.
- */
-export const RESUME_RECENT_MS = 10 * 60 * 1000
 
 /**
  * Creates a summary cache keyed by transcript path. Entries are evicted
@@ -114,20 +110,19 @@ export const RESUME_RECENT_MS = 10 * 60 * 1000
  *
  * A transcript that has grown is not scanned again from the start. The cache
  * keeps the scan of each recently read transcript, in a second weight-bounded
- * map of its own (see {@link resumeWeight}), and reads only the bytes
+ * map of its own (see {@link resumableScanWeight}), and reads only the bytes
  * appended since, which yields the summary a full scan of the longer file
  * would. It does so only when the file is the same one only longer (see
- * {@link resumeSummaryScan}); a shrink, a rewrite, a replaced file, or a
+ * {@link advanceScan}); a shrink, a rewrite, a replaced file, or a
  * scan the second map evicted is scanned in full instead. A read that fails
  * drops the transcript's scan, since it may hold only some of the new lines.
  * Reads of one path run one at a time, so overlapping reads of a growing
  * transcript never feed the same scan twice.
  *
- * Only a transcript modified within {@link RESUME_RECENT_MS} of now has its
- * scan kept, and read for the mark that recognizes it later. An idle
- * session's transcript is scanned exactly as it would be without resuming,
- * with no scan retained and no extra open, so a project with many old
- * sessions pays nothing for the feature.
+ * Only a transcript modified recently has its scan kept, and read for the
+ * mark that recognizes it later. An idle session's transcript is scanned
+ * exactly as it would be without resuming, with no scan retained and no extra
+ * open, so a project with many old sessions pays nothing for the feature.
  *
  * @param options - The weight bounds, the read tuning, and the clock that decides which transcripts are recent.
  * @returns A cache ready to read summaries through.
@@ -139,30 +134,25 @@ export function createSessionSummaryCache(
     maxWeight: options.maxWeight ?? SUMMARY_CACHE_MAX_WEIGHT,
     weigh: (entry) => summaryWeight(entry.summary)
   })
-  const resumes = createLruMap<string, SummaryResume>({
+  const resumes = createLruMap<string, ResumableScan<SummaryScan>>({
     maxWeight: options.maxResumeWeight ?? RESUME_CACHE_MAX_WEIGHT,
-    weigh: resumeWeight
+    weigh: resumableScanWeight
   })
   const serializer = createKeyedSerializer()
   const tuning = options.readOptions
   const now = options.now ?? Date.now
 
-  /**
-   * Scans a transcript, carrying on from the scan kept for it when it can.
-   * The kept scan leaves the map first, so a failure along the way leaves none
-   * behind. A transcript not modified recently is scanned in full and kept
-   * nowhere.
-   */
+  /** Scans a transcript, carrying on from the scan kept for it when it can (see {@link advanceScan}). */
   async function scan(file: TranscriptFileInfo): Promise<SessionSummary> {
-    const previous = resumes.get(file.path)
-    resumes.delete(file.path)
-    if (now() - file.mtimeMs > RESUME_RECENT_MS) return scanSessionSummary(file.path, tuning)
-
-    const resumed =
-      previous === undefined ? null : await resumeSummaryScan({ file, resume: previous, tuning })
-    const next = resumed ?? (await startSummaryScan({ file, tuning }))
-    resumes.set(file.path, next)
-    return next.scan.summary()
+    const advanced = await advanceScan({
+      states: resumes,
+      key: file.path,
+      file,
+      createScan: createSummaryScan,
+      recent: isRecentlyModified(file, now),
+      tuning
+    })
+    return advanced.summary()
   }
 
   async function read(file: TranscriptFileInfo): Promise<Result<SessionSummary, UnreadableError>> {

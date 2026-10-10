@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { err, ok } from '../../../shared/result'
+import type { LineScanInput } from '../../feedLineScan'
 import { buildAssistantToolUseRecord, buildUserToolResultRecord } from '../../testFileTouchFixtures'
 import {
   buildAiTitleRecord,
@@ -9,16 +10,12 @@ import {
 } from '../../testFixtures'
 import { buildTaskStopRecord, buildTeammateSpawnRecord } from '../../testTeammateFixtures'
 import { buildSessionSummary } from '../testSessionSummary'
-import {
-  createSummaryScan,
-  SUMMARY_SCAN_BASE_WEIGHT,
-  type SummaryScan,
-  type SummaryScanInput
-} from '../summaryScan'
+import { createSummaryScan, SUMMARY_SCAN_BASE_WEIGHT, type SummaryScan } from '../summaryScan'
+import { RECORDED_MODEL_OVERHEAD } from '../recordedCostState'
 import { TRACKED_MESSAGE_OVERHEAD } from '../transcriptTokenObserver'
 
 /** A mixed run of lines that exercises every part of the summary, and a line that could not be read. */
-const MIXED_LINES: readonly SummaryScanInput[] = [
+const MIXED_LINES: readonly LineScanInput[] = [
   ok(buildAiTitleRecord('First title')),
   ok(buildAssistantRecord({ messageId: 'msg_1', timestamp: '2026-01-01T00:05:00.000Z' })),
   ok(
@@ -34,7 +31,7 @@ const MIXED_LINES: readonly SummaryScanInput[] = [
   ok(buildAiTitleRecord('Second title'))
 ]
 
-function observeAll(scan: SummaryScan, lines: readonly SummaryScanInput[]): void {
+function observeAll(scan: SummaryScan, lines: readonly LineScanInput[]): void {
   for (const line of lines) scan.observe(line)
 }
 
@@ -94,6 +91,19 @@ describe('createSummaryScan', () => {
     expect(JSON.stringify(usage)).not.toContain('model-1999')
   })
 
+  it('counts the tokens of every model in the recorded usage, even one with an unprintable key', () => {
+    const scan = createSummaryScan()
+    scan.observe(
+      ok(
+        buildCostStateRecord({
+          modelUsage: { 'model-a': { inputTokens: 3 }, ['bad\u0007model']: { outputTokens: 4 } }
+        })
+      )
+    )
+
+    expect(scan.summary().usage?.totalTokens).toBe(7)
+  })
+
   describe('weight', () => {
     it('starts at the base weight', () => {
       expect(createSummaryScan().weight()).toBe(SUMMARY_SCAN_BASE_WEIGHT)
@@ -106,6 +116,30 @@ describe('createSummaryScan', () => {
       expect(scan.weight()).toBe(
         SUMMARY_SCAN_BASE_WEIGHT + TRACKED_MESSAGE_OVERHEAD + 'msg_a'.length + 'model-one'.length
       )
+    })
+
+    it('adds what the recorded cost state holds', () => {
+      const scan = createSummaryScan()
+      scan.observe(
+        ok(buildCostStateRecord({ modelUsage: { 'model-a': { inputTokens: 1 }, 'model-bb': {} } }))
+      )
+
+      expect(scan.weight()).toBe(
+        SUMMARY_SCAN_BASE_WEIGHT +
+          RECORDED_MODEL_OVERHEAD +
+          2 * RECORDED_MODEL_OVERHEAD +
+          'model-a'.length +
+          'model-bb'.length
+      )
+    })
+
+    it('does not grow with a field of the cost state that the summary does not read', () => {
+      const plain = createSummaryScan()
+      plain.observe(ok(buildCostStateRecord()))
+      const padded = createSummaryScan()
+      padded.observe(ok(buildCostStateRecord({ unknownTopLevel: 'x'.repeat(100_000) })))
+
+      expect(padded.weight()).toBe(plain.weight())
     })
 
     it('grows with the tool calls, results and teammates it has observed', () => {

@@ -13,7 +13,7 @@ import { sessionRefKey } from './sessionRefKey'
 
 type SharedWorktreeDeps = Pick<
   IpcDeps,
-  'projectsRoot' | 'summaryCache' | 'summaries' | 'scans' | 'scanCache' | 'archive'
+  'projectsRoot' | 'summaryCache' | 'summaries' | 'scans' | 'scanCache' | 'agentScans' | 'archive'
 >
 
 /**

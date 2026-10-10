@@ -5,17 +5,14 @@ import { join } from 'node:path'
 import { Readable } from 'node:stream'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReadJsonlLinesOptions } from '../../readJsonlLines'
+import { RESUME_ENTRY_OVERHEAD, RESUME_RECENT_MS, resumableScanWeight } from '../../resumableScan'
 import type { TranscriptFileInfo } from '../../statTranscriptFile'
+import { consumedOffset, startsDuring } from '../../testReadStarts'
 import { statWrittenTranscript } from '../../testStatTranscript'
 import { buildAiTitleRecord, buildJsonlText } from '../../testFixtures'
 import { scanSessionSummary } from '../scanSessionSummary'
-import {
-  createSessionSummaryCache,
-  RESUME_RECENT_MS,
-  type SessionSummaryCache
-} from '../sessionSummaryCache'
+import { createSessionSummaryCache, type SessionSummaryCache } from '../sessionSummaryCache'
 import { createSummaryScan } from '../summaryScan'
-import { RESUME_ENTRY_OVERHEAD, resumeWeight } from '../summaryResume'
 import {
   buildTrickyTranscript,
   createGrowingTranscript,
@@ -23,6 +20,7 @@ import {
   type GrowingTranscript
 } from '../testGrowingTranscript'
 import { createTranscriptDir, type TranscriptDir } from '../testTranscriptDir'
+import { LATER_SECONDS } from '../../testFileTimes'
 
 // Wraps the real `createReadStream` in a spy so a test can see where each
 // read began, which is how a resumed read tells from a rescan.
@@ -56,27 +54,9 @@ afterEach(() => {
  */
 const EQUIVALENCE_TIMEOUT_MS = 30_000
 
-/** A modification time later than any a growing transcript carries, in seconds. */
-const LATER_SECONDS = Math.floor(Date.now() / 1000) + 3600
-
 /** The scan tuning the tests share: the oversized line in the script is over the cap. */
 function tuning(highWaterMark?: number): ReadJsonlLinesOptions {
   return { maxLineChars: TRICKY_MAX_LINE_CHARS, highWaterMark }
-}
-
-/** Where each read began while `action` ran, in order. */
-async function startsDuring(action: () => Promise<unknown>): Promise<number[]> {
-  const before = vi.mocked(fs.createReadStream).mock.calls.length
-  await action()
-  return vi
-    .mocked(fs.createReadStream)
-    .mock.calls.slice(before)
-    .map(([, options]) => (typeof options === 'object' ? (options.start ?? 0) : 0))
-}
-
-/** The offset just past the last newline in `bytes`: what a scan of them consumes. */
-function consumedOffset(bytes: Buffer): number {
-  return bytes.lastIndexOf(0x0a) + 1
 }
 
 /**
@@ -333,7 +313,7 @@ describe('createSessionSummaryCache resuming', () => {
     const SECOND_TITLE = buildJsonlText([buildAiTitleRecord('title-bb')])
 
     /** What the scan of a title-only file weighs once stored, as the cache weighs it. */
-    const ONE_SCAN = resumeWeight({
+    const ONE_SCAN = resumableScanWeight({
       scan: createSummaryScan(),
       mark: { ino: 0, dev: 0, prefix: Buffer.from(FIRST_TITLE) },
       mtimeMs: 0,
@@ -341,9 +321,11 @@ describe('createSessionSummaryCache resuming', () => {
       offset: 0
     })
 
-    /** Writes and reads three title-only files through `cache`, then appends to each. */
-    async function threeGrownFiles(cache: SessionSummaryCache): Promise<string[]> {
-      const paths = ['a', 'b', 'c'].map((name) => join(dir.root, `${name}.jsonl`))
+    /** Writes and reads title-only files through `cache`, then appends to each. */
+    async function grownFiles(cache: SessionSummaryCache, count: number): Promise<string[]> {
+      const paths = ['a', 'b', 'c', 'd', 'e']
+        .slice(0, count)
+        .map((name) => join(dir.root, `${name}.jsonl`))
       for (const path of paths) {
         writeFileSync(path, FIRST_TITLE)
         await cache.read(await statWrittenTranscript(path))
@@ -362,26 +344,37 @@ describe('createSessionSummaryCache resuming', () => {
     })
 
     it('resumes the scans it kept and rescans the one it evicted', async () => {
+      // A scan is kept only up to a quarter of the bound, so this bound keeps four scans, not five.
       const cache = createSessionSummaryCache({
         readOptions: options,
-        maxResumeWeight: 2 * ONE_SCAN + 200
+        maxResumeWeight: 4 * ONE_SCAN + 200
       })
-      const [a, b, c] = await threeGrownFiles(cache)
+      const paths = await grownFiles(cache, 5)
 
       const starts: number[] = []
-      for (const path of [c, b, a]) {
+      for (const path of [...paths].reverse()) {
         const [start] = await startsDuring(async () =>
-          cache.read(await statWrittenTranscript(path as string))
+          cache.read(await statWrittenTranscript(path))
         )
         starts.push(start ?? -1)
       }
 
-      expect(starts.map((start) => start > 0)).toEqual([true, true, false])
+      expect(starts.map((start) => start > 0)).toEqual([true, true, true, true, false])
+    })
+
+    it('does not keep a scan weighing more than a quarter of the bound, though it would fit', async () => {
+      const cache = createSessionSummaryCache({
+        readOptions: options,
+        maxResumeWeight: 4 * ONE_SCAN - 1
+      })
+      const [a] = await grownFiles(cache, 1)
+
+      expect(await readAndCompare(cache, await statWrittenTranscript(a as string), options)).toBe(0)
     })
 
     it('does not keep a scan heavier than the whole bound, but still returns its summary', async () => {
       const cache = createSessionSummaryCache({ readOptions: options, maxResumeWeight: 100 })
-      const [a] = await threeGrownFiles(cache)
+      const [a] = await grownFiles(cache, 1)
       const file = await statWrittenTranscript(a as string)
 
       expect(await readAndCompare(cache, file, options)).toBe(0)

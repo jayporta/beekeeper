@@ -1,30 +1,27 @@
 import { ok, type Result } from '../shared/result'
+import { captureSystemError } from '../transcript/captureSystemError'
 import type { SubagentEntry } from '../transcript/discoverSubagents'
-import { createLastCostState } from '../transcript/lastCostState'
 import type { AgentId } from '../transcript/ids'
-import type { ReadJsonlLinesOptions } from '../transcript/readJsonlLines'
-import { readRecords } from '../transcript/readRecords'
+import type { ScanReadTuning } from '../transcript/resumableScan'
+import { statTranscriptFile } from '../transcript/statTranscriptFile'
 import type { UnreadableError } from '../transcript/unreadableError'
 import { resolveAgentHierarchy } from './agentHierarchy'
 import { agentIdentityKey, leadIdentity, subagentIdentity } from './agentIdentity'
 import { applyAgentReports, buildAgentReport, type AgentReport } from './agentReports'
 import { buildAgentTree, type AgentTreeInput, type AgentTreeNode } from './agentTree'
-import { combineObservers } from './combineObservers'
-import { collectAgentReports } from './collectAgentReports'
+import { createAgentScanCache, type AgentScanCache } from './agentScanCache'
 import { createFilesLedger } from './filesLedger'
 import { groupByOwner } from './groupByOwner'
 import { reconcileUsage, type UsageReconciliation } from './reconcileUsage'
-import { readSubagentTranscript } from './readSubagentTranscript'
 import { resolveSpawnContexts } from './resolveSpawnContexts'
 import { resolveSubagentMeta } from './resolveSubagentMeta'
 import { createSignalsLedger } from './signalsLedger'
 import type { SpawnContext } from './spawnContext'
-import { createSpawnObserver, type TranscriptSpawns } from './spawnObserver'
-import { tapRecords } from './tapRecords'
+import type { TranscriptSpawns } from './spawnObserver'
 import { createUsageLedger } from './usageLedger'
 
 /** Options for {@link scanSession}. */
-export interface ScanSessionOptions extends ReadJsonlLinesOptions {
+export interface ScanSessionOptions extends ScanReadTuning {
   /** Absolute path to the session's lead transcript. */
   readonly leadPath: string
   /** The session's subagent transcripts, scanned after the lead, in order. */
@@ -36,6 +33,13 @@ export interface ScanSessionOptions extends ReadJsonlLinesOptions {
    * @defaultValue `false`
    */
   readonly subagentsUnreadable?: boolean
+  /**
+   * Keeps the scan of each transcript between calls, so a transcript that
+   * grew since the last call is read from where that scan stopped instead of
+   * from its first byte. The scan equals what reading everything again gives.
+   * @defaultValue a cache that keeps nothing, so every transcript is read in full
+   */
+  readonly cache?: AgentScanCache
 }
 
 /** A session's agent tree, alongside each agent's usage and file touches. */
@@ -79,71 +83,90 @@ export interface SessionScan {
  * them. A subagent's reports are applied to the session's shared ledgers
  * only after its whole transcript has been read successfully, so a read that
  * fails partway through never leaves a partial set of messages, touches or
- * signal events claimed by that subagent. Each subagent's `.meta.json` is read
+ * signal events claimed by that subagent.
+ *
+ * Each transcript is read into a scan of its own, and the ledgers are built
+ * from those scans in order, the lead first and then the subagents as given.
+ * With a `cache`, a transcript's scan outlives the call and a growing
+ * transcript is read only from where it stopped. The ledgers are rebuilt on
+ * every call rather than kept, so crediting follows the order the transcripts
+ * are listed in now, not the order they were last read in. Each subagent's `.meta.json` is read
  * separately from its transcript into a meta status; a missing or
  * unreadable meta never fails the scan, it just leaves that subagent
  * parented to the lead in the tree, with its status recorded for display
  * rather than silently discarded.
  *
  * @param options - The lead transcript's path, its subagents, whether the
- * subagents folder was unreadable, and read tuning.
+ * subagents folder was unreadable, a cache of transcript scans, and read
+ * tuning.
  * @returns The session's agent tree, the lead's report, each subagent's
  * report isolated as a `Result`, and the usage reconciliation. Only the
  * lead is read for a `cost-state`, in the same pass as its usage. When
  * `subagentsUnreadable` is set, the totals are flagged partial.
- * @throws {Error} When the lead transcript cannot be read.
+ * @throws {Error} When the lead transcript cannot be read, carrying the
+ * system error code.
  */
 export async function scanSession(options: ScanSessionOptions): Promise<SessionScan> {
-  const { leadPath, subagents, subagentsUnreadable = false, ...readOptions } = options
+  const {
+    leadPath,
+    subagents,
+    subagentsUnreadable = false,
+    cache = createAgentScanCache({ maxWeight: 0 }),
+    highWaterMark,
+    maxLineChars
+  } = options
+  const tuning: ScanReadTuning = { highWaterMark, maxLineChars }
   const usageLedger = createUsageLedger()
   const filesLedger = createFilesLedger()
   const signalsLedger = createSignalsLedger()
 
-  const lastCostState = createLastCostState()
-  const leadSpawns = createSpawnObserver()
-  const subagentSpawns = new Map<AgentId, TranscriptSpawns>()
-  const leadReports = await collectAgentReports(
-    tapRecords(
-      readRecords(leadPath, readOptions),
-      combineObservers(lastCostState.observe, leadSpawns.observe)
-    ),
-    leadIdentity
-  )
+  const leadFile = await statTranscriptFile(leadPath)
+  if (leadFile === null) {
+    throw Object.assign(new Error('The lead transcript is not a regular file'), { code: 'ENOENT' })
+  }
+  const leadScan = await cache.read({
+    file: leadFile,
+    identity: leadIdentity,
+    trackCostState: true,
+    tuning,
+    sessionLead: leadFile
+  })
   applyAgentReports({
     usageLedger,
     filesLedger,
     signalsLedger,
     identity: leadIdentity,
-    agentReports: leadReports
+    agentReports: leadScan.reports
   })
 
   // Once a subagent's reports are in the ledgers, only its skipped-line count is
   // needed, so the reports (touches, message reports) are not kept until the scan ends.
+  const subagentSpawns = new Map<AgentId, TranscriptSpawns>()
   const subagentSkippedLines = new Map<AgentId, Result<number, UnreadableError>>()
   const treeInputs: AgentTreeInput[] = []
 
   for (const subagent of subagents) {
     const identity = subagentIdentity(subagent.agentId)
-    const spawnObserver = createSpawnObserver()
-    const readResult = await readSubagentTranscript({
-      subagent,
-      readOptions,
-      observe: spawnObserver.observe
-    })
-    if (readResult.ok) {
+    const read = await captureSystemError(() =>
+      cache.read({
+        file: subagent.transcript,
+        identity,
+        trackCostState: false,
+        tuning,
+        sessionLead: leadFile
+      })
+    )
+    if (read.ok) {
       applyAgentReports({
         usageLedger,
         filesLedger,
         signalsLedger,
         identity,
-        agentReports: readResult.value
+        agentReports: read.value.reports
       })
-      subagentSpawns.set(subagent.agentId, spawnObserver.result())
+      subagentSpawns.set(subagent.agentId, read.value.spawns)
     }
-    subagentSkippedLines.set(
-      subagent.agentId,
-      readResult.ok ? ok(readResult.value.skippedLines) : readResult
-    )
+    subagentSkippedLines.set(subagent.agentId, read.ok ? ok(read.value.reports.skippedLines) : read)
 
     const metaStatus = await resolveSubagentMeta(subagent.metaPath)
     treeInputs.push({
@@ -153,7 +176,6 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
     })
   }
 
-  const leadSpawnsResult = leadSpawns.result()
   const usageByOwner = groupByOwner(usageLedger.entries())
   const touchesByOwner = groupByOwner(filesLedger.entries())
   const incompleteOwners = new Set(filesLedger.incompleteOwners().map(agentIdentityKey))
@@ -186,7 +208,7 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
     incompleteOwners,
     signalsByOwner,
     signalsCappedOwners,
-    skippedLines: leadReports.skippedLines
+    skippedLines: leadScan.reports.skippedLines
   })
 
   const readableAgents = [
@@ -204,12 +226,12 @@ export async function scanSession(options: ScanSessionOptions): Promise<SessionS
     reconciliation: reconcileUsage({
       agents: readableAgents.map((agent) => agent.usage),
       unreadableAgents: unreadableSubagents + (subagentsUnreadable ? 1 : 0),
-      costState: lastCostState.latest()
+      costState: leadScan.costState
     }),
-    leadFirstCwd: leadSpawnsResult.firstCwd,
+    leadFirstCwd: leadScan.spawns.firstCwd,
     spawnContexts: resolveSpawnContexts({
       hierarchy,
-      leadTranscript: leadSpawnsResult,
+      leadTranscript: leadScan.spawns,
       subagentTranscripts: subagentSpawns
     })
   }

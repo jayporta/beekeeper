@@ -1,13 +1,12 @@
-import type { Result } from '../../shared/result'
-import type { SkippedLineError } from '../readRecords'
+import type { LineScan } from '../feedLineScan'
 import { createSessionRoleObserver } from '../sessionRoleObserver'
-import { costStateRecordSchema, aiTitleRecordSchema } from '../schemas'
+import { aiTitleRecordSchema } from '../schemas'
 import { createSignalObserver } from '../signals/signalObserver'
 import { summarizeSignals } from '../signals/summarizeSignals'
 import { createTeammateSpawnObserver } from '../teammateSpawnObserver'
 import { createLatestModelObserver } from './latestModelObserver'
 import { createLimitHitObserver } from './limitHitObserver'
-import { recordedTokenTotal } from './recordedTokenTotal'
+import { createRecordedCostState } from './recordedCostState'
 import { recordTimestampMs } from './recordTimestampMs'
 import type { ActivitySpan, RecordedUsage, SessionSummary } from './sessionSummary'
 import { createTranscriptTokenObserver } from './transcriptTokenObserver'
@@ -15,21 +14,13 @@ import { truncateTitle } from './truncateTitle'
 
 /**
  * The weight, in UTF-16 code units, a scan carries before any record: the
- * title, model, role labels, plan limit and recorded usage it keeps, each
- * bounded, and the objects that hold them.
+ * title, model, role labels and plan limit it keeps, each bounded, and the
+ * objects that hold them.
  */
 export const SUMMARY_SCAN_BASE_WEIGHT = 2048
 
-/** One transcript line as the reader reports it: a record, or why it could not be read as one. */
-export type SummaryScanInput = Result<Record<string, unknown>, SkippedLineError>
-
 /** A transcript summary built up one line at a time, and readable at any point. */
-export interface SummaryScan {
-  /**
-   * Folds in the next line of the transcript, in file order.
-   * @param input - The line, as `readRecords` reports it.
-   */
-  observe(input: SummaryScanInput): void
+export interface SummaryScan extends LineScan {
   /**
    * The summary of every line observed so far. Reading it leaves the scan
    * as it was, so more lines can follow, and the result shares no state with
@@ -37,9 +28,8 @@ export interface SummaryScan {
    */
   summary(): SessionSummary
   /**
-   * What the scan holds in memory, in UTF-16 code units, for bounding how
-   * many scans are kept: {@link SUMMARY_SCAN_BASE_WEIGHT} plus what its token,
-   * signal and teammate observers hold.
+   * What the scan holds in memory, in UTF-16 code units: {@link SUMMARY_SCAN_BASE_WEIGHT}
+   * plus what its token, signal, teammate and cost state observers hold.
    */
   weight(): number
 }
@@ -52,14 +42,15 @@ export interface SummaryScan {
  * the longer file from the start.
  *
  * The title and the recorded usage are the last valid record of their type
- * by line order. The usage is reduced as its record is read, so a crafted
- * `cost-state` record is never kept.
+ * by line order. The usage comes from a {@link createRecordedCostState}, which
+ * keeps the last valid `cost-state` reduced and weighed, so a crafted record
+ * never sits in a cached scan unweighed.
  *
  * @returns A scan with nothing observed.
  */
 export function createSummaryScan(): SummaryScan {
   let title: string | null = null
-  let usage: RecordedUsage | null = null
+  const costState = createRecordedCostState()
   const roleObserver = createSessionRoleObserver()
   const teammateObserver = createTeammateSpawnObserver()
   const modelObserver = createLatestModelObserver()
@@ -69,15 +60,6 @@ export function createSummaryScan(): SummaryScan {
   let earliestMs: number | null = null
   let latestMs: number | null = null
   let skippedLines = 0
-
-  function observeCostState(record: Record<string, unknown>): void {
-    const costState = costStateRecordSchema.safeParse(record)
-    if (!costState.success) return
-    usage = {
-      totalUSD: costState.data.totalCostUSD ?? null,
-      totalTokens: recordedTokenTotal(costState.data)
-    }
-  }
 
   return {
     observe(input) {
@@ -99,7 +81,7 @@ export function createSummaryScan(): SummaryScan {
       modelObserver.observe(record, timestampMs)
       tokenObserver.observe(record, timestampMs)
       signalObserver.observe(record, timestampMs)
-      if (record.type === 'cost-state') observeCostState(record)
+      costState.observe(record)
       if (record.type === 'ai-title') {
         const aiTitle = aiTitleRecordSchema.safeParse(record)
         if (aiTitle.success) title = truncateTitle(aiTitle.data.aiTitle)
@@ -108,6 +90,11 @@ export function createSummaryScan(): SummaryScan {
     summary() {
       const activity: ActivitySpan | null =
         earliestMs === null || latestMs === null ? null : { earliestMs, latestMs }
+      const recorded = costState.latest()
+      const usage: RecordedUsage | null =
+        recorded === null
+          ? null
+          : { totalUSD: recorded.totalCostUSD ?? null, totalTokens: costState.totalTokens() }
 
       return {
         title,
@@ -127,6 +114,7 @@ export function createSummaryScan(): SummaryScan {
       SUMMARY_SCAN_BASE_WEIGHT +
       tokenObserver.weight() +
       signalObserver.weight() +
-      teammateObserver.weight()
+      teammateObserver.weight() +
+      costState.weight()
   }
 }

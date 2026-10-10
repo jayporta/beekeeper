@@ -1,5 +1,5 @@
+import { feedLineScan } from '../feedLineScan'
 import type { ReadJsonlLinesOptions } from '../readJsonlLines'
-import { feedSummaryScan } from './feedSummaryScan'
 import type { SessionSummary } from './sessionSummary'
 import { createSummaryScan } from './summaryScan'
 
@@ -45,6 +45,6 @@ export async function scanSessionSummary(
   options: ReadJsonlLinesOptions = {}
 ): Promise<SessionSummary> {
   const scan = createSummaryScan()
-  await feedSummaryScan(scan, { ...options, filePath })
+  await feedLineScan(scan, { ...options, filePath })
   return scan.summary()
 }

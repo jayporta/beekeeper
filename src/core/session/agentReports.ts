@@ -1,7 +1,7 @@
 import { activeDurationMs } from './activeDurationMs'
 import { agentIdentityKey, type AgentIdentity } from './agentIdentity'
 import type { AgentUsage } from './agentUsage'
-import type { AgentReports } from './collectAgentReports'
+import type { AgentReports } from './agentReportsFold'
 import type { FileTouch } from './fileTouchCollector'
 import type { FileTouchEntry, FilesLedger } from './filesLedger'
 import type { AgentSignals } from '../transcript/signals/agentSignals'

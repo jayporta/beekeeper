@@ -18,6 +18,13 @@ export const DETACHED_BRANCH = 'HEAD'
  */
 export const MAX_TIMELINE_ENTRIES = 1024
 
+/**
+ * The weight, in UTF-16 code units, charged for each spawn, timeline entry and
+ * named-branch entry the observer holds beyond its strings: the object or map
+ * entry and its string headers.
+ */
+export const SPAWN_ENTRY_OVERHEAD = 48
+
 /** Options for {@link createSpawnObserver}. */
 export interface SpawnObserverOptions {
   /** The cap on timeline entries, which also bounds distinct cwds. Defaults to {@link MAX_TIMELINE_ENTRIES}. */
@@ -63,8 +70,20 @@ export interface TranscriptSpawns {
 export interface SpawnObserver {
   /** Feeds one parsed record, in file order. */
   observe(record: Record<string, unknown>): void
-  /** What the records observed so far showed. */
+  /**
+   * What the records observed so far showed. The spawns and the timeline are
+   * the observer's own, so records observed later change them; copy them to
+   * keep a snapshot.
+   */
   result(): TranscriptSpawns
+  /**
+   * What the observer holds, in UTF-16 code units: {@link SPAWN_ENTRY_OVERHEAD}
+   * plus the strings of each spawn, timeline entry and named branch, and the
+   * first cwd. The timeline and the named branches are bounded by the
+   * timeline cap, but the spawns are not, so a transcript that spawns many
+   * agents weighs what it holds.
+   */
+  weight(): number
 }
 
 function validCwd(value: unknown): string | undefined {
@@ -108,6 +127,7 @@ export function createSpawnObserver(options: SpawnObserverOptions = {}): SpawnOb
   let firstCwd: string | undefined
   const namedByCwd = new Map<string, string>()
   let overflowed = false
+  let spawnsWeight = 0
   const overflow = (): void => {
     timeline.length = 0
     namedByCwd.clear()
@@ -160,9 +180,21 @@ export function createSpawnObserver(options: SpawnObserverOptions = {}): SpawnOb
         const parsed = toolUseBlockSchema.safeParse(block)
         if (parsed.success && !spawns.has(parsed.data.id)) {
           spawns.set(parsed.data.id, { cwd, baseBranch })
+          spawnsWeight +=
+            SPAWN_ENTRY_OVERHEAD + parsed.data.id.length + cwd.length + (baseBranch?.length ?? 0)
         }
       }
     },
-    result: () => ({ spawns, timeline, startedAt, firstCwd })
+    result: () => ({ spawns, timeline, startedAt, firstCwd }),
+    weight() {
+      let weight = spawnsWeight + (firstCwd?.length ?? 0)
+      for (const { branch, cwd } of timeline) {
+        weight += SPAWN_ENTRY_OVERHEAD + branch.length + cwd.length
+      }
+      for (const [cwd, branch] of namedByCwd) {
+        weight += SPAWN_ENTRY_OVERHEAD + cwd.length + branch.length
+      }
+      return weight
+    }
   }
 }
