@@ -13,14 +13,10 @@ import { buildAiTitleRecord, buildJsonlText } from '../../testFixtures'
 import { scanSessionSummary } from '../scanSessionSummary'
 import { createSessionSummaryCache, type SessionSummaryCache } from '../sessionSummaryCache'
 import { createSummaryScan } from '../summaryScan'
-import {
-  buildTrickyTranscript,
-  createGrowingTranscript,
-  TRICKY_MAX_LINE_CHARS,
-  type GrowingTranscript
-} from '../testGrowingTranscript'
-import { createTranscriptDir, type TranscriptDir } from '../testTranscriptDir'
 import { LATER_SECONDS } from '../../testFileTimes'
+import { createGrowingTranscript, type GrowingTranscript } from '../../testGrowingTranscript'
+import { createTranscriptDir, type TranscriptDir } from '../testTranscriptDir'
+import { buildTrickyTranscript, TRICKY_MAX_LINE_CHARS } from '../testTrickyTranscript'
 
 // Wraps the real `createReadStream` in a spy so a test can see where each
 // read began, which is how a resumed read tells from a rescan.

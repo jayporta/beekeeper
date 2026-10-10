@@ -20,13 +20,15 @@ import {
 import type { TranscriptFileInfo } from '../../transcript/statTranscriptFile'
 import { subagentIdentity, leadIdentity } from '../agentIdentity'
 import { toAgentId } from '../../transcript/ids'
+import { createTranscriptDir, type TranscriptDir } from '../../transcript/summary/testTranscriptDir'
 import {
   buildTrickyTranscript,
+  TRICKY_MAX_LINE_CHARS
+} from '../../transcript/summary/testTrickyTranscript'
+import {
   createGrowingTranscript,
-  TRICKY_MAX_LINE_CHARS,
   type GrowingTranscript
-} from '../../transcript/summary/testGrowingTranscript'
-import { createTranscriptDir, type TranscriptDir } from '../../transcript/summary/testTranscriptDir'
+} from '../../transcript/testGrowingTranscript'
 import { consumedOffset, startsDuring } from '../../transcript/testReadStarts'
 import { statWrittenTranscript } from '../../transcript/testStatTranscript'
 import { createAgentScan, type AgentScanSnapshot } from '../agentScan'

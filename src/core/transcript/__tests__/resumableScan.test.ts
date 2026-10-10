@@ -1,4 +1,4 @@
-import { appendFileSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
+import { appendFileSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -14,6 +14,7 @@ import {
   startScan,
   type ResumableScan
 } from '../resumableScan'
+import { BASE_SECONDS, touchFile } from '../testFileTimes'
 import { statWrittenTranscript } from '../testStatTranscript'
 
 /** What each record a {@link NumberScan} has seen weighs. */
@@ -35,9 +36,6 @@ function createNumberScan(): NumberScan {
   }
 }
 
-/** The time the tests start, in seconds, so the files they touch count as recently modified. */
-const BASE_SECONDS = Math.floor(Date.now() / 1000)
-
 let dir: string
 let path: string
 
@@ -52,14 +50,9 @@ afterEach(() => {
 
 const lines = (...numbers: number[]): string => numbers.map((n) => `{"n":${n}}\n`).join('')
 
-/** Moves the file's modification time to a distinct second, so a stat tells it from the last. */
-function touch(seconds: number): void {
-  utimesSync(path, seconds, seconds)
-}
-
 async function started(content: string): Promise<ResumableScan<NumberScan>> {
   writeFileSync(path, content)
-  touch(BASE_SECONDS + 1)
+  touchFile(path, BASE_SECONDS + 1)
   return startScan({ file: await statWrittenTranscript(path), scan: createNumberScan() })
 }
 
@@ -100,7 +93,7 @@ describe('resumeScan', () => {
     const resume = await started(`${lines(1, 2)}{"n":3`)
 
     appendFileSync(path, '}\n{"n":4}\n')
-    touch(BASE_SECONDS + 2)
+    touchFile(path, BASE_SECONDS + 2)
     const resumed = await resumeScan({ file: await statWrittenTranscript(path), resume })
 
     expect(resumed?.scan).toBe(resume.scan)
@@ -111,7 +104,7 @@ describe('resumeScan', () => {
     const resume = await started(lines(1))
 
     appendFileSync(path, lines(2))
-    touch(BASE_SECONDS + 2)
+    touchFile(path, BASE_SECONDS + 2)
     const file = await statWrittenTranscript(path)
     const resumed = await resumeScan({ file, resume })
 
@@ -128,7 +121,7 @@ describe('resumeScan', () => {
     ): Promise<number[]> {
       const resume = await started(lines(1))
       appendFileSync(path, lines(2))
-      touch(BASE_SECONDS + 2)
+      touchFile(path, BASE_SECONDS + 2)
       const file = await statWrittenTranscript(path)
       change(resume)
       const result = await resumeScan({ file, resume })
@@ -156,7 +149,7 @@ describe('resumeScan', () => {
       const resume = await started(lines(1))
       Object.assign(resume, { size: resume.offset - 5 })
       appendFileSync(path, lines(2))
-      touch(BASE_SECONDS + 2)
+      touchFile(path, BASE_SECONDS + 2)
       const file = { ...(await statWrittenTranscript(path)), size: resume.offset - 1 }
 
       expect(await resumeScan({ file, resume })).toBeNull()
@@ -225,7 +218,7 @@ describe('advanceScan', () => {
 
   it('reads a file it holds no scan for from its first byte, and keeps the scan', async () => {
     writeFileSync(path, lines(1, 2))
-    touch(BASE_SECONDS + 1)
+    touchFile(path, BASE_SECONDS + 1)
     const states = createStates()
 
     const scan = await advance(states)
@@ -235,12 +228,12 @@ describe('advanceScan', () => {
 
   it('carries the kept scan on over what the file gained', async () => {
     writeFileSync(path, lines(1))
-    touch(BASE_SECONDS + 1)
+    touchFile(path, BASE_SECONDS + 1)
     const states = createStates()
     const first = await advance(states)
 
     appendFileSync(path, lines(2))
-    touch(BASE_SECONDS + 2)
+    touchFile(path, BASE_SECONDS + 2)
     const second = await advance(states)
 
     expect(second).toBe(first)
@@ -249,12 +242,12 @@ describe('advanceScan', () => {
 
   it('scans a file from its first byte when the kept scan cannot be carried on', async () => {
     writeFileSync(path, lines(1, 2))
-    touch(BASE_SECONDS + 1)
+    touchFile(path, BASE_SECONDS + 1)
     const states = createStates()
     await advance(states)
 
     writeFileSync(path, lines(7))
-    touch(BASE_SECONDS + 2)
+    touchFile(path, BASE_SECONDS + 2)
     const scan = await advance(states)
 
     expect(scan.seen).toEqual([7])
@@ -262,7 +255,7 @@ describe('advanceScan', () => {
 
   it('keeps no scan when the caller says the transcript is not recent', async () => {
     writeFileSync(path, lines(1, 2))
-    touch(BASE_SECONDS + 1)
+    touchFile(path, BASE_SECONDS + 1)
     const states = createStates()
 
     const scan = await advance(states, false)
@@ -272,12 +265,12 @@ describe('advanceScan', () => {
 
   it('drops the kept scan once the caller says the transcript is no longer recent', async () => {
     writeFileSync(path, lines(1))
-    touch(BASE_SECONDS + 1)
+    touchFile(path, BASE_SECONDS + 1)
     const states = createStates()
     await advance(states)
 
     appendFileSync(path, lines(2))
-    touch(BASE_SECONDS + 2)
+    touchFile(path, BASE_SECONDS + 2)
     await advance(states, false)
 
     expect(states.size).toBe(0)
@@ -285,12 +278,12 @@ describe('advanceScan', () => {
 
   it('removes the kept scan when the read fails', async () => {
     writeFileSync(path, lines(1))
-    touch(BASE_SECONDS + 1)
+    touchFile(path, BASE_SECONDS + 1)
     const states = createStates()
     await advance(states)
 
     appendFileSync(path, lines(2))
-    touch(BASE_SECONDS + 2)
+    touchFile(path, BASE_SECONDS + 2)
     const file = await statWrittenTranscript(path)
     rmSync(path)
 
@@ -310,7 +303,7 @@ describe('advanceScan', () => {
       const filePath = join(dir, name)
       if (seconds === BASE_SECONDS + 1) writeFileSync(filePath, content)
       else appendFileSync(filePath, content)
-      utimesSync(filePath, seconds, seconds)
+      touchFile(filePath, seconds)
     }
 
     async function advanceFile(states: NumberStates, name: string): Promise<NumberScan> {

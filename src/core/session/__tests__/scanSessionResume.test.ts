@@ -7,13 +7,8 @@ import { idleSeconds } from '../../transcript/testFileTimes'
 import { consumedOffset, startsDuring } from '../../transcript/testReadStarts'
 import { createAgentScanCache, type AgentScanCache } from '../agentScanCache'
 import { scanSession, type SessionScan } from '../scanSession'
-import {
-  agentLines,
-  createGrowingSession,
-  firstLines,
-  toolCallLines,
-  type GrowingSession
-} from '../testGrowingSession'
+import { createGrowingSession, type GrowingSession } from '../testGrowingSession'
+import { agentLines, firstLines, toolCallLines } from '../testSessionLines'
 
 // Wraps the real `createReadStream` in a spy so a test can see where each
 // read began, which is how a resumed read tells from a rescan.
