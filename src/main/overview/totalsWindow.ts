@@ -1,5 +1,6 @@
 import type { SessionEntry } from '../../core/transcript/discoverSessions'
 import type { TotalsWindowDto } from '../../shared/ipc/projectTotalsDto'
+import type { ArchivedTimes } from './archivedTimes'
 
 /** One day, in milliseconds. */
 export const DAY_MS = 24 * 60 * 60 * 1000
@@ -59,7 +60,16 @@ export function mayHaveDailyUsage(
     (newest, subagent) => Math.max(newest, subagent.transcript.mtimeMs),
     entry.transcript.value.mtimeMs
   )
-  return newestMs >= window.nowMs - window.windowMs - DAY_MS - SKIP_UNREAD_SLACK_MS
+  return newestMs >= dailyUsageCutoffMs(window)
+}
+
+/**
+ * The oldest time a session may have last been active and still have usage on
+ * a window's days: the window's length and a day back (the first calendar day
+ * can start that early), less {@link SKIP_UNREAD_SLACK_MS}.
+ */
+function dailyUsageCutoffMs(window: { readonly nowMs: number; readonly windowMs: number }): number {
+  return window.nowMs - window.windowMs - DAY_MS - SKIP_UNREAD_SLACK_MS
 }
 
 /**
@@ -75,13 +85,13 @@ export function mayHaveDailyUsage(
  * @returns `true` to read its slots.
  */
 export function mayArchivedHaveDailyUsage(
-  times: { readonly latestMs: number | null; readonly modifiedMs: number | null },
+  times: ArchivedTimes,
   window: { readonly nowMs: number; readonly windowMs: number }
 ): boolean {
   const { latestMs, modifiedMs } = times
   if (latestMs === null && modifiedMs === null) return true
   const newestMs = Math.max(latestMs ?? -Infinity, modifiedMs ?? -Infinity)
-  return newestMs >= window.nowMs - window.windowMs - DAY_MS - SKIP_UNREAD_SLACK_MS
+  return newestMs >= dailyUsageCutoffMs(window)
 }
 
 /**
@@ -96,7 +106,7 @@ export function mayArchivedHaveDailyUsage(
  * @returns `true` to hand it to the totals.
  */
 export function mayArchivedCountInWindow(
-  times: { readonly latestMs: number | null; readonly modifiedMs: number | null },
+  times: ArchivedTimes,
   window: { readonly nowMs: number; readonly windowMs: number }
 ): boolean {
   const { latestMs, modifiedMs } = times
