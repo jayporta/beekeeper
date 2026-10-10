@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { copyTextHandler } from '../copyTextHandler'
+import { MAX_COPY_TEXT_LENGTH } from '../../../shared/ipc/requestSchemas'
 
 function recorder(): { written: string[]; deps: Parameters<typeof copyTextHandler>[0] } {
   const written: string[] = []
@@ -18,7 +19,7 @@ describe('copyTextHandler', () => {
   it('writes text of exactly the cap', async () => {
     const { written, deps } = recorder()
 
-    await copyTextHandler(deps, { text: 'x'.repeat(4096) })
+    await copyTextHandler(deps, { text: 'x'.repeat(MAX_COPY_TEXT_LENGTH) })
 
     expect(written).toHaveLength(1)
   })
@@ -35,7 +36,7 @@ describe('copyTextHandler', () => {
     ['no payload', undefined],
     ['no text', {}],
     ['a number', { text: 1 }],
-    ['text one past the cap', { text: 'x'.repeat(4097) }],
+    ['text one past the cap', { text: 'x'.repeat(MAX_COPY_TEXT_LENGTH + 1) }],
     ['an extra field', { text: 'a', html: '<b>' }]
   ])('refuses %s without touching the clipboard', async (_label, payload) => {
     const { written, deps } = recorder()

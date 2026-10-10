@@ -20,19 +20,21 @@ export interface OtelRuntimeOptions {
   readonly settingsPath: string
   /** Picks the port to try each time the receiver is turned on. Defaults to a random port from 20000 to 29999; tests return 0 for a free one. */
   readonly pickPort?: () => number
+  /** Called when the listening receiver fails after it started, so open windows can read its state again. */
+  readonly onReceiverFailure?: () => void
 }
 
 /**
  * Builds the telemetry receiver, off until the saved setting or a person turns
  * it on, and the store it reports into.
  *
- * @param options - The settings file and, optionally, the port picker.
+ * @param options - The settings file and, optionally, the port picker and the failure callback.
  * @returns The controller and the store the receiver writes to.
  */
 export function createOtelRuntime(options: OtelRuntimeOptions): OtelRuntime {
-  const { settingsPath, pickPort } = options
+  const { settingsPath, pickPort, onReceiverFailure } = options
   const costs = createReportedCostStore()
-  const receiver = createOtelReceiver({ costs })
+  const receiver = createOtelReceiver({ costs, onFailure: onReceiverFailure })
   return {
     receiver: createOtelReceiverController({
       settings: createOtelSettingsStore(settingsPath),

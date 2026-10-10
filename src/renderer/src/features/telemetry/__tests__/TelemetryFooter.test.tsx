@@ -1,6 +1,6 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { OtelReceiverDto } from '../../../../../shared/ipc/otelReceiverDto'
 import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { createQueryWrapper, createTestQueryClient } from '@renderer/testQueryWrapper'
@@ -14,13 +14,25 @@ const LISTENING: OtelReceiverDto = {
   token: 'tok-tok-tok-tok-tok-tok-tok-tok-tok-tok-1'
 }
 
+const FAILED: OtelReceiverDto = { ...LISTENING, status: 'failed', failure: 'failed' }
+
+const LISTENING_NOTE = 'Local only · read-only · receiving Claude Code telemetry on 127.0.0.1'
+const LOCAL_ONLY_NOTE = 'Local only · read-only'
+
 /** Renders the footer and waits until the receiver's state has been read. */
-async function renderFooter(): Promise<void> {
+async function renderFooter(): Promise<{ unmount(): void }> {
   const client = createTestQueryClient()
-  render(<TelemetryFooter />, { wrapper: createQueryWrapper(client) })
+  const view = render(<TelemetryFooter />, { wrapper: createQueryWrapper(client) })
   await waitFor(() => {
     expect(client.getQueryData(['otelReceiver'])).toBeDefined()
   })
+  return view
+}
+
+/** A `getOtelReceiver` that reports `first` once, then `later` on every call after. */
+function receiverThatChanges(first: OtelReceiverDto, later: OtelReceiverDto) {
+  let calls = 0
+  return () => Promise.resolve({ ok: true as const, value: calls++ === 0 ? first : later })
 }
 
 describe('TelemetryFooter', () => {
@@ -89,5 +101,42 @@ describe('TelemetryFooter', () => {
     await within(screen.getByRole('dialog')).findByText('Off. Nothing is listening.')
 
     expect(api.getOtelReceiver).toHaveBeenCalledTimes(1)
+  })
+
+  describe('when main reports the receiver changed on its own', () => {
+    it('stops saying it is receiving once the receiver failed', async () => {
+      const api = installBeekeeperApi({ getOtelReceiver: receiverThatChanges(LISTENING, FAILED) })
+      await renderFooter()
+      await screen.findByText(LISTENING_NOTE)
+
+      act(() => {
+        api.fireOtelReceiverChanged()
+      })
+
+      expect(await screen.findByText(LOCAL_ONLY_NOTE)).toBeTruthy()
+    })
+
+    it('reads the receiver again for a change reported before the footer mounted', async () => {
+      const api = installBeekeeperApi({
+        getOtelReceiver: () => Promise.resolve({ ok: true, value: FAILED })
+      })
+      const client = createTestQueryClient()
+      client.setQueryData(['otelReceiver'], LISTENING)
+      api.fireOtelReceiverChanged()
+
+      render(<TelemetryFooter />, { wrapper: createQueryWrapper(client) })
+
+      expect(await screen.findByText(LOCAL_ONLY_NOTE)).toBeTruthy()
+    })
+
+    it('removes its subscription once unmounted', async () => {
+      const unsubscribe = vi.fn()
+      installBeekeeperApi({ onOtelReceiverChanged: () => unsubscribe })
+      const view = await renderFooter()
+
+      view.unmount()
+
+      expect(unsubscribe).toHaveBeenCalledTimes(1)
+    })
   })
 })

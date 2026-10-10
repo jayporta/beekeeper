@@ -5,6 +5,8 @@ import { useFocusOrAnnounce } from './useFocusOrAnnounce'
 interface Announcement {
   /** What to say now. It is empty until something is announced, and again after the hidden live copy's clear delay. Transcript-derived: render as plain text. */
   readonly message: string
+  /** How many messages have been announced. Key the region's text by it so an identical message is a new node, which a screen reader announces again. */
+  readonly id: number
   /** Replaces what is said with a new message. The newest message wins, however soon after another it comes. */
   readonly announce: (message: string) => void
 }
@@ -20,7 +22,7 @@ interface Spoken {
  * have news for the same region, and the region can only say the latest of
  * them, so they share this source instead of each holding its own text.
  *
- * @returns The message to show in the region, and the function that announces a new one.
+ * @returns The message to show in the region, its announcement id, and the function that announces a new one.
  */
 export function useAnnouncement(): Announcement {
   const [spoken, setSpoken] = useState<Spoken>({ count: 0, message: '' })
@@ -34,5 +36,5 @@ export function useAnnouncement(): Announcement {
     noFocusTarget,
     spoken.count === 0 ? '' : `announcement:${spoken.count}`
   )
-  return { message: speaking ? spoken.message : '', announce }
+  return { message: speaking ? spoken.message : '', id: spoken.count, announce }
 }

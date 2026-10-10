@@ -124,4 +124,11 @@ export interface BeekeeperApi {
    * @returns A function that removes this subscription and no other.
    */
   onLiveUpdatesUnavailable(listener: () => void): () => void
+
+  /**
+   * Subscribes to the notice that the telemetry receiver's state changed without a request, such as its server failing after it started listening.
+   * @param listener - Called with no arguments. A notice sent before anyone subscribed is delivered once, to the first subscriber.
+   * @returns A function that removes this subscription and no other.
+   */
+  onOtelReceiverChanged(listener: () => void): () => void
 }

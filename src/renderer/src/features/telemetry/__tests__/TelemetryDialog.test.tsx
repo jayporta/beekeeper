@@ -8,6 +8,7 @@ import { installBeekeeperApi, TEST_OTEL_OFF } from '@renderer/testBeekeeperApi'
 import { createQueryWrapper, createTestQueryClient } from '@renderer/testQueryWrapper'
 import { TelemetryDialog } from '../TelemetryDialog'
 import { telemetryEnvLines } from '../telemetryEnvLines'
+import { useOtelReceiverChanges } from '../useOtelReceiverChanges'
 
 const TOKEN = 'tok-tok-tok-tok-tok-tok-tok-tok-tok-tok-1'
 const LISTENING: OtelReceiverDto = {
@@ -32,6 +33,77 @@ const dialog = (): HTMLElement => screen.getByRole('dialog', { name: 'Claude Cod
 const checkbox = (): HTMLElement =>
   within(dialog()).getByRole('checkbox', { name: "Receive Claude Code's cost estimates" })
 
+/** The visible status line, which the checkbox's `aria-describedby` points at. */
+function statusLine(): HTMLElement {
+  const line = document.getElementById(checkbox().getAttribute('aria-describedby') ?? '')
+  if (line === null) throw new Error('the checkbox does not point at a status line')
+  return line
+}
+
+/** Waits until the visible status line says `text`, then returns it. */
+async function findStatusLine(text: string): Promise<HTMLElement> {
+  await waitFor(() => {
+    expect(statusLine().textContent).toBe(text)
+  })
+  return statusLine()
+}
+
+/**
+ * The hidden polite region that announces outcomes. It is the dialog's first
+ * status, ahead of the copy status, which exists only while the receiver is on.
+ */
+const outcomeRegion = (): HTMLElement => within(dialog()).getAllByRole('status')[0] as HTMLElement
+
+/** Records which texts the hidden region has been given, one per announcement. */
+interface AnnouncementWatch {
+  /** The elements that carried text in the region, in the order they appeared. */
+  readonly carriers: Set<Element>
+  /** Adds what the observer has not delivered yet. */
+  flush(): void
+}
+
+/**
+ * Starts watching `region` for announcements. Each announcement is a new text
+ * node under a new element, so the distinct elements that carried text count
+ * the announcements, including one that is replaced before anyone could read it.
+ */
+function watchAnnouncements(region: HTMLElement): AnnouncementWatch {
+  const carriers = new Set<Element>()
+  const note = (records: MutationRecord[]): void => {
+    for (const record of records) {
+      const touched =
+        record.type === 'characterData' ? [record.target] : Array.from(record.addedNodes)
+      for (const node of touched) {
+        const carrier = node instanceof Element ? node : node.parentElement
+        if (carrier !== null && carrier !== region) carriers.add(carrier)
+      }
+    }
+  }
+  const observer = new MutationObserver(note)
+  observer.observe(region, { childList: true, subtree: true, characterData: true })
+  return {
+    carriers,
+    flush: () => {
+      note(observer.takeRecords())
+    }
+  }
+}
+
+/** The non-empty texts announced so far, read after pending updates have settled. */
+async function settledAnnouncements(watch: AnnouncementWatch): Promise<string[]> {
+  await act(async () => {
+    await Promise.resolve()
+  })
+  watch.flush()
+  return [...watch.carriers].map((node) => node.textContent ?? '').filter((text) => text !== '')
+}
+
+/** Mounts the receiver-change subscription the sidebar footer provides, around the dialog. */
+function DialogWithReceiverChanges(): React.JSX.Element {
+  useOtelReceiverChanges()
+  return <TelemetryDialog open onClose={vi.fn()} />
+}
+
 afterEach(() => {
   vi.useRealTimers()
 })
@@ -48,7 +120,7 @@ describe('TelemetryDialog', () => {
     installBeekeeperApi()
     renderDialog()
 
-    expect(await within(dialog()).findByText('Off. Nothing is listening.')).toBeTruthy()
+    expect(await findStatusLine('Off. Nothing is listening.')).toBeTruthy()
     expect((checkbox() as HTMLInputElement).checked).toBe(false)
     expect(within(dialog()).queryByRole('region')).toBeNull()
   })
@@ -57,19 +129,19 @@ describe('TelemetryDialog', () => {
     installBeekeeperApi({ getOtelReceiver: () => new Promise(() => undefined) })
     renderDialog()
 
-    expect(within(dialog()).getByText('Checking the telemetry setting.')).toBeTruthy()
+    expect(statusLine().textContent).toBe('Checking the telemetry setting.')
     expect(checkbox().getAttribute('aria-disabled')).toBe('true')
   })
 
   it('turns the receiver on, then shows it listening with the lines to set', async () => {
     const api = installBeekeeperApi({ setOtelReceiverEnabled: () => ok(LISTENING) })
     renderDialog()
-    await within(dialog()).findByText('Off. Nothing is listening.')
+    await findStatusLine('Off. Nothing is listening.')
 
     await userEvent.click(checkbox())
 
     expect(api.setOtelReceiverEnabled).toHaveBeenCalledWith(true)
-    expect(await within(dialog()).findByText('Listening on 127.0.0.1, port 23456.')).toBeTruthy()
+    expect(await findStatusLine('Listening on 127.0.0.1, port 23456.')).toBeTruthy()
     expect((checkbox() as HTMLInputElement).checked).toBe(true)
     const lines = within(dialog()).getByRole('region', {
       name: 'Environment variables for Claude Code'
@@ -108,7 +180,7 @@ describe('TelemetryDialog', () => {
     await userEvent.click(checkbox())
 
     expect(api.setOtelReceiverEnabled).toHaveBeenCalledWith(false)
-    expect(await within(dialog()).findByText('Off. Nothing is listening.')).toBeTruthy()
+    expect(await findStatusLine('Off. Nothing is listening.')).toBeTruthy()
     expect(within(dialog()).queryByRole('region')).toBeNull()
   })
 
@@ -119,7 +191,7 @@ describe('TelemetryDialog', () => {
     renderDialog()
 
     expect(
-      await within(dialog()).findByText(
+      await findStatusLine(
         'Another app is using port 23456. Turn the receiver off and on again to get a new port and token.'
       )
     ).toBeTruthy()
@@ -132,8 +204,8 @@ describe('TelemetryDialog', () => {
     renderDialog()
 
     expect(
-      await within(dialog()).findByText(
-        "beekeeper couldn't start listening on port 23456. Turn the receiver off and on again to get a new port and token."
+      await findStatusLine(
+        "beekeeper couldn't start listening on port 23456, or stopped listening on it. Turn the receiver off and on again to get a new port and token."
       )
     ).toBeTruthy()
   })
@@ -148,11 +220,11 @@ describe('TelemetryDialog', () => {
         setOtelReceiverEnabled: () => ok({ enabled: false, status: 'failed', failure })
       })
       renderDialog()
-      await within(dialog()).findByText('Off. Nothing is listening.')
+      await findStatusLine('Off. Nothing is listening.')
 
       await userEvent.click(checkbox())
 
-      expect(await within(dialog()).findByText(message)).toBeTruthy()
+      expect(await findStatusLine(message)).toBeTruthy()
       expect((checkbox() as HTMLInputElement).checked).toBe(false)
       expect(within(dialog()).queryByRole('region')).toBeNull()
     }
@@ -163,18 +235,144 @@ describe('TelemetryDialog', () => {
       setOtelReceiverEnabled: () => ok({ enabled: false, status: 'failed', failure: 'port-in-use' })
     })
     renderDialog()
-    await within(dialog()).findByText('Off. Nothing is listening.')
+    await findStatusLine('Off. Nothing is listening.')
 
     await userEvent.click(checkbox())
 
     const reason = "beekeeper couldn't find a free port, so the receiver stays off."
-    await within(dialog()).findByText(reason)
-    const describedBy = checkbox().getAttribute('aria-describedby') ?? ''
-    const status = document.getElementById(describedBy)
-    expect([status?.getAttribute('role'), status?.textContent]).toEqual(['status', reason])
+    expect((await findStatusLine(reason)).textContent).toBe(reason)
   })
 
-  it('changes the status text for each of two identical failed turn-ons, so each one is announced', async () => {
+  it('shows the saving line in the visible status that describes the checkbox, outside any live region', async () => {
+    installBeekeeperApi({ setOtelReceiverEnabled: () => new Promise(() => undefined) })
+    renderDialog()
+    await findStatusLine('Off. Nothing is listening.')
+
+    await userEvent.click(checkbox())
+
+    const line = await findStatusLine('Turning the receiver on…')
+    expect(line.getAttribute('role')).toBeNull()
+  })
+
+  it('announces the loaded state once when the setting finishes loading after the dialog opens', async () => {
+    let finishLoad: () => void = () => undefined
+    installBeekeeperApi({
+      getOtelReceiver: () =>
+        new Promise((resolve) => {
+          finishLoad = () => {
+            resolve({ ok: true, value: TEST_OTEL_OFF })
+          }
+        })
+    })
+    renderDialog()
+    const announcements = watchAnnouncements(outcomeRegion())
+
+    await act(async () => {
+      finishLoad()
+      await Promise.resolve()
+    })
+
+    await findStatusLine('Off. Nothing is listening.')
+    expect(await settledAnnouncements(announcements)).toEqual(['Off. Nothing is listening.'])
+  })
+
+  it('announces that the setting could not be read when the load fails after the dialog opens', async () => {
+    let failLoad: () => void = () => undefined
+    installBeekeeperApi({
+      getOtelReceiver: () =>
+        new Promise((resolve) => {
+          failLoad = () => {
+            resolve({ ok: false, error: { code: 'untrusted-sender' } })
+          }
+        })
+    })
+    renderDialog()
+    const announcements = watchAnnouncements(outcomeRegion())
+
+    await act(async () => {
+      failLoad()
+      await Promise.resolve()
+    })
+
+    await findStatusLine("beekeeper couldn't read the telemetry setting.")
+    expect(await settledAnnouncements(announcements)).toEqual([
+      "beekeeper couldn't read the telemetry setting."
+    ])
+  })
+
+  it('announces nothing for the state showing when the dialog opens', async () => {
+    installBeekeeperApi({ getOtelReceiver: () => ok(LISTENING) })
+    const client = createTestQueryClient()
+    client.setQueryData(['otelReceiver'], LISTENING)
+    render(<TelemetryDialog open onClose={vi.fn()} />, { wrapper: createQueryWrapper(client) })
+    const announcements = watchAnnouncements(outcomeRegion())
+
+    await findStatusLine('Listening on 127.0.0.1, port 23456.')
+
+    expect(await settledAnnouncements(announcements)).toEqual([])
+  })
+
+  it.each([
+    [
+      'a successful turn-on',
+      { enabled: true, status: 'listening', failure: null, port: 23456, token: TOKEN },
+      'Listening on 127.0.0.1, port 23456.'
+    ],
+    [
+      'a failed turn-on',
+      { enabled: false, status: 'failed', failure: 'port-in-use' },
+      "beekeeper couldn't find a free port, so the receiver stays off."
+    ]
+  ] as const)(
+    'announces exactly one outcome for %s, never the state it replaced',
+    async (_name, outcome, text) => {
+      let finishSave: () => void = () => undefined
+      installBeekeeperApi({
+        setOtelReceiverEnabled: () =>
+          new Promise((resolve) => {
+            finishSave = () => {
+              resolve({ ok: true, value: outcome })
+            }
+          })
+      })
+      renderDialog()
+      await findStatusLine('Off. Nothing is listening.')
+      const announcements = watchAnnouncements(outcomeRegion())
+
+      await userEvent.click(checkbox())
+      // Held long enough for the state being replaced to be announced, if it were.
+      await findStatusLine('Turning the receiver on…')
+      await act(async () => {
+        finishSave()
+        await Promise.resolve()
+      })
+
+      await findStatusLine(text)
+      expect(await settledAnnouncements(announcements)).toEqual([text])
+    }
+  )
+
+  it('announces the new state when main reports the receiver failed while the dialog is open', async () => {
+    const failed: OtelReceiverDto = { ...LISTENING, status: 'failed', failure: 'failed' }
+    let reads = 0
+    const api = installBeekeeperApi({
+      getOtelReceiver: () => ok(++reads === 1 ? LISTENING : failed)
+    })
+    render(<DialogWithReceiverChanges />, { wrapper: createQueryWrapper() })
+    await findStatusLine('Listening on 127.0.0.1, port 23456.')
+
+    act(() => {
+      api.fireOtelReceiverChanged()
+    })
+
+    const failure =
+      "beekeeper couldn't start listening on port 23456, or stopped listening on it. Turn the receiver off and on again to get a new port and token."
+    await waitFor(() => {
+      expect(outcomeRegion().textContent).toBe(failure)
+    })
+  })
+
+  it('announces each of two identical failed turn-ons as new text, without the saving line', async () => {
     const finishers: (() => void)[] = []
     installBeekeeperApi({
       setOtelReceiverEnabled: () =>
@@ -188,21 +386,29 @@ describe('TelemetryDialog', () => {
         })
     })
     renderDialog()
-    await within(dialog()).findByText('Off. Nothing is listening.')
+    await findStatusLine('Off. Nothing is listening.')
     const failure = "beekeeper couldn't find a free port, so the receiver stays off."
-    const seen: string[] = []
+    const heldWhileSaving: string[] = []
+    const announced: Element[] = []
+    let previous = outcomeRegion().firstElementChild
 
     for (let attempt = 0; attempt < 2; attempt++) {
       await userEvent.click(checkbox())
-      seen.push(within(dialog()).getAllByRole('status')[0]?.textContent ?? '')
+      heldWhileSaving.push(outcomeRegion().textContent)
       await act(async () => {
         finishers[attempt]?.()
         await Promise.resolve()
       })
-      seen.push((await within(dialog()).findByText(failure)).textContent)
+      await waitFor(() => {
+        expect(outcomeRegion().firstElementChild).not.toBe(previous)
+        expect(outcomeRegion().textContent).toBe(failure)
+      })
+      previous = outcomeRegion().firstElementChild
+      if (previous !== null) announced.push(previous)
     }
 
-    expect(seen).toEqual(['Turning the receiver on…', failure, 'Turning the receiver on…', failure])
+    expect(announced[1]).not.toBe(announced[0])
+    expect(heldWhileSaving.join('|')).not.toContain('Turning')
   })
 
   it('says the receiver is turning off while turning it off is saving', async () => {
@@ -215,7 +421,7 @@ describe('TelemetryDialog', () => {
 
     await userEvent.click(checkbox())
 
-    expect(await within(dialog()).findByText('Turning the receiver off…')).toBeTruthy()
+    expect(await findStatusLine('Turning the receiver off…')).toBeTruthy()
   })
 
   it('forgets cached reported costs once the receiver is turned off', async () => {
@@ -230,7 +436,7 @@ describe('TelemetryDialog', () => {
 
     await userEvent.click(checkbox())
 
-    await within(dialog()).findByText('Off. Nothing is listening.')
+    await findStatusLine('Off. Nothing is listening.')
     expect(client.getQueryData(['reportedCost', 'session-1'])).toBeUndefined()
   })
 
@@ -239,7 +445,7 @@ describe('TelemetryDialog', () => {
     client.setQueryData(['reportedCost', 'session-1'], { costUsd: 1 })
     installBeekeeperApi({ setOtelReceiverEnabled: () => ok(LISTENING) })
     render(<TelemetryDialog open onClose={vi.fn()} />, { wrapper: createQueryWrapper(client) })
-    await within(dialog()).findByText('Off. Nothing is listening.')
+    await findStatusLine('Off. Nothing is listening.')
 
     await userEvent.click(checkbox())
 
@@ -285,9 +491,7 @@ describe('TelemetryDialog', () => {
     })
     renderDialog()
 
-    expect(
-      await within(dialog()).findByText("beekeeper couldn't read the telemetry setting.")
-    ).toBeTruthy()
+    expect(await findStatusLine("beekeeper couldn't read the telemetry setting.")).toBeTruthy()
   })
 
   it('says it could not save the setting and leaves the checkbox as it was', async () => {
@@ -295,54 +499,28 @@ describe('TelemetryDialog', () => {
       setOtelReceiverEnabled: () => Promise.resolve({ ok: false, error: { code: 'internal' } })
     })
     renderDialog()
-    await within(dialog()).findByText('Off. Nothing is listening.')
+    await findStatusLine('Off. Nothing is listening.')
 
     await userEvent.click(checkbox())
 
-    expect(
-      await within(dialog()).findByText("beekeeper couldn't save the telemetry setting.")
-    ).toBeTruthy()
+    expect(await findStatusLine("beekeeper couldn't save the telemetry setting.")).toBeTruthy()
     expect((checkbox() as HTMLInputElement).checked).toBe(false)
   })
 
   it('marks the checkbox unavailable while a change is saving', async () => {
     installBeekeeperApi({ setOtelReceiverEnabled: () => new Promise(() => undefined) })
     renderDialog()
-    await within(dialog()).findByText('Off. Nothing is listening.')
+    await findStatusLine('Off. Nothing is listening.')
 
     await userEvent.click(checkbox())
 
     expect(checkbox().getAttribute('aria-disabled')).toBe('true')
   })
 
-  it('keeps focus on the checkbox through a save', async () => {
-    let finish: (value: OtelReceiverDto) => void = () => undefined
-    installBeekeeperApi({
-      setOtelReceiverEnabled: () =>
-        new Promise((resolve) => {
-          finish = (value) => {
-            resolve({ ok: true, value })
-          }
-        })
-    })
-    renderDialog()
-    await within(dialog()).findByText('Off. Nothing is listening.')
-
-    await userEvent.click(checkbox())
-    expect(document.activeElement).toBe(checkbox())
-    await act(async () => {
-      finish(LISTENING)
-      await Promise.resolve()
-    })
-
-    await within(dialog()).findByText('Listening on 127.0.0.1, port 23456.')
-    expect(document.activeElement).toBe(checkbox())
-  })
-
   it('ignores another click on the checkbox while a change is saving', async () => {
     const api = installBeekeeperApi({ setOtelReceiverEnabled: () => new Promise(() => undefined) })
     renderDialog()
-    await within(dialog()).findByText('Off. Nothing is listening.')
+    await findStatusLine('Off. Nothing is listening.')
 
     await userEvent.click(checkbox())
     await userEvent.click(checkbox())

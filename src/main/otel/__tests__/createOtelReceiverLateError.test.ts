@@ -22,11 +22,13 @@ vi.mock('node:http', async (importOriginal) => {
 const validBody = (): string => JSON.stringify(otlpLogsBody([logRecord(apiRequestAttributes())]))
 
 let receiver: OtelReceiver
+let onFailure: ReturnType<typeof vi.fn<() => void>>
 
 beforeEach(() => {
   created.length = 0
   vi.spyOn(console, 'error').mockImplementation(() => undefined)
-  receiver = createOtelReceiver({ costs: createReportedCostStore() })
+  onFailure = vi.fn<() => void>()
+  receiver = createOtelReceiver({ costs: createReportedCostStore(), onFailure })
 })
 
 afterEach(async () => {
@@ -72,5 +74,25 @@ describe('createOtelReceiver late errors', () => {
     current?.emit('error', new Error('boom'))
 
     expect(receiver.state()).toEqual({ status: 'failed', failure: 'failed' })
+  })
+
+  it('tells its owner when the current server errors', async () => {
+    await receiver.start({ token: TEST_TOKEN, port: 0 })
+    const [current] = created
+
+    current?.emit('error', new Error('boom'))
+
+    expect(onFailure).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not tell its owner when a stopped server reports an error late', async () => {
+    await receiver.start({ token: TEST_TOKEN, port: 0 })
+    const [oldServer] = created
+    await receiver.stop()
+    await receiver.start({ token: TEST_TOKEN, port: 0 })
+
+    oldServer?.emit('error', new Error('late'))
+
+    expect(onFailure).not.toHaveBeenCalled()
   })
 })

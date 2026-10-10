@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { telemetryEnvLines } from '../telemetryEnvLines'
+import { MAX_COPY_TEXT_LENGTH } from '../../../../../shared/ipc/requestSchemas'
 
 describe('telemetryEnvLines', () => {
   it('lists the variables that point Claude Code at the receiver', () => {
@@ -21,6 +22,8 @@ describe('telemetryEnvLines', () => {
   it('stays within the length the copy call accepts, for a real token', () => {
     const token = 'x'.repeat(43)
 
-    expect(telemetryEnvLines({ port: 23456, token }).length).toBeLessThanOrEqual(4096)
+    expect(telemetryEnvLines({ port: 23456, token }).length).toBeLessThanOrEqual(
+      MAX_COPY_TEXT_LENGTH
+    )
   })
 })

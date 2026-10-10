@@ -23,5 +23,6 @@ export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
 export const IPC_EVENTS = {
   openAbout: 'beekeeper:open-about',
   filesChanged: 'beekeeper:files-changed',
-  liveUpdatesUnavailable: 'beekeeper:live-updates-unavailable'
+  liveUpdatesUnavailable: 'beekeeper:live-updates-unavailable',
+  otelReceiverChanged: 'beekeeper:otel-receiver-changed'
 } as const

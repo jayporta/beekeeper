@@ -44,6 +44,8 @@ export interface OtelReceiverOptions {
   readonly costs: ReportedCostStore
   /** How long a request may take to send its headers and body. Defaults to 10 seconds. */
   readonly requestTimeoutMs?: number
+  /** Called once the listening server fails and the state becomes `failed`. Not called for a server already stopped. */
+  readonly onFailure?: () => void
 }
 
 type ListenResult =
@@ -85,11 +87,11 @@ function closeServer(server: Server): Promise<void> {
  * and never makes an outbound request. Its logs name an error by code, never
  * by request content.
  *
- * @param options - The store, and optionally the request timeout.
+ * @param options - The store, and optionally the request timeout and the failure callback.
  * @returns A receiver that is not yet listening.
  */
 export function createOtelReceiver(options: OtelReceiverOptions): OtelReceiver {
-  const { costs, requestTimeoutMs = DEFAULT_REQUEST_TIMEOUT_MS } = options
+  const { costs, requestTimeoutMs = DEFAULT_REQUEST_TIMEOUT_MS, onFailure } = options
   let server: Server | null = null
   let current: OtelReceiverState = { status: 'off' }
   const serialize = createSerialQueue()
@@ -119,6 +121,7 @@ export function createOtelReceiver(options: OtelReceiverOptions): OtelReceiver {
       if (server !== created) return
       server = null
       current = { status: 'failed', failure: 'failed' }
+      onFailure?.()
     })
     current = { status: 'listening', port: result.port }
     return current
