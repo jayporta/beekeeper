@@ -87,6 +87,7 @@
   },
   "teamTotal": "team total",
   "partialNote": "partial, see the note below the list",
+  "signalsPartialNote": "counts partial, see the note below the list",
   "metaSeparator": "·",
   "agentStrip": {
     "more": "+{{count, integer}}"

@@ -70,7 +70,7 @@ export function SessionCell({
           marker={
             lastSignalNote === undefined
               ? undefined
-              : { after: lastSignalNote, node: <PartialMarker note={t('partialNote')} /> }
+              : { after: lastSignalNote, node: <PartialMarker note={t('signalsPartialNote')} /> }
           }
         />
       </MutedText>

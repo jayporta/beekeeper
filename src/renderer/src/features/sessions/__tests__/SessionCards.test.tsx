@@ -552,7 +552,7 @@ describe('session cards: signal notes', () => {
   })
 
   describe('when a transcript hit the event cap', () => {
-    const NOTE = 'partial, see the note below the list'
+    const NOTE = 'counts partial, see the note below the list'
     const SENTENCE = /Some transcripts have more events than beekeeper counts/
     const capped = testSession(11, {
       projectDirName: DIR,
@@ -567,7 +567,7 @@ describe('session cards: signal notes', () => {
 
       const card = cardOf('Capped transcript')
 
-      expect(card.textContent).toContain(`2 tool errors¹${NOTE}`)
+      expect(card.textContent).toContain(`2 tool errors¹ ${NOTE}`)
       expect(screen.getByText(SENTENCE)).toBeTruthy()
     })
 
@@ -590,7 +590,7 @@ describe('session cards: signal notes', () => {
       })
       await showSessions([partialLead])
 
-      expect(cardOf('Partial team').textContent).toContain(`2 compactions¹${NOTE}`)
+      expect(cardOf('Partial team').textContent).toContain(`2 compactions¹ ${NOTE}`)
     })
 
     it('marks nothing when the partial signals have every count at zero', async () => {
