@@ -1,9 +1,10 @@
 import * as fs from 'node:fs'
-import { chmodSync, utimesSync } from 'node:fs'
+import { chmodSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { toAgentId } from '../../transcript/ids'
 import { createTranscriptDir, type TranscriptDir } from '../../transcript/summary/testTranscriptDir'
-import { idleSeconds } from '../../transcript/testFileTimes'
+import { idleSeconds, touchFile } from '../../transcript/testFileTimes'
+import { seededRandom } from '../../transcript/testGrowingTranscript'
 import { consumedOffset, startsDuring } from '../../transcript/testReadStarts'
 import { createAgentScanCache, type AgentScanCache } from '../agentScanCache'
 import { scanSession, type SessionScan } from '../scanSession'
@@ -73,7 +74,7 @@ describe('scanSession keeping scans while the session or a transcript is recent'
     const session = newSession(lead, 1, 400)
     const finished = session.addSubagent('done', agentLines('done', [0, 6]))
     finished.growTo(Number.MAX_SAFE_INTEGER)
-    utimesSync(finished.path, idleSeconds(), idleSeconds())
+    touchFile(finished.path, idleSeconds())
     session.lead.growTo(bytes(leadEarly))
     const cache = createAgentScanCache()
     await scanBoth(session, cache)
@@ -94,7 +95,7 @@ describe('scanSession keeping scans while the session or a transcript is recent'
     const session = newSession(agentLines('lead', [0, 10]), 1, 400)
     const busy = session.addSubagent('busy', agentLines('busy', [0, 30]))
     session.lead.growTo(Number.MAX_SAFE_INTEGER)
-    utimesSync(session.lead.path, idleSeconds(), idleSeconds())
+    touchFile(session.lead.path, idleSeconds())
     busy.growTo(bytes(ownEarly))
     const cache = createAgentScanCache()
     await scanBoth(session, cache)
@@ -111,7 +112,7 @@ describe('scanSession keeping scans while the session or a transcript is recent'
     const finished = session.addSubagent('done', agentLines('done', [0, 6]))
     session.lead.growTo(Number.MAX_SAFE_INTEGER)
     finished.growTo(Number.MAX_SAFE_INTEGER)
-    for (const file of [session.lead, finished]) utimesSync(file.path, idleSeconds(), idleSeconds())
+    for (const file of [session.lead, finished]) touchFile(file.path, idleSeconds())
     const cache = createAgentScanCache()
     await scanBoth(session, cache)
 
@@ -236,18 +237,6 @@ describe('scanSession resumed from cached transcript scans', () => {
     })
 
     describe('after every random-sized append to any transcript', () => {
-      /** A small seeded generator (mulberry32) returning numbers in `[0, 1)`. */
-      function seeded(seed: number): () => number {
-        let state = seed >>> 0
-        return () => {
-          state = (state + 0x6d2b79f5) >>> 0
-          let t = state
-          t = Math.imul(t ^ (t >>> 15), t | 1)
-          t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
-          return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-        }
-      }
-
       it.each([1, 2, 3])('for seed %i', async (seed) => {
         const common = agentLines('common', [0, 5])
         const lead = agentLines('lead', [0, 30])
@@ -261,7 +250,7 @@ describe('scanSession resumed from cached transcript scans', () => {
           session.addSubagent('c', common + firstLines(lead, 6) + agentLines('c', [0, 8]))
         ]
         const remaining = [session.lead, ...subagents]
-        const random = seeded(seed)
+        const random = seededRandom(seed)
         const cache = createAgentScanCache()
         const allStarts: number[] = []
 

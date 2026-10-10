@@ -17,7 +17,7 @@ const START_MS = Date.UTC(2026, 0, 1)
 const line = (record: unknown): string => `${toJsonlLine(record)}\n`
 
 /**
- * Builds the lines of one agent's steps `from` up to (not including) `to`.
+ * Builds the lines of one agent's steps from `range[0]` up to (not including) `range[1]`.
  * Every step is an assistant message that edits a file, with the result of
  * the edit. Every fifth step also runs a Bash command that changed a file,
  * every seventh result is an error, every ninth step spawns an agent, and

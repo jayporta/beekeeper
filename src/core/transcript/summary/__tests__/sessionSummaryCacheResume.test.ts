@@ -1,6 +1,6 @@
 import * as fs from 'node:fs'
 import * as fsPromises from 'node:fs/promises'
-import { appendFileSync, renameSync, truncateSync, utimesSync, writeFileSync } from 'node:fs'
+import { appendFileSync, renameSync, truncateSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -13,7 +13,7 @@ import { buildAiTitleRecord, buildJsonlText } from '../../testFixtures'
 import { scanSessionSummary } from '../scanSessionSummary'
 import { createSessionSummaryCache, type SessionSummaryCache } from '../sessionSummaryCache'
 import { createSummaryScan } from '../summaryScan'
-import { LATER_SECONDS } from '../../testFileTimes'
+import { LATER_SECONDS, touchFile } from '../../testFileTimes'
 import { createGrowingTranscript, type GrowingTranscript } from '../../testGrowingTranscript'
 import { createTranscriptDir, type TranscriptDir } from '../testTranscriptDir'
 import { buildTrickyTranscript, TRICKY_MAX_LINE_CHARS } from '../testTrickyTranscript'
@@ -196,7 +196,7 @@ describe('createSessionSummaryCache resuming', () => {
       const { cache, path } = await cachedTranscript()
 
       truncateSync(path, 2000)
-      utimesSync(path, LATER_SECONDS, LATER_SECONDS)
+      touchFile(path, LATER_SECONDS)
 
       expect(await readAndCompare(cache, await statWrittenTranscript(path), options)).toBe(0)
     })
@@ -205,7 +205,7 @@ describe('createSessionSummaryCache resuming', () => {
       const { cache, path, script } = await cachedTranscript()
 
       writeFileSync(path, Buffer.from(script).fill(0x78, 0, 40))
-      utimesSync(path, LATER_SECONDS, LATER_SECONDS)
+      touchFile(path, LATER_SECONDS)
 
       expect(await readAndCompare(cache, await statWrittenTranscript(path), options)).toBe(0)
     })
@@ -215,7 +215,7 @@ describe('createSessionSummaryCache resuming', () => {
       const before = await statWrittenTranscript(path)
 
       appendFileSync(path, '{"type":"ai-title","aiTitle":"More"}\n')
-      utimesSync(path, before.mtimeMs / 1000, before.mtimeMs / 1000)
+      touchFile(path, before.mtimeMs / 1000)
 
       expect(await readAndCompare(cache, await statWrittenTranscript(path), options)).toBe(0)
     })
@@ -229,7 +229,7 @@ describe('createSessionSummaryCache resuming', () => {
         Buffer.from('{"type":"ai-title","aiTitle":"More"}\n')
       ])
       writeFileSync(path, rewritten)
-      utimesSync(path, LATER_SECONDS, LATER_SECONDS)
+      touchFile(path, LATER_SECONDS)
 
       expect(await readAndCompare(cache, await statWrittenTranscript(path), options)).toBe(0)
     })
@@ -239,7 +239,7 @@ describe('createSessionSummaryCache resuming', () => {
 
       const replacement = join(dir.root, 'replacement.jsonl')
       writeFileSync(replacement, Buffer.concat([script, Buffer.from('{"a":1}\n')]))
-      utimesSync(replacement, LATER_SECONDS, LATER_SECONDS)
+      touchFile(replacement, LATER_SECONDS)
       renameSync(replacement, path)
 
       expect(await readAndCompare(cache, await statWrittenTranscript(path), options)).toBe(0)
@@ -251,7 +251,7 @@ describe('createSessionSummaryCache resuming', () => {
       const edited = Buffer.concat([script, Buffer.from('{"a":1}\n')])
       edited[consumedOffset(script) - 1] = 0x20
       writeFileSync(path, edited)
-      utimesSync(path, LATER_SECONDS, LATER_SECONDS)
+      touchFile(path, LATER_SECONDS)
 
       expect(await readAndCompare(cache, await statWrittenTranscript(path), options)).toBe(0)
     })
@@ -328,7 +328,7 @@ describe('createSessionSummaryCache resuming', () => {
       }
       for (const path of paths) {
         appendFileSync(path, SECOND_TITLE)
-        utimesSync(path, LATER_SECONDS, LATER_SECONDS)
+        touchFile(path, LATER_SECONDS)
       }
       return paths
     }

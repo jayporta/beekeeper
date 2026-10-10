@@ -38,8 +38,12 @@ export interface GrowingTranscriptOptions {
   readonly maxStep: number
 }
 
-/** A small seeded generator (mulberry32) returning numbers in `[0, 1)`. */
-function seededRandom(seed: number): () => number {
+/**
+ * A small seeded generator (mulberry32), so a failing run can be repeated.
+ * @param seed - The generator's starting state.
+ * @returns A function that returns the next number in `[0, 1)` on each call.
+ */
+export function seededRandom(seed: number): () => number {
   let state = seed >>> 0
   return () => {
     state = (state + 0x6d2b79f5) >>> 0

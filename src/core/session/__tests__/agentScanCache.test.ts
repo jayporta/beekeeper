@@ -1,12 +1,5 @@
 import * as fs from 'node:fs'
-import {
-  appendFileSync,
-  renameSync,
-  rmSync,
-  truncateSync,
-  utimesSync,
-  writeFileSync
-} from 'node:fs'
+import { appendFileSync, renameSync, rmSync, truncateSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -33,7 +26,7 @@ import { consumedOffset, startsDuring } from '../../transcript/testReadStarts'
 import { statWrittenTranscript } from '../../transcript/testStatTranscript'
 import { createAgentScan, type AgentScanSnapshot } from '../agentScan'
 import { createAgentScanCache, type AgentScanCache } from '../agentScanCache'
-import { idleSeconds, LATER_SECONDS } from '../../transcript/testFileTimes'
+import { idleSeconds, LATER_SECONDS, touchFile } from '../../transcript/testFileTimes'
 
 // Wraps the real `createReadStream` in a spy so a test can see where each
 // read began, which is how a resumed read tells from a rescan.
@@ -164,7 +157,7 @@ describe('createAgentScanCache', () => {
       await readLead(cache, await growing.stat())
 
       truncateSync(growing.path, 1500)
-      utimesSync(growing.path, LATER_SECONDS, LATER_SECONDS)
+      touchFile(growing.path, LATER_SECONDS)
 
       expect(await readAndCompare(cache, await statWrittenTranscript(growing.path))).toBe(0)
     })
@@ -178,7 +171,7 @@ describe('createAgentScanCache', () => {
 
       const replacement = join(dir.root, 'replacement.jsonl')
       writeFileSync(replacement, Buffer.concat([script, Buffer.from('{"a":1}\n')]))
-      utimesSync(replacement, LATER_SECONDS, LATER_SECONDS)
+      touchFile(replacement, LATER_SECONDS)
       renameSync(replacement, growing.path)
 
       expect(await readAndCompare(cache, await statWrittenTranscript(growing.path))).toBe(0)
@@ -192,7 +185,7 @@ describe('createAgentScanCache', () => {
       await readLead(cache, before)
 
       appendFileSync(growing.path, '{"type":"ai-title","aiTitle":"More"}\n')
-      utimesSync(growing.path, before.mtimeMs / 1000, before.mtimeMs / 1000)
+      touchFile(growing.path, before.mtimeMs / 1000)
 
       expect(await readAndCompare(cache, await statWrittenTranscript(growing.path))).toBe(0)
     })
@@ -326,14 +319,14 @@ describe('createAgentScanCache', () => {
     async function idleTranscript(name: string, bytes: number): Promise<GrowingTranscript> {
       const growing = growingFrom(buildTrickyTranscript(), name)
       growing.growTo(bytes)
-      utimesSync(growing.path, idleSeconds(), idleSeconds())
+      touchFile(growing.path, idleSeconds())
       return growing
     }
 
     /** Grows an idle transcript and dates it an hour ago again, one second off, so the stat differs. */
     async function growIdle(growing: GrowingTranscript, bytes: number): Promise<void> {
       growing.growTo(bytes)
-      utimesSync(growing.path, idleSeconds() - 1, idleSeconds() - 1)
+      touchFile(growing.path, idleSeconds() - 1)
     }
 
     function readUnder(
