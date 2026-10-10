@@ -67,7 +67,8 @@ export function mayHaveDailyUsage(
  * the times its list item holds: not when its last message and its transcript's
  * last write are both older than the window's length and a day back (the first
  * calendar day can start that early) by more than {@link SKIP_UNREAD_SLACK_MS}.
- * A session with neither time is kept, so it is counted as unreadable.
+ * A session with neither time is kept, so its slots are read. It counts as
+ * unreadable only when it has none.
  *
  * @param times - When the session's last message was, and when its transcript was last written, either `null` when unknown.
  * @param window - The window's end, in milliseconds since the Unix epoch, and its length.
