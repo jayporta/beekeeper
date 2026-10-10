@@ -12,12 +12,14 @@ export interface SearchTrigger {
 
 /** What {@link useMatchCountPerSearch} needs to know about the search and the list. */
 export interface MatchCountOptions {
+  /** How many sessions match right now. */
+  readonly count: number
   /** The search, which changes on the person's typing, folder switch, Refresh or Retry press. */
   readonly search: SearchTrigger
   /** Whether the search is active: it has text, and the folder has sessions to search. */
   readonly searching: boolean
-  /** Whether the folder's list has loaded. */
-  readonly loaded: boolean
+  /** Whether the folder's list has loaded or failed, with no resort request waiting on it. */
+  readonly settled: boolean
 }
 
 /** A match count to announce, made in answer to one search. */
@@ -41,14 +43,14 @@ const sameSearch = (a: SearchTrigger, b: SearchTrigger): boolean =>
   a.dirName === b.dirName && a.query === b.query && a.settledResortAt === b.settledResortAt
 
 /**
- * A new search waits for its list to load, then announces the count if it is
- * active. A search that stops being active goes quiet until the next one.
+ * A new search waits for its list to settle, then announces the count if it
+ * is active. A search that stops being active goes quiet until the next one.
  */
-function nextHeld(held: Held, count: number, options: MatchCountOptions): Held {
-  const { search, searching, loaded } = options
+function nextHeld(held: Held, options: MatchCountOptions): Held {
+  const { count, search, searching, settled } = options
   const current = sameSearch(held.search, search) ? held : { ...held, search, pending: true }
   if (current.pending) {
-    if (!loaded) return current
+    if (!settled) return current
     const resolved = current.resolved + 1
     return {
       search,
@@ -65,24 +67,18 @@ function nextHeld(held: Held, count: number, options: MatchCountOptions): Held {
  * that announces it speaks in answer to the person's search, folder switch,
  * Refresh or Retry press, not to a background update of the list. A search
  * that becomes active in the background, such as a leftover search in an
- * empty folder that gains a session, stays quiet.
+ * empty folder that gains a session, stays quiet. A search made while a
+ * resort is pending waits for it, so opening a folder on a stale list
+ * announces the count of the list that replaces it, once.
  *
- * @param count - How many sessions match right now.
- * @param options - The search, whether it is active, and whether the list has loaded.
+ * @param options - The match count, the search, whether it is active, and whether the list has settled.
  * @returns The count to announce, or `null` when there is nothing to announce.
  */
-export function useMatchCountPerSearch(
-  count: number,
-  options: MatchCountOptions
-): MatchCountAnnouncement | null {
+export function useMatchCountPerSearch(options: MatchCountOptions): MatchCountAnnouncement | null {
   const [held, setHeld] = useState(() =>
-    nextHeld(
-      { search: options.search, pending: true, resolved: 0, announcement: null },
-      count,
-      options
-    )
+    nextHeld({ search: options.search, pending: true, resolved: 0, announcement: null }, options)
   )
-  const next = nextHeld(held, count, options)
+  const next = nextHeld(held, options)
   if (next !== held) {
     // Adjusting state while rendering: React re-renders at once with the held count.
     setHeld(next)

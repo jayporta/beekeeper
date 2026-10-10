@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { IpcResult } from '../../../../../shared/ipc/ipcResult'
 import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
+import { LISTS_STALE_TIME_MS } from '@renderer/app/listsStaleTime'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useSelectedProjectStore } from '@renderer/features/projects/state/useSelectedProjectStore'
 import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
@@ -178,6 +179,33 @@ describe('SessionsView search announcements while a list loads', () => {
     expect(searchStatus()).toBe(region)
   })
 
+  it('waits for the list that replaces a stale cached one before announcing', async () => {
+    useSessionsViewStore.setState({ query: 'code' })
+    let resolve: (value: IpcResult<readonly SessionListItemDto[]>) => void = () => undefined
+    const api = installBeekeeperApi({ listSessions: () => new Promise((r) => (resolve = r)) })
+    const client = createTestQueryClient()
+    client.setQueryData(['sessions', DIR], SESSIONS, {
+      updatedAt: Date.now() - LISTS_STALE_TIME_MS - 1
+    })
+    render(<SessionsContent dirName={DIR} headingId="h" />, {
+      wrapper: createQueryWrapper(client)
+    })
+    await screen.findByRole('list', { name: DIR })
+    await waitFor(() => {
+      expect(api.listSessions).toHaveBeenCalledOnce()
+    })
+
+    expect(searchStatus()?.textContent).toBe('')
+    await act(async () => {
+      resolve({ ok: true, value: [mateA] })
+      await Promise.resolve()
+    })
+
+    await waitFor(() => {
+      expect(searchStatus()?.textContent).toBe('1 session matches')
+    })
+  })
+
   it('announces nothing for a leftover search in a folder with no sessions', async () => {
     useSessionsViewStore.setState({ query: 'code' })
     installBeekeeperApi({ listSessions: () => ok([]) })
@@ -190,6 +218,41 @@ describe('SessionsView search announcements while a list loads', () => {
 })
 
 describe('SessionsContent with an unreadable folder', () => {
+  const unreadable = (): Promise<IpcResult<readonly SessionListItemDto[]>> =>
+    Promise.resolve({ ok: false, error: { code: 'unreadable' } })
+
+  it('announces nothing when a background load replaces the error under a leftover search', async () => {
+    useSessionsViewStore.setState({ query: 'code' })
+    let readable = false
+    installBeekeeperApi({ listSessions: () => (readable ? ok(SESSIONS) : unreadable()) })
+    const client = createTestQueryClient()
+    render(<SessionsContent dirName={DIR} headingId="h" />, {
+      wrapper: createQueryWrapper(client)
+    })
+    await screen.findByRole('alert')
+
+    readable = true
+    await refetchAndSettle(client, ['sessions', DIR])
+
+    await screen.findByRole('list', { name: DIR })
+    expect(searchStatus()?.textContent).toBe('')
+  })
+
+  it('announces the match count once Retry loads the sessions', async () => {
+    useSessionsViewStore.setState({ query: 'code' })
+    let readable = false
+    installBeekeeperApi({ listSessions: () => (readable ? ok(SESSIONS) : unreadable()) })
+    render(<SessionsContent dirName={DIR} headingId="h" />, { wrapper: createQueryWrapper() })
+    await screen.findByRole('alert')
+
+    readable = true
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
+
+    await waitFor(() => {
+      expect(searchStatus()?.textContent).toBe('2 sessions match')
+    })
+  })
+
   it('says the folder is unreadable, with Retry', async () => {
     installBeekeeperApi({
       listSessions: () => Promise.resolve({ ok: false, error: { code: 'unreadable' } })

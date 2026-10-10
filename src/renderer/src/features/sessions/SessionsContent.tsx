@@ -69,10 +69,13 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
   const searchable = !gone && data !== undefined && data.length > 0
   // An empty or gone folder shows no search box, so a leftover query isn't a search.
   const searching = searchable && normalizeQuery(query) !== ''
-  const announcement = useMatchCountPerSearch(matchCount, {
+  // A pending resort brings a new list, which the count waits for.
+  const resortPending = resortAt !== 0 && resortAt !== settledResortAt
+  const announcement = useMatchCountPerSearch({
+    count: matchCount,
     search: { dirName, query, settledResortAt },
     searching,
-    loaded: data !== undefined
+    settled: (data !== undefined || error !== null) && !resortPending
   })
 
   return (
