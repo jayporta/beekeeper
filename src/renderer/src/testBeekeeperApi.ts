@@ -43,6 +43,11 @@ export type TestBeekeeperApi = { [K in keyof BeekeeperApi]: Mock<BeekeeperApi[K]
    * With no listener it is remembered once, and the first `onLiveUpdatesUnavailable` subscriber gets it at once.
    */
   fireLiveUpdatesUnavailable(): void
+  /**
+   * Calls every listener subscribed through `onOtelReceiverChanged`, as the main process does when the receiver's state changes on its own.
+   * With no listener it is remembered once, and the first `onOtelReceiverChanged` subscriber gets it at once.
+   */
+  fireOtelReceiverChanged(): void
 }
 
 /**
@@ -85,10 +90,10 @@ function createListeners<T extends unknown[]>(
  * default, and `getOtelReceiver` reports an off receiver, since the sidebar
  * reads it. Calls to any other method the test did not stub reject, so a test
  * can't silently depend on it. `onOpenAbout`, `onFilesChanged` and
- * `onLiveUpdatesUnavailable` subscriptions are real: each `fire…` helper reaches
- * every listener that has not unsubscribed. As in the preload, a
- * `fireOpenAbout` or `fireLiveUpdatesUnavailable` before any subscriber is held
- * for the first one.
+ * `onLiveUpdatesUnavailable` and `onOtelReceiverChanged` subscriptions are real:
+ * each `fire…` helper reaches every listener that has not unsubscribed. As in
+ * the preload, a `fireOpenAbout`, `fireLiveUpdatesUnavailable` or
+ * `fireOtelReceiverChanged` before any subscriber is held for the first one.
  *
  * @param overrides - Implementations to use instead of the defaults.
  * @returns The installed stub.
@@ -99,6 +104,7 @@ export function installBeekeeperApi(overrides: Partial<BeekeeperApi> = {}): Test
   const about = createListeners(true)
   const filesChanged = createListeners<[FilesChangedDto]>()
   const unavailable = createListeners(true)
+  const receiverChanged = createListeners(true)
   const api: TestBeekeeperApi = {
     listProjects: vi.fn(
       overrides.listProjects ??
@@ -126,9 +132,11 @@ export function installBeekeeperApi(overrides: Partial<BeekeeperApi> = {}): Test
     onOpenAbout: vi.fn(overrides.onOpenAbout ?? about.subscribe),
     onFilesChanged: vi.fn(overrides.onFilesChanged ?? filesChanged.subscribe),
     onLiveUpdatesUnavailable: vi.fn(overrides.onLiveUpdatesUnavailable ?? unavailable.subscribe),
+    onOtelReceiverChanged: vi.fn(overrides.onOtelReceiverChanged ?? receiverChanged.subscribe),
     fireOpenAbout: about.fire,
     fireFilesChanged: filesChanged.fire,
-    fireLiveUpdatesUnavailable: unavailable.fire
+    fireLiveUpdatesUnavailable: unavailable.fire,
+    fireOtelReceiverChanged: receiverChanged.fire
   }
   window.beekeeper = api
   return api

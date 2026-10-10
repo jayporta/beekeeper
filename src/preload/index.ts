@@ -11,10 +11,15 @@ ipcRenderer.on(IPC_EVENTS.openAbout, () => {
   openAbout.signal()
 })
 
-// Same early registration: a failure reported while the page loads is held for its first subscriber.
+// Same early registration for the two notices below: one reported while the page loads is held for its first subscriber.
 const liveUpdatesUnavailable = createSignalRelay()
 ipcRenderer.on(IPC_EVENTS.liveUpdatesUnavailable, () => {
   liveUpdatesUnavailable.signal()
+})
+
+const otelReceiverChanged = createSignalRelay()
+ipcRenderer.on(IPC_EVENTS.otelReceiverChanged, () => {
+  otelReceiverChanged.signal()
 })
 
 /**
@@ -54,7 +59,8 @@ const api: BeekeeperApi = {
       ipcRenderer.removeListener(IPC_EVENTS.filesChanged, handler)
     }
   },
-  onLiveUpdatesUnavailable: (listener) => liveUpdatesUnavailable.subscribe(listener)
+  onLiveUpdatesUnavailable: (listener) => liveUpdatesUnavailable.subscribe(listener),
+  onOtelReceiverChanged: (listener) => otelReceiverChanged.subscribe(listener)
 }
 
 contextBridge.exposeInMainWorld('beekeeper', api)
