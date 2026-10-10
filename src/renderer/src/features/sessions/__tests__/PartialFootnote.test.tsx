@@ -9,6 +9,8 @@ const MISSING = "Some teammates the lead spawned aren't in this list, so a team 
 const UNRECORDED = 'Some sessions recorded no usage, so a team total leaves them out.'
 const SUBAGENTS =
   "A session still running or stopped early shows its transcript's tokens, which leave out its subagents."
+const SIGNALS =
+  "Some transcripts have more events than beekeeper counts, so a card's tool error, compaction, or agent kill count may be low."
 
 describe('PartialFootnote', () => {
   it('renders nothing when no figure is partial', () => {
@@ -28,6 +30,7 @@ describe('PartialFootnote', () => {
 
   it('lists the reasons in a fixed order whatever order they were found in', () => {
     const reasons = new Set<PartialReason>([
+      'incompleteSignals',
       'subagentsExcluded',
       'unrecordedUsage',
       'missingTeammates',
@@ -36,7 +39,7 @@ describe('PartialFootnote', () => {
     render(<PartialFootnote reasons={reasons} />)
 
     expect(document.getElementById(PARTIAL_FOOTNOTE_ID)?.textContent).toBe(
-      `¹ Partial: ${UNREADABLE} ${MISSING} ${UNRECORDED} ${SUBAGENTS}`
+      `¹ Partial: ${UNREADABLE} ${MISSING} ${UNRECORDED} ${SUBAGENTS} ${SIGNALS}`
     )
   })
 

@@ -125,7 +125,7 @@ export function testUsage(overrides: Partial<TeamUsageRollupDto> = {}): TeamUsag
     sessionsWithoutTokens: 0,
     missingTeammates: 0,
     teamListsTruncated: false,
-    signalTotals: { toolErrors: 0, compactions: 0, agentsKilled: 0 },
+    signalTotals: { toolErrors: 0, compactions: 0, agentsKilled: 0, partial: false },
     ...overrides
   }
 }

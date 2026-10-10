@@ -12,8 +12,8 @@ import type { SessionsT } from './sessionsT'
 export function signalTotalsOf(item: SessionListItemDto): SignalTotalsDto | null {
   if (item.team?.kind === 'lead') return item.team.usage.signalTotals
   if (!item.summary.ok) return null
-  const { toolErrors, compactions, agentsKilled } = item.summary.value.signals
-  return { toolErrors, compactions, agentsKilled }
+  const { toolErrors, compactions, agentsKilled, partial } = item.summary.value.signals
+  return { toolErrors, compactions, agentsKilled, partial }
 }
 
 /**
@@ -26,6 +26,17 @@ export function hasSignalCounts(totals: SignalTotalsDto | null): boolean {
   return (
     totals !== null && (totals.toolErrors > 0 || totals.compactions > 0 || totals.agentsKilled > 0)
   )
+}
+
+/**
+ * Whether the card's signal notes carry the partial marker. A partial set of
+ * all-zero counts shows no notes, so nothing is marked.
+ *
+ * @param totals - The counts from {@link signalTotalsOf}, or `null` for none.
+ * @returns `true` when the counts are partial and at least one is nonzero.
+ */
+export function signalsMarked(totals: SignalTotalsDto | null): boolean {
+  return totals !== null && totals.partial && hasSignalCounts(totals)
 }
 
 /**

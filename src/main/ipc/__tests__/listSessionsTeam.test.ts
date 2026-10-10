@@ -49,7 +49,7 @@ describe('listSessionsHandler team', () => {
         sessionsWithoutTokens: 2,
         missingTeammates: 0,
         teamListsTruncated: false,
-        signalTotals: { toolErrors: 0, compactions: 0, agentsKilled: 0 }
+        signalTotals: { toolErrors: 0, compactions: 0, agentsKilled: 0, partial: false }
       }
     })
     expect(teams.get(AGENT_SESSION_ID)).toEqual({

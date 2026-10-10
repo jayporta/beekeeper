@@ -23,4 +23,20 @@ describe('SeparatedText', () => {
 
     expect(container.textContent).toBe('')
   })
+
+  it('renders a marker right after the part it names, before the next separator', () => {
+    const { container } = render(
+      <SeparatedText parts={['a', 'b', 'c']} marker={{ after: 'b', node: <sup>¹</sup> }} />
+    )
+
+    expect(container.textContent).toBe('a · b¹ · c')
+  })
+
+  it('renders no marker when it names no part', () => {
+    const { container } = render(
+      <SeparatedText parts={['a', 'b']} marker={{ after: 'z', node: <sup>¹</sup> }} />
+    )
+
+    expect(container.textContent).toBe('a · b')
+  })
 })
