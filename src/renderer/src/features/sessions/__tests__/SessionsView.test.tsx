@@ -123,6 +123,25 @@ describe('SessionsView search announcements', () => {
       expect(searchStatus()?.textContent).toBe('No matching sessions')
     })
   })
+
+  it('mounts the count afresh when a new search matches as many sessions as the last', async () => {
+    showSessions()
+    await screen.findByRole('list', { name: DIR })
+    const search = screen.getByRole('searchbox', { name: 'Search sessions' })
+    await userEvent.type(search, 'parse')
+    await waitFor(() => {
+      expect(searchStatus()?.textContent).toBe('1 session matches')
+    })
+    const before = searchStatus()?.firstElementChild
+
+    await userEvent.type(search, 'r')
+
+    await waitFor(() => {
+      expect(searchStatus()?.firstElementChild).not.toBe(before)
+    })
+    expect(before?.isConnected).toBe(false)
+    expect(searchStatus()?.textContent).toBe('1 session matches')
+  })
 })
 
 /** The status message whose heading has this name. */

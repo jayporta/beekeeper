@@ -353,6 +353,23 @@ describe('a list that was loaded before its folder went missing', () => {
     expect(screen.queryByText('1 session matches')).toBeNull()
   })
 
+  it('announces the match count once Retry brings back a folder whose list was cached', async () => {
+    useSessionsViewStore.setState({ query: 'Alpha' })
+    let back = false
+    installBeekeeperApi({ listSessions: () => (back ? loaded([alphaSession]) : notFound()) })
+    const client = createTestQueryClient()
+    client.setQueryData(['sessions', ALPHA], [alphaSession], { updatedAt: staleUpdatedAt })
+    render(<SessionsContent dirName={ALPHA} headingId="h" />, {
+      wrapper: createQueryWrapper(client)
+    })
+    await screen.findByRole('alert')
+
+    back = true
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
+
+    expect(await screen.findByText('1 session matches')).toBeTruthy()
+  })
+
   it('announces that the project folder was not found, and shows the message with Retry', async () => {
     installBeekeeperApi({ listSessions: notFound })
 

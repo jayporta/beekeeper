@@ -30,12 +30,12 @@ interface SessionsContentProps {
  * The sessions view for one folder: the project header with the search box and
  * refresh button, the live region that announces search results, and the
  * list. The cards keep their order while the list updates in the background,
- * and sort again on a refresh. The search box shows only once a non-empty list
- * has loaded, and not while the folder is gone. The region stays mounted in
- * every state and across folders, so its text changes while it is mounted and
- * is announced. It gives the match count when the search, the folder or a
- * Refresh press changes it, not on a background update, even one that makes a
- * leftover search active.
+ * and sort again on a Refresh or Retry press. The search box shows only once a
+ * non-empty list has loaded, and not while the folder is gone. The region
+ * stays mounted in every state and across folders, so its text changes while
+ * it is mounted and is announced. It gives the match count when the search,
+ * the folder, or a Refresh or Retry press changes it, not on a background
+ * update, even one that makes a leftover search active.
  *
  * @example
  * <SessionsContent dirName="-Users-me-repo" headingId={headingId} />
@@ -69,7 +69,7 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
   const searchable = !gone && data !== undefined && data.length > 0
   // An empty or gone folder shows no search box, so a leftover query isn't a search.
   const searching = searchable && normalizeQuery(query) !== ''
-  const announcedCount = useMatchCountPerSearch(matchCount, {
+  const announcement = useMatchCountPerSearch(matchCount, {
     search: { dirName, query, settledResortAt },
     searching,
     loaded: data !== undefined
@@ -86,13 +86,14 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
           </>
         }
       />
-      <SearchResultsStatus count={announcedCount} />
+      <SearchResultsStatus announcement={announcement} />
       <SessionsBody
         data={data}
         error={error}
         errorUpdatedAt={errorUpdatedAt}
         isFetching={isFetching}
         onRetry={() => {
+          requestResort()
           void refetch()
         }}
         hasMatches={matching.length > 0}

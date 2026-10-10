@@ -45,6 +45,10 @@ const titles = (): (string | null)[] =>
     .getAllByRole('heading', { level: 2 })
     .map((heading) => heading.textContent)
 
+/** The live region showing `text`, which stays mounted while each announcement replaces its text. */
+const findStatusSaying = async (text: string): Promise<Element | null> =>
+  (await screen.findByText(text)).closest('[role="status"]')
+
 /** Delivers a change in the folder and waits for the list to be fetched again. */
 async function refetchAfterChange(calls: number): Promise<void> {
   act(() => {
@@ -329,13 +333,13 @@ describe('the search announcement after a Refresh', () => {
     const user = userEvent.setup()
     useSessionsViewStore.setState({ query: 'a' })
     renderApp()
-    const region = await screen.findByText('2 sessions match')
+    const region = await findStatusSaying('2 sessions match')
     current = [session(3, 'Gamma', 300), session(1, 'Alpha', 200), session(2, 'Beta', 100)]
 
     await user.click(screen.getByRole('button', { name: 'Refresh' }))
 
     await waitFor(() => {
-      expect(region.textContent).toBe('3 sessions match')
+      expect(region?.textContent).toBe('3 sessions match')
     })
   })
 })
@@ -360,14 +364,14 @@ describe('the search announcement across a folder switch', () => {
         })
     })
     renderApp(client)
-    const region = await screen.findByText('2 sessions match')
+    const region = await findStatusSaying('2 sessions match')
 
     act(() => {
       useSelectedProjectStore.getState().select(OTHER)
     })
 
     await waitFor(() => {
-      expect(region.textContent).toBe('1 session matches')
+      expect(region?.textContent).toBe('1 session matches')
     })
   })
 })
