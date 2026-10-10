@@ -11,15 +11,10 @@ export const MAX_MESSAGE_IDS = 50_000
 /**
  * The weight, in UTF-16 code units, charged for each tracked message beyond
  * its id and model: the map entry, the id's string header, the tracked
- * object and its token counts.
+ * object and its token counts, and its entry in the copy of the ids
+ * `leadUsage()` keeps, charged whether or not that copy has been made.
  */
-export const TRACKED_MESSAGE_OVERHEAD = 96
-
-/**
- * The weight, in UTF-16 code units, charged for each message id in the copy
- * `leadUsage()` keeps: its set entry. The id strings are the tracked ones.
- */
-export const SNAPSHOT_ID_OVERHEAD = 16
+export const TRACKED_MESSAGE_OVERHEAD = 112
 
 /** Totals and slots the tokens a transcript's own assistant records report. */
 export interface TranscriptTokenObserver {
@@ -46,10 +41,9 @@ export interface TranscriptTokenObserver {
   leadUsage(): LeadUsage | null
   /**
    * What the observer holds, in UTF-16 code units: {@link TRACKED_MESSAGE_OVERHEAD}
-   * plus the length of the id and of the model for each message tracked, the
-   * slots its ledger keeps, and
-   * {@link SNAPSHOT_ID_OVERHEAD} for each id in the copy `leadUsage()` keeps,
-   * while it keeps one. Zero once the observer has given up on a transcript.
+   * plus the length of the id and of the model for each message tracked, and
+   * the slots its ledger keeps. Reading `leadUsage()` doesn't change it. Zero
+   * once the observer has given up on a transcript.
    */
   weight(): number
 }
@@ -140,6 +134,6 @@ export function createTranscriptTokenObserver(): TranscriptTokenObserver {
         messageIds: idsSnapshot
       }
     },
-    weight: () => messagesWeight + ledger.weight() + (idsSnapshot?.size ?? 0) * SNAPSHOT_ID_OVERHEAD
+    weight: () => messagesWeight + ledger.weight()
   }
 }

@@ -4,7 +4,6 @@ import { recordTimestampMs } from '../recordTimestampMs'
 import {
   createTranscriptTokenObserver,
   MAX_MESSAGE_IDS,
-  SNAPSHOT_ID_OVERHEAD,
   TRACKED_MESSAGE_OVERHEAD,
   type TranscriptTokenObserver
 } from '../transcriptTokenObserver'
@@ -328,15 +327,14 @@ describe('createTranscriptTokenObserver', () => {
       expect(twoSlots.weight()).toBeGreaterThan(oneSlot.weight())
     })
 
-    it('charges the message ids it keeps once its lead usage is read', () => {
+    it('does not change when its lead usage is read, since a cache weighs it once', () => {
       const observer = createTranscriptTokenObserver()
       feed(observer, buildAssistantRecord({ messageId: 'msg_a' }))
-      feed(observer, buildAssistantRecord({ messageId: 'msg_b' }))
       const unread = observer.weight()
 
       observer.leadUsage()
 
-      expect(observer.weight()).toBe(unread + 2 * SNAPSHOT_ID_OVERHEAD)
+      expect(observer.weight()).toBe(unread)
     })
 
     it('does not charge a repeat of an id again', () => {
