@@ -35,7 +35,7 @@ describe('openArchiveStore', () => {
     const path = join(dir, 'archive.sqlite')
     const seeded = new DatabaseSync(path)
     seeded.exec('CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)')
-    seeded.exec("INSERT INTO meta (key, value) VALUES ('schema_version', '2')")
+    seeded.exec("INSERT INTO meta (key, value) VALUES ('schema_version', '3')")
     seeded.close()
     const { log } = collectLog()
 

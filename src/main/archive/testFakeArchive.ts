@@ -2,15 +2,16 @@ import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
 import { sessionRefKey } from '../ipc/sessionRefKey'
-import type { ArchiveReader, ArchiveWriter, SourceState } from './archiveStoreTypes'
+import type {
+  ArchivedSession,
+  ArchiveReader,
+  ArchiveWriter,
+  ListItemEntry,
+  SourceState
+} from './archiveStoreTypes'
 
-/** A list item save the fake received. */
-export interface RecordedListSave {
-  /** The saved item. */
-  readonly item: SessionListItemDto
-  /** The source state it was saved with. */
-  readonly source: SourceState
-}
+/** A list item save the fake received, with its source state and sidecars. */
+export type RecordedListSave = ListItemEntry
 
 /** A detail save the fake received. */
 export interface RecordedDetailSave {
@@ -34,8 +35,10 @@ export interface FakeArchive extends ArchiveWriter, ArchiveReader {
 
 /** What a fake archive answers reads with. */
 export interface FakeArchiveReads {
-  /** The list items it holds, from any folder. */
+  /** The list items it holds, from any folder. Its sessions carry no team spawns. */
   readonly listItems?: readonly SessionListItemDto[]
+  /** The sessions it holds, from any folder, after those built from `listItems`. */
+  readonly sessions?: readonly ArchivedSession[]
   /** The details it holds, keyed by {@link sessionRefKey}. */
   readonly details?: ReadonlyMap<string, SessionDetailDto>
 }
@@ -52,6 +55,18 @@ export function createFakeArchive(failure?: Error, reads: FakeArchiveReads = {})
   const listSaves: RecordedListSave[] = []
   const listBatches: RecordedListSave[][] = []
   const detailSaves: RecordedDetailSave[] = []
+
+  function readSessions(
+    projectDirName: string,
+    excluding: ReadonlySet<string>
+  ): readonly ArchivedSession[] {
+    if (failure !== undefined) throw failure
+    return [
+      ...(reads.listItems ?? []).map((item) => ({ item, teamSpawns: null })),
+      ...(reads.sessions ?? [])
+    ].filter(({ item }) => item.projectDirName === projectDirName && !excluding.has(item.sessionId))
+  }
+
   return {
     listSaves,
     listBatches,
@@ -65,12 +80,7 @@ export function createFakeArchive(failure?: Error, reads: FakeArchiveReads = {})
       if (failure !== undefined) throw failure
       detailSaves.push({ ref, detail, source })
     },
-    readListItems(projectDirName, excluding) {
-      if (failure !== undefined) throw failure
-      return (reads.listItems ?? []).filter(
-        (item) => item.projectDirName === projectDirName && !excluding.has(item.sessionId)
-      )
-    },
+    readSessions,
     readDetail(ref) {
       if (failure !== undefined) throw failure
       return reads.details?.get(sessionRefKey(ref)) ?? null

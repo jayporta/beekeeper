@@ -15,18 +15,57 @@ afterEach(() => {
 /** A status for a load that failed with `code` at `errorUpdatedAt`, or one still loading when `code` is `null`. */
 function status(
   code: IpcErrorCode | null,
-  options: { errorUpdatedAt?: number; holdNotFound?: boolean } = {}
+  options: { errorUpdatedAt?: number; holdNotFound?: boolean; summaryOnly?: boolean } = {}
 ): React.JSX.Element {
-  const { errorUpdatedAt = 1, holdNotFound = false } = options
+  const { errorUpdatedAt = 1, holdNotFound = false, summaryOnly = false } = options
   return (
     <SessionDetailStatus
       error={code === null ? null : new IpcCallError(code)}
       errorUpdatedAt={errorUpdatedAt}
       holdNotFound={holdNotFound}
+      summaryOnly={summaryOnly}
       onRetry={() => undefined}
     />
   )
 }
+
+describe('SessionDetailStatus for an archived session with a summary only', () => {
+  it('names its group by the summary-only heading and describes it by the body', () => {
+    render(status('not-found', { summaryOnly: true }))
+
+    expect(
+      screen.getByRole('group', {
+        name: 'Only a summary was archived',
+        description:
+          /^beekeeper archived this session's summary, shown above, but not its full detail/
+      })
+    ).toBeTruthy()
+  })
+
+  it('puts its heading under the page heading, not as a second h1', () => {
+    render(status('not-found', { summaryOnly: true }))
+
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Only a summary was archived' })
+    ).toBeTruthy()
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull()
+  })
+
+  it('goes back to the sessions list', async () => {
+    useNavigationStore.getState().showSession({ projectDirName: 'p', sessionId: 's' })
+    render(status('not-found', { summaryOnly: true }))
+
+    await userEvent.click(screen.getByRole('button', { name: 'Back to sessions' }))
+
+    expect(useNavigationStore.getState().view).toBe('sessions')
+  })
+
+  it('leaves other failures as they are', () => {
+    render(status('unreadable', { summaryOnly: true }))
+
+    expect(screen.getByRole('alert').textContent).toContain("Can't read this session")
+  })
+})
 
 describe('SessionDetailStatus for a missing session', () => {
   it('names its message group by the heading and describes it by the body', () => {

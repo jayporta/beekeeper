@@ -21,6 +21,13 @@ interface SessionDetailHeaderProps {
   readonly row: SessionRow | null
   /** Whether the session is an archived copy, which the header says. */
   readonly archived: boolean
+  /**
+   * Whether only the session's summary was archived, which the header says
+   * instead, and leaves to the message under it to announce. Meaningful only
+   * when `archived` is set.
+   * @defaultValue false
+   */
+  readonly summaryOnly?: boolean
 }
 
 /**
@@ -31,7 +38,9 @@ interface SessionDetailHeaderProps {
  * archived session says its transcript was removed and the copy shown is
  * beekeeper's. The sentence is announced by a status region that is always
  * mounted and empty until then, and shown by text hidden from assistive
- * technology so it isn't read twice.
+ * technology so it isn't read twice. When only the summary was archived, the
+ * sentence says so and is plain readable text, and the status region stays
+ * empty, since the message under the header is the one announcement.
  *
  * @example
  * <SessionDetailHeader label={label} row={row} archived={false} />
@@ -39,7 +48,8 @@ interface SessionDetailHeaderProps {
 export function SessionDetailHeader({
   label,
   row,
-  archived
+  archived,
+  summaryOnly = false
 }: SessionDetailHeaderProps): React.JSX.Element {
   const { t } = useTranslation('sessionDetail')
   const { t: tSessions } = useTranslation('sessions')
@@ -64,9 +74,10 @@ export function SessionDetailHeader({
       )}
       {/* Mounted before the session turns archived, so filling it is announced. */}
       <p role="status" className="visuallyHidden">
-        {archived ? t('archived') : ''}
+        {archived && !summaryOnly ? t('archived') : ''}
       </p>
-      {archived && <MutedText decorative>{t('archived')}</MutedText>}
+      {archived && !summaryOnly && <MutedText decorative>{t('archived')}</MutedText>}
+      {archived && summaryOnly && <MutedText>{t('archivedSummaryOnly')}</MutedText>}
       <PartialFootnote
         reasons={reasons}
         overrides={{ missingTeammates: t('partial.missingTeammates') }}

@@ -23,6 +23,8 @@ export interface SessionRowState {
    * and this view is the one to say so.
    */
   readonly listPending: boolean
+  /** Whether the folder's list reports the folder gone, so the list's `row` is a copy kept from before. */
+  readonly folderGone: boolean
 }
 
 /**
@@ -32,7 +34,7 @@ export interface SessionRowState {
  *
  * @param ref - The viewed session.
  * @param dirName - The folder whose list to read: the selected project's.
- * @returns The session's row, and whether the list is still pending.
+ * @returns The session's row, whether the list is still pending, and whether its folder is gone.
  */
 export function useSessionRow(ref: SessionRefDto, dirName: string): SessionRowState {
   const { t } = useTranslation('sessions')
@@ -45,5 +47,9 @@ export function useSessionRow(ref: SessionRefDto, dirName: string): SessionRowSt
   const firstLoad = isFetching && !isFetchedAfterMount
   const folderGone = IpcCallError.codeOf(error) === 'not-found'
   const projectsSettledAt = Math.max(projects.dataUpdatedAt, projects.errorUpdatedAt)
-  return { row, listPending: firstLoad || (folderGone && projectsSettledAt < errorUpdatedAt) }
+  return {
+    row,
+    listPending: firstLoad || (folderGone && projectsSettledAt < errorUpdatedAt),
+    folderGone
+  }
 }

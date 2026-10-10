@@ -3,8 +3,16 @@ import { EMPTY_AGENT_SIGNALS_DTO } from '../../shared/ipc/emptyAgentSignals'
 import type { IpcResult } from '../../shared/ipc/ipcResult'
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto, SessionSummaryDto } from '../../shared/ipc/sessionListDto'
+import type { SessionRoleDto } from '../../shared/ipc/sessionRoleDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
-import type { ListItemEntry, SourceState } from './archiveStoreTypes'
+import type { TranscriptTeamSpawns } from '../../core/transcript/teammateSpawn'
+import { NO_TEAM_SPAWNS } from '../ipc/summarizeArchivedSession'
+import type {
+  ArchivedLeadSlots,
+  ArchivedSession,
+  ListItemEntry,
+  SourceState
+} from './archiveStoreTypes'
 
 /** The session the fixtures describe unless overridden. */
 export const TEST_REF: SessionRefDto = {
@@ -32,12 +40,29 @@ export function testListItem(overrides: Partial<SessionListItemDto> = {}): Sessi
   }
 }
 
-/** A list item to store with the transcript state it was built from, for {@link TEST_REF} unless overridden. */
+/** Team spawns with every part set. */
+export const TEST_TEAM_SPAWNS: TranscriptTeamSpawns = {
+  spawns: [{ agentName: 'scout', teamName: 'blue', agentType: 'Explore', rawToolUseId: 'toolu_1' }],
+  stops: [{ agentName: 'scout', teamName: 'blue' }],
+  truncated: true
+}
+
+/** Lead slots with every part set. */
+export const TEST_LEAD_SLOTS: ArchivedLeadSlots = {
+  slots: [{ slot: 1_900_000, model: 'claude-opus-4', tokens: 1_200 }],
+  undatedMessages: 2,
+  invalidAssistantRecords: 1
+}
+
+/**
+ * A list item to store with the transcript state it was built from, for
+ * {@link TEST_REF} unless overridden. Its sidecars are empty: no spawns, and no lead usage.
+ */
 export function listEntry(
   item: SessionListItemDto = testListItem(),
   source: SourceState = TEST_SOURCE
 ): ListItemEntry {
-  return { item, source }
+  return { item, source, teamSpawns: NO_TEAM_SPAWNS, leadSlots: null }
 }
 
 /** A readable summary whose last message is at `latestMs`, or that has no timestamps when `null`. */
@@ -201,5 +226,48 @@ export function testPopulatedDetail(): SessionDetailDto {
       { runId: 'run-1', record: { name: 'nightly', completed: true, phases: ['plan', 'build'] } },
       { runId: 'run-2', record: null }
     ]
+  }
+}
+
+/** Options for {@link testArchivedSession}. */
+interface TestArchivedSessionOptions {
+  /** The session's folder. Defaults to {@link TEST_REF}'s. */
+  readonly projectDirName?: string
+  /** The session's role. Defaults to a lead. */
+  readonly role?: SessionRoleDto
+  /** The first and last message times. Defaults to `{ earliestMs: 1, latestMs: 5 }`. */
+  readonly activity?: { readonly earliestMs: number; readonly latestMs: number }
+  /** The teammates it spawned and stopped, or `null` for a row written before they were kept. Defaults to none. */
+  readonly teamSpawns?: TranscriptTeamSpawns | null
+}
+
+/**
+ * An archived session with a readable summary, for the session id `sessionId`.
+ * Its list item is archived and has no team, as the archive stores it.
+ *
+ * @param sessionId - The session's id.
+ * @param options - The folder, role, activity and spawns to set instead of the defaults.
+ * @returns The archived session.
+ */
+export function testArchivedSession(
+  sessionId: string,
+  options: TestArchivedSessionOptions = {}
+): ArchivedSession {
+  const {
+    projectDirName = TEST_REF.projectDirName,
+    role = { kind: 'lead' },
+    activity = { earliestMs: 1, latestMs: 5 },
+    teamSpawns = NO_TEAM_SPAWNS
+  } = options
+  const summary = testOkSummary(activity.latestMs)
+  if (!summary.ok) throw new Error('testOkSummary should be readable')
+  return {
+    item: testListItem({
+      projectDirName,
+      sessionId,
+      archived: true,
+      summary: { ok: true, value: { ...summary.value, role, activity } }
+    }),
+    teamSpawns
   }
 }

@@ -1,10 +1,14 @@
 import { z } from 'zod'
 import { err, ok, type Result } from '../../core/shared/result'
+import type { TranscriptTeamSpawns } from '../../core/transcript/teammateSpawn'
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
 import { archivedDetailSchema } from './archivedDetailSchema'
+import { archivedLeadSlotsSchema } from './archivedLeadSlotsSchema'
 import { archivedListItemSchema } from './archivedListItemSchema'
+import { archivedTeamSpawnsSchema } from './archivedTeamSpawnsSchema'
+import type { ArchivedLeadSlots } from './archiveStoreTypes'
 
 /** Why a stored row can't be served: bad JSON, a shape the UI can't rely on, or keys that don't match the row's. */
 export type ArchivedRowError = 'invalid-json' | 'invalid-shape' | 'key-mismatch'
@@ -15,8 +19,8 @@ interface ParseRowOptions<Schema extends z.ZodType> {
   readonly json: string
   /** The shape the UI relies on. */
   readonly schema: Schema
-  /** Whether the parsed value carries the row's own keys. */
-  readonly matchesKey: (parsed: z.output<Schema>) => boolean
+  /** Whether the parsed value carries the row's own keys. A column that holds no keys leaves it out. */
+  readonly matchesKey?: (parsed: z.output<Schema>) => boolean
 }
 
 /** Parses stored JSON, then checks it against a schema and the keys of its row. */
@@ -31,7 +35,7 @@ function parseRow<Schema extends z.ZodType, Dto>(
   }
   const parsed = options.schema.safeParse(value)
   if (!parsed.success) return err('invalid-shape')
-  if (!options.matchesKey(parsed.data)) return err('key-mismatch')
+  if (options.matchesKey?.(parsed.data) === false) return err('key-mismatch')
   // The row was written from this DTO by this app. The shape check above covers
   // the fields the UI reads without a guard, and the format version guards against drift.
   return ok(value as Dto)
@@ -72,4 +76,28 @@ export function parseArchivedDetail(
     schema: archivedDetailSchema,
     matchesKey: (detail) => detail.sessionId === ref.sessionId
   })
+}
+
+/**
+ * Reads a row's team spawns back from the JSON its `team_spawns` column holds.
+ *
+ * @param json - The column's JSON.
+ * @returns The spawns, or why the column can't be served.
+ */
+export function parseArchivedTeamSpawns(
+  json: string
+): Result<TranscriptTeamSpawns, ArchivedRowError> {
+  return parseRow({ json, schema: archivedTeamSpawnsSchema })
+}
+
+/**
+ * Reads a row's lead slots back from the JSON its `lead_slots` column holds.
+ *
+ * @param json - The column's JSON.
+ * @returns The slots, `null` for a transcript that had no lead usage, or why the column can't be served.
+ */
+export function parseArchivedLeadSlots(
+  json: string
+): Result<ArchivedLeadSlots | null, ArchivedRowError> {
+  return parseRow({ json, schema: archivedLeadSlotsSchema })
 }

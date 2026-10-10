@@ -1,8 +1,8 @@
 import type { DatabaseSync } from 'node:sqlite'
-import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
 import { MAX_ARCHIVED_DETAIL_CHARS } from '../archiveConstants'
-import type { ArchiveStore, SourceState } from '../archiveStoreTypes'
+import type { ArchiveStore, ListItemEntry, SourceState } from '../archiveStoreTypes'
 import { createArchiveStore } from '../createArchiveStore'
 import { openArchive } from '../openArchive'
 import {
@@ -13,12 +13,6 @@ import {
   TEST_REF,
   TEST_SOURCE
 } from '../testArchiveFixtures'
-
-/** One entry of a `saveListItems` batch. */
-interface ListEntry {
-  readonly item: SessionListItemDto
-  readonly source: SourceState
-}
 
 let db: DatabaseSync
 let clock: number
@@ -327,11 +321,11 @@ describe('saveListItems', () => {
   const SECOND = { ...TEST_REF, sessionId: '22222222-2222-4222-8222-222222222222' }
   const THIRD = { ...TEST_REF, sessionId: '33333333-3333-4333-8333-333333333333' }
 
-  function entryFor(ref: typeof TEST_REF, source: SourceState = TEST_SOURCE): ListEntry {
-    return { item: testListItem({ sessionId: ref.sessionId }), source }
+  function entryFor(ref: typeof TEST_REF, source: SourceState = TEST_SOURCE): ListItemEntry {
+    return listEntry(testListItem({ sessionId: ref.sessionId }), source)
   }
 
-  function entries(): ListEntry[] {
+  function entries(): ListItemEntry[] {
     return [entryFor(TEST_REF), entryFor(SECOND), entryFor(THIRD)]
   }
 
@@ -389,7 +383,7 @@ describe('saveListItems', () => {
     })
 
     expect(() =>
-      store.saveListItems([entryFor(TEST_REF), { item: failing, source: TEST_SOURCE }])
+      store.saveListItems([entryFor(TEST_REF), listEntry(failing, TEST_SOURCE)])
     ).toThrow('serialization failed')
     expect(logged).toEqual([])
   })
@@ -402,7 +396,7 @@ describe('saveListItems', () => {
     })
 
     expect(() =>
-      store.saveListItems([entryFor(TEST_REF), { item: failing, source: TEST_SOURCE }])
+      store.saveListItems([entryFor(TEST_REF), listEntry(failing, TEST_SOURCE)])
     ).toThrow('serialization failed')
 
     expect(rows()).toEqual([])
@@ -645,16 +639,25 @@ function seedRow(options: {
   )
 }
 
+/** The list items of a folder's archived sessions. */
+function readItems(
+  target: ArchiveStore,
+  folder: string,
+  excluding: ReadonlySet<string>
+): SessionListItemDto[] {
+  return target.readSessions(folder, excluding).map(({ item }) => item)
+}
+
 const OK_ITEM = testListItem({ summary: testOkSummary(5) })
 const SECOND_REF = { ...TEST_REF, sessionId: '22222222-2222-4222-8222-222222222222' }
 const NONE: ReadonlySet<string> = new Set()
 
-describe('readListItems', () => {
+describe('readSessions', () => {
   it('returns the stored items in session id order, each with its team cleared', () => {
     const second = testListItem({ sessionId: SECOND_REF.sessionId, summary: testOkSummary(9) })
     store.saveListItems([listEntry(second), listEntry(OK_ITEM)])
 
-    expect(store.readListItems(TEST_REF.projectDirName, NONE)).toEqual([
+    expect(readItems(store, TEST_REF.projectDirName, NONE)).toEqual([
       { ...OK_ITEM, team: null },
       { ...second, team: null }
     ])
@@ -663,14 +666,14 @@ describe('readListItems', () => {
   it('reads items saved by an earlier store over the same archive', () => {
     store.saveListItems([listEntry(OK_ITEM)])
 
-    expect(newStore().readListItems(TEST_REF.projectDirName, NONE)).toHaveLength(1)
+    expect(readItems(newStore(), TEST_REF.projectDirName, NONE)).toHaveLength(1)
   })
 
   it('leaves out the sessions it is told to exclude, without reading their rows', () => {
     store.saveListItems([listEntry(OK_ITEM)])
     db.prepare('UPDATE sessions SET list_item = ?').run('{corrupt')
 
-    const items = store.readListItems(TEST_REF.projectDirName, new Set([TEST_REF.sessionId]))
+    const items = readItems(store, TEST_REF.projectDirName, new Set([TEST_REF.sessionId]))
 
     expect(items).toEqual([])
     expect(logged).toEqual([])
@@ -682,7 +685,7 @@ describe('readListItems', () => {
       listEntry(testListItem({ projectDirName: '-other', summary: testOkSummary(5) }))
     ])
 
-    const items = store.readListItems('-other', NONE)
+    const items = readItems(store, '-other', NONE)
 
     expect(items.map((item) => item.projectDirName)).toEqual(['-other'])
   })
@@ -690,13 +693,13 @@ describe('readListItems', () => {
   it('returns nothing for a folder with no archived sessions', () => {
     store.saveListItems([listEntry(OK_ITEM)])
 
-    expect(store.readListItems('-unknown', NONE)).toEqual([])
+    expect(readItems(store, '-unknown', NONE)).toEqual([])
   })
 
   it('skips a row stored in another format without logging it', () => {
     seedRow({ format: 0, listItem: JSON.stringify(OK_ITEM) })
 
-    expect(newStore().readListItems(TEST_REF.projectDirName, NONE)).toEqual([])
+    expect(readItems(newStore(), TEST_REF.projectDirName, NONE)).toEqual([])
     expect(logged).toEqual([])
   })
 
@@ -710,8 +713,8 @@ describe('readListItems', () => {
     })
     const fresh = newStore()
 
-    const items = fresh.readListItems(TEST_REF.projectDirName, NONE)
-    fresh.readListItems(TEST_REF.projectDirName, NONE)
+    const items = readItems(fresh, TEST_REF.projectDirName, NONE)
+    readItems(fresh, TEST_REF.projectDirName, NONE)
 
     expect(items).toEqual([])
     expect(logged).toEqual([
@@ -730,8 +733,8 @@ describe('readListItems', () => {
     seedRow({ listItem: JSON.stringify({ ...OK_ITEM, ...edit }) })
     const fresh = newStore()
 
-    expect(fresh.readListItems(TEST_REF.projectDirName, NONE)).toEqual([])
-    fresh.readListItems(TEST_REF.projectDirName, NONE)
+    expect(readItems(fresh, TEST_REF.projectDirName, NONE)).toEqual([])
+    readItems(fresh, TEST_REF.projectDirName, NONE)
 
     expect(logged).toEqual(['Beekeeper archive skipped an unreadable row (invalid-shape).'])
   })
@@ -743,7 +746,7 @@ describe('readListItems', () => {
       listItem: JSON.stringify({ ...OK_ITEM, sessionId: SECOND_REF.sessionId })
     })
 
-    const items = newStore().readListItems(TEST_REF.projectDirName, NONE)
+    const items = readItems(newStore(), TEST_REF.projectDirName, NONE)
 
     expect(items.map((item) => item.sessionId)).toEqual([SECOND_REF.sessionId])
   })
@@ -751,7 +754,7 @@ describe('readListItems', () => {
   it('skips an item whose summary was not readable', () => {
     store.saveListItems([listEntry(testListItem())])
 
-    expect(store.readListItems(TEST_REF.projectDirName, NONE)).toEqual([])
+    expect(readItems(store, TEST_REF.projectDirName, NONE)).toEqual([])
     expect(logged).toEqual(['Beekeeper archive skipped an unreadable row (invalid-shape).'])
   })
 
@@ -759,11 +762,11 @@ describe('readListItems', () => {
     store.saveListItems([listEntry(OK_ITEM)])
     store.close()
 
-    expect(store.readListItems(TEST_REF.projectDirName, NONE)).toEqual([])
+    expect(readItems(store, TEST_REF.projectDirName, NONE)).toEqual([])
   })
 })
 
-describe('readListItems caching', () => {
+describe('readSessions caching', () => {
   const ARCHIVED = testListItem({ summary: testOkSummary(5) })
 
   /** Changes a stored row behind the store's back, to show which reads come from memory. */
@@ -773,11 +776,11 @@ describe('readListItems caching', () => {
 
   it('reads and parses a row once: a second read answers from memory', () => {
     store.saveListItems([listEntry(ARCHIVED)])
-    store.readListItems(TEST_REF.projectDirName, NONE)
+    readItems(store, TEST_REF.projectDirName, NONE)
     corruptStoredItems()
     const parse = vi.spyOn(JSON, 'parse')
 
-    const items = store.readListItems(TEST_REF.projectDirName, NONE)
+    const items = readItems(store, TEST_REF.projectDirName, NONE)
 
     expect(items).toEqual([{ ...ARCHIVED, team: null }])
     expect(parse).not.toHaveBeenCalled()
@@ -786,34 +789,35 @@ describe('readListItems caching', () => {
 
   it('reads a row again once a save changes it', () => {
     store.saveListItems([listEntry(ARCHIVED)])
-    store.readListItems(TEST_REF.projectDirName, NONE)
+    readItems(store, TEST_REF.projectDirName, NONE)
     const changed = testListItem({ summary: testOkSummary(99) })
 
     store.saveListItems([listEntry(changed, { ...TEST_SOURCE, size: 900 })])
 
-    expect(store.readListItems(TEST_REF.projectDirName, NONE)).toEqual([{ ...changed, team: null }])
+    expect(readItems(store, TEST_REF.projectDirName, NONE)).toEqual([{ ...changed, team: null }])
   })
 
   it('reads a session saved after the folder was first read, in session id order', () => {
     const later = testListItem({ sessionId: SECOND_REF.sessionId, summary: testOkSummary(7) })
     store.saveListItems([listEntry(later)])
-    store.readListItems(TEST_REF.projectDirName, NONE)
+    readItems(store, TEST_REF.projectDirName, NONE)
 
     store.saveListItems([listEntry(ARCHIVED)])
 
-    expect(
-      store.readListItems(TEST_REF.projectDirName, NONE).map((item) => item.sessionId)
-    ).toEqual([TEST_REF.sessionId, SECOND_REF.sessionId])
+    expect(readItems(store, TEST_REF.projectDirName, NONE).map((item) => item.sessionId)).toEqual([
+      TEST_REF.sessionId,
+      SECOND_REF.sessionId
+    ])
   })
 
   it("leaves another folder's cached rows alone when a save touches a different folder", () => {
     store.saveListItems([listEntry(ARCHIVED)])
-    store.readListItems(TEST_REF.projectDirName, NONE)
+    readItems(store, TEST_REF.projectDirName, NONE)
     corruptStoredItems()
 
     store.saveListItems([listEntry(testListItem({ projectDirName: '-other' }))])
 
-    expect(store.readListItems(TEST_REF.projectDirName, NONE)).toHaveLength(1)
+    expect(readItems(store, TEST_REF.projectDirName, NONE)).toHaveLength(1)
   })
 
   it('does not read a row that was excluded, even over several reads', () => {
@@ -821,17 +825,17 @@ describe('readListItems caching', () => {
     corruptStoredItems()
     const excluding = new Set([TEST_REF.sessionId])
 
-    store.readListItems(TEST_REF.projectDirName, excluding)
-    store.readListItems(TEST_REF.projectDirName, excluding)
+    readItems(store, TEST_REF.projectDirName, excluding)
+    readItems(store, TEST_REF.projectDirName, excluding)
 
     expect(logged).toEqual([])
   })
 
   it('reads a row once it is no longer excluded', () => {
     store.saveListItems([listEntry(ARCHIVED)])
-    store.readListItems(TEST_REF.projectDirName, new Set([TEST_REF.sessionId]))
+    readItems(store, TEST_REF.projectDirName, new Set([TEST_REF.sessionId]))
 
-    const items = store.readListItems(TEST_REF.projectDirName, NONE)
+    const items = readItems(store, TEST_REF.projectDirName, NONE)
 
     expect(items).toHaveLength(1)
   })
@@ -839,10 +843,10 @@ describe('readListItems caching', () => {
   it('parses a corrupt row once and keeps skipping it', () => {
     seedRow({ listItem: '{corrupt' })
     const fresh = newStore()
-    fresh.readListItems(TEST_REF.projectDirName, NONE)
+    readItems(fresh, TEST_REF.projectDirName, NONE)
     const parse = vi.spyOn(JSON, 'parse')
 
-    const items = fresh.readListItems(TEST_REF.projectDirName, NONE)
+    const items = readItems(fresh, TEST_REF.projectDirName, NONE)
 
     expect(items).toEqual([])
     expect(parse).not.toHaveBeenCalled()
@@ -1001,7 +1005,7 @@ describe('after close', () => {
   it('ignores a list item batch without throwing or logging', () => {
     const changed = { ...TEST_SOURCE, size: 900 }
 
-    expect(() => store.saveListItems([{ item: testListItem(), source: changed }])).not.toThrow()
+    expect(() => store.saveListItems([listEntry(testListItem(), changed)])).not.toThrow()
     expect(logged).toEqual([])
   })
 
