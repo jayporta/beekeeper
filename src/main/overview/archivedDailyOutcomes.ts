@@ -19,6 +19,8 @@ export interface ArchivedDailyOutcomesOptions {
   readonly liveSessionIds: ReadonlySet<string>
   /** The window's end, in milliseconds since the Unix epoch, and its length. */
   readonly window: { readonly nowMs: number; readonly windowMs: number }
+  /** The window's first local day. */
+  readonly firstDay: DayKey
   /** Maps an instant, in epoch milliseconds, to its local day. */
   readonly dayKeyOf: (epochMs: number) => DayKey
 }
@@ -28,32 +30,33 @@ export interface ArchivedDailyOutcomesOptions {
  * transcripts are no longer on disk. Only a session that may have usage in the
  * window has its lead slots read. Each slot lies wholly within one local day, so
  * it counts on the day its start falls on. The archive keeps no subagent usage,
- * so a session that had subagents reports the lead's usage alone and says so,
- * by the same window test, since its subagents ran while its transcript was
- * still being written. A
+ * so a session that had subagents reports the lead's usage alone, and says so
+ * unless its last message was before the window's first day: its subagents'
+ * results are written to its transcript, so they ran no later than that. A
  * session whose slots can't be had (none stored, unreadable, or a failing read)
  * is unreadable. A failing archive read is logged once per kind and never fails
  * the request.
  *
- * @param options - The archive, the folder, its live ids, the window, and the day mapping.
+ * @param options - The archive, the folder, its live ids, the window and its first day, and the day mapping.
  * @returns One outcome per archived session in range.
  */
 export function archivedDailyOutcomes(
   options: ArchivedDailyOutcomesOptions
 ): SessionDailyOutcome[] {
-  const { archive, window, dayKeyOf } = options
+  const { archive, window, firstDay, dayKeyOf } = options
   if (archive === null) return []
   return readArchivedSessions(options)
     .filter(({ item }) => mayArchivedHaveDailyUsage(archivedTimesOf(item), window))
-    .map((session) => outcomeOf({ session, archive, dayKeyOf }))
+    .map((session) => outcomeOf({ session, archive, firstDay, dayKeyOf }))
 }
 
 function outcomeOf(options: {
   readonly session: ArchivedSession
   readonly archive: NonNullable<IpcDeps['archive']>
+  readonly firstDay: DayKey
   readonly dayKeyOf: (epochMs: number) => DayKey
 }): SessionDailyOutcome {
-  const { session, archive, dayKeyOf } = options
+  const { session, archive, firstDay, dayKeyOf } = options
   const { item } = session
   const slots = guardArchiveCall({
     run: () =>
@@ -62,6 +65,9 @@ function outcomeOf(options: {
     kind: 'read'
   })
   if (slots === null || !item.summary.ok) return { ok: false }
+  const latestMs = item.summary.value.activity?.latestMs ?? null
+  // Day keys are `YYYY-MM-DD`, so they compare as strings.
+  const mayHaveSubagentsInWindow = latestMs === null || dayKeyOf(latestMs) >= firstDay
   return {
     ok: true,
     usage: combineDailyUsage({
@@ -71,6 +77,6 @@ function outcomeOf(options: {
       dayKeyOf
     }),
     subagentsListed: true,
-    subagentsNotArchived: item.subagentCount !== 0
+    subagentsNotArchived: item.subagentCount !== 0 && mayHaveSubagentsInWindow
   }
 }

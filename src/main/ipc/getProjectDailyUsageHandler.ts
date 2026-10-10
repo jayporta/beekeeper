@@ -28,7 +28,8 @@ import { errResult, okResult } from './ipcResults'
  * disk, are added from the archive by their lead slots, on the local day each
  * slot starts in. A session that is on disk is never counted from the archive,
  * even when the window left it unread. The archive keeps no subagent usage, so
- * an archived session that had subagents is counted as missing it.
+ * an archived session that had subagents is counted as missing it, unless its
+ * last message was before the window's first day.
  *
  * @param deps - The projects root, the daily usage and summary caches and
  * schedulers, the archive, the clock, and the time zone that decides where a
@@ -91,6 +92,7 @@ export async function getProjectDailyUsageHandler(
     projectDirName: project.dirName,
     liveSessionIds: new Set(onDisk.map((entry) => entry.sessionId)),
     window: { nowMs, windowMs },
+    firstDay: days[0] ?? dayKeyOf(nowMs),
     dayKeyOf
   })
   return okResult(folderDailyUsage({ days, sessions: [...outcomes, ...archived] }))
