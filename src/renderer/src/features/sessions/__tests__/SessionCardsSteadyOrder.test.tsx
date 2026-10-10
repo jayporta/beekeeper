@@ -294,6 +294,34 @@ describe('the search announcement while the list refreshes in the background', (
     expect(titles()).toEqual(['Gamma', 'Alpha', 'Beta'])
     expect(screen.getByText('2 sessions match')).toBeTruthy()
   })
+
+  it('announces nothing when an empty folder gains a match for a leftover search', async () => {
+    useSessionsViewStore.setState({ query: 'a' })
+    current = []
+    renderApp()
+    await screen.findByRole('heading', { name: 'No sessions in this project' })
+
+    current = [session(1, 'Alpha', 200)]
+    await refetchAfterChange(2)
+
+    expect(titles()).toEqual(['Alpha'])
+    expect(screen.queryByText('1 session matches')).toBeNull()
+  })
+
+  it('announces nothing when a list that emptied gains matches again', async () => {
+    useSessionsViewStore.setState({ query: 'a' })
+    renderApp()
+    await screen.findByText('2 sessions match')
+
+    current = []
+    await refetchAfterChange(2)
+    await screen.findByRole('heading', { name: 'No sessions in this project' })
+    current = [session(1, 'Alpha', 200)]
+    await refetchAfterChange(3)
+
+    expect(titles()).toEqual(['Alpha'])
+    expect(screen.queryByText('1 session matches')).toBeNull()
+  })
 })
 
 describe('the search announcement after a Refresh', () => {

@@ -34,7 +34,8 @@ interface SessionsContentProps {
  * has loaded, and not while the folder is gone. The region stays mounted in
  * every state and across folders, so its text changes while it is mounted and
  * is announced. It gives the match count when the search, the folder or a
- * Refresh press changes it, not on a background update.
+ * Refresh press changes it, not on a background update, even one that makes a
+ * leftover search active.
  *
  * @example
  * <SessionsContent dirName="-Users-me-repo" headingId={headingId} />
@@ -68,10 +69,11 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
   const searchable = !gone && data !== undefined && data.length > 0
   // An empty or gone folder shows no search box, so a leftover query isn't a search.
   const searching = searchable && normalizeQuery(query) !== ''
-  const announcedCount = useMatchCountPerSearch(
-    matchCount,
-    searching ? { dirName, query, settledResortAt } : null
-  )
+  const announcedCount = useMatchCountPerSearch(matchCount, {
+    search: { dirName, query, settledResortAt },
+    searching,
+    loaded: data !== undefined
+  })
 
   return (
     <>
@@ -84,7 +86,7 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
           </>
         }
       />
-      <SearchResultsStatus count={announcedCount} searching={searching} />
+      <SearchResultsStatus count={announcedCount} />
       <SessionsBody
         data={data}
         error={error}
