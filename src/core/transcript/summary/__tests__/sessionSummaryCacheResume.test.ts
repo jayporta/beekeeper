@@ -20,6 +20,7 @@ import {
   type GrowingTranscript
 } from '../testGrowingTranscript'
 import { createTranscriptDir, type TranscriptDir } from '../testTranscriptDir'
+import { LATER_SECONDS } from '../../testFileTimes'
 
 // Wraps the real `createReadStream` in a spy so a test can see where each
 // read began, which is how a resumed read tells from a rescan.
@@ -52,9 +53,6 @@ afterEach(() => {
  * stretch past the default.
  */
 const EQUIVALENCE_TIMEOUT_MS = 30_000
-
-/** A modification time later than any a growing transcript carries, in seconds. */
-const LATER_SECONDS = Math.floor(Date.now() / 1000) + 3600
 
 /** The scan tuning the tests share: the oversized line in the script is over the cap. */
 function tuning(highWaterMark?: number): ReadJsonlLinesOptions {

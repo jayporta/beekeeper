@@ -23,7 +23,6 @@ import { toAgentId } from '../../transcript/ids'
 import {
   buildTrickyTranscript,
   createGrowingTranscript,
-  idleSeconds,
   TRICKY_MAX_LINE_CHARS,
   type GrowingTranscript
 } from '../../transcript/summary/testGrowingTranscript'
@@ -32,6 +31,7 @@ import { consumedOffset, startsDuring } from '../../transcript/testReadStarts'
 import { statWrittenTranscript } from '../../transcript/testStatTranscript'
 import { createAgentScan, type AgentScanSnapshot } from '../agentScan'
 import { createAgentScanCache, type AgentScanCache } from '../agentScanCache'
+import { idleSeconds, LATER_SECONDS } from '../../transcript/testFileTimes'
 
 // Wraps the real `createReadStream` in a spy so a test can see where each
 // read began, which is how a resumed read tells from a rescan.
@@ -52,9 +52,6 @@ afterEach(() => {
 })
 
 const TUNING: ScanReadTuning = { maxLineChars: TRICKY_MAX_LINE_CHARS }
-
-/** A modification time later than any a growing transcript carries, in seconds. */
-const LATER_SECONDS = Math.floor(Date.now() / 1000) + 3600
 
 /** What a scan of the whole file, from its first byte, shows. */
 async function freshSnapshot(path: string): Promise<AgentScanSnapshot> {
