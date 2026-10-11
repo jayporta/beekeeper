@@ -1,7 +1,26 @@
 import { describe, expect, it } from 'vitest'
+import { costStateRecordSchema, type CostStateRecord } from '../../transcript/schemas'
 import { MAX_IDENTIFIER_CODE_UNITS } from '../../transcript/schemas/boundedIdentifier'
+import { createRecordedCostState } from '../../transcript/summary/recordedCostState'
+import { buildCostStateRecord } from '../../transcript/testFixtures'
 import { reconcileUsage } from '../reconcileUsage'
 import { agent, costState, group } from '../testReconcileFixtures'
+
+/** What a recorded cost state keeps of a record. */
+function keptFrom(record: Record<string, unknown>): CostStateRecord | null {
+  const state = createRecordedCostState()
+  state.observe(record)
+  return state.latest()
+}
+
+/** A model entry with every field the reconciliation reads. */
+const FULL_ENTRY = {
+  inputTokens: 1,
+  outputTokens: 2,
+  cacheReadInputTokens: 3,
+  cacheCreationInputTokens: 4,
+  costUSD: 0.5
+}
 
 describe('reconcileUsage', () => {
   it('sums agents, speeds, and raw ids under one normalized model', () => {
@@ -258,5 +277,23 @@ describe('reconcileUsage', () => {
       reconcileUsage({ unreadableAgents: 0, agents: [], costState: costState({ totalCostUSD: 3 }) })
         .totals.recordedUSD
     ).toBe(3)
+  })
+
+  it('reconciles a cost state kept by the recorded cost state exactly as the full record', () => {
+    const record = buildCostStateRecord({
+      totalCostUSD: 9.5,
+      unknownTopLevel: { nested: true },
+      modelUsage: {
+        'claude-opus-5[1m]': FULL_ENTRY,
+        'claude-opus-5': { inputTokens: 10, costUSD: 1 },
+        'claude-haiku-5': { outputTokens: 7, extra: 'dropped' },
+        ['unprintable\u0007key']: FULL_ENTRY
+      }
+    })
+    const input = { agents: [], unreadableAgents: 0 }
+
+    expect(reconcileUsage({ ...input, costState: keptFrom(record) })).toEqual(
+      reconcileUsage({ ...input, costState: costStateRecordSchema.parse(record) })
+    )
   })
 })

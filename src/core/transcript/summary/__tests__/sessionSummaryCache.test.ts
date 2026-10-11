@@ -91,7 +91,13 @@ describe('createSessionSummaryCache', () => {
   })
 
   it('reports an unreadable transcript as an error code, without its path', async () => {
-    const missing: TranscriptFileInfo = { path: join(dir.root, 'gone.jsonl'), mtimeMs: 1, size: 1 }
+    const missing: TranscriptFileInfo = {
+      path: join(dir.root, 'gone.jsonl'),
+      mtimeMs: 1,
+      size: 1,
+      ino: 1,
+      dev: 1
+    }
     const cache = createSessionSummaryCache()
 
     const result = await cache.read(missing)
@@ -177,7 +183,13 @@ describe('createSessionSummaryCache', () => {
   })
 
   it('does not cache a failed scan', async () => {
-    const missing: TranscriptFileInfo = { path: join(dir.root, 'later.jsonl'), mtimeMs: 1, size: 1 }
+    const missing: TranscriptFileInfo = {
+      path: join(dir.root, 'later.jsonl'),
+      mtimeMs: 1,
+      size: 1,
+      ino: 1,
+      dev: 1
+    }
     const cache = createSessionSummaryCache()
     expect((await cache.read(missing)).ok).toBe(false)
 

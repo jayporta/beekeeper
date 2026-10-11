@@ -1,13 +1,20 @@
 import { combineTokenCounts } from '../../pricing/tokenCounts'
-import { totalTokenCount } from '../../pricing/totalTokenCount'
 import { earlierTimestamp } from '../../shared/optionalTimestamps'
 import { messageTokens } from '../messageTokens'
 import { assistantRecordSchema } from '../schemas'
-import { buildLeadUsage, type TrackedMessage } from './buildLeadUsage'
 import type { LeadUsage } from './leadUsage'
+import { createLeadUsageLedger, type TrackedMessage } from './leadUsageLedger'
 
 /** The most distinct message ids an observer tracks before it gives up on a transcript. */
 export const MAX_MESSAGE_IDS = 50_000
+
+/**
+ * The weight, in UTF-16 code units, charged for each tracked message beyond
+ * its id and model: the map entry, the id's string header, the tracked
+ * object and its token counts, and its entry in the copy of the ids
+ * `leadUsage()` keeps, charged whether or not that copy has been made.
+ */
+export const TRACKED_MESSAGE_OVERHEAD = 112
 
 /** Totals and slots the tokens a transcript's own assistant records report. */
 export interface TranscriptTokenObserver {
@@ -27,9 +34,18 @@ export interface TranscriptTokenObserver {
    * The transcript's usage by 15-minute slot and model, its message ids and
    * its invalid assistant record count. Empty, not `null`, when the
    * transcript held no valid assistant record, and `null` only when it held
-   * more than {@link MAX_MESSAGE_IDS} distinct message ids.
+   * more than {@link MAX_MESSAGE_IDS} distinct message ids. Reading it costs
+   * the number of slots, plus a copy of the message ids when one has arrived
+   * since the last read. The result is not changed by later records.
    */
   leadUsage(): LeadUsage | null
+  /**
+   * What the observer holds, in UTF-16 code units: {@link TRACKED_MESSAGE_OVERHEAD}
+   * plus the length of the id and of the model for each message tracked, and
+   * the slots its ledger keeps. Reading `leadUsage()` doesn't change it. Zero
+   * once the observer has given up on a transcript.
+   */
+  weight(): number
 }
 
 /**
@@ -51,17 +67,24 @@ export interface TranscriptTokenObserver {
  * `invalidAssistantRecords` for the full scan's skipped-line rule.
  *
  * Holds at most {@link MAX_MESSAGE_IDS} entries, one per distinct message id,
- * each id capped by the schema's identifier bound, and lives only for one
- * scan. A transcript with more distinct ids is not totaled: the observer
- * drops what it holds, ignores the rest of the records, and both `total()`
- * and `leadUsage()` return `null`.
+ * each id capped by the schema's identifier bound, and lives as long as the
+ * scan it belongs to, which `weight()` sizes. A transcript with more distinct
+ * ids is not totaled: the observer drops what it holds, ignores the rest of
+ * the records, and both `total()` and `leadUsage()` return `null`.
+ *
+ * The slots, the undated count and the total are kept as records arrive (see
+ * {@link createLeadUsageLedger}), so reading them after each batch of new
+ * records doesn't walk every message seen so far.
  *
  * @returns An observer ready to `observe` a transcript's records.
  */
 export function createTranscriptTokenObserver(): TranscriptTokenObserver {
   const byMessageId = new Map<string, TrackedMessage>()
+  let ledger = createLeadUsageLedger()
+  let idsSnapshot: ReadonlySet<string> | null = null
   let invalidAssistantRecords = 0
   let overflowed = false
+  let messagesWeight = 0
 
   return {
     observe(record, timestampMs) {
@@ -76,29 +99,41 @@ export function createTranscriptTokenObserver(): TranscriptTokenObserver {
       const existing = byMessageId.get(message.id)
       if (existing === undefined && byMessageId.size >= MAX_MESSAGE_IDS) {
         byMessageId.clear()
+        ledger = createLeadUsageLedger()
+        idsSnapshot = null
         overflowed = true
+        messagesWeight = 0
         return
       }
       const tokens = messageTokens(message.usage)
-      byMessageId.set(
-        message.id,
-        existing === undefined
-          ? { model: message.model, tokens, earliestMs: timestampMs }
-          : {
-              model: existing.model,
-              tokens: combineTokenCounts([existing.tokens, tokens], Math.max),
-              earliestMs: earlierTimestamp(existing.earliestMs, timestampMs)
-            }
-      )
+      let tracked: TrackedMessage
+      if (existing === undefined) {
+        messagesWeight += TRACKED_MESSAGE_OVERHEAD + message.id.length + message.model.length
+        idsSnapshot = null
+        tracked = { model: message.model, tokens, earliestMs: timestampMs }
+      } else {
+        tracked = {
+          model: existing.model,
+          tokens: combineTokenCounts([existing.tokens, tokens], Math.max),
+          earliestMs: earlierTimestamp(existing.earliestMs, timestampMs)
+        }
+      }
+      byMessageId.set(message.id, tracked)
+      ledger.update({ before: existing, after: tracked })
     },
     total() {
-      if (byMessageId.size === 0) return null
-      let total = 0
-      for (const message of byMessageId.values()) total += totalTokenCount(message.tokens)
-      return Number.isFinite(total) ? total : null
+      return overflowed || byMessageId.size === 0 ? null : ledger.totalTokens()
     },
     leadUsage() {
-      return overflowed ? null : buildLeadUsage({ messages: byMessageId, invalidAssistantRecords })
-    }
+      if (overflowed) return null
+      idsSnapshot ??= new Set(byMessageId.keys())
+      return {
+        slots: ledger.slots(),
+        undatedMessages: ledger.undatedMessages(),
+        invalidAssistantRecords,
+        messageIds: idsSnapshot
+      }
+    },
+    weight: () => messagesWeight + ledger.weight()
   }
 }

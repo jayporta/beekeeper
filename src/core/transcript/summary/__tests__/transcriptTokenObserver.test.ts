@@ -4,6 +4,7 @@ import { recordTimestampMs } from '../recordTimestampMs'
 import {
   createTranscriptTokenObserver,
   MAX_MESSAGE_IDS,
+  TRACKED_MESSAGE_OVERHEAD,
   type TranscriptTokenObserver
 } from '../transcriptTokenObserver'
 
@@ -157,6 +158,40 @@ describe('createTranscriptTokenObserver', () => {
       expect([...(observer.leadUsage()?.messageIds ?? [])]).toEqual(['msg_a', 'msg_b'])
     })
 
+    it('lists the ids of synthetic and zero-token messages though no slot counts them', () => {
+      const observer = createTranscriptTokenObserver()
+      feed(observer, buildAssistantRecord({ messageId: 'msg_syn', model: '<synthetic>' }))
+      feed(
+        observer,
+        buildAssistantRecord({ messageId: 'msg_zero', inputTokens: 0, outputTokens: 0 })
+      )
+
+      expect(observer.leadUsage()?.slots).toEqual([])
+      expect([...(observer.leadUsage()?.messageIds ?? [])]).toEqual(['msg_syn', 'msg_zero'])
+    })
+
+    it('leaves a usage it already returned unchanged by the records observed after it', () => {
+      const observer = createTranscriptTokenObserver()
+      feed(observer, buildAssistantRecord({ messageId: 'msg_a', inputTokens: 5 }))
+      const earlier = observer.leadUsage()
+      const slots = structuredClone(earlier?.slots)
+
+      feed(observer, buildAssistantRecord({ messageId: 'msg_a', inputTokens: 50 }))
+      feed(observer, buildAssistantRecord({ messageId: 'msg_b' }))
+
+      expect(earlier?.slots).toEqual(slots)
+      expect([...(earlier?.messageIds ?? [])]).toEqual(['msg_a'])
+    })
+
+    it('hands out the same ids again while no new id has arrived', () => {
+      const observer = createTranscriptTokenObserver()
+      feed(observer, buildAssistantRecord({ messageId: 'msg_a' }))
+      const first = observer.leadUsage()?.messageIds
+      feed(observer, buildAssistantRecord({ messageId: 'msg_a', inputTokens: 9 }))
+
+      expect(observer.leadUsage()?.messageIds).toBe(first)
+    })
+
     it('counts an assistant record that fails the schema', () => {
       const observer = createTranscriptTokenObserver()
       feed(observer, { type: 'assistant', message: { id: 'msg_x', model: 'm' } })
@@ -252,6 +287,79 @@ describe('createTranscriptTokenObserver', () => {
       feed(observer, buildAssistantRecord({ messageId: 'msg_0', inputTokens: 5, outputTokens: 0 }))
 
       expect(observer.total()).toBe(MAX_MESSAGE_IDS + 4)
+    })
+  })
+
+  describe('weight', () => {
+    it('is zero before any assistant record', () => {
+      const observer = createTranscriptTokenObserver()
+      feed(observer, { type: 'user' })
+
+      expect(observer.weight()).toBe(0)
+    })
+
+    it('charges each distinct message its overhead, its id and its model', () => {
+      const observer = createTranscriptTokenObserver()
+      // Undated, so the messages fill no slot.
+      observer.observe(buildAssistantRecord({ messageId: 'msg_a', model: 'model-one' }), null)
+      observer.observe(buildAssistantRecord({ messageId: 'msg_bb', model: 'model-22' }), null)
+
+      expect(observer.weight()).toBe(
+        2 * TRACKED_MESSAGE_OVERHEAD +
+          'msg_a'.length +
+          'model-one'.length +
+          'msg_bb'.length +
+          'model-22'.length
+      )
+    })
+
+    it('weighs more for messages spread over more slots', () => {
+      const oneSlot = createTranscriptTokenObserver()
+      const twoSlots = createTranscriptTokenObserver()
+      for (const [observer, laterAt] of [
+        [oneSlot, '2026-01-01T00:05:00.000Z'],
+        [twoSlots, '2026-01-01T00:20:00.000Z']
+      ] as const) {
+        feed(observer, buildAssistantRecord({ messageId: 'msg_a' }))
+        feed(observer, buildAssistantRecord({ messageId: 'msg_b', timestamp: laterAt }))
+      }
+
+      expect(twoSlots.weight()).toBeGreaterThan(oneSlot.weight())
+    })
+
+    it('does not change when its lead usage is read, since a cache weighs it once', () => {
+      const observer = createTranscriptTokenObserver()
+      feed(observer, buildAssistantRecord({ messageId: 'msg_a' }))
+      const unread = observer.weight()
+
+      observer.leadUsage()
+
+      expect(observer.weight()).toBe(unread)
+    })
+
+    it('does not charge a repeat of an id again', () => {
+      const observer = createTranscriptTokenObserver()
+      feed(observer, buildAssistantRecord({ messageId: 'msg_a', model: 'model-one' }))
+      const once = observer.weight()
+      feed(observer, buildAssistantRecord({ messageId: 'msg_a', model: 'model-two' }))
+
+      expect(observer.weight()).toBe(once)
+    })
+
+    it('does not charge an assistant record that fails validation', () => {
+      const observer = createTranscriptTokenObserver()
+      feed(observer, { type: 'assistant', message: { id: 'msg_x' } })
+
+      expect(observer.weight()).toBe(0)
+    })
+
+    it('drops to zero once the observer gives up past the id cap', () => {
+      const observer = createTranscriptTokenObserver()
+      for (let i = 0; i <= MAX_MESSAGE_IDS; i += 1) {
+        feed(observer, buildAssistantRecord({ messageId: `msg_${i}` }))
+      }
+
+      expect(observer.weight()).toBe(0)
     })
   })
 })

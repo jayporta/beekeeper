@@ -17,9 +17,9 @@ export interface ReadSubagentMessageReportsOptions {
 
 /**
  * Reads one subagent's transcript into its assistant message reports only,
- * isolating a failed read as a {@link Result}. Unlike
- * {@link readSubagentTranscript}, it collects no file touches, for callers
- * that need only usage.
+ * isolating a failed read as a {@link Result}. Unlike a session scan, it
+ * collects no file touches, signal events or spawns, for callers that need
+ * only usage.
  *
  * @param options - The subagent to read and any stream tuning.
  * @returns `ok` with the messages the transcript reported, or `err` when

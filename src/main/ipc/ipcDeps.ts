@@ -1,3 +1,4 @@
+import type { AgentScanCache } from '../../core/session/agentScanCache'
 import type { SessionSummaryCache } from '../../core/transcript/summary/sessionSummaryCache'
 import type { ArchiveReader, ArchiveWriter } from '../archive/archiveStoreTypes'
 import type { GitLocation } from '../git/gitLocator'
@@ -32,6 +33,12 @@ export interface IpcDeps {
   readonly scans: ScanScheduler
   /** Recent completed session scans, shared by every handler that scans. */
   readonly scanCache: SessionScanCache
+  /**
+   * The scan of each recently modified transcript, which a session scan reads
+   * only the bytes appended to since the last one, shared by every handler
+   * that scans.
+   */
+  readonly agentScans: AgentScanCache
   /**
    * Shares and caps the daily usage scans, one per session: a session with
    * subagents reads its lead summary (through `summaries`, in its background

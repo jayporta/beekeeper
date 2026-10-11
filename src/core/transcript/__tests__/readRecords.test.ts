@@ -1,8 +1,9 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { appendFileSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { Result } from '../../shared/result'
+import type { ReadCursor } from '../readJsonlLines'
 import { readRecords, type SkippedLineError } from '../readRecords'
 import { buildAiTitleRecord, buildJsonlText, toJsonlLine } from '../testFixtures'
 
@@ -75,6 +76,22 @@ describe('readRecords', () => {
       { ok: false, error: { reason: 'not-an-object' } },
       { ok: false, error: { reason: 'not-an-object' } }
     ])
+  })
+
+  it('resumes at a reported offset and yields only the records after it', async () => {
+    const first = toJsonlLine({ a: 1 })
+    const second = toJsonlLine({ b: 2 })
+    const filePath = writeFixture('resume.jsonl', `${first}\n${second}\n{"c":`)
+    const cursor: ReadCursor = { offset: -1 }
+    for await (const result of readRecords(filePath, { cursor })) void result
+    const resumedFrom = cursor.offset
+
+    appendFileSync(filePath, '3}\n', 'utf-8')
+    const results: Array<Result<Record<string, unknown>, SkippedLineError>> = []
+    for await (const result of readRecords(filePath, { start: resumedFrom })) results.push(result)
+
+    expect(results).toEqual([{ ok: true, value: { c: 3 } }])
+    expect(resumedFrom).toBe(Buffer.byteLength(`${first}\n${second}\n`))
   })
 
   it('yields nothing for an empty file', async () => {

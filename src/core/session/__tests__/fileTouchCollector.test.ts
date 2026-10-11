@@ -7,7 +7,7 @@ import {
   buildUserToolResultRecord,
   buildWriteToolUseResult
 } from '../../transcript/testFileTouchFixtures'
-import { createFileTouchCollector } from '../fileTouchCollector'
+import { createFileTouchCollector, FILE_TOUCH_ENTRY_OVERHEAD } from '../fileTouchCollector'
 
 describe('createFileTouchCollector', () => {
   it('reports no touches when nothing was observed', () => {
@@ -148,5 +148,72 @@ describe('createFileTouchCollector', () => {
     expect(() => collector.observe({ type: 'assistant' })).not.toThrow()
     expect(() => collector.observe({ type: 'user' })).not.toThrow()
     expect(collector.touches()).toEqual([])
+  })
+})
+
+describe('createFileTouchCollector weight', () => {
+  it('is zero before anything is observed', () => {
+    expect(createFileTouchCollector().weight()).toBe(0)
+  })
+
+  it('charges a tracked tool call that is still waiting for its result', () => {
+    const collector = createFileTouchCollector()
+    collector.observe(buildAssistantToolUseRecord({ toolUseId: 'toolu_1', toolName: 'Edit' }))
+
+    expect(collector.weight()).toBe(FILE_TOUCH_ENTRY_OVERHEAD + 'toolu_1'.length + 'Edit'.length)
+  })
+
+  it('does not charge a call to a tool whose results are not tracked', () => {
+    const collector = createFileTouchCollector()
+    collector.observe(buildAssistantToolUseRecord({ toolUseId: 'toolu_1', toolName: 'Read' }))
+
+    expect(collector.weight()).toBe(0)
+  })
+
+  it('charges a touch for its path and tool call id, and no longer the call that produced it', () => {
+    const collector = createFileTouchCollector()
+    collector.observe(buildAssistantToolUseRecord({ toolUseId: 'toolu_1', toolName: 'Edit' }))
+    collector.observe(
+      buildUserToolResultRecord({
+        toolUseId: 'toolu_1',
+        toolUseResult: buildEditToolUseResult('/a.ts')
+      })
+    )
+
+    expect(collector.weight()).toBe(FILE_TOUCH_ENTRY_OVERHEAD + '/a.ts'.length + 'toolu_1'.length)
+  })
+
+  it('stops charging a call once its result arrives, even when the result is no touch', () => {
+    const collector = createFileTouchCollector()
+    collector.observe(buildAssistantToolUseRecord({ toolUseId: 'toolu_1', toolName: 'Edit' }))
+    collector.observe(
+      buildUserToolResultRecord({ toolUseId: 'toolu_1', toolUseResult: 'a string, a failed call' })
+    )
+
+    expect(collector.weight()).toBe(0)
+  })
+
+  it('charges the id of a Bash result whose file list may be incomplete', () => {
+    const collector = createFileTouchCollector()
+    collector.observe(buildAssistantToolUseRecord({ toolUseId: 'toolu_b', toolName: 'Bash' }))
+    collector.observe(
+      buildUserToolResultRecord({
+        toolUseId: 'toolu_b',
+        toolUseResult: buildBashToolUseResult({ unavailable: true })
+      })
+    )
+
+    expect(collector.weight()).toBe(FILE_TOUCH_ENTRY_OVERHEAD + 'toolu_b'.length)
+  })
+
+  it('charges for every call left waiting, so a crafted transcript weighs what it holds', () => {
+    const collector = createFileTouchCollector()
+    for (let n = 0; n < 1000; n += 1) {
+      collector.observe(buildAssistantToolUseRecord({ toolUseId: `toolu_${n}`, toolName: 'Bash' }))
+    }
+
+    const perCall = FILE_TOUCH_ENTRY_OVERHEAD + 'Bash'.length
+    const ids = Array.from({ length: 1000 }, (_, n) => `toolu_${n}`.length)
+    expect(collector.weight()).toBe(1000 * perCall + ids.reduce((sum, length) => sum + length, 0))
   })
 })

@@ -28,7 +28,7 @@ import { scanSessionDetail } from './scanSessionDetail'
  * its detail archived, and a failing archive write never changes the result.
  */
 export async function getSessionHandler(
-  deps: Pick<IpcDeps, 'projectsRoot' | 'scans' | 'scanCache' | 'archive' | 'now'>,
+  deps: Pick<IpcDeps, 'projectsRoot' | 'scans' | 'scanCache' | 'agentScans' | 'archive' | 'now'>,
   payload: unknown
 ): Promise<IpcResult<SessionDetailDto>> {
   const lookup = await lookupRequestedSession(deps, payload)

@@ -1,3 +1,4 @@
+import { stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { statTranscriptFile } from '../statTranscriptFile'
@@ -29,6 +30,16 @@ describe('statTranscriptFile', () => {
     tree = await buildDiscoveryTree({})
 
     expect(await statTranscriptFile(join(tree.root, 'missing.jsonl'))).toBeNull()
+  })
+
+  it("reports the file's inode and device", async () => {
+    tree = await buildDiscoveryTree({ files: { 'session.jsonl': 'content' } })
+    const filePath = join(tree.root, 'session.jsonl')
+
+    const info = await statTranscriptFile(filePath)
+    const stats = await stat(filePath)
+
+    expect(info).toMatchObject({ ino: stats.ino, dev: stats.dev })
   })
 
   it('returns null when the path is a directory', async () => {

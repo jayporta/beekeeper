@@ -18,7 +18,7 @@ afterEach(async () => {
 function entry(agentId: string, runId: string | null): SubagentEntry {
   return {
     agentId: toAgentId(agentId),
-    transcript: { path: `/unused/agent-${agentId}.jsonl`, mtimeMs: 1, size: 1 },
+    transcript: { path: `/unused/agent-${agentId}.jsonl`, mtimeMs: 1, size: 1, ino: 1, dev: 1 },
     metaPath: null,
     workflowRunId: runId === null ? null : parseWorkflowRunId(runId)
   }

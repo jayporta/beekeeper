@@ -34,7 +34,7 @@ export function createTranscriptDir(): TranscriptDir {
       const path = join(root, name)
       writeFileSync(path, content, 'utf-8')
       const stats = statSync(path)
-      return { path, mtimeMs: stats.mtimeMs, size: stats.size }
+      return { path, mtimeMs: stats.mtimeMs, size: stats.size, ino: stats.ino, dev: stats.dev }
     },
     cleanup: () => rmSync(root, { recursive: true, force: true })
   }

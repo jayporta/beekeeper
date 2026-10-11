@@ -10,8 +10,8 @@ import { toIpcErrorCode } from './toIpcErrorCode'
 
 /** Options for {@link scanSessionDetail}. */
 export interface ScanSessionDetailOptions {
-  /** The scan scheduler and the scan cache. */
-  readonly deps: Pick<IpcDeps, 'scans' | 'scanCache'>
+  /** The scan scheduler, the scan cache and the kept transcript scans. */
+  readonly deps: Pick<IpcDeps, 'scans' | 'scanCache' | 'agentScans'>
   /** The session's id. */
   readonly sessionId: string
   /** The session from a fresh listing. */

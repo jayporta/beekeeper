@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { commandHash } from '../commandHash'
-import { createSignalObserver, MAX_SIGNAL_EVENTS_PER_TRANSCRIPT } from '../signalObserver'
+import {
+  createSignalObserver,
+  MAX_SIGNAL_EVENTS_PER_TRANSCRIPT,
+  SIGNAL_EVENT_OVERHEAD
+} from '../signalObserver'
 import type { SignalObserver } from '../signalObserver'
 import {
   buildAssistantToolUseRecord,
@@ -246,5 +250,50 @@ describe('createSignalObserver', () => {
       buildAssistantToolUseRecord({ toolUseId: 'a', toolName: 'Bash', input: { command } })
     )
     expect(JSON.stringify(observer.events())).not.toContain(command)
+  })
+
+  describe('weight', () => {
+    it('is zero before any event', () => {
+      expect(createSignalObserver().weight()).toBe(0)
+    })
+
+    it('charges a tool call its overhead, its key, its id and its tool name', () => {
+      const observer = observed(buildAssistantToolUseRecord({ toolUseId: 'abc', toolName: 'Bash' }))
+
+      // The key is `tool-call`, a separator and the id.
+      expect(observer.weight()).toBe(SIGNAL_EVENT_OVERHEAD + 'tool-call'.length + 1 + 3 + 3 + 4)
+    })
+
+    it('charges a tool result its overhead, its key and its id', () => {
+      const observer = observed(buildUserToolResultRecord({ toolUseId: 'abcd' }))
+
+      expect(observer.weight()).toBe(SIGNAL_EVENT_OVERHEAD + 'tool-result'.length + 1 + 4 + 4)
+    })
+
+    it('charges a system event its overhead, its key and its uuid', () => {
+      const observer = observed(buildSystemRecord({ subtype: 'compact_boundary', uuid: 'u-1' }))
+
+      expect(observer.weight()).toBe(SIGNAL_EVENT_OVERHEAD + 'compaction'.length + 1 + 3 + 3)
+    })
+
+    it('does not charge a repeated event again', () => {
+      const record = buildUserToolResultRecord({ toolUseId: 'abcd' })
+      const observer = observed(record)
+      const once = observer.weight()
+      observer.observe(record)
+
+      expect(observer.weight()).toBe(once)
+    })
+
+    it('stops growing once the event cap is reached', () => {
+      const observer = createSignalObserver()
+      for (let index = 0; index < MAX_SIGNAL_EVENTS_PER_TRANSCRIPT; index += 1) {
+        observer.observe(buildUserToolResultRecord({ toolUseId: `t${index}` }))
+      }
+      const atCap = observer.weight()
+      observer.observe(buildUserToolResultRecord({ toolUseId: 'beyond-the-cap' }))
+
+      expect(observer.weight()).toBe(atCap)
+    })
   })
 })
