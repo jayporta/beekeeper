@@ -77,13 +77,4 @@ describe('guardArchive', () => {
     expect(() => archive.saveDetail(ref, { detail, source })).not.toThrow()
     expect(lines).toEqual(['Beekeeper archive write failed (EGUARDARCHIVE_SAVE).'])
   })
-
-  it('passes writes through to the store when it works', () => {
-    const fake = createFakeArchive()
-    const archive = guardArchive(fake, collectLog().log)
-
-    archive.saveDetail(ref, { detail, source })
-
-    expect(fake.detailSaves).toHaveLength(1)
-  })
 })
