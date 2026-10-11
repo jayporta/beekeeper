@@ -88,6 +88,17 @@ describe('runGit', () => {
     }
   )
 
+  it.each([[['status']], [['diff', '--output=/tmp/x']]])(
+    'never reaches the port for the refused args %j',
+    async (args) => {
+      const calls: ProcessRequest[] = []
+      await expect(
+        runGit({ git, dir: '/repo', args, port: recordingPort(calls) })
+      ).rejects.toThrow()
+      expect(calls).toEqual([])
+    }
+  )
+
   it.each([
     [['config', 'core.editor', 'vim']],
     [['config', '--get-regexp']],
