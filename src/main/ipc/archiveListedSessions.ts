@@ -1,6 +1,6 @@
 import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
 import type { LeadUsage } from '../../core/transcript/summary/leadUsage'
-import type { ArchivedLeadSlots, ListItemEntry } from '../archive/archiveStoreTypes'
+import type { ArchivedLeadSlots, ListItemEntry } from '../../service/archive/archivePort'
 import { safeArchiveWrite } from '../archive/safeArchiveWrite'
 import type { IpcDeps } from './ipcDeps'
 import type { ScannedSession } from './mapSessionListItem'

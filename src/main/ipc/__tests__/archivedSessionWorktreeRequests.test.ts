@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { testDetail } from '../../archive/testArchiveFixtures'
-import { createFakeArchive } from '../../archive/testFakeArchive'
+import { createFakeArchive } from '../../../service/archive/testFakeArchive'
 import { getWorktreeDiffsHandler } from '../getWorktreeDiffsHandler'
 import { getWorktreePatchHandler } from '../getWorktreePatchHandler'
-import { sessionRefKey } from '../sessionRefKey'
+import { sessionRefKey } from '../../../service/sessions/sessionRefKey'
 import { TEST_PROJECT, registerIpcTestTree } from '../testIpcTree'
 
 const ctx = registerIpcTestTree()

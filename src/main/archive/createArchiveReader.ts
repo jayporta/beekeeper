@@ -2,10 +2,14 @@ import { compareCodeUnits } from '../../core/shared/compareCodeUnits'
 import type { TranscriptTeamSpawns } from '../../core/transcript/teammateSpawn'
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
-import { sessionRefKey } from '../ipc/sessionRefKey'
+import { sessionRefKey } from '../../service/sessions/sessionRefKey'
 import { ARCHIVE_FORMAT } from './archiveConstants'
 import { SELECT_DETAIL, SELECT_LEAD_SLOTS, SELECT_SESSION_ROW } from './archiveSql'
-import type { ArchivedLeadSlots, ArchivedSession, ArchiveReader } from './archiveStoreTypes'
+import type {
+  ArchivedLeadSlots,
+  ArchivedSession,
+  ArchiveReader
+} from '../../service/archive/archivePort'
 import type { ArchiveDb } from './openArchive'
 import {
   parseArchivedDetail,

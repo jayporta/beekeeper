@@ -12,7 +12,7 @@ import type {
   ArchivedSession,
   ListItemEntry,
   SourceState
-} from './archiveStoreTypes'
+} from '../../service/archive/archivePort'
 
 /** The session the fixtures describe unless overridden. */
 export const TEST_REF: SessionRefDto = {

@@ -5,8 +5,8 @@ import type { IpcDeps } from './ipcDeps'
 import { mapSessionScan } from './mapSessionScan'
 import { readWorkflowRuns } from './readWorkflowRuns'
 import { scanFoundSession } from './scanFoundSession'
-import { isCompleteScan } from './sessionScanCache'
-import { toIpcErrorCode } from './toIpcErrorCode'
+import { isCompleteScan } from '../../service/sessionDetail/sessionScanCache'
+import { toIpcErrorCode } from '../../service/toIpcErrorCode'
 
 /** Options for {@link scanSessionDetail}. */
 export interface ScanSessionDetailOptions {

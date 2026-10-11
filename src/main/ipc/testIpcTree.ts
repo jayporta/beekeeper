@@ -8,7 +8,7 @@ import {
 import { buildDiscoveryTree, type DiscoveryTree } from '../../core/transcript/testDiscoveryTree'
 import { createIpcDeps } from './createIpcDeps'
 import type { IpcDeps } from './ipcDeps'
-import type { SessionScanCache } from './sessionScanCache'
+import type { SessionScanCache } from '../../service/sessionDetail/sessionScanCache'
 
 /** A synthetic project folder name. */
 export const TEST_PROJECT = '-Users-test-proj'

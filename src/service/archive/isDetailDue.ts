@@ -1,4 +1,4 @@
-import { ARCHIVE_DETAIL_AFTER_DAYS, DAY_MS } from './archiveConstants'
+import { ARCHIVE_DETAIL_AFTER_DAYS, DAY_MS } from './archiveDetailTiming'
 
 /**
  * Decides whether a session has been quiet long enough to archive its detail.

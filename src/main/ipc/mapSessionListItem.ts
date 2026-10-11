@@ -8,11 +8,11 @@ import type { UnreadableError } from '../../core/transcript/unreadableError'
 import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
 import type { SessionTeamDto } from '../../shared/ipc/sessionTeamDto'
 import type { WorkflowCountsDto } from '../../shared/ipc/workflowRunDto'
-import { distinctRunIds } from './distinctRunIds'
-import { errResult, okResult } from './ipcResults'
+import { distinctRunIds } from '../../service/sessions/distinctRunIds'
+import { errResult, okResult } from '../../service/ipcResults'
 import { mapAgentSignals } from './mapAgentSignals'
 import { mapSessionRole } from './mapSessionRole'
-import { toIpcErrorCode } from './toIpcErrorCode'
+import { toIpcErrorCode } from '../../service/toIpcErrorCode'
 
 /** One discovered session with the outcome of reading its summary. */
 export interface ScannedSession {

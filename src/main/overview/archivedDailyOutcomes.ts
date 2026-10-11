@@ -1,7 +1,7 @@
 import { combineDailyUsage } from '../../core/usage/combineDailyUsage'
 import type { DayKey } from '../../core/usage/dailyUsage'
 import { EMPTY_SUBAGENT_DAILY_USAGE } from '../../core/usage/scanSubagentDailyUsage'
-import type { ArchivedSession } from '../archive/archiveStoreTypes'
+import type { ArchivedSession } from '../../service/archive/archivePort'
 import { guardArchiveCall } from '../archive/guardArchiveCall'
 import type { IpcDeps } from '../ipc/ipcDeps'
 import { readArchivedSessions } from '../ipc/readArchivedSessions'

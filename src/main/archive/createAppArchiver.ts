@@ -2,7 +2,8 @@ import { join } from 'node:path'
 import { discoverProjects } from '../../core/transcript/discoverProjects'
 import type { IpcDeps } from '../ipc/ipcDeps'
 import { listSessionsHandler } from '../ipc/listSessionsHandler'
-import { createSessionScanCache } from '../ipc/sessionScanCache'
+import { createSessionScanCache } from '../../service/sessionDetail/sessionScanCache'
+import { guardArchive } from './guardArchive'
 import { createArchiver, type Archiver } from './createArchiver'
 import type { ArchiveStore } from './archiveStoreTypes'
 import { hasChangedSessions } from './hasChangedSessions'
@@ -38,7 +39,7 @@ export function createAppArchiver(options: AppArchiverOptions): Archiver {
   const { store } = options
   const deps: IpcDeps = {
     ...options.deps,
-    archive: store,
+    archive: guardArchive(store),
     scanCache: createSessionScanCache({ capacity: ARCHIVER_SCAN_CACHE_CAPACITY })
   }
   return createArchiver({

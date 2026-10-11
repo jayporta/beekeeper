@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 import type { IpcResult } from '../../../shared/ipc/ipcResult'
 import { errorWithCode } from '../../../core/shared/testErrorWithCode'
 import { guardIpc } from '../guardIpc'
-import { okResult } from '../ipcResults'
-import { toIpcErrorCode } from '../toIpcErrorCode'
+import { okResult } from '../../../service/ipcResults'
+import { toIpcErrorCode } from '../../../service/toIpcErrorCode'
 
 const trusted = (): boolean => true
 

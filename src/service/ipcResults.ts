@@ -1,4 +1,4 @@
-import type { IpcErrorCode, IpcResult } from '../../shared/ipc/ipcResult'
+import type { IpcErrorCode, IpcResult } from '../shared/ipc/ipcResult'
 
 /**
  * Wraps a value as a successful IPC result.

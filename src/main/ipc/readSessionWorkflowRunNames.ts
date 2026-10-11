@@ -1,5 +1,5 @@
 import type { SessionEntry } from '../../core/transcript/discoverSessions'
-import { distinctRunIds } from './distinctRunIds'
+import { distinctRunIds } from '../../service/sessions/distinctRunIds'
 import type { IpcDeps } from './ipcDeps'
 
 /** The workflow run names of a session that has none. */

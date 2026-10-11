@@ -5,8 +5,8 @@ import { getSessionRequestSchema } from '../../shared/ipc/requestSchemas'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
 import { findProject, type FoundSession } from './findProject'
 import type { IpcDeps } from './ipcDeps'
-import { errResult, okResult } from './ipcResults'
-import { toIpcErrorCode } from './toIpcErrorCode'
+import { errResult, okResult } from '../../service/ipcResults'
+import { toIpcErrorCode } from '../../service/toIpcErrorCode'
 
 /** A session a renderer request named, found in a fresh listing. */
 export interface RequestedSession {

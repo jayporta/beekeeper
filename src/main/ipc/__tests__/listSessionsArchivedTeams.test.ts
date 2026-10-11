@@ -6,8 +6,8 @@ import { buildAssistantRecord } from '../../../core/transcript/testFixtures'
 import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
 import type { SessionRoleDto } from '../../../shared/ipc/sessionRoleDto'
 import { testArchivedSession as archivedSession } from '../../archive/testArchiveFixtures'
-import { createFakeArchive, type FakeArchive } from '../../archive/testFakeArchive'
-import type { ArchivedSession } from '../../archive/archiveStoreTypes'
+import { createFakeArchive, type FakeArchive } from '../../../service/archive/testFakeArchive'
+import type { ArchivedSession } from '../../../service/archive/archivePort'
 import { listSessionsHandler } from '../listSessionsHandler'
 import {
   AGENT_SESSION_ID,

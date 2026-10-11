@@ -2,7 +2,7 @@ import type { IpcResult } from '../../shared/ipc/ipcResult'
 import { getReportedCostRequestSchema } from '../../shared/ipc/requestSchemas'
 import type { ReportedCostDto } from '../../shared/ipc/reportedCostDto'
 import type { IpcDeps } from './ipcDeps'
-import { errResult, okResult } from './ipcResults'
+import { errResult, okResult } from '../../service/ipcResults'
 
 /**
  * Reads what Claude Code's telemetry reported for one session.

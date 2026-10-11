@@ -8,7 +8,7 @@ import {
 } from '../../../core/transcript/testFixtures'
 import { createSessionSummaryCache } from '../../../core/transcript/summary/sessionSummaryCache'
 import { testArchivedSession } from '../../archive/testArchiveFixtures'
-import { createFakeArchive } from '../../archive/testFakeArchive'
+import { createFakeArchive } from '../../../service/archive/testFakeArchive'
 import { SKIP_UNREAD_SLACK_MS, TOTALS_WINDOW_MS } from '../../overview/totalsWindow'
 import { getProjectTotalsHandler } from '../getProjectTotalsHandler'
 import { guardIpc } from '../guardIpc'

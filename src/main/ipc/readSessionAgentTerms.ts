@@ -1,6 +1,6 @@
 import { NO_AGENT_TERMS, type AgentSearchTerm } from '../../core/session/agentSearchTerms'
 import type { SessionEntry } from '../../core/transcript/discoverSessions'
-import { agentTermsKey } from './agentTermsCache'
+import { agentTermsKey } from '../../service/sessions/agentTermsCache'
 import type { IpcDeps } from './ipcDeps'
 
 /**

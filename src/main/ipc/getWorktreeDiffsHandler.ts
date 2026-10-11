@@ -4,7 +4,7 @@ import { sessionWorktreeDiffs, type AgentWorktreeDiff } from '../git/sessionWork
 import { findRequestedSession, type RequestedSession } from './findRequestedSession'
 import { findSharedWorktree } from './findSharedWorktree'
 import type { IpcDeps } from './ipcDeps'
-import { okResult } from './ipcResults'
+import { okResult } from '../../service/ipcResults'
 import { mapWorktreeDiffs } from './mapWorktreeDiffs'
 import { scanFoundSession } from './scanFoundSession'
 

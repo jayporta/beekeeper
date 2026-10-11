@@ -6,7 +6,7 @@ import type { WorktreePatchDto } from '../../shared/ipc/worktreePatchDto'
 import { readWorktreeAgents } from '../git/sessionWorktreeDiffs'
 import { findRequestedSession } from './findRequestedSession'
 import type { IpcDeps } from './ipcDeps'
-import { errResult, okResult } from './ipcResults'
+import { errResult, okResult } from '../../service/ipcResults'
 import { mapWorktreePatch } from './mapWorktreePatch'
 import { scanFoundSession } from './scanFoundSession'
 

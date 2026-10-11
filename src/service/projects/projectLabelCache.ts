@@ -4,7 +4,7 @@ import { readCwdLabel } from '../../core/transcript/readCwdLabel'
 import { describeError } from '../../core/shared/describeError'
 import { fingerprintOf, readFolderMtime, stampTranscripts } from './projectLabelFingerprint'
 import { readProjectLabel, type ProjectLabelRead } from './readProjectLabel'
-import { createScanScheduler } from './scanScheduler'
+import { createScanScheduler } from '../scheduling/scanScheduler'
 
 /** How many projects are labeled at once. */
 export const MAX_CONCURRENT_LABELS = 4

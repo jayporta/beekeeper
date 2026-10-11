@@ -9,7 +9,7 @@ import { groupProjectFamily, type ProjectFamilyGrouping } from './groupProjectFa
 import type { IpcDeps } from './ipcDeps'
 import { scanFoundSession } from './scanFoundSession'
 import { readSessionSummary } from './scanProjectSessions'
-import { sessionRefKey } from './sessionRefKey'
+import { sessionRefKey } from '../../service/sessions/sessionRefKey'
 
 type SharedWorktreeDeps = Pick<
   IpcDeps,

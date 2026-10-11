@@ -1,7 +1,7 @@
 import type { TranscriptFileInfo } from '../../core/transcript/statTranscriptFile'
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
-import { isDetailDue } from '../archive/isDetailDue'
-import { lastActivityMs } from '../archive/lastActivityMs'
+import { isDetailDue } from '../../service/archive/isDetailDue'
+import { lastActivityMs } from '../../service/archive/lastActivityMs'
 import { safeArchiveWrite } from '../archive/safeArchiveWrite'
 import type { IpcDeps } from './ipcDeps'
 

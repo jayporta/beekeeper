@@ -3,7 +3,7 @@ import { worktreeNameOf, worktreeParentOf } from '../../core/teams/projectFamily
 import type { IpcResult } from '../../shared/ipc/ipcResult'
 import type { ProjectDto } from '../../shared/ipc/projectDto'
 import type { IpcDeps } from './ipcDeps'
-import { okResult } from './ipcResults'
+import { okResult } from '../../service/ipcResults'
 
 /**
  * Lists the project folders under the projects root, each with a label read

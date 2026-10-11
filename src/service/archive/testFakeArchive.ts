@@ -1,7 +1,7 @@
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
-import { sessionRefKey } from '../ipc/sessionRefKey'
+import { sessionRefKey } from '../sessions/sessionRefKey'
 import type {
   ArchivedLeadSlots,
   ArchivedSession,
@@ -9,7 +9,7 @@ import type {
   ArchiveWriter,
   ListItemEntry,
   SourceState
-} from './archiveStoreTypes'
+} from './archivePort'
 
 /** A list item save the fake received, with its source state and sidecars. */
 export type RecordedListSave = ListItemEntry

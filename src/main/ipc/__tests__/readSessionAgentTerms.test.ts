@@ -3,9 +3,9 @@ import { NO_AGENT_TERMS } from '../../../core/session/agentSearchTerms'
 import { err, ok } from '../../../core/shared/result'
 import type { SessionEntry } from '../../../core/transcript/discoverSessions'
 import { toAgentId, toSessionId } from '../../../core/transcript/ids'
-import type { AgentTermsCache } from '../agentTermsCache'
+import type { AgentTermsCache } from '../../../service/sessions/agentTermsCache'
 import { readSessionAgentTerms } from '../readSessionAgentTerms'
-import { createScanScheduler } from '../scanScheduler'
+import { createScanScheduler } from '../../../service/scheduling/scanScheduler'
 
 const SUBAGENT = {
   agentId: toAgentId('a1'),

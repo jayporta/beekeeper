@@ -11,7 +11,7 @@ import {
 } from '../overview/totalsWindow'
 import { findProject } from './findProject'
 import type { IpcDeps } from './ipcDeps'
-import { errResult, okResult } from './ipcResults'
+import { errResult, okResult } from '../../service/ipcResults'
 import { mapProjectTotals } from './mapProjectTotals'
 import type { ScannedSession } from './mapSessionListItem'
 import { readArchivedSessions } from './readArchivedSessions'

@@ -8,7 +8,7 @@ import { archivedDetailSchema } from './archivedDetailSchema'
 import { archivedLeadSlotsSchema } from './archivedLeadSlotsSchema'
 import { archivedListItemSchema } from './archivedListItemSchema'
 import { archivedTeamSpawnsSchema } from './archivedTeamSpawnsSchema'
-import type { ArchivedLeadSlots } from './archiveStoreTypes'
+import type { ArchivedLeadSlots } from '../../service/archive/archivePort'
 
 /** Why a stored row can't be served: bad JSON, a shape the UI can't rely on, or keys that don't match the row's. */
 export type ArchivedRowError = 'invalid-json' | 'invalid-shape' | 'key-mismatch'

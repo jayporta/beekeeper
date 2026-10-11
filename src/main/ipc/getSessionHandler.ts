@@ -3,7 +3,7 @@ import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
 import { archiveSessionDetail } from './archiveSessionDetail'
 import { lookupRequestedSession } from './findRequestedSession'
 import type { IpcDeps } from './ipcDeps'
-import { errResult, okResult } from './ipcResults'
+import { errResult, okResult } from '../../service/ipcResults'
 import { readArchivedSessionDetail } from './readArchivedSessionDetail'
 import { scanSessionDetail } from './scanSessionDetail'
 

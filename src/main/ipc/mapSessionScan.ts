@@ -5,9 +5,9 @@ import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
 import type { WorkflowRunDto } from '../../shared/ipc/workflowRunDto'
 import { mapAgentReport } from './mapAgentReport'
 import { mapAgentNode } from './mapAgentTree'
-import { errResult, okResult } from './ipcResults'
+import { errResult, okResult } from '../../service/ipcResults'
 import { mapReconciliation } from './mapReconciliation'
-import { toIpcErrorCode } from './toIpcErrorCode'
+import { toIpcErrorCode } from '../../service/toIpcErrorCode'
 
 /** Input for {@link mapSessionScan}. */
 export interface MapSessionScanOptions {

@@ -1,6 +1,6 @@
-import { errorCode } from '../../core/shared/errorCode'
-import type { IpcErrorCode } from '../../shared/ipc/ipcResult'
-import { describeError } from '../../core/shared/describeError'
+import { errorCode } from '../core/shared/errorCode'
+import type { IpcErrorCode } from '../shared/ipc/ipcResult'
+import { describeError } from '../core/shared/describeError'
 
 /**
  * Reduces anything thrown to a code the renderer may see. The error's

@@ -1,4 +1,4 @@
-import type { ArchivedSession } from '../archive/archiveStoreTypes'
+import type { ArchivedSession } from '../../service/archive/archivePort'
 import type { TotalsSession } from './folderTotals'
 
 /**

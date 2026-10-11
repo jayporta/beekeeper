@@ -9,7 +9,7 @@ import { getSessionHandler } from '../getSessionHandler'
 import type { IpcDeps } from '../ipcDeps'
 import { listProjectsHandler } from '../listProjectsHandler'
 import { listSessionsHandler } from '../listSessionsHandler'
-import { createScanScheduler } from '../scanScheduler'
+import { createScanScheduler } from '../../../service/scheduling/scanScheduler'
 import {
   NO_SCAN_CACHE,
   TEST_PROJECT,

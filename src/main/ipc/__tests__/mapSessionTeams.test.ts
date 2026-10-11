@@ -12,7 +12,7 @@ import {
 import { EMPTY_SIGNALS } from '../../../core/transcript/summary/testSessionSummary'
 import type { SessionRefDto } from '../../../shared/ipc/sessionRefDto'
 import { mapSessionTeams } from '../mapSessionTeams'
-import { sessionRefKey } from '../sessionRefKey'
+import { sessionRefKey } from '../../../service/sessions/sessionRefKey'
 
 /** The map key of a session in the folder `p`. */
 function key(sessionId: string, projectDirName = 'p'): string {

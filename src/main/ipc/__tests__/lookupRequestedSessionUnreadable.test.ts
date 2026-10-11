@@ -2,10 +2,10 @@ import { describe, expect, it, vi } from 'vitest'
 import { err, ok } from '../../../core/shared/result'
 import { toSessionId } from '../../../core/transcript/ids'
 import { testDetail } from '../../archive/testArchiveFixtures'
-import { createFakeArchive } from '../../archive/testFakeArchive'
+import { createFakeArchive } from '../../../service/archive/testFakeArchive'
 import { getSessionHandler } from '../getSessionHandler'
 import { lookupRequestedSession } from '../findRequestedSession'
-import { sessionRefKey } from '../sessionRefKey'
+import { sessionRefKey } from '../../../service/sessions/sessionRefKey'
 import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
 
 vi.mock('../../../core/transcript/discoverSessions', () => ({

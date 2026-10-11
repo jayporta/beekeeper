@@ -16,6 +16,15 @@ function scanDir(): SessionScanDir {
   return dir
 }
 
+/** The weight the cache charges an entry beyond its key and strings. */
+const ENTRY_OVERHEAD = 512
+
+/** The key length a bound is sized for, such as a 64-character digest; an entry with a much longer identity exceeds it. */
+const SHORT_KEY_LENGTH = 64
+
+/** The weight of the single `One` term the tests' entries hold: its text plus the term object. */
+const ONE_TERM_WEIGHT = 'One'.length + 20
+
 const meta = (agentType: string): Record<string, unknown> => ({ agentType })
 
 describe('createAgentTermsCache', () => {
@@ -136,7 +145,7 @@ describe('createAgentTermsCache', () => {
     const readMeta = vi.fn(resolveSubagentMeta)
     const first = [scanDir().addSubagent('a', { transcript: '', meta: meta('One') })]
     const second = [scanDir().addSubagent('b', { transcript: '', meta: meta('Two') })]
-    const oneEntry = 512 + agentTermsKey(first).length + 'One'.length + 20
+    const oneEntry = ENTRY_OVERHEAD + agentTermsKey(first).length + ONE_TERM_WEIGHT
     const cache = createAgentTermsCache({ readMeta, maxWeight: oneEntry })
     await cache.read(first)
     await cache.read(second)
@@ -161,7 +170,10 @@ describe('createAgentTermsCache', () => {
 
   it('does not keep an entry whose identity makes it heavier than the bound', async () => {
     const readMeta = vi.fn(resolveSubagentMeta)
-    const cache = createAgentTermsCache({ readMeta, maxWeight: 512 + 64 + 'One'.length + 20 })
+    const cache = createAgentTermsCache({
+      readMeta,
+      maxWeight: ENTRY_OVERHEAD + SHORT_KEY_LENGTH + ONE_TERM_WEIGHT
+    })
     const subagents = [
       scanDir().addSubagent('a'.repeat(100), { transcript: '', meta: meta('One') })
     ]

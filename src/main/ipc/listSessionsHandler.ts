@@ -6,11 +6,11 @@ import type { SessionTeamDto } from '../../shared/ipc/sessionTeamDto'
 import { archiveListedSessions, type ListedItem } from './archiveListedSessions'
 import { groupProjectFamily } from './groupProjectFamily'
 import type { IpcDeps } from './ipcDeps'
-import { errResult, okResult } from './ipcResults'
+import { errResult, okResult } from '../../service/ipcResults'
 import { mapSessionListItem, type ScannedSession } from './mapSessionListItem'
 import { readSessionAgentTerms } from './readSessionAgentTerms'
 import { readSessionWorkflowRunNames } from './readSessionWorkflowRunNames'
-import { sessionRefKey } from './sessionRefKey'
+import { sessionRefKey } from '../../service/sessions/sessionRefKey'
 
 function teamKeyOf(session: ScannedSession): string {
   return sessionRefKey({

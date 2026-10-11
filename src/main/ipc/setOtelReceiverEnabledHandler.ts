@@ -2,7 +2,7 @@ import type { IpcResult } from '../../shared/ipc/ipcResult'
 import type { OtelReceiverDto } from '../../shared/ipc/otelReceiverDto'
 import { setOtelReceiverEnabledRequestSchema } from '../../shared/ipc/requestSchemas'
 import type { IpcDeps } from './ipcDeps'
-import { errResult, okResult } from './ipcResults'
+import { errResult, okResult } from '../../service/ipcResults'
 
 /**
  * Turns the opt-in telemetry receiver on or off.
