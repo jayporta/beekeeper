@@ -57,11 +57,12 @@ function hasNoBlockingFailure(
 }
 
 /**
- * Whether a scan is safe to cache: no unreadable subagent transcript and no
- * meta file that failed in a way that can clear on a live session (see {@link isTransientMetaFailure}). Such a failure can clear
- * without the scan key changing, so it must not be cached. A meta file that
- * fails the same way on every read is cached, since the key tracks its
- * presence.
+ * Whether a scan is safe to cache: a subagents folder that could be listed,
+ * no unreadable subagent transcript, and no meta file that failed in a way
+ * that can clear on a live session (see {@link isTransientMetaFailure}). Such
+ * a failure can clear without the scan key changing, so it must not be
+ * cached. A meta file that fails the same way on every read is cached, since
+ * the key tracks its presence.
  * @param scan - The scan.
  * @param subagentsListed - Whether the subagents folder was listed.
  * @returns `true` when the scan is safe to cache.
