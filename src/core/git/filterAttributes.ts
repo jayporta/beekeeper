@@ -1,6 +1,9 @@
+import type { ProcessPort } from '../io/processPort'
+import { decodeUtf8 } from '../shared/decodeUtf8'
 import { err, ok, type Result } from '../shared/result'
+import { utf8ByteLength } from '../shared/utf8ByteLength'
 import type { GitBinary } from './gitBinary'
-import { runGit, type GitExecFn, type GitRunError } from './runGit'
+import { runGit, type GitRunError } from './runGit'
 
 /**
  * The most paths one `check-attr` call receives. Paths travel as arguments,
@@ -64,7 +67,7 @@ export interface BatchLimits {
 
 /** What a path adds to a command line: its UTF-8 bytes and a terminator. */
 function argumentCost(path: string): number {
-  return Buffer.byteLength(path) + 1
+  return utf8ByteLength(path) + 1
 }
 
 /**
@@ -109,9 +112,9 @@ export function batchPaths(paths: readonly string[], limits: BatchLimits = {}): 
  * is not a whole number of records.
  */
 export function parseFilterAttributes(
-  output: Buffer
+  output: Uint8Array
 ): Result<FilterAttribute[], 'malformed-check-attr'> {
-  const fields = output.toString('utf-8').split('\0')
+  const fields = decodeUtf8(output).split('\0')
   if (fields.pop() !== '' || fields.length % 3 !== 0) return err('malformed-check-attr')
 
   const entries: FilterAttribute[] = []
@@ -138,8 +141,8 @@ export interface PathsAssignFiltersOptions {
    * @defaultValue {@link MAX_CHECK_ATTR_BATCHES}
    */
   readonly maxBatches?: number
-  /** Runs git in place of `execFile`, for tests. */
-  readonly exec?: GitExecFn
+  /** Runs git through this port in place of the installed one, for tests. */
+  readonly port?: ProcessPort
 }
 
 /**
@@ -169,7 +172,7 @@ export interface PathsAssignFiltersOptions {
 export async function pathsAssignFilters(
   options: PathsAssignFiltersOptions
 ): Promise<Result<boolean, FilterAttributesError>> {
-  const { git, dir, paths, maxBatches = MAX_CHECK_ATTR_BATCHES, exec } = options
+  const { git, dir, paths, maxBatches = MAX_CHECK_ATTR_BATCHES, port } = options
   if (paths.length > maxBatches * CHECK_ATTR_BATCH_SIZE) return ok(true)
   if (paths.some((path) => argumentCost(path) > CHECK_ATTR_BATCH_BYTES)) return ok(true)
   const batches = batchPaths(paths)
@@ -181,7 +184,7 @@ export async function pathsAssignFilters(
       dir,
       args: ['check-attr', '-z', '--all', '--', ...batch],
       maxBuffer: CHECK_ATTR_MAX_OUTPUT,
-      ...(exec === undefined ? {} : { exec })
+      ...(port === undefined ? {} : { port })
     })
     if (!result.ok) return result.error === 'output-too-large' ? ok(true) : err(result.error)
     if (result.value.exitCode !== 0) return err('git-failed')

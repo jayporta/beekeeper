@@ -1,6 +1,8 @@
 import { execFileSync } from 'node:child_process'
 import { join } from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import { installProcessPort } from '../../io/installProcessPort'
+import { nodeProcess } from '../../io/node/nodeProcess'
 import type { GitBinary } from '../gitBinary'
 import { GIT_ENV } from '../gitEnv'
 import { runGit } from '../runGit'
@@ -176,6 +178,35 @@ describe('worktreeDiffStat', () => {
     expect(result).toEqual({
       ok: true,
       value: { files: [], untracked: [], uncommitted: 'skipped-filters' }
+    })
+  })
+
+  describe('when the process port cannot prove its output is exact bytes', () => {
+    afterEach(() => {
+      installProcessPort(nodeProcess)
+    })
+
+    it('falls back to the committed diff, since no path is proven UTF-8', async (context) => {
+      const gitBinary = testGit.requireGit(context)
+      const repo = await testGit.baseRepo(gitBinary)
+      const worktree = join(repo.root, 'wt')
+      repo.git(['worktree', 'add', '--quiet', worktree, 'agent'])
+      await repo.write({ path: 'plain.txt', content: 'v1\n', dir: worktree })
+      repo.git(['add', '-A'], worktree)
+      repo.git(['commit', '--quiet', '-m', 'plain file'], worktree)
+      await repo.write({ path: 'plain.txt', content: 'v2\nmore\n', dir: worktree })
+      installProcessPort({ ...nodeProcess, exactOutput: false })
+
+      const result = await diffStat(gitBinary, repo, { worktreeDir: worktree })
+
+      expect(result).toEqual({
+        ok: true,
+        value: {
+          files: [{ path: 'plain.txt', added: 1, deleted: 0 }],
+          untracked: [],
+          uncommitted: 'skipped-filters'
+        }
+      })
     })
   })
 

@@ -1,3 +1,4 @@
+import { decodeLatin1 } from '../shared/decodeLatin1'
 import { err, ok, type Result } from '../shared/result'
 
 /** One file's line counts from `git diff --numstat -z`. */
@@ -16,8 +17,8 @@ const NUL = 0
 const TAB = 9
 const decoder = new TextDecoder('utf-8')
 
-function readCount(bytes: Buffer): Result<number | null, 'malformed-numstat'> {
-  const text = bytes.toString('latin1')
+function readCount(bytes: Uint8Array): Result<number | null, 'malformed-numstat'> {
+  const text = decodeLatin1(bytes)
   if (text === '-') return ok(null)
   return /^\d{1,15}$/.test(text) ? ok(Number(text)) : err('malformed-numstat')
 }
@@ -35,11 +36,11 @@ function readCount(bytes: Buffer): Result<number | null, 'malformed-numstat'> {
  * @param output - Raw bytes from git's stdout.
  * @returns The entries in order, or `malformed-numstat` when a record is truncated or has bad counts.
  */
-export function parseNumstat(output: Buffer): Result<NumstatEntry[], 'malformed-numstat'> {
+export function parseNumstat(output: Uint8Array): Result<NumstatEntry[], 'malformed-numstat'> {
   const entries: NumstatEntry[] = []
   let pos = 0
 
-  const readField = (): Buffer | undefined => {
+  const readField = (): Uint8Array | undefined => {
     const end = output.indexOf(NUL, pos)
     if (end === -1) return undefined
     const field = output.subarray(pos, end)

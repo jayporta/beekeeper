@@ -1,3 +1,4 @@
+import { unrefTimer } from '../shared/unrefTimer'
 import { FsTimeoutError, type FsRunner } from './fsDeadline'
 
 /**
@@ -24,7 +25,7 @@ export function withWalkBudget(run: FsRunner, deadlineAt: number): FsRunner {
     if (remaining <= 0) return Promise.reject(new FsTimeoutError())
     const expired = Promise.withResolvers<never>()
     const timer = setTimeout(() => expired.reject(new FsTimeoutError()), remaining)
-    timer.unref()
+    unrefTimer(timer)
     return Promise.race([run(call), expired.promise]).finally(() => clearTimeout(timer))
   }
 }

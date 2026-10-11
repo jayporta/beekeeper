@@ -1,4 +1,6 @@
 import { isAbsolutePath } from '../shared/absolutePath'
+import { decodeLatin1 } from '../shared/decodeLatin1'
+import { decodeUtf8 } from '../shared/decodeUtf8'
 import { err, ok, type Result } from '../shared/result'
 import { parseCommitSha, type CommitSha } from './commitSha'
 import type { GitBinary } from './gitBinary'
@@ -69,8 +71,8 @@ export async function resolveBranch(
   if (!symbolic.ok) return err(symbolic.error)
   if (parsed.value.exitCode === 1) return err('branch-not-found')
   if (parsed.value.exitCode !== 0 || symbolic.value.exitCode !== 0) return err('git-failed')
-  if (symbolic.value.stdout.toString('utf-8').trim() !== fullName) return err('branch-not-found')
-  const sha = parseCommitSha(parsed.value.stdout.toString('latin1').trim())
+  if (decodeUtf8(symbolic.value.stdout).trim() !== fullName) return err('branch-not-found')
+  const sha = parseCommitSha(decodeLatin1(parsed.value.stdout).trim())
   if (sha === undefined) return err('git-failed')
   return ok(sha)
 }

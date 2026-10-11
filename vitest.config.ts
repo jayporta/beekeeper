@@ -16,7 +16,7 @@ export default defineConfig({
           environment: 'node',
           include: ['src/**/*.test.ts', 'lint/**/*.test.ts'],
           exclude,
-          setupFiles: ['src/core/io/node/testInstallNodeFileSystem.ts']
+          setupFiles: ['src/core/io/node/testInstallNodeAdapters.ts']
         }
       },
       {

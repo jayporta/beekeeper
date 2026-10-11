@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { decodeUtf8 } from '../../shared/decodeUtf8'
 import { parseDiffPatch } from '../parseDiffPatch'
 
 interface RawEntry {
@@ -51,7 +52,7 @@ describe('parseDiffPatch', () => {
 
     const result = parseDiffPatch(output(entries, a + b + c))
 
-    expect(result.ok && result.value.map((file) => [file.path, file.patch.toString()])).toEqual([
+    expect(result.ok && result.value.map((file) => [file.path, decodeUtf8(file.patch)])).toEqual([
       ['a.txt', a],
       ['b.txt', b],
       ['c.txt', c]
@@ -88,7 +89,7 @@ describe('parseDiffPatch', () => {
 
     const result = parseDiffPatch(output([{ status: 'M', path: 'b.bin' }], patch))
 
-    expect(result.ok && result.value[0]?.patch.toString()).toBe(patch)
+    expect(result.ok && decodeUtf8(result.value[0]?.patch ?? new Uint8Array())).toBe(patch)
   })
 
   it('finds a file whose path has a space', () => {
@@ -143,7 +144,7 @@ describe('parseDiffPatch', () => {
     const result = parseDiffPatch(output([{ status: 'M', path: 'a.txt' }], patch))
 
     expect(result.ok && result.value).toHaveLength(1)
-    expect(result.ok && result.value[0]?.patch.toString()).toBe(patch)
+    expect(result.ok && decodeUtf8(result.value[0]?.patch ?? new Uint8Array())).toBe(patch)
   })
 
   it('skips a changed file git printed no patch for', () => {
@@ -171,7 +172,36 @@ describe('parseDiffPatch', () => {
 
     const result = parseDiffPatch(stdout)
 
-    expect(result.ok && result.value[0]?.patch.equals(patch)).toBe(true)
+    expect(result.ok && Buffer.from(result.value[0]?.patch ?? []).equals(patch)).toBe(true)
+  })
+
+  it('splits at the right offsets when a body holds high bytes and invalid UTF-8', () => {
+    const body = Buffer.from([
+      0x2b,
+      ...Array.from({ length: 0x20 }, (_, index) => 0x80 + index),
+      0xff,
+      0xc3,
+      0x28,
+      0xe2,
+      0x82,
+      0x0a
+    ])
+    const first = Buffer.concat([Buffer.from(modified('a.txt')), body])
+    const second = Buffer.from(modified('b.txt'))
+    const entries = ['a.txt', 'b.txt'].map((path) => ({ status: 'M', path }))
+
+    const result = parseDiffPatch(Buffer.concat([output(entries), first, second]))
+
+    expect(
+      result.ok &&
+        result.value.map((file) => [
+          file.path,
+          Buffer.from(file.patch).equals(file.path === 'a.txt' ? first : second)
+        ])
+    ).toEqual([
+      ['a.txt', true],
+      ['b.txt', true]
+    ])
   })
 
   it('refuses a patch for a file git did not list', () => {
@@ -200,7 +230,7 @@ describe('parseDiffPatch', () => {
 
       expect(result).toEqual({
         ok: true,
-        value: [{ path: 'x', patch: Buffer.from(removed + added) }]
+        value: [{ path: 'x', patch: new TextEncoder().encode(removed + added) }]
       })
     })
 
@@ -214,7 +244,7 @@ describe('parseDiffPatch', () => {
         output(entries, modified('a.txt') + removed + added + modified('b.txt'))
       )
 
-      expect(result.ok && result.value.map((file) => [file.path, file.patch.toString()])).toEqual([
+      expect(result.ok && result.value.map((file) => [file.path, decodeUtf8(file.patch)])).toEqual([
         ['a.txt', modified('a.txt')],
         ['x', removed + added],
         ['b.txt', modified('b.txt')]

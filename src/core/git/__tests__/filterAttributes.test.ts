@@ -1,4 +1,12 @@
 import { describe, expect, it } from 'vitest'
+import type {
+  ProcessOutput,
+  ProcessPort,
+  ProcessRequest,
+  ProcessRunError
+} from '../../io/processPort'
+import { fakeProcessPort } from '../../io/testProcessPort'
+import { err, ok, type Result } from '../../shared/result'
 import { toGitBinary } from '../gitBinary'
 import {
   batchPaths,
@@ -9,7 +17,6 @@ import {
   parseFilterAttributes,
   pathsAssignFilters
 } from '../filterAttributes'
-import type { GitExecFn } from '../runGit'
 
 /** Builds `git check-attr -z --all` output for the given path, attribute, and value records. */
 function output(...records: readonly (readonly [string, string, string])[]): Buffer {
@@ -129,25 +136,27 @@ describe('parseFilterAttributes', () => {
 describe('pathsAssignFilters', () => {
   const git = toGitBinary('/fake/git')
 
-  /** A git exec that records how often it ran and answers every call with the given outcome. */
-  function fakeExec(outcome: () => Promise<{ stdout: Buffer }>): {
-    readonly exec: GitExecFn
+  type Outcome = Result<ProcessOutput, ProcessRunError>
+
+  /** A process port that records how often it ran and answers every call with the given outcome. */
+  function fakeExec(outcome: () => Promise<Outcome>): {
+    readonly port: ProcessPort
     readonly calls: () => number
   } {
     let calls = 0
     return {
-      exec: () => {
+      port: fakeProcessPort(() => {
         calls += 1
         return outcome()
-      },
+      }),
       calls: () => calls
     }
   }
 
   it('returns without running git when there are no paths', async () => {
-    const fake = fakeExec(() => Promise.resolve({ stdout: Buffer.from('') }))
+    const fake = fakeExec(() => Promise.resolve(ok({ exitCode: 0, stdout: Buffer.from('') })))
 
-    const result = await pathsAssignFilters({ git, dir: '/wt', paths: [], exec: fake.exec })
+    const result = await pathsAssignFilters({ git, dir: '/wt', paths: [], port: fake.port })
 
     expect({ result, calls: fake.calls() }).toEqual({
       result: { ok: true, value: false },
@@ -156,26 +165,26 @@ describe('pathsAssignFilters', () => {
   })
 
   it('counts a path over the byte budget as assigned without running git', async () => {
-    const fake = fakeExec(() => Promise.resolve({ stdout: Buffer.from('') }))
+    const fake = fakeExec(() => Promise.resolve(ok({ exitCode: 0, stdout: Buffer.from('') })))
 
     const result = await pathsAssignFilters({
       git,
       dir: '/wt',
       paths: ['ok.txt', 'x'.repeat(CHECK_ATTR_BATCH_BYTES)],
-      exec: fake.exec
+      port: fake.port
     })
 
     expect({ result, calls: fake.calls() }).toEqual({ result: { ok: true, value: true }, calls: 0 })
   })
 
   it('checks a path exactly at the byte budget', async () => {
-    const fake = fakeExec(() => Promise.resolve({ stdout: Buffer.from('') }))
+    const fake = fakeExec(() => Promise.resolve(ok({ exitCode: 0, stdout: Buffer.from('') })))
 
     const result = await pathsAssignFilters({
       git,
       dir: '/wt',
       paths: ['x'.repeat(CHECK_ATTR_BATCH_BYTES - 1)],
-      exec: fake.exec
+      port: fake.port
     })
 
     expect({ result, calls: fake.calls() }).toEqual({
@@ -185,42 +194,42 @@ describe('pathsAssignFilters', () => {
   })
 
   it('counts more batches than the cap as assigned without running git', async () => {
-    const fake = fakeExec(() => Promise.resolve({ stdout: Buffer.from('') }))
+    const fake = fakeExec(() => Promise.resolve(ok({ exitCode: 0, stdout: Buffer.from('') })))
 
     const result = await pathsAssignFilters({
       git,
       dir: '/wt',
       paths: namedPaths(CHECK_ATTR_BATCH_SIZE * 2 + 1, 5),
       maxBatches: 2,
-      exec: fake.exec
+      port: fake.port
     })
 
     expect({ result, calls: fake.calls() }).toEqual({ result: { ok: true, value: true }, calls: 0 })
   })
 
   it('counts long paths that need more batches than the cap as assigned without running git', async () => {
-    const fake = fakeExec(() => Promise.resolve({ stdout: Buffer.from('') }))
+    const fake = fakeExec(() => Promise.resolve(ok({ exitCode: 0, stdout: Buffer.from('') })))
 
     const result = await pathsAssignFilters({
       git,
       dir: '/wt',
       paths: ['a', 'b', 'c'].map((name) => name.repeat(40_000)),
       maxBatches: 2,
-      exec: fake.exec
+      port: fake.port
     })
 
     expect({ result, calls: fake.calls() }).toEqual({ result: { ok: true, value: true }, calls: 0 })
   })
 
   it('checks every batch up to the cap', async () => {
-    const fake = fakeExec(() => Promise.resolve({ stdout: Buffer.from('') }))
+    const fake = fakeExec(() => Promise.resolve(ok({ exitCode: 0, stdout: Buffer.from('') })))
 
     const result = await pathsAssignFilters({
       git,
       dir: '/wt',
       paths: namedPaths(CHECK_ATTR_BATCH_SIZE * 2, 5),
       maxBatches: 2,
-      exec: fake.exec
+      port: fake.port
     })
 
     expect({ result, calls: fake.calls() }).toEqual({
@@ -230,13 +239,13 @@ describe('pathsAssignFilters', () => {
   })
 
   it('defaults the batch cap to MAX_CHECK_ATTR_BATCHES', async () => {
-    const fake = fakeExec(() => Promise.resolve({ stdout: Buffer.from('') }))
+    const fake = fakeExec(() => Promise.resolve(ok({ exitCode: 0, stdout: Buffer.from('') })))
 
     const result = await pathsAssignFilters({
       git,
       dir: '/wt',
       paths: namedPaths(CHECK_ATTR_BATCH_SIZE * MAX_CHECK_ATTR_BATCHES + 1, 6),
-      exec: fake.exec
+      port: fake.port
     })
 
     expect({ result, calls: fake.calls() }).toEqual({ result: { ok: true, value: true }, calls: 0 })
@@ -245,9 +254,11 @@ describe('pathsAssignFilters', () => {
   it.each(['unspecified', 'unset', 'set', '', 'lfs'])(
     'counts a filter record with the value %j as assigned',
     async (value) => {
-      const fake = fakeExec(() => Promise.resolve({ stdout: filterOutput(['a', value]) }))
+      const fake = fakeExec(() =>
+        Promise.resolve(ok({ exitCode: 0, stdout: filterOutput(['a', value]) }))
+      )
 
-      const result = await pathsAssignFilters({ git, dir: '/wt', paths: ['a'], exec: fake.exec })
+      const result = await pathsAssignFilters({ git, dir: '/wt', paths: ['a'], port: fake.port })
 
       expect(result).toEqual({ ok: true, value: true })
     }
@@ -255,58 +266,58 @@ describe('pathsAssignFilters', () => {
 
   it('counts output with only other attributes as not assigned', async () => {
     const fake = fakeExec(() =>
-      Promise.resolve({ stdout: output(['a', 'text', 'set'], ['b', 'diff', 'unset']) })
+      Promise.resolve(
+        ok({ exitCode: 0, stdout: output(['a', 'text', 'set'], ['b', 'diff', 'unset']) })
+      )
     )
 
-    const result = await pathsAssignFilters({ git, dir: '/wt', paths: ['a', 'b'], exec: fake.exec })
+    const result = await pathsAssignFilters({ git, dir: '/wt', paths: ['a', 'b'], port: fake.port })
 
     expect(result).toEqual({ ok: true, value: false })
   })
 
   it('counts output that overflows the buffer as assigned', async () => {
-    const fake = fakeExec(() =>
-      Promise.reject(Object.assign(new Error('x'), { code: 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER' }))
-    )
+    const fake = fakeExec(() => Promise.resolve(err('output-too-large')))
 
-    const result = await pathsAssignFilters({ git, dir: '/wt', paths: ['a'], exec: fake.exec })
+    const result = await pathsAssignFilters({ git, dir: '/wt', paths: ['a'], port: fake.port })
 
     expect(result).toEqual({ ok: true, value: true })
   })
 
   it('caps each batch at CHECK_ATTR_MAX_OUTPUT of output', async () => {
     const buffers: number[] = []
-    const exec: GitExecFn = (_file, _args, options) => {
-      buffers.push(options.maxBuffer)
-      return Promise.resolve({ stdout: Buffer.from('') })
-    }
+    const port = fakeProcessPort((request: ProcessRequest) => {
+      buffers.push(request.maxOutputBytes)
+      return Promise.resolve(ok({ exitCode: 0, stdout: Buffer.from('') }))
+    })
 
-    await pathsAssignFilters({ git, dir: '/wt', paths: ['a'], exec })
+    await pathsAssignFilters({ git, dir: '/wt', paths: ['a'], port })
 
     expect(buffers).toEqual([CHECK_ATTR_MAX_OUTPUT])
   })
 
   it('still reports a timeout', async () => {
-    const fake = fakeExec(() => Promise.reject(Object.assign(new Error('x'), { killed: true })))
+    const fake = fakeExec(() => Promise.resolve(err('timeout')))
 
-    const result = await pathsAssignFilters({ git, dir: '/wt', paths: ['a'], exec: fake.exec })
+    const result = await pathsAssignFilters({ git, dir: '/wt', paths: ['a'], port: fake.port })
 
     expect(result).toEqual({ ok: false, error: 'timeout' })
   })
 
   it('reports git-failed for a nonzero check-attr exit', async () => {
-    const fake = fakeExec(() =>
-      Promise.reject(Object.assign(new Error('x'), { code: 128, stdout: Buffer.from('') }))
-    )
+    const fake = fakeExec(() => Promise.resolve(ok({ exitCode: 128, stdout: Buffer.from('') })))
 
-    const result = await pathsAssignFilters({ git, dir: '/wt', paths: ['a'], exec: fake.exec })
+    const result = await pathsAssignFilters({ git, dir: '/wt', paths: ['a'], port: fake.port })
 
     expect(result).toEqual({ ok: false, error: 'git-failed' })
   })
 
   it('reports git-failed for output it cannot parse', async () => {
-    const fake = fakeExec(() => Promise.resolve({ stdout: Buffer.from('a\0filter\0') }))
+    const fake = fakeExec(() =>
+      Promise.resolve(ok({ exitCode: 0, stdout: Buffer.from('a\0filter\0') }))
+    )
 
-    const result = await pathsAssignFilters({ git, dir: '/wt', paths: ['a'], exec: fake.exec })
+    const result = await pathsAssignFilters({ git, dir: '/wt', paths: ['a'], port: fake.port })
 
     expect(result).toEqual({ ok: false, error: 'git-failed' })
   })

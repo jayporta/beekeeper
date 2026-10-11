@@ -1,3 +1,5 @@
+import { unrefTimer } from '../shared/unrefTimer'
+
 /** The default deadline for one filesystem call, in milliseconds. */
 export const DEFAULT_FS_DEADLINE_MS = 5000
 
@@ -100,7 +102,7 @@ export function createFsRunner(options: FsRunnerOptions = {}): FsRunner {
         if (queued !== -1) queue.splice(queued, 1)
         reject(new FsTimeoutError())
       }, deadlineMs)
-      timer.unref()
+      unrefTimer(timer)
 
       if (unsettled < maxUnsettled) start()
       else queue.push(start)

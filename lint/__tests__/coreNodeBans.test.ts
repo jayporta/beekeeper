@@ -24,8 +24,7 @@ describe('core Node bans', () => {
   it.each([
     ['its Node adapter', 'src/core/io/node/probe.ts'],
     ['a core test', 'src/core/transcript/__tests__/probe.test.ts'],
-    ['a core test helper', 'src/core/transcript/testProbe.ts'],
-    ['the git folder, until it moves behind a port', 'src/core/git/probe.ts']
+    ['a core test helper', 'src/core/transcript/testProbe.ts']
   ])('allows a Node module import in %s', async (_label, path) => {
     const rules = await reportedRules(
       path,
@@ -33,6 +32,15 @@ describe('core Node bans', () => {
     )
 
     expect(rules).not.toContain('no-restricted-imports')
+  })
+
+  it('bans a Node module import in the git folder', async () => {
+    const rules = await reportedRules(
+      'src/core/git/probe.ts',
+      "import { execFile } from 'node:child_process'\nexport const s = execFile\n"
+    )
+
+    expect(rules).toContain('no-restricted-imports')
   })
 
   it.each(["Buffer.from('x')", 'process.platform', 'setImmediate(() => {})'])(

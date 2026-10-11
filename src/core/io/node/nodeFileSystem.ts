@@ -1,5 +1,5 @@
 import { constants, createReadStream } from 'node:fs'
-import { lstat, open, readdir, type FileHandle } from 'node:fs/promises'
+import { lstat, open, readdir, readlink, realpath, type FileHandle } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { errorCode } from '../../shared/errorCode'
 import { err, ok, type Result } from '../../shared/result'
@@ -103,6 +103,8 @@ export const nodeFileSystem: FileSystemPort = {
   readChunks,
   readRange,
   readNoFollow,
+  realPath: (path) => realpath(path),
+  readLink: (path) => readlink(path),
   joinPath: join,
   resolvePath: (path) => resolve(path)
 }
