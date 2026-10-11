@@ -175,6 +175,35 @@ describe('parseDiffPatch', () => {
     expect(result.ok && Buffer.from(result.value[0]?.patch ?? []).equals(patch)).toBe(true)
   })
 
+  it('splits at the right offsets when a body holds high bytes and invalid UTF-8', () => {
+    const body = Buffer.from([
+      0x2b,
+      ...Array.from({ length: 0x20 }, (_, index) => 0x80 + index),
+      0xff,
+      0xc3,
+      0x28,
+      0xe2,
+      0x82,
+      0x0a
+    ])
+    const first = Buffer.concat([Buffer.from(modified('a.txt')), body])
+    const second = Buffer.from(modified('b.txt'))
+    const entries = ['a.txt', 'b.txt'].map((path) => ({ status: 'M', path }))
+
+    const result = parseDiffPatch(Buffer.concat([output(entries), first, second]))
+
+    expect(
+      result.ok &&
+        result.value.map((file) => [
+          file.path,
+          Buffer.from(file.patch).equals(file.path === 'a.txt' ? first : second)
+        ])
+    ).toEqual([
+      ['a.txt', true],
+      ['b.txt', true]
+    ])
+  })
+
   it('refuses a patch for a file git did not list', () => {
     const result = parseDiffPatch(output([{ status: 'M', path: 'a.txt' }], modified('other.txt')))
 

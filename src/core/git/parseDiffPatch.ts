@@ -1,7 +1,6 @@
 import { concatBytes } from '../shared/concatBytes'
 import { decodeLatin1 } from '../shared/decodeLatin1'
 import { decodeUtf8 } from '../shared/decodeUtf8'
-import { indexOfBytes } from '../shared/indexOfBytes'
 import { err, ok, type Result } from '../shared/result'
 
 /** One changed file's patch, cut from `git diff --raw -z --patch` output. */
@@ -28,7 +27,8 @@ interface RawEntry {
 const COLON = 0x3a
 const NEWLINE = 0x0a
 const HEADER_PREFIX = 'diff --git '
-const BLOCK_MARKER = new TextEncoder().encode(`\n${HEADER_PREFIX}`)
+const BLOCK_MARKER = `\n${HEADER_PREFIX}`
+const OFFSET_DECODER = new TextDecoder('windows-1252')
 const CONTROL_ESCAPES: ReadonlyMap<number, string> = new Map([
   [0x07, 'a'],
   [0x08, 'b'],
@@ -125,15 +125,18 @@ function expectedHeaders(entry: RawEntry): Set<string> {
  * Finds where each file's block starts. A header is the only kind of line
  * that starts with `diff --git `: every line of a patch's body starts with a
  * space, a plus, a minus, `@`, or a backslash.
+ *
+ * @remarks
+ * The patch is decoded as windows-1252 only to locate an ASCII marker. That
+ * decoder turns every byte into exactly one UTF-16 code unit, so a string index
+ * is a byte offset. It is never used as text: {@link decodeLatin1} and
+ * {@link decodeUtf8} stay the decoders for the bytes.
  */
 function blockStarts(patch: Uint8Array): number[] {
+  const text = OFFSET_DECODER.decode(patch)
   const starts: number[] = []
-  if (decodeLatin1(patch.subarray(0, HEADER_PREFIX.length)) === HEADER_PREFIX) starts.push(0)
-  for (
-    let at = indexOfBytes(patch, BLOCK_MARKER);
-    at !== -1;
-    at = indexOfBytes(patch, BLOCK_MARKER, at + 1)
-  ) {
+  if (text.startsWith(HEADER_PREFIX)) starts.push(0)
+  for (let at = text.indexOf(BLOCK_MARKER); at !== -1; at = text.indexOf(BLOCK_MARKER, at + 1)) {
     starts.push(at + 1)
   }
   return starts
