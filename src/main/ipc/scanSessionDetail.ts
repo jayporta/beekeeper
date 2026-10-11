@@ -25,10 +25,11 @@ export interface ScannedSessionDetail {
   /** The session's detail. */
   readonly detail: SessionDetailDto
   /**
-   * Whether the scan read everything it needed: no unreadable subagent
-   * transcript, no meta file that can still clear once the session is quiet,
-   * and a subagents folder that could be listed. A scan that may read
-   * differently once a failure clears is never archived.
+   * Whether the scan is safe to archive: no unreadable subagent transcript,
+   * no meta file that can still clear once the session is quiet, and a
+   * subagents folder that could be listed. A meta failure that can't clear
+   * doesn't block it. A scan that may read differently once a failure clears
+   * is never archived.
    */
   readonly archivable: boolean
 }
