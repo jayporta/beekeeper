@@ -18,14 +18,14 @@ export const ARCHIVER_SCAN_CACHE_CAPACITY = 1
 
 /** Options for {@link createAppArchiver}. */
 export interface AppArchiverOptions {
-  /** The handlers' dependencies. Their `archive` is replaced by `store` and their `scanCache` by one of the archiver's own. */
+  /** The handlers' dependencies. Their `archive` is replaced by `store`, guarded, and their `scanCache` by one of the archiver's own. */
   readonly deps: IpcDeps
   /** The archive the sessions are written to. */
   readonly store: ArchiveStore
 }
 
 /**
- * Creates the archiver that runs the app's own list handler and detail scan, so
+ * Creates the archiver that runs the session list and detail scan services, so
  * its reads share the handlers' caches and schedulers with the UI. A project is
  * listed only when a stat shows a new or changed session, and a detail is
  * scanned only for a session that is pending and quiet for the waiting period.
