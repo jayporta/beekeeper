@@ -158,6 +158,20 @@ describe('createAgentTermsCache', () => {
     expect(terms).toHaveLength(1)
     expect(readMeta).toHaveBeenCalledTimes(2)
   })
+
+  it('does not keep an entry whose identity makes it heavier than the bound', async () => {
+    const readMeta = vi.fn(resolveSubagentMeta)
+    const cache = createAgentTermsCache({ readMeta, maxWeight: 512 + 64 + 'One'.length + 20 })
+    const subagents = [
+      scanDir().addSubagent('a'.repeat(100), { transcript: '', meta: meta('One') })
+    ]
+
+    const terms = await cache.read(subagents)
+    await cache.read(subagents)
+
+    expect(terms).toHaveLength(1)
+    expect(readMeta).toHaveBeenCalledTimes(2)
+  })
 })
 
 function statOf(entry: { transcript: { mtimeMs: number; size: number } }): {
@@ -179,6 +193,21 @@ describe('createAgentTermsCache identity', () => {
 
     expect(terms.map((term) => term.agentType)).toEqual(['Two'])
   })
+
+  it('keeps two sessions apart when their identities share their first 64 characters', async () => {
+    const readMeta = vi.fn(resolveSubagentMeta)
+    const cache = createAgentTermsCache({ readMeta })
+    const first = scanDir().addSubagent('a'.repeat(70), { transcript: '', meta: meta('One') })
+    const second = scanDir().addSubagent('b', { transcript: '', meta: meta('Two') })
+    const shortSession = [first]
+    const longSession = [first, second]
+    expect(agentTermsKey(longSession).slice(0, 64)).toBe(agentTermsKey(shortSession).slice(0, 64))
+    await cache.read(shortSession)
+
+    const terms = await cache.read(longSession)
+
+    expect(terms.map((term) => term.agentType)).toEqual(['One', 'Two'])
+  })
 })
 
 describe('agentTermsKey', () => {
@@ -190,10 +219,9 @@ describe('agentTermsKey', () => {
     )
   })
 
-  it('is a fixed-length hash however many subagents there are', () => {
+  it('is the identity itself, not a digest of it', () => {
     const entry = scanDir().addSubagent('a', { transcript: '' })
 
-    expect(agentTermsKey([entry])).toMatch(/^[0-9a-f]{64}$/)
-    expect(agentTermsKey(Array.from({ length: 500 }, () => entry))).toHaveLength(64)
+    expect(agentTermsKey([entry])).toBe(`${entry.transcript.path}\u00000`)
   })
 })

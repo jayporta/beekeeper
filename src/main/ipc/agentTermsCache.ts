@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import {
   collectAgentTerms,
   lengthOf,
@@ -43,20 +42,19 @@ export interface AgentTermsCacheOptions {
 
 /**
  * Identifies a session's subagents by what discovery stat'd: each
- * transcript's path and whether it has a meta file, hashed so a session with
- * hundreds of subagents still has a short key. A subagent that spawns changes
- * it. A transcript's modification time and size are left out: meta files are
- * written once, so a subagent's growing transcript must not invalidate its
- * terms.
+ * transcript's path and whether it has a meta file. A subagent that spawns
+ * changes it. A transcript's modification time and size are left out: meta
+ * files are written once, so a subagent's growing transcript must not
+ * invalidate its terms.
  *
  * @param subagents - The session's subagents.
- * @returns The key, a SHA-256 digest in hex.
+ * @returns The key: the identity itself, not a digest of it, so two sessions
+ * never share one. The cache's weight counts its length.
  */
 export function agentTermsKey(subagents: readonly SubagentEntry[]): string {
-  const identity = subagents
+  return subagents
     .map(({ transcript, metaPath }) => `${transcript.path}\0${metaPath === null ? 0 : 1}`)
     .join('\n')
-  return createHash('sha256').update(identity).digest('hex')
 }
 
 function weigh(key: string, terms: readonly AgentSearchTerm[]): number {

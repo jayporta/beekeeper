@@ -1,5 +1,4 @@
-import { lstat } from 'node:fs/promises'
-import { join } from 'node:path'
+import { fileSystem } from '../../core/io/installFileSystem'
 import { captureSystemError } from '../../core/transcript/captureSystemError'
 import { statTranscriptFile } from '../../core/transcript/statTranscriptFile'
 
@@ -12,7 +11,7 @@ import { statTranscriptFile } from '../../core/transcript/statTranscriptFile'
  * @throws {Error} When the folder cannot be stat'd.
  */
 export async function readFolderMtime(folderPath: string): Promise<number> {
-  return (await lstat(folderPath)).mtimeMs
+  return (await fileSystem().lstat(folderPath)).mtimeMs
 }
 
 /**
@@ -30,7 +29,9 @@ export async function stampTranscripts(
 ): Promise<string[]> {
   const stamps: string[] = []
   for (const name of names) {
-    const stat = await captureSystemError(() => statTranscriptFile(join(folderPath, name)))
+    const stat = await captureSystemError(() =>
+      statTranscriptFile(fileSystem().joinPath(folderPath, name))
+    )
     stamps.push(
       JSON.stringify(
         stat.ok && stat.value !== null ? [name, stat.value.mtimeMs, stat.value.size] : [name, null]

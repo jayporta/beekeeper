@@ -1,4 +1,4 @@
-import { join } from 'node:path'
+import { fileSystem } from '../../core/io/installFileSystem'
 import { captureSystemError } from '../../core/transcript/captureSystemError'
 import type { ProjectEntry } from '../../core/transcript/discoverProjects'
 import { findTranscriptCandidates } from '../../core/transcript/findTranscriptCandidates'
@@ -50,7 +50,9 @@ export async function readProjectLabel(
   const stamps = await stampTranscripts(project.path, names)
 
   for (const [index, name] of names.entries()) {
-    const read = await captureSystemError(() => options.readLabel(join(project.path, name)))
+    const read = await captureSystemError(() =>
+      options.readLabel(fileSystem().joinPath(project.path, name))
+    )
     if (!read.ok) options.onFailure(read.error)
     else if (read.value !== null) {
       const fingerprint = fingerprintOf(folderMtimeMs, stamps.slice(0, index + 1))
