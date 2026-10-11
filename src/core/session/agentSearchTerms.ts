@@ -1,7 +1,8 @@
 import type { SubagentEntry } from '../transcript/discoverSubagents'
 import { MAX_AGENT_TERM_CODE_UNITS, MAX_AGENT_TERMS } from './agentTermCaps'
+import { isTransientMetaFailure } from './metaFailureTransience'
 import { resolveSubagentMeta } from './resolveSubagentMeta'
-import type { SubagentMetaFailureReason, SubagentMetaStatus } from './subagentMetaStatus'
+import type { SubagentMetaStatus } from './subagentMetaStatus'
 
 /** What a session search matches on for one subagent. Transcript-derived text. */
 export interface AgentSearchTerm {
@@ -26,22 +27,6 @@ export interface CollectedAgentTerms {
    * such terms aren't kept.
    */
   readonly complete: boolean
-}
-
-/** The failures that can clear on their own: the file may be mid-write, or briefly unreadable. */
-const TRANSIENT_META_FAILURES: ReadonlySet<SubagentMetaFailureReason> = new Set([
-  'unreadable',
-  'missing',
-  'invalid-json'
-])
-
-/**
- * Whether a meta failure can clear without the file being replaced. The
- * others (`invalid-shape`, `too-large`, `symlink`, `not-a-file`) describe the
- * file as it stands and repeat on every read.
- */
-function isTransientMetaFailure(reason: SubagentMetaFailureReason): boolean {
-  return TRANSIENT_META_FAILURES.has(reason)
 }
 
 /**
