@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { IpcResult } from '../../../shared/ipc/ipcResult'
-import { errorWithCode } from '../../testErrorWithCode'
+import { errorWithCode } from '../../../core/shared/testErrorWithCode'
 import { guardIpc } from '../guardIpc'
 import { okResult } from '../ipcResults'
 import { toIpcErrorCode } from '../toIpcErrorCode'

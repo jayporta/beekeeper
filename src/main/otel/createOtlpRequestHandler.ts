@@ -1,6 +1,6 @@
 import { timingSafeEqual } from 'node:crypto'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { describeError } from '../describeError'
+import { describeError } from '../../core/shared/describeError'
 import type { ReportedCostStore } from './createReportedCostStore'
 import { parseOtlpLogs } from './parseOtlpLogs'
 import { readLimitedBody } from './readLimitedBody'

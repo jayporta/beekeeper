@@ -8,7 +8,7 @@ import {
 } from '../archiveConstants'
 import { createArchiver, type ArchivableProject, type ArchiverOptions } from '../createArchiver'
 import type { PendingDetail } from '../archiveStoreTypes'
-import { errorWithCode } from '../../testErrorWithCode'
+import { errorWithCode } from '../../../core/shared/testErrorWithCode'
 
 const NOW = 1_000 * DAY_MS
 const OLD = NOW - (ARCHIVE_DETAIL_AFTER_DAYS + 1) * DAY_MS

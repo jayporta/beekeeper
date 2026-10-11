@@ -60,10 +60,16 @@ export default defineConfig(
     }
   },
   {
-    // core runs in the mod too, so it has no Node modules or globals outside its Node adapter.
+    // core and service run in the mod too, so they have no Node modules or globals outside core's Node adapter.
     // Rules in a later block replace an earlier block's options, so the network bans repeat here.
-    files: ['src/core/**/*.ts'],
-    ignores: ['src/core/io/node/**', 'src/core/**/__tests__/**', 'src/core/**/test*.ts'],
+    files: ['src/core/**/*.ts', 'src/service/**/*.ts'],
+    ignores: [
+      'src/core/io/node/**',
+      'src/core/**/__tests__/**',
+      'src/core/**/test*.ts',
+      'src/service/**/__tests__/**',
+      'src/service/**/test*.ts'
+    ],
     rules: {
       'no-restricted-imports': [
         'error',

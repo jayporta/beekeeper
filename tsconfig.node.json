@@ -5,6 +5,7 @@
     "src/main/**/*",
     "src/preload/**/*",
     "src/core/**/*",
+    "src/service/**/*",
     "src/shared/**/*",
     "lint/**/*"
   ],

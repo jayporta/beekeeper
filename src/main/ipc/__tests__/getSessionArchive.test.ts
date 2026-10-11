@@ -5,7 +5,7 @@ import { ARCHIVE_DETAIL_AFTER_DAYS, DAY_MS } from '../../archive/archiveConstant
 import { testDetail } from '../../archive/testArchiveFixtures'
 import { createFakeArchive } from '../../archive/testFakeArchive'
 import { sessionRefKey } from '../sessionRefKey'
-import { errorWithCode } from '../../testErrorWithCode'
+import { errorWithCode } from '../../../core/shared/testErrorWithCode'
 import { getSessionHandler } from '../getSessionHandler'
 import type { IpcDeps } from '../ipcDeps'
 import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'

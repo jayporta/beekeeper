@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { isFatalLoadFailure } from '../startupFailure'
-import { errorWithCode } from '../testErrorWithCode'
+import { errorWithCode } from '../../core/shared/testErrorWithCode'
 
 describe('isFatalLoadFailure', () => {
   it('ignores an aborted load while a newer navigation is loading', () => {

@@ -72,6 +72,18 @@ ruleTester.run('importDirection', importDirection, {
       options
     },
     {
+      name: 'service imports core and shared',
+      filename: at('src/service/sessions/listSessions.ts'),
+      code: "import { a } from '../../core/shared/errorCode'\nimport { b } from '../../shared/ipc/ipcResult'",
+      options
+    },
+    {
+      name: 'main imports service',
+      filename: at('src/main/ipc/registerIpcHandlers.ts'),
+      code: "import { x } from '../../service/sessions/listSessions'",
+      options
+    },
+    {
       name: 'preload imports shared',
       filename: at('src/preload/index.ts'),
       code: "import { b } from '../shared/ipc/ipcResult'",
@@ -245,6 +257,62 @@ ruleTester.run('importDirection', importDirection, {
       name: 'shared imports main',
       filename: at('src/shared/ipc/contract.ts'),
       code: "import { x } from '../../main/index'",
+      options,
+      errors: forbidden
+    },
+    {
+      name: 'service imports main',
+      filename: at('src/service/sessions/listSessions.ts'),
+      code: "import { x } from '../../main/archive/createArchiveStore'",
+      options,
+      errors: forbidden
+    },
+    {
+      name: 'service imports electron',
+      filename: at('src/service/sessions/listSessions.ts'),
+      code: "import { app } from 'electron'",
+      options,
+      errors: [{ messageId: 'forbiddenPackage' }]
+    },
+    {
+      name: 'service imports renderer',
+      filename: at('src/service/sessions/listSessions.ts'),
+      code: "import { x } from '../../renderer/src/main'",
+      options,
+      errors: forbidden
+    },
+    {
+      name: 'service imports preload',
+      filename: at('src/service/sessions/listSessions.ts'),
+      code: "import { x } from '../../preload/index'",
+      options,
+      errors: forbidden
+    },
+    {
+      name: 'core imports service',
+      filename: at('src/core/transcript/parse.ts'),
+      code: "import { x } from '../../service/serviceDeps'",
+      options,
+      errors: forbidden
+    },
+    {
+      name: 'shared imports service',
+      filename: at('src/shared/ipc/contract.ts'),
+      code: "import { x } from '../../service/serviceDeps'",
+      options,
+      errors: forbidden
+    },
+    {
+      name: 'preload imports service',
+      filename: at('src/preload/index.ts'),
+      code: "import { x } from '../service/serviceDeps'",
+      options,
+      errors: forbidden
+    },
+    {
+      name: 'renderer imports service',
+      filename: at('src/renderer/src/features/a/A.tsx'),
+      code: "import { x } from '../../../../service/serviceDeps'",
       options,
       errors: forbidden
     },

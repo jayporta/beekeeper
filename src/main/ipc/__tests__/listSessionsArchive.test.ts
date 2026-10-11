@@ -5,7 +5,7 @@ import { err } from '../../../core/shared/result'
 import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
 import { testListItem, testOkSummary } from '../../archive/testArchiveFixtures'
 import { createFakeArchive } from '../../archive/testFakeArchive'
-import { errorWithCode } from '../../testErrorWithCode'
+import { errorWithCode } from '../../../core/shared/testErrorWithCode'
 import type { IpcDeps } from '../ipcDeps'
 import { listSessionsHandler } from '../listSessionsHandler'
 import {

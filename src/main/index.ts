@@ -21,7 +21,7 @@ import { hardenDefaultSession } from './security/session'
 import { hardenWebContents } from './security/windowSecurity'
 import { sendOpenAbout } from './sendOpenAbout'
 import { surfaceWindows } from './surfaceWindows'
-import { describeError } from './describeError'
+import { describeError } from '../core/shared/describeError'
 import { isFatalLoadFailure } from './startupFailure'
 
 installFileSystem(nodeFileSystem)

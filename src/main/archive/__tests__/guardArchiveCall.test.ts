@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { errorWithCode } from '../../testErrorWithCode'
+import { errorWithCode } from '../../../core/shared/testErrorWithCode'
 import { guardArchiveCall } from '../guardArchiveCall'
 import { collectLog } from '../testCollectLog'
 

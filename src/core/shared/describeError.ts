@@ -1,4 +1,4 @@
-import { errorCode } from '../core/shared/errorCode'
+import { errorCode } from './errorCode'
 
 /** A constant-style code such as `ENOENT` or `ERR_FILE_NOT_FOUND`. */
 const PLAIN_CODE = /^[A-Z][A-Z0-9_]*$/

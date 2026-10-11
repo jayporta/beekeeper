@@ -1,7 +1,7 @@
 import { captureSystemError } from '../../core/transcript/captureSystemError'
 import type { ProjectEntry } from '../../core/transcript/discoverProjects'
 import { readCwdLabel } from '../../core/transcript/readCwdLabel'
-import { describeError } from '../describeError'
+import { describeError } from '../../core/shared/describeError'
 import { fingerprintOf, readFolderMtime, stampTranscripts } from './projectLabelFingerprint'
 import { readProjectLabel, type ProjectLabelRead } from './readProjectLabel'
 import { createScanScheduler } from './scanScheduler'
