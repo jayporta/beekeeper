@@ -1,4 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { installProcessPort } from '../../io/installProcessPort'
+import { nodeProcess } from '../../io/node/nodeProcess'
+import type { ProcessPort, ProcessRequest } from '../../io/processPort'
+import { err, ok } from '../../shared/result'
 import { locateGit } from '../locateGit'
 
 const allExecutable = (): Promise<void> => Promise.resolve()
@@ -179,5 +183,71 @@ describe('locateGit', () => {
       run: runner({ versions: { '/a/git': 'something else\n' } }).run
     })
     expect(result).toEqual({ ok: false, error: 'git-not-found' })
+  })
+
+  describe('through the installed process port', () => {
+    afterEach(() => {
+      installProcessPort(nodeProcess)
+      vi.resetModules()
+    })
+
+    function portFor(options: {
+      readonly executable: readonly string[]
+      readonly platform: string
+      readonly requests: ProcessRequest[]
+    }): ProcessPort {
+      return {
+        run: (request) => {
+          options.requests.push(request)
+          return Promise.resolve(
+            request.args[0] === '--version'
+              ? ok({ exitCode: 0, stdout: new TextEncoder().encode('git version 2.50.1\n') })
+              : err('spawn-failed')
+          )
+        },
+        isExecutable: (path) => Promise.resolve(options.executable.includes(path)),
+        platform: options.platform,
+        exactOutput: true
+      }
+    }
+
+    it('probes candidates with the port and runs --version through it', async () => {
+      const requests: ProcessRequest[] = []
+      installProcessPort(portFor({ executable: ['/b/git'], platform: 'linux', requests }))
+
+      const result = await locateGit({ candidates: ['/a/git', '/b/git'] })
+
+      expect({ result, files: requests.map((request) => request.file) }).toEqual({
+        result: { ok: true, value: '/b/git' },
+        files: ['/b/git']
+      })
+    })
+
+    it('takes the platform from the port', async () => {
+      const requests: ProcessRequest[] = []
+      installProcessPort(portFor({ executable: ['/usr/bin/git'], platform: 'linux', requests }))
+
+      const result = await locateGit({ candidates: [] })
+
+      expect(result).toEqual({ ok: true, value: '/usr/bin/git' })
+    })
+
+    it('treats a failed probe run as not found', async () => {
+      const port = portFor({ executable: ['/a/git'], platform: 'darwin', requests: [] })
+      installProcessPort({ ...port, run: () => Promise.resolve(err('timeout')) })
+
+      const result = await locateGit({ candidates: ['/a/git'] })
+
+      expect(result).toEqual({ ok: false, error: 'git-not-found' })
+    })
+
+    it('rejects, naming installProcessPort, when no port is installed', async () => {
+      vi.resetModules()
+      const fresh = await import('../locateGit')
+
+      await expect(fresh.locateGit({ candidates: ['/a/git'], platform: 'darwin' })).rejects.toThrow(
+        /installProcessPort/
+      )
+    })
   })
 })

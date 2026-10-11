@@ -1,3 +1,4 @@
+import { processPort } from '../io/installProcessPort'
 import { isAbsolutePath } from '../shared/absolutePath'
 import { decodeLatin1 } from '../shared/decodeLatin1'
 import { decodeUtf8 } from '../shared/decodeUtf8'
@@ -81,7 +82,10 @@ async function diffFiles(
   if (diff.value.exitCode !== 0) return err('git-failed')
   const files = parseNumstat(diff.value.stdout)
   if (!files.ok) return err(files.error)
-  return ok({ files: files.value, pathsAreUtf8: isUtf8Bytes(diff.value.stdout) })
+  return ok({
+    files: files.value,
+    pathsAreUtf8: processPort().exactOutput && isUtf8Bytes(diff.value.stdout)
+  })
 }
 
 interface DiffWorkingTreeOptions {
