@@ -7,6 +7,11 @@ import eslintPluginReactRefresh from 'eslint-plugin-react-refresh'
 import eslintPluginJsxA11y from 'eslint-plugin-jsx-a11y'
 import eslintPluginUnicorn from 'eslint-plugin-unicorn'
 import eslintPluginI18next from 'eslint-plugin-i18next'
+import {
+  coreBannedGlobals,
+  coreBannedImportPaths,
+  coreBannedImportPatterns
+} from './lint/coreNodeBans.mjs'
 import importDirection from './lint/importDirection.mjs'
 import { importDirectionPolicy } from './lint/importDirectionPolicy.mjs'
 import {
@@ -52,6 +57,28 @@ export default defineConfig(
       'react/no-danger': 'error',
       'no-restricted-imports': ['error', { paths: networkBannedImports }],
       'no-restricted-globals': ['error', ...networkBannedGlobals]
+    }
+  },
+  {
+    // core runs in the mod too, so it has no Node modules or globals outside its Node adapter.
+    // Rules in a later block replace an earlier block's options, so the network bans repeat here.
+    // src/core/git is exempt until M1b moves it behind a port.
+    files: ['src/core/**/*.ts'],
+    ignores: [
+      'src/core/git/**',
+      'src/core/io/node/**',
+      'src/core/**/__tests__/**',
+      'src/core/**/test*.ts'
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [...networkBannedImports, ...coreBannedImportPaths],
+          patterns: coreBannedImportPatterns
+        }
+      ],
+      'no-restricted-globals': ['error', ...networkBannedGlobals, ...coreBannedGlobals]
     }
   },
   {

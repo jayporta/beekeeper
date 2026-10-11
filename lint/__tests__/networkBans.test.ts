@@ -1,22 +1,8 @@
-import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { ESLint } from 'eslint'
 import { beforeAll, describe, expect, it } from 'vitest'
-
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
-const eslint = new ESLint({ cwd: repoRoot })
-
-/** The rules that reported on `code` linted as if it lived at `path`. */
-async function reportedRules(path: string, code: string): Promise<string[]> {
-  const [result] = await eslint.lintText(code, { filePath: resolve(repoRoot, path) })
-  return (result?.messages ?? []).flatMap((message) => (message.ruleId ? [message.ruleId] : []))
-}
+import { reportedRules, WARM_UP_TIMEOUT_MS } from '../testLint'
 
 const OTEL_FILE = 'src/main/otel/probe.ts'
 const OTHER_FILE = 'src/main/probe.ts'
-
-/** How long the first lint may take: it loads the config and builds the type-aware program. */
-const WARM_UP_TIMEOUT_MS = 60_000
 
 describe('network bans', () => {
   // The first lint pays ESLint's start-up cost, which can pass a test's 5s timeout under full-suite load.
