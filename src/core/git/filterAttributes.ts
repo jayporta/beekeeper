@@ -1,4 +1,6 @@
+import { decodeUtf8 } from '../shared/decodeUtf8'
 import { err, ok, type Result } from '../shared/result'
+import { utf8ByteLength } from '../shared/utf8ByteLength'
 import type { GitBinary } from './gitBinary'
 import { runGit, type GitExecFn, type GitRunError } from './runGit'
 
@@ -64,7 +66,7 @@ export interface BatchLimits {
 
 /** What a path adds to a command line: its UTF-8 bytes and a terminator. */
 function argumentCost(path: string): number {
-  return Buffer.byteLength(path) + 1
+  return utf8ByteLength(path) + 1
 }
 
 /**
@@ -109,9 +111,9 @@ export function batchPaths(paths: readonly string[], limits: BatchLimits = {}): 
  * is not a whole number of records.
  */
 export function parseFilterAttributes(
-  output: Buffer
+  output: Uint8Array
 ): Result<FilterAttribute[], 'malformed-check-attr'> {
-  const fields = output.toString('utf-8').split('\0')
+  const fields = decodeUtf8(output).split('\0')
   if (fields.pop() !== '' || fields.length % 3 !== 0) return err('malformed-check-attr')
 
   const entries: FilterAttribute[] = []

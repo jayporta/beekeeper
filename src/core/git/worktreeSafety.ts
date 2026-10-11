@@ -1,5 +1,6 @@
 import { lstat, realpath } from 'node:fs/promises'
 import { isAbsolutePath } from '../shared/absolutePath'
+import { decodeUtf8 } from '../shared/decodeUtf8'
 import { errorCode } from '../shared/errorCode'
 import { err, ok, type Result } from '../shared/result'
 import { defaultFsRunner, isFsTimeout, type FsRunner } from './fsDeadline'
@@ -40,7 +41,7 @@ interface GitTextOptions {
 async function gitText(options: GitTextOptions): Promise<Result<string | undefined, GitRunError>> {
   const result = await runGit(options)
   if (!result.ok) return err(result.error)
-  const text = result.value.stdout.toString('utf-8').trim()
+  const text = decodeUtf8(result.value.stdout).trim()
   return ok(result.value.exitCode === 0 ? text : undefined)
 }
 

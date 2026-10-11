@@ -1,6 +1,7 @@
 import { chmod, access, rm, symlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { decodeUtf8 } from '../../shared/decodeUtf8'
 import { PATCH_ARGS } from '../gitAllowlist'
 import type { GitBinary } from '../gitBinary'
 import { registerTestGit, type TestRepo } from '../testGitRepo'
@@ -49,7 +50,7 @@ describe('worktreeDiffPatch committed work', () => {
     if (!result.ok) return
     expect(result.value.uncommitted).toBe('no-worktree')
     expect(result.value.files.map((file) => file.path)).toEqual(['added.txt', 'keep.txt'])
-    const keep = result.value.files[1]?.patch.toString()
+    const keep = decodeUtf8(result.value.files[1]?.patch ?? new Uint8Array())
     expect(keep).toContain('-two\n+TWO\n')
     expect(keep).not.toContain('added.txt')
   })
@@ -79,7 +80,9 @@ describe('worktreeDiffPatch committed work', () => {
     expect(result.ok && result.value.files).toHaveLength(1)
     const [file] = result.ok ? result.value.files : []
     expect(file).toMatchObject({ path: 'new-name.txt', oldPath: 'old-name.txt' })
-    expect(file?.patch.toString()).toContain('rename from old-name.txt\nrename to new-name.txt')
+    expect(decodeUtf8(file?.patch ?? new Uint8Array())).toContain(
+      'rename from old-name.txt\nrename to new-name.txt'
+    )
   })
 
   it('shows a file turned into a symlink once, with its deletion and its addition', async (context) => {
@@ -93,7 +96,9 @@ describe('worktreeDiffPatch committed work', () => {
     const result = await worktreeDiffPatch(options(git, repo))
 
     expect(result.ok && result.value.files.map((file) => file.path)).toEqual(['keep.txt'])
-    const patch = result.ok ? (result.value.files[0]?.patch.toString() ?? '') : ''
+    const patch = result.ok
+      ? (decodeUtf8(result.value.files[0]?.patch ?? new Uint8Array()) ?? '')
+      : ''
     expect(patch).toContain('deleted file mode 100644')
     expect(patch).toContain('new file mode 120000')
   })
@@ -109,7 +114,9 @@ describe('worktreeDiffPatch committed work', () => {
 
     const [file] = result.ok ? result.value.files : []
     expect(file?.path).toBe('image.bin')
-    expect(file?.patch.toString()).toContain('Binary files /dev/null and b/image.bin differ')
+    expect(decodeUtf8(file?.patch ?? new Uint8Array())).toContain(
+      'Binary files /dev/null and b/image.bin differ'
+    )
   })
 
   it('splits files whose paths have spaces, quotes, tabs, newlines, and non-ASCII characters', async (context) => {
@@ -133,7 +140,7 @@ describe('worktreeDiffPatch committed work', () => {
     expect(files.map((file) => file.path).sort()).toEqual([...paths].sort())
     for (const file of files) {
       const body = `+body ${paths.indexOf(file.path)}\n`
-      expect(file.patch.toString()).toContain(body)
+      expect(decodeUtf8(file.patch)).toContain(body)
     }
   })
 
@@ -219,7 +226,7 @@ describe('worktreeDiffPatch uncommitted work', () => {
     expect(result.ok && result.value.uncommitted).toBe('included')
     const files = result.ok ? result.value.files : []
     expect(files.map((file) => file.path)).toEqual(['image.bin', 'keep.txt'])
-    expect(files[1]?.patch.toString()).toContain('-two\n+three\n')
+    expect(decodeUtf8(files[1]?.patch ?? new Uint8Array())).toContain('-two\n+three\n')
   })
 
   it('lists the same files as the numstat of the working tree', async (context) => {
@@ -294,10 +301,10 @@ describe('worktreeDiffPatch against a hostile repository config', () => {
 
     const files = result.ok ? result.value.files : []
     expect(files.map((file) => file.path)).toEqual(['long.txt', 'é.txt'])
-    const text = files.map((file) => file.patch.toString()).join('')
+    const text = files.map((file) => decodeUtf8(file.patch)).join('')
     expect(text).not.toContain('\u001b')
     expect(text).toContain('diff --git a/long.txt b/long.txt')
-    const body = files[0]?.patch.toString().split('\n') ?? []
+    const body = decodeUtf8(files[0]?.patch ?? new Uint8Array()).split('\n') ?? []
     expect(body.filter((line) => line.startsWith(' '))).toHaveLength(6)
   })
 
@@ -315,7 +322,7 @@ describe('worktreeDiffPatch against a hostile repository config', () => {
 
     const [file] = result.ok ? result.value.files : []
     expect(file?.path).toBe('vendor/sub')
-    expect(file?.patch.toString()).toContain(`+Subproject commit ${first}`)
+    expect(decodeUtf8(file?.patch ?? new Uint8Array())).toContain(`+Subproject commit ${first}`)
   })
 
   it('runs no external diff program and no textconv', async (context) => {

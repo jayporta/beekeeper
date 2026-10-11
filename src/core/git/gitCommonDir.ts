@@ -1,5 +1,6 @@
 import { realpath } from 'node:fs/promises'
 import { isAbsolutePath } from '../shared/absolutePath'
+import { decodeUtf8 } from '../shared/decodeUtf8'
 import { err, ok, type Result } from '../shared/result'
 import { defaultFsRunner, isFsTimeout, type FsRunner } from './fsDeadline'
 import type { GitBinary } from './gitBinary'
@@ -30,7 +31,7 @@ export async function realCommonDir(
     args: ['rev-parse', '--path-format=absolute', '--git-common-dir']
   })
   if (!output.ok) return err(output.error)
-  const path = output.value.stdout.toString('utf-8').trim()
+  const path = decodeUtf8(output.value.stdout).trim()
   if (output.value.exitCode !== 0 || !isAbsolutePath(path)) return err('not-a-repo')
   try {
     return ok(await (options.fsRunner ?? defaultFsRunner)(() => realpath(path)))

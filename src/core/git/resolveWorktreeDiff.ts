@@ -1,5 +1,7 @@
-import { isUtf8 } from 'node:buffer'
 import { isAbsolutePath } from '../shared/absolutePath'
+import { decodeLatin1 } from '../shared/decodeLatin1'
+import { decodeUtf8 } from '../shared/decodeUtf8'
+import { isUtf8Bytes } from '../shared/isUtf8Bytes'
 import { err, ok, type Result } from '../shared/result'
 import { parseCommitSha, type CommitSha } from './commitSha'
 import { pathsAssignFilters } from './filterAttributes'
@@ -35,7 +37,7 @@ async function findMergeBase(
   })
   if (!result.ok) return err(result.error)
   if (result.value.exitCode === 1) return err('no-common-ancestor')
-  const sha = result.value.stdout.toString('latin1').trim()
+  const sha = decodeLatin1(result.value.stdout).trim()
   const merge = parseCommitSha(sha)
   return result.value.exitCode === 0 && merge !== undefined ? ok(merge) : err('git-failed')
 }
@@ -51,7 +53,7 @@ async function listUntracked(
   })
   if (!result.ok) return err(result.error)
   if (result.value.exitCode !== 0) return err('git-failed')
-  const paths = result.value.stdout.toString('utf-8').split('\0')
+  const paths = decodeUtf8(result.value.stdout).split('\0')
   return ok(paths.filter((path) => path.length > 0))
 }
 
@@ -79,7 +81,7 @@ async function diffFiles(
   if (diff.value.exitCode !== 0) return err('git-failed')
   const files = parseNumstat(diff.value.stdout)
   if (!files.ok) return err(files.error)
-  return ok({ files: files.value, pathsAreUtf8: isUtf8(diff.value.stdout) })
+  return ok({ files: files.value, pathsAreUtf8: isUtf8Bytes(diff.value.stdout) })
 }
 
 interface DiffWorkingTreeOptions {
