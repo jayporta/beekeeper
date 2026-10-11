@@ -62,14 +62,8 @@ export default defineConfig(
   {
     // core runs in the mod too, so it has no Node modules or globals outside its Node adapter.
     // Rules in a later block replace an earlier block's options, so the network bans repeat here.
-    // src/core/git is exempt until M1b moves it behind a port.
     files: ['src/core/**/*.ts'],
-    ignores: [
-      'src/core/git/**',
-      'src/core/io/node/**',
-      'src/core/**/__tests__/**',
-      'src/core/**/test*.ts'
-    ],
+    ignores: ['src/core/io/node/**', 'src/core/**/__tests__/**', 'src/core/**/test*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',

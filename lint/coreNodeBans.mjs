@@ -2,7 +2,7 @@
 import { builtinModules } from 'node:module'
 import { networkBannedImports } from './networkBans.mjs'
 const NODE_IMPORT_MESSAGE =
-  'core reaches the file system through fileSystem() from src/core/io; only src/core/io/node may import node modules.'
+  'core reaches the file system and processes through fileSystem() and processPort() from src/core/io; only src/core/io/node may import node modules.'
 
 const NODE_GLOBAL_MESSAGE =
   "not available in the mod's runtime; use Uint8Array, an option, or the port"
