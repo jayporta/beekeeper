@@ -1,12 +1,18 @@
-import { createReadStream } from 'node:fs'
+import { fileSystem } from '../io/installFileSystem'
 import { err, ok, type Result } from '../shared/result'
+import { splitCompleteUtf8 } from './decodeCompleteUtf8'
 
 /** The largest line {@link readJsonlLines} will buffer, in UTF-16 code units, by default. */
 const DEFAULT_MAX_LINE_CHARS = 64 * 1024 * 1024
 
+/** The character a UTF-8 byte order mark decodes to. */
+const BYTE_ORDER_MARK = '\uFEFF'
+
 /**
  * The byte `\n` encodes to. No other UTF-8 sequence contains it, so the k-th
- * `\n` in the decoded text is the k-th such byte in the raw chunks.
+ * `\n` in the decoded text is the k-th such byte in the raw chunks. The bytes
+ * of a character cut at a chunk boundary, which are carried into the next
+ * chunk, never hold one either.
  */
 export const NEWLINE_BYTE = 0x0a
 
@@ -27,7 +33,7 @@ export interface ReadCursor {
 
 /** Tuning for {@link readJsonlLines}, mainly so tests can force a chunk boundary or a small line cap. */
 export interface ReadJsonlLinesOptions {
-  /** Overrides the read stream's internal chunk size, in bytes. */
+  /** The preferred size of the chunks read from the file, in bytes. */
   readonly highWaterMark?: number
   /**
    * The largest line the reader will hold in memory, measured in UTF-16
@@ -66,15 +72,15 @@ export interface LineTooLongError {
  * newline-terminated line: `ok` with the line text, or an `err` when a
  * line reaches `maxLineChars`. Decoding is safe across chunk boundaries,
  * so a multi-byte UTF-8 character split between two chunks is reassembled
- * correctly. A trailing `\r` is stripped, blank lines are skipped, and a
+ * correctly, without relying on the decoder's streaming mode. A trailing `\r` is stripped, blank lines are skipped, and a
  * final line with no terminating `\n` (a live file caught mid-write, or an
  * oversized line that never finds one) is dropped rather than yielded
  * partially, and the `cursor` option, when given, reports the byte offset
  * where that line begins, so a read resumed there with `start` yields it
  * once it completes. A line that crosses `maxLineChars` is reported once, right
  * when its terminator is found, with memory held for it bounded to
- * roughly `maxLineChars` plus one chunk. The underlying stream is closed
- * if the caller stops iterating before the file ends.
+ * roughly `maxLineChars` plus one chunk. The file is closed if the
+ * caller stops iterating before it ends.
  *
  * @param filePath - Absolute path to the `.jsonl` file to read.
  * @param options - Where to start, a cursor to report the consumed offset
@@ -90,14 +96,14 @@ export async function* readJsonlLines(
 ): AsyncGenerator<Result<string, LineTooLongError>, void, void> {
   const { cursor } = options
   const startOffset = options.start ?? 0
-  const stream = createReadStream(filePath, {
-    start: startOffset,
-    highWaterMark: options.highWaterMark
-  })
   const maxLineChars = options.maxLineChars ?? DEFAULT_MAX_LINE_CHARS
-  // A decoder drops a leading byte order mark. Only the start of the file can
-  // carry one, so a read from a later line keeps a mark there, as a full read does.
-  const decoder = new TextDecoder('utf-8', { ignoreBOM: startOffset > 0 })
+  // Chunks are decoded whole, without the decoder's `stream` option, which not
+  // every runtime honors; `carry` holds the bytes of a character a chunk cut short.
+  const decoder = new TextDecoder('utf-8', { ignoreBOM: true })
+  let carry: Uint8Array = new Uint8Array(0)
+  // Only the start of the file can carry a byte order mark, so a read from a
+  // later line keeps a mark there, as a full read does.
+  let dropLeadingBom = startOffset === 0
   if (cursor !== undefined) cursor.offset = startOffset
   // The file offset of the chunk being read.
   let chunkOffset = startOffset
@@ -107,10 +113,12 @@ export async function* readJsonlLines(
   let pendingLength = 0
   let discardingOversizedLine = false
 
-  // Drives the stream's iterator manually, rather than with `for await`, so
-  // that closing the stream on early exit is this function's own doing (see
-  // the `finally` below) and not something the runtime does on our behalf.
-  const chunks = (stream as AsyncIterable<Uint8Array>)[Symbol.asyncIterator]()
+  // Drives the chunk iterator manually, rather than with `for await`, so that
+  // closing the file on early exit is this function's own doing (see the
+  // `finally` below) and not something the runtime does on our behalf.
+  const chunks = fileSystem()
+    .readChunks(filePath, { start: startOffset, chunkSize: options.highWaterMark })
+    [Symbol.asyncIterator]()
 
   try {
     for (;;) {
@@ -118,7 +126,13 @@ export async function* readJsonlLines(
       if (next.done) break
 
       const chunk = next.value
-      const text = decoder.decode(chunk, { stream: true })
+      const split = splitCompleteUtf8(carry.length > 0 ? concatBytes(carry, chunk) : chunk)
+      carry = split.rest
+      let text = decoder.decode(split.complete)
+      if (dropLeadingBom && text.length > 0) {
+        dropLeadingBom = false
+        if (text.startsWith(BYTE_ORDER_MARK)) text = text.slice(1)
+      }
       let start = 0
       let byteEnd = 0
 
@@ -172,8 +186,16 @@ export async function* readJsonlLines(
       chunkOffset += chunk.length
     }
   } finally {
-    stream.destroy()
+    await chunks.return?.()
   }
+}
+
+/** Joins a carried partial character to the chunk that completes it. */
+function concatBytes(head: Uint8Array, tail: Uint8Array): Uint8Array {
+  const joined = new Uint8Array(head.length + tail.length)
+  joined.set(head)
+  joined.set(tail, head.length)
+  return joined
 }
 
 /** Whether the last non-empty piece ends with `\r`. */
