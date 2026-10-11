@@ -39,24 +39,26 @@ function hasMetaFailure(node: AgentTreeNode, blocks: BlocksScan): boolean {
   )
 }
 
-/** What decides whether a scan read everything it needed. */
-interface ReadCheck {
+/** What decides whether a scan has a failure that blocks it. */
+interface FailureCheck {
   /** Whether the session's subagents folder was listed. */
   readonly subagentsListed: boolean
   /** Which meta failures count against the scan. */
   readonly blocks: BlocksScan
 }
 
-function hasReadEverything(scan: SessionScan, { subagentsListed, blocks }: ReadCheck): boolean {
+function hasNoBlockingFailure(
+  scan: SessionScan,
+  { subagentsListed, blocks }: FailureCheck
+): boolean {
   if (!subagentsListed) return false
   for (const report of scan.subagents.values()) if (!report.ok) return false
   return !hasMetaFailure(scan.tree, blocks)
 }
 
 /**
- * Whether a scan read everything it needed: no unreadable subagent
- * transcript and no meta file that failed in a way that can clear on a live
- * session (see {@link isTransientMetaFailure}). Such a failure can clear
+ * Whether a scan is safe to cache: no unreadable subagent transcript and no
+ * meta file that failed in a way that can clear on a live session (see {@link isTransientMetaFailure}). Such a failure can clear
  * without the scan key changing, so it must not be cached. A meta file that
  * fails the same way on every read is cached, since the key tracks its
  * presence.
@@ -65,7 +67,7 @@ function hasReadEverything(scan: SessionScan, { subagentsListed, blocks }: ReadC
  * @returns `true` when the scan is safe to cache.
  */
 export function isCompleteScan(scan: SessionScan, subagentsListed: boolean): boolean {
-  return hasReadEverything(scan, { subagentsListed, blocks: isTransientMetaFailure })
+  return hasNoBlockingFailure(scan, { subagentsListed, blocks: isTransientMetaFailure })
 }
 
 /**
@@ -79,7 +81,7 @@ export function isCompleteScan(scan: SessionScan, subagentsListed: boolean): boo
  * @returns `true` when the scan is safe to archive.
  */
 export function isArchivableScan(scan: SessionScan, subagentsListed: boolean): boolean {
-  return hasReadEverything(scan, { subagentsListed, blocks: canClearOnceQuiet })
+  return hasNoBlockingFailure(scan, { subagentsListed, blocks: canClearOnceQuiet })
 }
 
 /**
