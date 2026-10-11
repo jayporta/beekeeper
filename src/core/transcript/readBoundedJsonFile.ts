@@ -1,4 +1,5 @@
 import { fileSystem } from '../io/installFileSystem'
+import { decodeUtf8 } from '../shared/decodeUtf8'
 import { err, ok, type Result } from '../shared/result'
 
 /**
@@ -44,9 +45,7 @@ export async function readBoundedJsonFile(
   if (!read.ok) return read
 
   try {
-    return ok(
-      JSON.parse(new TextDecoder('utf-8', { ignoreBOM: true }).decode(read.value)) as unknown
-    )
+    return ok(JSON.parse(decodeUtf8(read.value)) as unknown)
   } catch {
     return err({ reason: 'invalid-json' })
   }
