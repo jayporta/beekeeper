@@ -7,7 +7,8 @@ import { getSessionHandler } from '../getSessionHandler'
 import { getWorktreeDiffsHandler } from '../getWorktreeDiffsHandler'
 import { guardIpc } from '../guardIpc'
 import type { IpcDeps } from '../ipcDeps'
-import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
+import { TEST_PROJECT, TEST_SESSION_ID } from '../../../service/testServiceTree'
+import { registerIpcTestTree } from '../testIpcTree'
 import { registerWorktreeSessions } from '../testWorktreeSession'
 
 const ctx = registerIpcTestTree()

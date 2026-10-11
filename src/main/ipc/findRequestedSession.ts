@@ -3,7 +3,7 @@ import type { TranscriptFileInfo } from '../../core/transcript/statTranscriptFil
 import type { IpcErrorCode, IpcResult } from '../../shared/ipc/ipcResult'
 import { getSessionRequestSchema } from '../../shared/ipc/requestSchemas'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
-import { findProject, type FoundSession } from './findProject'
+import { findProject, type FoundSession } from '../../service/projects/findProject'
 import type { IpcDeps } from './ipcDeps'
 import { errResult, okResult } from '../../service/ipcResults'
 import { toIpcErrorCode } from '../../service/toIpcErrorCode'

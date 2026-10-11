@@ -8,7 +8,7 @@ import {
 import type { LeadUsage } from '../../../core/transcript/summary/leadUsage'
 import { NO_AGENT_TERMS } from '../../../core/session/agentSearchTerms'
 import { testSpawn, testStop, testTeamSpawns } from '../../../core/teams/testTeamFixtures'
-import { createFakeArchive } from '../../../service/archive/testFakeArchive'
+import { createFakeArchive } from '../../archive/testFakeArchive'
 import { archiveListedSessions } from '../archiveListedSessions'
 import { mapSessionListItem, type ListableSession } from '../mapSessionListItem'
 import { NO_WORKFLOW_RUN_NAMES } from '../readSessionWorkflowRunNames'

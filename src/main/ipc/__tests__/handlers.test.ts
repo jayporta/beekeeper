@@ -1,107 +1,23 @@
 import { chmod, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { buildDiscoveryTree } from '../../../core/transcript/testDiscoveryTree'
-import { buildCwdRecord, buildJsonlText } from '../../../core/transcript/testFixtures'
-import { createIpcDeps } from '../createIpcDeps'
 import { guardIpc } from '../guardIpc'
 import { getSessionHandler } from '../getSessionHandler'
 import type { IpcDeps } from '../ipcDeps'
-import { listProjectsHandler } from '../listProjectsHandler'
-import { listSessionsHandler } from '../listSessionsHandler'
+import { listSessions } from '../../../service/sessions/listSessions'
 import { createScanScheduler } from '../../../service/scheduling/scanScheduler'
 import {
   NO_SCAN_CACHE,
   TEST_PROJECT,
   TEST_SESSION_ID,
-  UNKNOWN_META_FIELD,
-  registerIpcTestTree
-} from '../testIpcTree'
+  UNKNOWN_META_FIELD
+} from '../../../service/testServiceTree'
+import { registerIpcTestTree } from '../testIpcTree'
 
 const ctx = registerIpcTestTree()
 
 const notFound = { ok: false, error: { code: 'not-found' } }
 const invalid = { ok: false, error: { code: 'invalid-request' } }
-
-describe('listProjectsHandler', () => {
-  it('lists project folder names and nothing else', async () => {
-    expect(await listProjectsHandler(ctx.deps)).toEqual({
-      ok: true,
-      value: [{ dirName: TEST_PROJECT, label: null, worktreeOf: null, worktreeName: null }]
-    })
-  })
-
-  it('labels a project with the last segment of its recorded cwd', async () => {
-    const labelled = await buildDiscoveryTree({
-      files: {
-        [`.claude/projects/${TEST_PROJECT}/${TEST_SESSION_ID}.jsonl`]: buildJsonlText([
-          buildCwdRecord('/Users/test/acme-web')
-        ])
-      }
-    })
-    try {
-      const result = await listProjectsHandler(createIpcDeps(labelled.root))
-
-      expect(result).toEqual({
-        ok: true,
-        value: [{ dirName: TEST_PROJECT, label: 'acme-web', worktreeOf: null, worktreeName: null }]
-      })
-    } finally {
-      await labelled.cleanup()
-    }
-  })
-
-  it('returns an empty list when the projects root does not exist', async () => {
-    const result = await listProjectsHandler(createIpcDeps(`${ctx.tree.home}/nowhere`))
-    expect(result).toEqual({ ok: true, value: [] })
-  })
-})
-
-describe('listSessionsHandler', () => {
-  it('lists a session with its summary and subagent count', async () => {
-    const result = await listSessionsHandler(ctx.deps, { projectDirName: TEST_PROJECT })
-    expect(result).toMatchObject({
-      ok: true,
-      value: [
-        {
-          sessionId: TEST_SESSION_ID,
-          subagentCount: 1,
-          summary: { ok: true, value: { title: 'My title', usage: null } }
-        }
-      ]
-    })
-  })
-
-  it('returns not-found for an unknown project', async () => {
-    expect(await listSessionsHandler(ctx.deps, { projectDirName: 'other' })).toEqual(notFound)
-  })
-
-  it('returns invalid-request for a traversal name without touching the disk', async () => {
-    expect(await listSessionsHandler(ctx.deps, { projectDirName: '..' })).toEqual(invalid)
-  })
-
-  it('returns invalid-request for a non-object payload', async () => {
-    expect(await listSessionsHandler(ctx.deps, TEST_PROJECT)).toEqual(invalid)
-  })
-
-  it('reports an unreadable summary as a code when the transcript vanishes after listing', async () => {
-    const cache = {
-      read: () =>
-        Promise.resolve({
-          ok: false as const,
-          error: { reason: 'unreadable' as const, code: 'ENOENT' }
-        })
-    }
-    const result = await listSessionsHandler(
-      { ...ctx.deps, summaryCache: cache },
-      { projectDirName: TEST_PROJECT }
-    )
-    expect(result).toMatchObject({
-      ok: true,
-      value: [{ summary: { ok: false, error: { code: 'not-found' } } }]
-    })
-  })
-})
 
 describe('getSessionHandler', () => {
   const request = { projectDirName: TEST_PROJECT, sessionId: TEST_SESSION_ID }
@@ -142,7 +58,7 @@ describe('getSessionHandler', () => {
   })
 
   it('returns not-found for a session deleted after it was listed', async () => {
-    await listSessionsHandler(ctx.deps, { projectDirName: TEST_PROJECT })
+    await listSessions(ctx.deps, { projectDirName: TEST_PROJECT })
     await rm(ctx.tree.sessionPath)
     expect(await getSessionHandler(ctx.deps, request)).toEqual(notFound)
   })

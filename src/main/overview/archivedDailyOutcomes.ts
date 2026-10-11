@@ -4,7 +4,7 @@ import { EMPTY_SUBAGENT_DAILY_USAGE } from '../../core/usage/scanSubagentDailyUs
 import type { ArchivedSession } from '../../service/archive/archivePort'
 import { guardArchiveCall } from '../archive/guardArchiveCall'
 import type { IpcDeps } from '../ipc/ipcDeps'
-import { readArchivedSessions } from '../ipc/readArchivedSessions'
+import { readArchivedSessions } from '../../service/sessions/readArchivedSessions'
 import { archivedTimesOf } from './archivedTimes'
 import type { SessionDailyOutcome } from './folderDailyUsage'
 import { mayArchivedHaveDailyUsage } from './totalsWindow'

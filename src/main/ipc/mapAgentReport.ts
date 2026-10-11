@@ -1,7 +1,7 @@
 import type { AgentReport } from '../../core/session/agentReports'
 import type { TokenGroup } from '../../core/session/tokenGroup'
 import type { AgentReportDto, PriceDto, TokenGroupDto } from '../../shared/ipc/agentDto'
-import { mapAgentSignals } from './mapAgentSignals'
+import { mapAgentSignals } from '../../service/sessions/mapAgentSignals'
 
 function mapPrice(price: TokenGroup['price']): PriceDto {
   switch (price.kind) {

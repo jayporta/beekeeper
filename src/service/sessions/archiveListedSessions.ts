@@ -1,8 +1,7 @@
 import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
 import type { LeadUsage } from '../../core/transcript/summary/leadUsage'
-import type { ArchivedLeadSlots, ListItemEntry } from '../../service/archive/archivePort'
-import { safeArchiveWrite } from '../archive/safeArchiveWrite'
-import type { IpcDeps } from './ipcDeps'
+import type { ArchivedLeadSlots, ListItemEntry } from '../archive/archivePort'
+import type { ServiceDeps } from '../serviceDeps'
 import type { ScannedSession } from './mapSessionListItem'
 
 /** A listed session beside the item sent for it. */
@@ -16,7 +15,7 @@ export interface ListedItem {
 /** Options for {@link archiveListedSessions}. */
 export interface ArchiveListedSessionsOptions {
   /** Where to archive, or `null` to archive nothing. */
-  readonly archive: IpcDeps['archive']
+  readonly archive: ServiceDeps['archive']
   /** The folder the list was requested for. */
   readonly projectDirName: string
   /** The listed sessions with their items. */
@@ -36,8 +35,8 @@ function leadSlotsOf(leadUsage: LeadUsage | null): ArchivedLeadSlots | null {
  * list, and a session whose summary failed has nothing worth keeping. The
  * items are saved in one batch, each with the teammates its transcript spawned
  * and stopped and its lead usage per slot, which the summary the item was
- * mapped from holds. A failing write is logged once per kind and
- * never fails the list.
+ * mapped from holds. The archive never throws, so a failing write never
+ * fails the list.
  *
  * @param options - The archive, the requested folder, and the listed items.
  */
@@ -57,5 +56,5 @@ export function archiveListedSessions(options: ArchiveListedSessionsOptions): vo
       leadSlots: leadSlotsOf(summary.value.leadUsage)
     })
   }
-  if (entries.length > 0) safeArchiveWrite(() => archive.saveListItems(entries))
+  if (entries.length > 0) archive.saveListItems(entries)
 }

@@ -8,7 +8,11 @@ import type { IpcDeps } from '../ipcDeps'
 import { registerIpcHandlers, type IpcMainLike } from '../registerIpcHandlers'
 import { isTrustedSender, type SenderEvent } from '../senderValidation'
 import { TEST_INDEX_URL, TEST_ORIGINS } from '../testSender'
-import { buildIpcTestTree, TEST_PROJECT, type IpcTestTree } from '../testIpcTree'
+import {
+  buildServiceTestTree,
+  TEST_PROJECT,
+  type ServiceTestTree
+} from '../../../service/testServiceTree'
 
 type Listener = Parameters<IpcMainLike['handle']>[1]
 
@@ -27,10 +31,10 @@ function fakeIpcMain(): { ipcMain: IpcMainLike; listeners: Map<string, Listener>
   }
 }
 
-let tree: IpcTestTree
+let tree: ServiceTestTree
 
 beforeEach(async () => {
-  tree = await buildIpcTestTree()
+  tree = await buildServiceTestTree()
 })
 
 afterEach(async () => {
@@ -60,6 +64,18 @@ describe('registerIpcHandlers', () => {
     expect(await listener?.(trustedEvent)).toEqual({
       ok: true,
       value: [{ dirName: TEST_PROJECT, label: null, worktreeOf: null, worktreeName: null }]
+    })
+  })
+
+  it.each([
+    ['a traversal name', { projectDirName: '..' }],
+    ['a non-object payload', TEST_PROJECT]
+  ])('answers invalid-request on the listSessions channel for %s', async (_label, payload) => {
+    const listener = register().get(IPC_CHANNELS.listSessions)
+
+    expect(await listener?.(trustedEvent, payload)).toEqual({
+      ok: false,
+      error: { code: 'invalid-request' }
     })
   })
 

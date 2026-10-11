@@ -1,6 +1,6 @@
 import { scanSession, type SessionScan } from '../../core/session/scanSession'
 import type { TranscriptFileInfo } from '../../core/transcript/statTranscriptFile'
-import type { FoundSession } from './findProject'
+import type { FoundSession } from '../../service/projects/findProject'
 import type { IpcDeps } from './ipcDeps'
 import { sessionFilesKey } from './sessionFilesKey'
 

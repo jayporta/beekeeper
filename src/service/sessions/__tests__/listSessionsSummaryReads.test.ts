@@ -2,14 +2,14 @@ import { utimes, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { createSessionSummaryCache } from '../../../core/transcript/summary/sessionSummaryCache'
-import { MAX_CONCURRENT_SUMMARIES } from '../../../service/createServiceDeps'
-import type { IpcDeps } from '../ipcDeps'
-import { listSessionsHandler } from '../listSessionsHandler'
-import { TEST_PROJECT, registerIpcTestTree } from '../testIpcTree'
+import { MAX_CONCURRENT_SUMMARIES } from '../../createServiceDeps'
+import type { ServiceDeps } from '../../serviceDeps'
+import { listSessions } from '../listSessions'
+import { TEST_PROJECT, registerServiceTestTree } from '../../testServiceTree'
 
-const ctx = registerIpcTestTree()
+const ctx = registerServiceTestTree()
 
-describe('listSessionsHandler summary reads', () => {
+describe('listSessions summary reads', () => {
   const listRequest = { projectDirName: TEST_PROJECT }
 
   it('reads each transcript once for two concurrent listings on a cold project', async () => {
@@ -20,7 +20,7 @@ describe('listSessionsHandler summary reads', () => {
       release = resolve
     })
     const inner = createSessionSummaryCache()
-    const summaryCache: IpcDeps['summaryCache'] = {
+    const summaryCache: ServiceDeps['summaryCache'] = {
       read: async (file) => {
         reads += 1
         await gate
@@ -28,7 +28,7 @@ describe('listSessionsHandler summary reads', () => {
       }
     }
     // Holds the first read open until the second listing has asked for the same file.
-    const summaries: IpcDeps['summaries'] = {
+    const summaries: ServiceDeps['summaries'] = {
       ...ctx.deps.summaries,
       run: (key, task) => {
         runs += 1
@@ -38,8 +38,8 @@ describe('listSessionsHandler summary reads', () => {
     }
     const gated = { ...ctx.deps, summaryCache, summaries }
     const both = await Promise.all([
-      listSessionsHandler(gated, listRequest),
-      listSessionsHandler(gated, listRequest)
+      listSessions(gated, listRequest),
+      listSessions(gated, listRequest)
     ])
     expect(both.map((result) => result.ok)).toEqual([true, true])
     expect(reads).toBe(1)
@@ -48,7 +48,7 @@ describe('listSessionsHandler summary reads', () => {
   it('never runs more summary reads at once than the pool allows', async () => {
     let active = 0
     let peak = 0
-    const summaryCache: IpcDeps['summaryCache'] = {
+    const summaryCache: ServiceDeps['summaryCache'] = {
       read: async () => {
         active += 1
         peak = Math.max(peak, active)
@@ -62,7 +62,7 @@ describe('listSessionsHandler summary reads', () => {
       const id = `1a1a1a1a-1111-4111-8111-${String(index).padStart(12, '0')}`
       await writeFile(join(projectDir, `${id}.jsonl`), '')
     }
-    const result = await listSessionsHandler({ ...ctx.deps, summaryCache }, listRequest)
+    const result = await listSessions({ ...ctx.deps, summaryCache }, listRequest)
     expect(result.ok && result.value.length).toBe(9)
     expect(peak).toBe(MAX_CONCURRENT_SUMMARIES)
   })
@@ -87,7 +87,7 @@ describe('listSessionsHandler summary reads', () => {
         signal.secondRun = resolve
       })
       const inner = createSessionSummaryCache()
-      const summaryCache: IpcDeps['summaryCache'] = {
+      const summaryCache: ServiceDeps['summaryCache'] = {
         read: async (file) => {
           reads += 1
           if (reads === 1) signal.firstRead()
@@ -95,7 +95,7 @@ describe('listSessionsHandler summary reads', () => {
           return inner.read(file)
         }
       }
-      const summaries: IpcDeps['summaries'] = {
+      const summaries: ServiceDeps['summaries'] = {
         ...ctx.deps.summaries,
         run: (key, task) => {
           runs += 1
@@ -104,10 +104,10 @@ describe('listSessionsHandler summary reads', () => {
         }
       }
       const gated = { ...ctx.deps, summaryCache, summaries }
-      const first = listSessionsHandler(gated, listRequest)
+      const first = listSessions(gated, listRequest)
       await firstReadStarted
       if (changeBetween) await utimes(ctx.tree.sessionPath, new Date(), new Date(1_000_000))
-      const second = listSessionsHandler(gated, listRequest)
+      const second = listSessions(gated, listRequest)
       await secondRunCalled
       signal.release()
       await Promise.all([first, second])

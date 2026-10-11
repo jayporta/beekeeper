@@ -1,5 +1,5 @@
 import { discoverSessions, type SessionEntry } from '../../core/transcript/discoverSessions'
-import { findProject } from '../ipc/findProject'
+import { findProject } from '../../service/projects/findProject'
 import type { IpcDeps } from '../ipc/ipcDeps'
 import { archiveSessionDetail } from '../ipc/archiveSessionDetail'
 import { scanSessionDetail } from '../ipc/scanSessionDetail'

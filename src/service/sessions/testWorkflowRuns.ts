@@ -1,9 +1,9 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { buildAssistantRecord, buildJsonlText } from '../../core/transcript/testFixtures'
-import { TEST_SESSION_ID, type IpcTestContext } from './testIpcTree'
+import { TEST_SESSION_ID, type ServiceTestContext } from '../testServiceTree'
 
-/** Writes workflow runs into the test session of an {@link IpcTestContext}. */
+/** Writes workflow runs into the test session of an {@link ServiceTestContext}. */
 export interface WorkflowRunFixtures {
   /**
    * Writes a workflow agent's transcript into a run folder of the test session.
@@ -22,10 +22,10 @@ export interface WorkflowRunFixtures {
 /**
  * Binds workflow run fixtures to a test context. The context is read when a
  * fixture is written, so one binding serves every test of a file.
- * @param ctx - The file's test context, from `registerIpcTestTree`.
+ * @param ctx - The file's test context, from `registerServiceTestTree`.
  * @returns The fixtures.
  */
-export function createWorkflowRunFixtures(ctx: IpcTestContext): WorkflowRunFixtures {
+export function createWorkflowRunFixtures(ctx: ServiceTestContext): WorkflowRunFixtures {
   const sessionDir = (): string => join(dirname(ctx.tree.sessionPath), TEST_SESSION_ID)
 
   return {

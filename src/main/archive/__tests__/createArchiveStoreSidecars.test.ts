@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ArchiveStore } from '../archiveStoreTypes'
 import { createArchiveStore } from '../createArchiveStore'
 import { openArchive } from '../openArchive'
-import { NO_TEAM_SPAWNS } from '../../ipc/summarizeArchivedSession'
+import { NO_TEAM_SPAWNS } from '../../../service/sessions/summarizeArchivedSession'
 import {
   listEntry,
   testDetail,
@@ -13,7 +13,7 @@ import {
   TEST_REF,
   TEST_SOURCE,
   TEST_TEAM_SPAWNS
-} from '../testArchiveFixtures'
+} from '../../../service/archive/testArchiveFixtures'
 
 const ITEM = testListItem({ summary: testOkSummary(5) })
 const NONE: ReadonlySet<string> = new Set()

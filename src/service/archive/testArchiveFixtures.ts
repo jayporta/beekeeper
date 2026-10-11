@@ -6,13 +6,8 @@ import type { SessionListItemDto, SessionSummaryDto } from '../../shared/ipc/ses
 import type { SessionRoleDto } from '../../shared/ipc/sessionRoleDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
 import type { TranscriptTeamSpawns } from '../../core/transcript/teammateSpawn'
-import { NO_TEAM_SPAWNS } from '../ipc/summarizeArchivedSession'
-import type {
-  ArchivedLeadSlots,
-  ArchivedSession,
-  ListItemEntry,
-  SourceState
-} from '../../service/archive/archivePort'
+import { NO_TEAM_SPAWNS } from '../sessions/summarizeArchivedSession'
+import type { ArchivedLeadSlots, ArchivedSession, ListItemEntry, SourceState } from './archivePort'
 
 /** The session the fixtures describe unless overridden. */
 export const TEST_REF: SessionRefDto = {

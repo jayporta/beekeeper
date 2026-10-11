@@ -4,10 +4,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { err } from '../../../core/shared/result'
 import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
 import { testListItem, testOkSummary } from '../../archive/testArchiveFixtures'
-import { createFakeArchive } from '../../../service/archive/testFakeArchive'
-import { errorWithCode } from '../../../core/shared/testErrorWithCode'
-import type { IpcDeps } from '../ipcDeps'
-import { listSessionsHandler } from '../listSessionsHandler'
+import { createFakeArchive } from '../../archive/testFakeArchive'
+import type { ServiceDeps } from '../../serviceDeps'
+import { listSessions } from '../listSessions'
 import {
   AGENT_SESSION_ID,
   scoutRecords,
@@ -15,19 +14,19 @@ import {
   writeLead,
   writeTranscript
 } from '../testFamilyFixtures'
-import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
+import { TEST_PROJECT, TEST_SESSION_ID, registerServiceTestTree } from '../../testServiceTree'
 
-const ctx = registerIpcTestTree()
+const ctx = registerServiceTestTree()
 
 afterEach(() => {
   vi.restoreAllMocks()
 })
 
-function list(deps: IpcDeps): ReturnType<typeof listSessionsHandler> {
-  return listSessionsHandler(deps, { projectDirName: TEST_PROJECT })
+function list(deps: ServiceDeps): ReturnType<typeof listSessions> {
+  return listSessions(deps, { projectDirName: TEST_PROJECT })
 }
 
-describe('listSessionsHandler archive', () => {
+describe('listSessions archive', () => {
   it('saves each listed session with its transcript state', async () => {
     const archive = createFakeArchive()
 
@@ -57,7 +56,7 @@ describe('listSessionsHandler archive', () => {
 
   it('saves nothing, not even an empty batch, when no session has a readable summary', async () => {
     const archive = createFakeArchive()
-    const deps: IpcDeps = {
+    const deps: ServiceDeps = {
       ...ctx.deps,
       archive,
       summaryCache: { read: () => Promise.resolve(err({ reason: 'unreadable', code: 'EIO' })) }
@@ -84,7 +83,7 @@ describe('listSessionsHandler archive', () => {
       records: scoutRecords()
     })
     const archive = createFakeArchive()
-    const deps: IpcDeps = {
+    const deps: ServiceDeps = {
       ...ctx.deps,
       archive,
       summaryCache: {
@@ -117,20 +116,6 @@ describe('listSessionsHandler archive', () => {
     expect(result.ok && result.value.map((item) => item.projectDirName)).toContain(WORKTREE)
     expect(archive.listSaves.map((save) => save.item.projectDirName)).toEqual([TEST_PROJECT])
   })
-
-  it('returns the same list when the archive throws', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const archive = createFakeArchive(errorWithCode('ELIST_THROWS'))
-
-    const withArchive = await list({ ...ctx.deps, archive })
-    const without = await list({ ...ctx.deps, archive: null })
-
-    expect(withArchive).toEqual(without)
-    expect(warn.mock.calls).toEqual([
-      ['Beekeeper archive read failed (ELIST_THROWS).'],
-      ['Beekeeper archive write failed (ELIST_THROWS).']
-    ])
-  })
 })
 
 const GONE_ID = '9f9f9f9f-9999-4999-8999-99999999999a'
@@ -149,13 +134,13 @@ function archivedItem(
   })
 }
 
-async function listOk(deps: IpcDeps): Promise<readonly SessionListItemDto[]> {
+async function listOk(deps: ServiceDeps): Promise<readonly SessionListItemDto[]> {
   const result = await list(deps)
   if (!result.ok) throw new Error('listing failed')
   return result.value
 }
 
-describe('listSessionsHandler archived sessions', () => {
+describe('listSessions archived sessions', () => {
   it('marks live sessions as not archived', async () => {
     const items = await listOk({ ...ctx.deps, archive: createFakeArchive() })
 
@@ -278,22 +263,11 @@ describe('listSessionsHandler archived sessions', () => {
   it('still answers not-found for a project folder that is gone', async () => {
     const archive = createFakeArchive(undefined, { listItems: [archivedItem(GONE_ID)] })
 
-    const result = await listSessionsHandler(
+    const result = await listSessions(
       { ...ctx.deps, archive },
       { projectDirName: '-no-such-project' }
     )
 
     expect(result).toEqual({ ok: false, error: { code: 'not-found' } })
-  })
-
-  it('returns the live list and logs once when reading the archive throws', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const archive = createFakeArchive(errorWithCode('ELIST_READ_THROWS'))
-
-    const withArchive = await list({ ...ctx.deps, archive })
-    const without = await list({ ...ctx.deps, archive: null })
-
-    expect(withArchive).toEqual(without)
-    expect(warn.mock.calls).toContainEqual(['Beekeeper archive read failed (ELIST_READ_THROWS).'])
   })
 })

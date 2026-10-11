@@ -4,11 +4,11 @@ import type { ProjectEntry } from '../../core/transcript/discoverProjects'
 import type { ProjectDirName } from '../../core/transcript/ids'
 import type { SummarizedSession } from '../../core/teams/teamGrouping'
 import type { TranscriptFileInfo } from '../../core/transcript/statTranscriptFile'
-import type { IpcDeps } from './ipcDeps'
+import type { ServiceDeps } from '../serviceDeps'
 import type { ScannedSession } from './mapSessionListItem'
 
 /** What a scan needs: the summary cache and the summaries scheduler. */
-export type ScanDeps = Pick<IpcDeps, 'summaryCache' | 'summaries'>
+export type ScanDeps = Pick<ServiceDeps, 'summaryCache' | 'summaries'>
 
 /**
  * Reads a transcript's summary through the summary cache. The read is shared

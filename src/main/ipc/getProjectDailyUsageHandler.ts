@@ -8,7 +8,7 @@ import { createDayKeyOf } from '../../service/overview/localDayKey'
 import { readSessionDailyUsage } from '../overview/readSessionDailyUsage'
 import { mayHaveDailyUsage, TOTALS_WINDOW_MS } from '../overview/totalsWindow'
 import { windowDays } from '../overview/windowDays'
-import { findProject } from './findProject'
+import { findProject } from '../../service/projects/findProject'
 import type { IpcDeps } from './ipcDeps'
 import { errResult, okResult } from '../../service/ipcResults'
 

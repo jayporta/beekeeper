@@ -8,7 +8,7 @@ import { buildJsonlText } from '../../core/transcript/testFixtures'
 import { buildSpawnRecord } from '../../core/session/testSpawnFixtures'
 import { createIpcDeps } from './createIpcDeps'
 import type { IpcDeps } from './ipcDeps'
-import { TEST_SESSION_ID } from './testIpcTree'
+import { TEST_SESSION_ID } from '../../service/testServiceTree'
 
 /** One subagent of a synthetic session, as its meta file names it. */
 export interface WorktreeSessionAgent {

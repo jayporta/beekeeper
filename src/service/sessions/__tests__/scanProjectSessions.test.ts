@@ -3,9 +3,9 @@ import { discoverProjects } from '../../../core/transcript/discoverProjects'
 import { createSessionSummaryCache } from '../../../core/transcript/summary/sessionSummaryCache'
 import { AGENT_SESSION_ID, scoutRecords, writeTranscript } from '../testFamilyFixtures'
 import { scanProjectSessions } from '../scanProjectSessions'
-import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
+import { TEST_PROJECT, TEST_SESSION_ID, registerServiceTestTree } from '../../testServiceTree'
 
-const ctx = registerIpcTestTree()
+const ctx = registerServiceTestTree()
 
 async function scan(
   keep?: (sessionId: string) => boolean

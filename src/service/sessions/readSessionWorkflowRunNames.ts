@@ -1,6 +1,6 @@
 import type { SessionEntry } from '../../core/transcript/discoverSessions'
-import { distinctRunIds } from '../../service/sessions/distinctRunIds'
-import type { IpcDeps } from './ipcDeps'
+import { distinctRunIds } from './distinctRunIds'
+import type { ServiceDeps } from '../serviceDeps'
 
 /** The workflow run names of a session that has none. */
 export const NO_WORKFLOW_RUN_NAMES: readonly string[] = []
@@ -17,7 +17,7 @@ export const NO_WORKFLOW_RUN_NAMES: readonly string[] = []
  */
 export function readSessionWorkflowRunNames(
   entry: SessionEntry,
-  deps: Pick<IpcDeps, 'workflowRunNames' | 'summaries'>
+  deps: Pick<ServiceDeps, 'workflowRunNames' | 'summaries'>
 ): Promise<readonly string[]> {
   if (!entry.transcript.ok || !entry.subagents.ok) {
     return Promise.resolve(NO_WORKFLOW_RUN_NAMES)

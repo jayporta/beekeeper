@@ -2,7 +2,7 @@ import type { LeadGroup, TeamGrouping } from '../../core/teams/teamGrouping'
 import { rollupTeamUsage } from '../../core/teams/teamUsage'
 import type { SessionTeamDto } from '../../shared/ipc/sessionTeamDto'
 import { mapSessionRef } from './mapSessionRef'
-import { sessionRefKey } from '../../service/sessions/sessionRefKey'
+import { sessionRefKey } from './sessionRefKey'
 
 function mapLeadGroup(group: LeadGroup, into: Map<string, SessionTeamDto>): void {
   const usage = rollupTeamUsage(group)

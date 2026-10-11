@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { getSessionHandler } from '../getSessionHandler'
-import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
-import { createWorkflowRunFixtures } from '../testWorkflowRuns'
+import { TEST_PROJECT, TEST_SESSION_ID } from '../../../service/testServiceTree'
+import { registerIpcTestTree } from '../testIpcTree'
+import { createWorkflowRunFixtures } from '../../../service/sessions/testWorkflowRuns'
 
 const ctx = registerIpcTestTree()
 const request = { projectDirName: TEST_PROJECT, sessionId: TEST_SESSION_ID }

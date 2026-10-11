@@ -1,7 +1,8 @@
 import { join } from 'node:path'
 import { discoverProjects } from '../../core/transcript/discoverProjects'
 import type { IpcDeps } from '../ipc/ipcDeps'
-import { listSessionsHandler } from '../ipc/listSessionsHandler'
+import { listSessions } from '../../service/sessions/listSessions'
+import { listSessionsRequestSchema } from '../../shared/ipc/requestSchemas'
 import { createSessionScanCache } from '../../service/sessionDetail/sessionScanCache'
 import { guardArchive } from './guardArchive'
 import { createArchiver, type Archiver } from './createArchiver'
@@ -51,7 +52,8 @@ export function createAppArchiver(options: AppArchiverOptions): Archiver {
         store
       }),
     listSessions: async (projectDirName) => {
-      await listSessionsHandler(deps, { projectDirName })
+      const request = listSessionsRequestSchema.safeParse({ projectDirName })
+      if (request.success) await listSessions(deps, request.data)
     },
     pendingDetails: () => store.pendingDetails(),
     openProject: (projectDirName) => openArchivableProject({ deps, projectDirName }),

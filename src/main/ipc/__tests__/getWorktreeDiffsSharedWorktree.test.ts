@@ -16,8 +16,9 @@ import {
   scoutRecords,
   writeLead,
   writeTranscript
-} from '../testFamilyFixtures'
-import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
+} from '../../../service/sessions/testFamilyFixtures'
+import { TEST_PROJECT, TEST_SESSION_ID } from '../../../service/testServiceTree'
+import { registerIpcTestTree } from '../testIpcTree'
 
 const ctx = registerIpcTestTree()
 

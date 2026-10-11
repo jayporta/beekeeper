@@ -7,7 +7,8 @@ import { buildAssistantRecord, buildJsonlText } from '../../../core/transcript/t
 import { startsDuring } from '../../../core/transcript/testReadStarts'
 import { createIpcDeps } from '../createIpcDeps'
 import { getSessionHandler } from '../getSessionHandler'
-import { NO_SCAN_CACHE, TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
+import { NO_SCAN_CACHE, TEST_PROJECT, TEST_SESSION_ID } from '../../../service/testServiceTree'
+import { registerIpcTestTree } from '../testIpcTree'
 
 // Wraps the real `createReadStream` in a spy so a test can see where each
 // read began, which is how a resumed read tells from a rescan.

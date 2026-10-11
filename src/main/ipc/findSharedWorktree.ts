@@ -3,12 +3,15 @@ import { discoverProjects, type ProjectEntry } from '../../core/transcript/disco
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
 import type { SharedWorktreeDto } from '../../shared/ipc/worktreeDiffDto'
 import { captureSystemError } from '../../core/transcript/captureSystemError'
-import type { FoundSession } from './findProject'
+import type { FoundSession } from '../../service/projects/findProject'
 import type { RequestedSession } from './findRequestedSession'
-import { groupProjectFamily, type ProjectFamilyGrouping } from './groupProjectFamily'
+import {
+  groupProjectFamily,
+  type ProjectFamilyGrouping
+} from '../../service/sessions/groupProjectFamily'
 import type { IpcDeps } from './ipcDeps'
 import { scanFoundSession } from './scanFoundSession'
-import { readSessionSummary } from './scanProjectSessions'
+import { readSessionSummary } from '../../service/sessions/scanProjectSessions'
 import { sessionRefKey } from '../../service/sessions/sessionRefKey'
 
 type SharedWorktreeDeps = Pick<

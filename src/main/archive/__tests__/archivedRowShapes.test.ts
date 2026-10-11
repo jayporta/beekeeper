@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { parseArchivedDetail, parseArchivedListItem } from '../parseArchivedRow'
-import { testPopulatedDetail, testPopulatedListItem, TEST_REF } from '../testArchiveFixtures'
+import {
+  testPopulatedDetail,
+  testPopulatedListItem,
+  TEST_REF
+} from '../../../service/archive/testArchiveFixtures'
 
 /** A property to damage in a row, and a value of the wrong type to put there. */
 type Damage = readonly [path: string, wrong: unknown]

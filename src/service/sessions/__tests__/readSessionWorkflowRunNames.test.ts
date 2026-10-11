@@ -5,8 +5,8 @@ import type { SubagentEntry } from '../../../core/transcript/discoverSubagents'
 import { toAgentId, toSessionId } from '../../../core/transcript/ids'
 import { parseWorkflowRunId } from '../../../core/transcript/workflowRunId'
 import { NO_WORKFLOW_RUN_NAMES, readSessionWorkflowRunNames } from '../readSessionWorkflowRunNames'
-import { createScanScheduler } from '../../../service/scheduling/scanScheduler'
-import type { WorkflowRunNamesCache } from '../../../service/sessions/workflowRunNamesCache'
+import { createScanScheduler } from '../../scheduling/scanScheduler'
+import type { WorkflowRunNamesCache } from '../workflowRunNamesCache'
 
 function subagent(agentId: string, runId: string | null): SubagentEntry {
   return {

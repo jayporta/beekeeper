@@ -13,7 +13,7 @@ import {
   testOkSummary,
   TEST_REF,
   TEST_SOURCE
-} from '../testArchiveFixtures'
+} from '../../../service/archive/testArchiveFixtures'
 
 let db: DatabaseSync
 let clock: number

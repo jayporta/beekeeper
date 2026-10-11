@@ -1,16 +1,16 @@
 import { discoverProjects } from '../../core/transcript/discoverProjects'
 import type { IpcResult } from '../../shared/ipc/ipcResult'
-import { listSessionsRequestSchema } from '../../shared/ipc/requestSchemas'
+import type { ListSessionsRequest } from '../../shared/ipc/requestSchemas'
 import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
 import type { SessionTeamDto } from '../../shared/ipc/sessionTeamDto'
 import { archiveListedSessions, type ListedItem } from './archiveListedSessions'
 import { groupProjectFamily } from './groupProjectFamily'
-import type { IpcDeps } from './ipcDeps'
-import { errResult, okResult } from '../../service/ipcResults'
+import type { ServiceDeps } from '../serviceDeps'
+import { errResult, okResult } from '../ipcResults'
 import { mapSessionListItem, type ScannedSession } from './mapSessionListItem'
 import { readSessionAgentTerms } from './readSessionAgentTerms'
 import { readSessionWorkflowRunNames } from './readSessionWorkflowRunNames'
-import { sessionRefKey } from '../../service/sessions/sessionRefKey'
+import { sessionRefKey } from './sessionRefKey'
 
 function teamKeyOf(session: ScannedSession): string {
   return sessionRefKey({
@@ -56,26 +56,23 @@ function isListedFor(projectDirName: string, { folder, team }: FolderTeam): bool
  * are gone from their folder join the grouping, and are appended, marked
  * archived, with the team they were grouped into: the folder's own, plus a
  * sibling folder's archived teammate of one of the folder's leads, as for live
- * sessions. A failing archive write or read never changes the live list.
+ * sessions. The archive never throws, so it never changes the live list.
  *
  * @param deps - The projects root, the summary, agent terms and workflow run
  * names caches, the summaries scheduler, and the archive.
- * @param payload - The renderer's payload, validated here.
- * @returns The sessions, `invalid-request` for a bad payload, or
- * `not-found` for an unknown project.
+ * @param request - A request parsed by `listSessionsRequestSchema`, which keeps
+ * its folder name path-free.
+ * @returns The sessions, or `not-found` for an unknown project.
  */
-export async function listSessionsHandler(
+export async function listSessions(
   deps: Pick<
-    IpcDeps,
+    ServiceDeps,
     'projectsRoot' | 'summaryCache' | 'summaries' | 'agentTerms' | 'workflowRunNames' | 'archive'
   >,
-  payload: unknown
+  request: ListSessionsRequest
 ): Promise<IpcResult<readonly SessionListItemDto[]>> {
-  const request = listSessionsRequestSchema.safeParse(payload)
-  if (!request.success) return errResult('invalid-request')
-
   const projects = await discoverProjects(deps.projectsRoot)
-  const project = projects.find((entry) => entry.dirName === request.data.projectDirName)
+  const project = projects.find((entry) => entry.dirName === request.projectDirName)
   if (project === undefined) return errResult('not-found')
 
   const { scanned, archived, teams } = await groupProjectFamily({ deps, project, projects })

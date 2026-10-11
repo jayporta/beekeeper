@@ -7,14 +7,21 @@ import {
   buildCostStateRecord
 } from '../../../core/transcript/testFixtures'
 import { createSessionSummaryCache } from '../../../core/transcript/summary/sessionSummaryCache'
-import { testArchivedSession } from '../../archive/testArchiveFixtures'
+import { testArchivedSession } from '../../../service/archive/testArchiveFixtures'
+import { guardArchive } from '../../archive/guardArchive'
 import { createFakeArchive } from '../../../service/archive/testFakeArchive'
 import { SKIP_UNREAD_SLACK_MS, TOTALS_WINDOW_MS } from '../../overview/totalsWindow'
 import { getProjectTotalsHandler } from '../getProjectTotalsHandler'
 import { guardIpc } from '../guardIpc'
 import type { IpcDeps } from '../ipcDeps'
-import { AGENT_SESSION_ID, WORKTREE, scoutRecords, writeTranscript } from '../testFamilyFixtures'
-import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
+import {
+  AGENT_SESSION_ID,
+  WORKTREE,
+  scoutRecords,
+  writeTranscript
+} from '../../../service/sessions/testFamilyFixtures'
+import { TEST_PROJECT, TEST_SESSION_ID } from '../../../service/testServiceTree'
+import { registerIpcTestTree } from '../testIpcTree'
 
 const ctx = registerIpcTestTree()
 const NOW = Date.parse('2026-03-01T00:00:00.000Z')
@@ -518,7 +525,9 @@ describe('getProjectTotalsHandler archived sessions', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const failing: IpcDeps = {
       ...ctx.deps,
-      archive: createFakeArchive(Object.assign(new Error('boom'), { code: 'ETOTALSFAIL' }))
+      archive: guardArchive(
+        createFakeArchive(Object.assign(new Error('boom'), { code: 'ETOTALSFAIL' }))
+      )
     }
 
     try {

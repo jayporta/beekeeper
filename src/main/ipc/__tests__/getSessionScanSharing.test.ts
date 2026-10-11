@@ -3,7 +3,8 @@ import { dirname, join } from 'node:path'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { getSessionHandler } from '../getSessionHandler'
 import type { IpcDeps } from '../ipcDeps'
-import { NO_SCAN_CACHE, TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
+import { NO_SCAN_CACHE, TEST_PROJECT, TEST_SESSION_ID } from '../../../service/testServiceTree'
+import { registerIpcTestTree } from '../testIpcTree'
 
 const ctx = registerIpcTestTree()
 const request = { projectDirName: TEST_PROJECT, sessionId: TEST_SESSION_ID }

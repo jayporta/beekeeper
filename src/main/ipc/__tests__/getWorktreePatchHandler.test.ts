@@ -3,7 +3,8 @@ import { err } from '../../../core/shared/result'
 import { MAX_AGENT_ID_LENGTH } from '../../../shared/ipc/requestSchemas'
 import { getWorktreePatchHandler } from '../getWorktreePatchHandler'
 import type { IpcDeps } from '../ipcDeps'
-import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
+import { TEST_PROJECT, TEST_SESSION_ID } from '../../../service/testServiceTree'
+import { registerIpcTestTree } from '../testIpcTree'
 
 const ctx = registerIpcTestTree()
 const request = { projectDirName: TEST_PROJECT, sessionId: TEST_SESSION_ID, agentId: 'a1' }

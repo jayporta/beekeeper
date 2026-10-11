@@ -7,9 +7,9 @@ import {
   buildUserRecord
 } from '../../../core/transcript/testFixtures'
 import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
-import type { IpcDeps } from '../ipcDeps'
-import { listProjectsHandler } from '../listProjectsHandler'
-import { listSessionsHandler } from '../listSessionsHandler'
+import type { ServiceDeps } from '../../serviceDeps'
+import { listProjects } from '../../projects/listProjects'
+import { listSessions } from '../listSessions'
 import {
   AGENT_SESSION_ID,
   HUMAN_SESSION_ID,
@@ -18,9 +18,9 @@ import {
   writeLead,
   writeTranscript
 } from '../testFamilyFixtures'
-import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
+import { TEST_PROJECT, TEST_SESSION_ID, registerServiceTestTree } from '../../testServiceTree'
 
-const ctx = registerIpcTestTree()
+const ctx = registerServiceTestTree()
 
 const STRAY_SESSION_ID = '5e5e5e5e-5555-4555-8555-55555555555f'
 
@@ -34,14 +34,14 @@ async function writeScout(projectDirName: string): Promise<void> {
 }
 
 async function listFolder(projectDirName: string): Promise<readonly SessionListItemDto[]> {
-  const result = await listSessionsHandler(ctx.deps, { projectDirName })
+  const result = await listSessions(ctx.deps, { projectDirName })
   if (!result.ok) throw new Error(`listing ${projectDirName} failed`)
   return result.value
 }
 
 const leadRef = { projectDirName: TEST_PROJECT, sessionId: TEST_SESSION_ID }
 
-describe('listSessionsHandler project family', () => {
+describe('listSessions project family', () => {
   it('lists a teammate from a worktree folder under its lead in the parent folder', async () => {
     await writeLead(ctx.tree.home)
     await writeScout(WORKTREE)
@@ -135,7 +135,7 @@ describe('listSessionsHandler project family', () => {
   it('fails when a sibling family folder scan throws an error with no system code', async () => {
     await writeLead(ctx.tree.home)
     await writeScout(WORKTREE)
-    const deps: IpcDeps = {
+    const deps: ServiceDeps = {
       ...ctx.deps,
       summaryCache: {
         read: (file) =>
@@ -145,9 +145,7 @@ describe('listSessionsHandler project family', () => {
       }
     }
 
-    await expect(listSessionsHandler(deps, { projectDirName: TEST_PROJECT })).rejects.toThrow(
-      TypeError
-    )
+    await expect(listSessions(deps, { projectDirName: TEST_PROJECT })).rejects.toThrow(TypeError)
   })
 
   it.skipIf(process.getuid?.() === 0)(
@@ -182,7 +180,7 @@ describe('listSessionsHandler project family', () => {
     })
 
     const items = await listFolder(WORKTREE)
-    const projects = await listProjectsHandler(ctx.deps)
+    const projects = await listProjects(ctx.deps)
 
     expect(items.map((item) => [item.projectDirName, item.sessionId, item.team])).toEqual([
       [WORKTREE, HUMAN_SESSION_ID, null]
@@ -199,7 +197,7 @@ describe('listSessionsHandler project family', () => {
   it('answers not-found for an unlisted folder even when a family exists', async () => {
     await writeScout(WORKTREE)
 
-    const result = await listSessionsHandler(ctx.deps, { projectDirName: `${TEST_PROJECT}-nope` })
+    const result = await listSessions(ctx.deps, { projectDirName: `${TEST_PROJECT}-nope` })
 
     expect(result).toEqual({ ok: false, error: { code: 'not-found' } })
   })

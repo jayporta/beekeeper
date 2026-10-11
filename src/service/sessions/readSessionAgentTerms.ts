@@ -1,7 +1,7 @@
 import { NO_AGENT_TERMS, type AgentSearchTerm } from '../../core/session/agentSearchTerms'
 import type { SessionEntry } from '../../core/transcript/discoverSessions'
-import { agentTermsKey } from '../../service/sessions/agentTermsCache'
-import type { IpcDeps } from './ipcDeps'
+import { agentTermsKey } from './agentTermsCache'
+import type { ServiceDeps } from '../serviceDeps'
 
 /**
  * Reads the search terms of a session's subagents through the agent terms
@@ -15,7 +15,7 @@ import type { IpcDeps } from './ipcDeps'
  */
 export function readSessionAgentTerms(
   entry: SessionEntry,
-  deps: Pick<IpcDeps, 'agentTerms' | 'summaries'>
+  deps: Pick<ServiceDeps, 'agentTerms' | 'summaries'>
 ): Promise<readonly AgentSearchTerm[]> {
   if (!entry.transcript.ok || !entry.subagents.ok || entry.subagents.value.length === 0) {
     return Promise.resolve(NO_AGENT_TERMS)

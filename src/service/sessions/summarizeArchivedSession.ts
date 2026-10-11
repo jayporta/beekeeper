@@ -1,7 +1,7 @@
 import type { SummarizedSession } from '../../core/teams/teamGrouping'
 import { toProjectDirName, toSessionId } from '../../core/transcript/ids'
 import type { TranscriptTeamSpawns } from '../../core/transcript/teammateSpawn'
-import type { ArchivedSession } from '../../service/archive/archivePort'
+import type { ArchivedSession } from '../archive/archivePort'
 
 /** The spawns of a transcript that spawned and stopped nobody, and of an archived session saved before they were kept. */
 export const NO_TEAM_SPAWNS: TranscriptTeamSpawns = { spawns: [], stops: [], truncated: false }

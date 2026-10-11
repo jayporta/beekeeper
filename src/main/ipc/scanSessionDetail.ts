@@ -1,6 +1,6 @@
 import type { TranscriptFileInfo } from '../../core/transcript/statTranscriptFile'
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
-import type { FoundSession } from './findProject'
+import type { FoundSession } from '../../service/projects/findProject'
 import type { IpcDeps } from './ipcDeps'
 import { mapSessionScan } from './mapSessionScan'
 import { readWorkflowRuns } from './readWorkflowRuns'

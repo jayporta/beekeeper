@@ -7,7 +7,7 @@ import {
   buildUserRecord
 } from '../../core/transcript/testFixtures'
 import { buildTeammateSpawnRecord } from '../../core/transcript/testTeammateFixtures'
-import { TEST_PROJECT, TEST_SESSION_ID } from './testIpcTree'
+import { TEST_PROJECT, TEST_SESSION_ID } from '../testServiceTree'
 
 /** A worktree folder in the test project's family. */
 export const WORKTREE = `${TEST_PROJECT}--claude-worktrees-feat`

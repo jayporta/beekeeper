@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { err } from '../../../core/shared/result'
 import type { SessionTeamDto } from '../../../shared/ipc/sessionTeamDto'
-import type { IpcDeps } from '../ipcDeps'
-import { listSessionsHandler } from '../listSessionsHandler'
+import type { ServiceDeps } from '../../serviceDeps'
+import { listSessions } from '../listSessions'
 import { AGENT_SESSION_ID, scoutRecords, writeLead, writeTranscript } from '../testFamilyFixtures'
-import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
+import { TEST_PROJECT, TEST_SESSION_ID, registerServiceTestTree } from '../../testServiceTree'
 
-const ctx = registerIpcTestTree()
+const ctx = registerServiceTestTree()
 
 const BROKEN_SESSION_ID = '3c3c3c3c-3333-4333-8333-33333333333d'
 
@@ -20,13 +20,15 @@ async function writeScoutInProject(sessionId: string): Promise<void> {
 }
 
 /** Lists the test project's sessions with `deps` and maps each session id to its team entry. */
-async function readTeams(deps: IpcDeps = ctx.deps): Promise<Map<string, SessionTeamDto | null>> {
-  const result = await listSessionsHandler(deps, { projectDirName: TEST_PROJECT })
+async function readTeams(
+  deps: ServiceDeps = ctx.deps
+): Promise<Map<string, SessionTeamDto | null>> {
+  const result = await listSessions(deps, { projectDirName: TEST_PROJECT })
 
   return new Map(result.ok ? result.value.map((item) => [item.sessionId, item.team]) : [])
 }
 
-describe('listSessionsHandler team', () => {
+describe('listSessions team', () => {
   it('sends no team for a solo lead', async () => {
     expect((await readTeams()).get(TEST_SESSION_ID)).toBeNull()
   })
@@ -66,7 +68,7 @@ describe('listSessionsHandler team', () => {
     const deps = {
       ...ctx.deps,
       summaryCache: {
-        read: async (file: Parameters<IpcDeps['summaryCache']['read']>[0]) =>
+        read: async (file: Parameters<ServiceDeps['summaryCache']['read']>[0]) =>
           file.path.endsWith(`${BROKEN_SESSION_ID}.jsonl`)
             ? err({ reason: 'unreadable' as const, code: 'EACCES' })
             : ctx.deps.summaryCache.read(file)

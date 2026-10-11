@@ -3,7 +3,7 @@ import { errorWithCode } from '../../../core/shared/testErrorWithCode'
 import type { SessionRefDto } from '../../../shared/ipc/sessionRefDto'
 import { createFakeArchive } from '../../../service/archive/testFakeArchive'
 import { guardArchive } from '../guardArchive'
-import { testDetail } from '../testArchiveFixtures'
+import { testDetail } from '../../../service/archive/testArchiveFixtures'
 import { collectLog } from '../testCollectLog'
 
 const ref: SessionRefDto = { projectDirName: '-p', sessionId: 's' }

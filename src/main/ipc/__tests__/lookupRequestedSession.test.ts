@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { findRequestedSession, lookupRequestedSession } from '../findRequestedSession'
-import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
+import { TEST_PROJECT, TEST_SESSION_ID } from '../../../service/testServiceTree'
+import { registerIpcTestTree } from '../testIpcTree'
 
 const ctx = registerIpcTestTree()
 const MISSING_ID = '9f9f9f9f-9999-4999-8999-99999999999a'

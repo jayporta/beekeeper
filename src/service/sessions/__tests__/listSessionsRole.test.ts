@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { SessionRoleDto } from '../../../shared/ipc/sessionRoleDto'
-import { listSessionsHandler } from '../listSessionsHandler'
+import { listSessions } from '../listSessions'
 import { AGENT_SESSION_ID, scoutRecords, writeTranscript } from '../testFamilyFixtures'
-import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
+import { TEST_PROJECT, TEST_SESSION_ID, registerServiceTestTree } from '../../testServiceTree'
 
-const ctx = registerIpcTestTree()
+const ctx = registerServiceTestTree()
 
 /** Lists the test project's sessions and maps each session id to the role it was sent. */
 async function readRoles(): Promise<Map<string, SessionRoleDto | null>> {
-  const result = await listSessionsHandler(ctx.deps, { projectDirName: TEST_PROJECT })
+  const result = await listSessions(ctx.deps, { projectDirName: TEST_PROJECT })
 
   return new Map(
     result.ok
@@ -29,7 +29,7 @@ async function writeAgentTranscript(): Promise<void> {
   })
 }
 
-describe('listSessionsHandler role', () => {
+describe('listSessions role', () => {
   it('sends a lead role for a session with no agent markers', async () => {
     expect((await readRoles()).get(TEST_SESSION_ID)).toEqual({ kind: 'lead' })
   })

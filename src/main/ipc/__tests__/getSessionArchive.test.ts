@@ -2,13 +2,14 @@ import { stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ARCHIVE_DETAIL_AFTER_DAYS, DAY_MS } from '../../../service/archive/archiveDetailTiming'
-import { testDetail } from '../../archive/testArchiveFixtures'
+import { testDetail } from '../../../service/archive/testArchiveFixtures'
 import { createFakeArchive } from '../../../service/archive/testFakeArchive'
 import { sessionRefKey } from '../../../service/sessions/sessionRefKey'
 import { errorWithCode } from '../../../core/shared/testErrorWithCode'
 import { getSessionHandler } from '../getSessionHandler'
 import type { IpcDeps } from '../ipcDeps'
-import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
+import { TEST_PROJECT, TEST_SESSION_ID } from '../../../service/testServiceTree'
+import { registerIpcTestTree } from '../testIpcTree'
 
 const ctx = registerIpcTestTree()
 const request = { projectDirName: TEST_PROJECT, sessionId: TEST_SESSION_ID }

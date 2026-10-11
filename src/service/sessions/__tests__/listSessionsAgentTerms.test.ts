@@ -4,13 +4,13 @@ import { describe, expect, it, vi } from 'vitest'
 import { resolveSubagentMeta } from '../../../core/session/resolveSubagentMeta'
 import { MAX_AGENT_TERMS } from '../../../core/session/agentTermCaps'
 import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
-import { createAgentTermsCache } from '../../../service/sessions/agentTermsCache'
-import type { IpcDeps } from '../ipcDeps'
-import { listSessionsHandler } from '../listSessionsHandler'
+import { createAgentTermsCache } from '../agentTermsCache'
+import type { ServiceDeps } from '../../serviceDeps'
+import { listSessions } from '../listSessions'
 import { HUMAN_SESSION_ID, WORKTREE, writeTranscript } from '../testFamilyFixtures'
-import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
+import { TEST_PROJECT, TEST_SESSION_ID, registerServiceTestTree } from '../../testServiceTree'
 
-const ctx = registerIpcTestTree()
+const ctx = registerServiceTestTree()
 
 const subagentsDir = (): string =>
   join(ctx.tree.home, '.claude', 'projects', TEST_PROJECT, TEST_SESSION_ID, 'subagents')
@@ -25,14 +25,14 @@ async function addSubagent(id: string, meta: string | Record<string, unknown>): 
   )
 }
 
-async function listItem(deps: IpcDeps = ctx.deps): Promise<SessionListItemDto> {
-  const result = await listSessionsHandler(deps, { projectDirName: TEST_PROJECT })
+async function listItem(deps: ServiceDeps = ctx.deps): Promise<SessionListItemDto> {
+  const result = await listSessions(deps, { projectDirName: TEST_PROJECT })
   const item = result.ok ? result.value.find((entry) => entry.sessionId === TEST_SESSION_ID) : null
   if (item === null || item === undefined) throw new Error('The session was not listed')
   return item
 }
 
-describe('listSessionsHandler agent terms', () => {
+describe('listSessions agent terms', () => {
   it('sends each subagent’s name, description and type, and nothing else from its meta', async () => {
     await addSubagent('a2', {
       agentType: 'Plan',
@@ -68,7 +68,7 @@ describe('listSessionsHandler agent terms', () => {
     })
     const readMeta = vi.fn(resolveSubagentMeta)
     const deps = { ...ctx.deps, agentTerms: createAgentTermsCache({ readMeta }) }
-    const result = await listSessionsHandler(deps, { projectDirName: TEST_PROJECT })
+    const result = await listSessions(deps, { projectDirName: TEST_PROJECT })
     const bare = result.ok
       ? result.value.find((entry) => entry.sessionId === HUMAN_SESSION_ID)
       : null
@@ -132,7 +132,7 @@ describe('listSessionsHandler agent terms', () => {
 
   it('reads the metas under the summaries scheduler', async () => {
     const keys: string[] = []
-    const summaries: IpcDeps['summaries'] = {
+    const summaries: ServiceDeps['summaries'] = {
       ...ctx.deps.summaries,
       run: (key, task) => {
         keys.push(key)

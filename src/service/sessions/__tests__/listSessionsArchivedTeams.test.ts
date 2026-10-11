@@ -6,9 +6,9 @@ import { buildAssistantRecord } from '../../../core/transcript/testFixtures'
 import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
 import type { SessionRoleDto } from '../../../shared/ipc/sessionRoleDto'
 import { testArchivedSession as archivedSession } from '../../archive/testArchiveFixtures'
-import { createFakeArchive, type FakeArchive } from '../../../service/archive/testFakeArchive'
-import type { ArchivedSession } from '../../../service/archive/archivePort'
-import { listSessionsHandler } from '../listSessionsHandler'
+import { createFakeArchive, type FakeArchive } from '../../archive/testFakeArchive'
+import type { ArchivedSession } from '../../archive/archivePort'
+import { listSessions } from '../listSessions'
 import {
   AGENT_SESSION_ID,
   HUMAN_SESSION_ID,
@@ -17,9 +17,9 @@ import {
   writeLead,
   writeTranscript
 } from '../testFamilyFixtures'
-import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
+import { TEST_PROJECT, TEST_SESSION_ID, registerServiceTestTree } from '../../testServiceTree'
 
-const ctx = registerIpcTestTree()
+const ctx = registerServiceTestTree()
 
 /** The id of a session that is only in the archive, as a lead. */
 const ARCHIVED_LEAD_ID = '6f6f6f6f-6666-4666-8666-66666666666a'
@@ -52,7 +52,7 @@ async function listFolder(
   archive: FakeArchive,
   projectDirName = TEST_PROJECT
 ): Promise<readonly SessionListItemDto[]> {
-  const result = await listSessionsHandler({ ...ctx.deps, archive }, { projectDirName })
+  const result = await listSessions({ ...ctx.deps, archive }, { projectDirName })
   if (!result.ok) throw new Error(`listing ${projectDirName} failed`)
   return result.value
 }
@@ -72,7 +72,7 @@ async function writeScout(projectDirName: string): Promise<void> {
   })
 }
 
-describe('listSessionsHandler archived teammates', () => {
+describe('listSessions archived teammates', () => {
   it('groups an archived teammate under a live lead, which then misses no teammate', async () => {
     await writeLead(ctx.tree.home)
 
@@ -142,7 +142,7 @@ describe('listSessionsHandler archived teammates', () => {
   })
 })
 
-describe('listSessionsHandler archived leads', () => {
+describe('listSessions archived leads', () => {
   it('groups a live teammate under an archived lead, whose missing teammate count drops', async () => {
     await writeScout(TEST_PROJECT)
     const lead = archivedIn(ARCHIVED_LEAD_ID, { teamSpawns: SCOUT_SPAWNS, activity: STILL_ACTIVE })
@@ -186,7 +186,7 @@ describe('listSessionsHandler archived leads', () => {
   })
 })
 
-describe('listSessionsHandler archived rows of live sessions', () => {
+describe('listSessions archived rows of live sessions', () => {
   it('never lists the archived row of a session that is live in the requested folder', async () => {
     const stale = archivedIn(TEST_SESSION_ID)
 
@@ -212,7 +212,7 @@ describe('listSessionsHandler archived rows of live sessions', () => {
   })
 })
 
-describe('listSessionsHandler archived rows of a sibling folder that could not be scanned', () => {
+describe('listSessions archived rows of a sibling folder that could not be scanned', () => {
   it.skipIf(process.getuid?.() === 0)(
     'reads nothing from its archive, so copies of its live sessions do not join the lead',
     async () => {

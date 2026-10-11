@@ -3,8 +3,8 @@ import { projectFamilyOf } from '../../core/teams/projectFamily'
 import { captureSystemError } from '../../core/transcript/captureSystemError'
 import type { ProjectEntry } from '../../core/transcript/discoverProjects'
 import type { SessionTeamDto } from '../../shared/ipc/sessionTeamDto'
-import type { ArchivedSession } from '../../service/archive/archivePort'
-import type { IpcDeps } from './ipcDeps'
+import type { ArchivedSession } from '../archive/archivePort'
+import type { ServiceDeps } from '../serviceDeps'
 import type { ScannedSession } from './mapSessionListItem'
 import { mapSessionTeams } from './mapSessionTeams'
 import { readArchivedSessions } from './readArchivedSessions'
@@ -14,7 +14,7 @@ import { summarizeArchivedSession } from './summarizeArchivedSession'
 /** Options for {@link groupProjectFamily}. */
 export interface GroupProjectFamilyOptions {
   /** The summary cache, the summaries scheduler, and the archive. */
-  readonly deps: ScanDeps & Pick<IpcDeps, 'archive'>
+  readonly deps: ScanDeps & Pick<ServiceDeps, 'archive'>
   /** The requested folder, from `projects`. */
   readonly project: ProjectEntry
   /** Every listed project folder. */
@@ -59,7 +59,7 @@ async function scanSiblingFolder(folder: ProjectEntry, deps: ScanDeps): Promise<
 function readFolderArchive(
   folder: ProjectEntry,
   scan: FolderScan,
-  deps: Pick<IpcDeps, 'archive'>
+  deps: Pick<ServiceDeps, 'archive'>
 ): readonly ArchivedSession[] {
   // Without the folder's live ids, the archive would hand back copies of live sessions.
   if (scan.failed) return []
