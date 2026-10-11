@@ -8,7 +8,14 @@ import { sumDailyUsage, type DailyUsageSummary } from './sumDailyUsage'
 export function testPartial(
   overrides: Partial<ProjectDailyUsagePartialDto> = {}
 ): ProjectDailyUsagePartialDto {
-  return { unreadable: 0, skippedLines: 0, undated: 0, unreadableSubagents: 0, ...overrides }
+  return {
+    unreadable: 0,
+    skippedLines: 0,
+    undated: 0,
+    unreadableSubagents: 0,
+    archivedWithoutSubagents: 0,
+    ...overrides
+  }
 }
 
 /**

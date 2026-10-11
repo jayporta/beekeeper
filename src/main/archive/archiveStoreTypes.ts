@@ -1,4 +1,4 @@
-import type { LeadUsage } from '../../core/transcript/summary/leadUsage'
+import type { LeadSlots } from '../../core/transcript/summary/leadUsage'
 import type { TranscriptTeamSpawns } from '../../core/transcript/teammateSpawn'
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
@@ -12,15 +12,8 @@ export interface SourceState {
   readonly size: number
 }
 
-/**
- * A session's own assistant usage per 15-minute slot, without the message ids
- * that deduplicate it against subagents: what usage over time needs of an
- * archived session.
- */
-export type ArchivedLeadSlots = Pick<
-  LeadUsage,
-  'slots' | 'undatedMessages' | 'invalidAssistantRecords'
->
+/** A session's own assistant usage per 15-minute slot, as the archive stores it for usage over time. */
+export type ArchivedLeadSlots = LeadSlots
 
 /** A session detail and the transcript state it was scanned from. */
 export interface ArchivedDetailEntry {
@@ -104,6 +97,19 @@ export interface ArchiveStore {
    */
   readSessions(projectDirName: string, excluding: ReadonlySet<string>): readonly ArchivedSession[]
   /**
+   * Reads a session's own usage per slot, which {@link ArchiveStore.readSessions}
+   * leaves out because only the overview asks for it. The first read of a row
+   * queries and parses it, and what was read stays in memory until a save
+   * changes the row.
+   *
+   * @param ref - The session.
+   * @returns The slots (empty for a transcript with no usage), or `null` when
+   * the session has none at the current format (none stored, or its scan held
+   * more messages than it keeps), the column can't be read (logged once per
+   * kind), or the store is closed.
+   */
+  readLeadSlots(ref: SessionRefDto): ArchivedLeadSlots | null
+  /**
    * Reads a session's archived detail.
    *
    * @param ref - The session.
@@ -138,7 +144,7 @@ export interface ListItemEntry {
   readonly source: SourceState
   /** The teammates the transcript spawned and stopped, which team grouping reads. */
   readonly teamSpawns: TranscriptTeamSpawns
-  /** The transcript's own usage per slot, or `null` when its summary has none. */
+  /** The transcript's own usage per slot, or `null` when its scan held more messages than it keeps. */
   readonly leadSlots: ArchivedLeadSlots | null
 }
 
@@ -154,7 +160,7 @@ export interface ArchivedSession {
 export type ArchiveWriter = Pick<ArchiveStore, 'saveListItems' | 'saveDetail'>
 
 /** What the IPC handlers use of the store to read. */
-export type ArchiveReader = Pick<ArchiveStore, 'readSessions' | 'readDetail'>
+export type ArchiveReader = Pick<ArchiveStore, 'readSessions' | 'readLeadSlots' | 'readDetail'>
 
 /** Options for {@link createArchiveStore}. */
 export interface ArchiveStoreOptions {

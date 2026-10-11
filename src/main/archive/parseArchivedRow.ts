@@ -94,7 +94,7 @@ export function parseArchivedTeamSpawns(
  * Reads a row's lead slots back from the JSON its `lead_slots` column holds.
  *
  * @param json - The column's JSON.
- * @returns The slots, `null` for a transcript that had no lead usage, or why the column can't be served.
+ * @returns The slots, `null` for a scan that held more messages than it keeps, or why the column can't be served.
  */
 export function parseArchivedLeadSlots(
   json: string

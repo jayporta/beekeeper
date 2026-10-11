@@ -163,12 +163,20 @@ describe('DailyUsageSection while loading and when partial', () => {
 
   it('names each partial reason in the footnote', async () => {
     renderSection(() =>
-      Promise.resolve(week({ skippedLines: 1, undated: 1, unreadable: 1, unreadableSubagents: 1 }))
+      Promise.resolve(
+        week({
+          skippedLines: 1,
+          undated: 1,
+          unreadable: 1,
+          unreadableSubagents: 1,
+          archivedWithoutSubagents: 1
+        })
+      )
     )
 
     expect(
       await screen.findByText(
-        "¹ Partial: Some sessions couldn't be read. Some sessions have unreadable lines. Some sessions have messages with no timestamp, so those messages are on no day. Some sessions have subagent files that couldn't be read. A day's total may be low."
+        "¹ Partial: Some sessions couldn't be read. Some sessions have unreadable lines. Some sessions have messages with no timestamp, so those messages are on no day. Some sessions have subagent files that couldn't be read. Some archived sessions are missing their subagents' usage. A day's total may be low."
       )
     ).toBeTruthy()
   })

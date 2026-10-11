@@ -1,5 +1,6 @@
 import type { SessionEntry } from '../../core/transcript/discoverSessions'
 import type { TotalsWindowDto } from '../../shared/ipc/projectTotalsDto'
+import type { ArchivedTimes } from './archivedTimes'
 
 /** One day, in milliseconds. */
 export const DAY_MS = 24 * 60 * 60 * 1000
@@ -59,5 +60,72 @@ export function mayHaveDailyUsage(
     (newest, subagent) => Math.max(newest, subagent.transcript.mtimeMs),
     entry.transcript.value.mtimeMs
   )
-  return newestMs >= window.nowMs - window.windowMs - DAY_MS - SKIP_UNREAD_SLACK_MS
+  return newestMs >= dailyUsageCutoffMs(window)
+}
+
+/**
+ * The oldest time a session may have last been active and still have usage on
+ * a window's days: the window's length and a day back (the first calendar day
+ * can start that early), less {@link SKIP_UNREAD_SLACK_MS}.
+ */
+function dailyUsageCutoffMs(window: { readonly nowMs: number; readonly windowMs: number }): number {
+  return window.nowMs - window.windowMs - DAY_MS - SKIP_UNREAD_SLACK_MS
+}
+
+/**
+ * Decides whether an archived session may have usage on a window's days, from
+ * the times its list item holds: not when its last message and its transcript's
+ * last write are both older than the window's length and a day back (the first
+ * calendar day can start that early) by more than {@link SKIP_UNREAD_SLACK_MS}.
+ * A session with neither time is kept, so its slots are read. It counts as
+ * unreadable only when it has none.
+ *
+ * @param times - When the session's last message was, and when its transcript was last written, either `null` when unknown.
+ * @param window - The window's end, in milliseconds since the Unix epoch, and its length.
+ * @returns `true` to read its slots.
+ */
+export function mayArchivedHaveDailyUsage(
+  times: ArchivedTimes,
+  window: { readonly nowMs: number; readonly windowMs: number }
+): boolean {
+  const { latestMs, modifiedMs } = times
+  if (latestMs === null && modifiedMs === null) return true
+  const newestMs = Math.max(latestMs ?? -Infinity, modifiedMs ?? -Infinity)
+  return newestMs >= dailyUsageCutoffMs(window)
+}
+
+/**
+ * Decides whether an archived session may count in a window's totals, from the
+ * times its list item holds, by the rule the totals apply: it is out when it was
+ * last active, by its last message or else its file time, before the window's
+ * start. A session with no file time is kept, since the totals count it as
+ * unreadable.
+ *
+ * @param times - When the session's last message was, and when its transcript was last written, either `null` when unknown.
+ * @param window - The window's end, in milliseconds since the Unix epoch, and its length.
+ * @returns `true` to hand it to the totals.
+ */
+export function mayArchivedCountInWindow(
+  times: ArchivedTimes,
+  window: { readonly nowMs: number; readonly windowMs: number }
+): boolean {
+  const { latestMs, modifiedMs } = times
+  if (modifiedMs === null) return true
+  return !isBeforeTotalsWindow({ latestMs, mtimeMs: modifiedMs }, window.nowMs - window.windowMs)
+}
+
+/**
+ * Whether a session was last active before a totals window starts: by its last
+ * message, else by when its transcript was last written. The one rule the
+ * folder totals and the archived-session filter share.
+ *
+ * @param times - When the session's last message was, or `null` when it has none, and when its transcript was last written.
+ * @param cutoffMs - The window's start, in milliseconds since the Unix epoch.
+ * @returns `true` when the session is out of the window.
+ */
+export function isBeforeTotalsWindow(
+  times: { readonly latestMs: number | null; readonly mtimeMs: number },
+  cutoffMs: number
+): boolean {
+  return (times.latestMs ?? times.mtimeMs) < cutoffMs
 }

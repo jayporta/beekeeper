@@ -12,6 +12,13 @@ export type SessionDailyOutcome =
       readonly usage: SessionDailyUsage
       /** Whether the session's subagents folder was listed. */
       readonly subagentsListed: boolean
+      /**
+       * Whether the session has subagents whose usage the archive doesn't hold,
+       * so the usage here is the lead's alone. Their days are unknown, so the
+       * caller sets it only for a session they may fall in the window for.
+       * @defaultValue false
+       */
+      readonly subagentsNotArchived?: boolean
     }
 
 /** Options for {@link folderDailyUsage}. */
@@ -28,27 +35,35 @@ export interface FolderDailyUsageOptions {
  * session counts at most once under each partial reason. Unreadable lines and
  * undated messages count unless every day the session has usage on is outside
  * the window, so a session with no usage at all counts, since what it could not
- * read may have been in the window. An unreadable session or subagent always
- * counts.
+ * read may have been in the window. An unreadable session or subagent, and
+ * subagents the archive doesn't hold, always count, since the lead's days don't
+ * bound its subagents'.
  *
  * @param options - The window's days and the sessions' outcomes.
  * @returns The folder's usage for the window.
  */
 export function folderDailyUsage(options: FolderDailyUsageOptions): ProjectDailyUsageDto {
   const byDay = new Map<DayKey, Map<string, number>>(options.days.map((day) => [day, new Map()]))
-  const partial = { unreadable: 0, skippedLines: 0, undated: 0, unreadableSubagents: 0 }
+  const partial = {
+    unreadable: 0,
+    skippedLines: 0,
+    undated: 0,
+    unreadableSubagents: 0,
+    archivedWithoutSubagents: 0
+  }
 
   for (const session of options.sessions) {
     if (!session.ok) {
       partial.unreadable += 1
       continue
     }
-    const { usage, subagentsListed } = session
+    const { usage, subagentsListed, subagentsNotArchived = false } = session
     // A session read only for the slack, with usage on days outside the window alone, leaves no figure low.
     const outsideWindow =
       usage.buckets.length > 0 && usage.buckets.every(({ day }) => !byDay.has(day))
     if (!outsideWindow && usage.skippedLines > 0) partial.skippedLines += 1
     if (!outsideWindow && usage.undatedMessages > 0) partial.undated += 1
+    if (subagentsNotArchived) partial.archivedWithoutSubagents += 1
     if (usage.unreadableSubagents > 0 || !subagentsListed) partial.unreadableSubagents += 1
 
     for (const { day, model, tokens } of usage.buckets) {

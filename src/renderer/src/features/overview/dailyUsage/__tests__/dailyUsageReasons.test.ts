@@ -17,7 +17,8 @@ describe('dailyUsageReasonsOf', () => {
     ['unreadable', { partial: testPartial({ unreadable: 1 }) }],
     ['skippedLines', { partial: testPartial({ skippedLines: 1 }) }],
     ['undated', { partial: testPartial({ undated: 1 }) }],
-    ['unreadableSubagents', { partial: testPartial({ unreadableSubagents: 1 }) }]
+    ['unreadableSubagents', { partial: testPartial({ unreadableSubagents: 1 }) }],
+    ['archivedWithoutSubagents', { partial: testPartial({ archivedWithoutSubagents: 1 }) }]
   ] as const)('names %s when only it applies', (reason, overrides) => {
     expect(dailyUsageReasonsOf(summary(overrides))).toEqual([reason])
   })
@@ -26,7 +27,13 @@ describe('dailyUsageReasonsOf', () => {
     const everything = summary({
       loading: 1,
       failed: 1,
-      partial: { unreadable: 1, skippedLines: 1, undated: 1, unreadableSubagents: 1 }
+      partial: testPartial({
+        unreadable: 1,
+        skippedLines: 1,
+        undated: 1,
+        unreadableSubagents: 1,
+        archivedWithoutSubagents: 1
+      })
     })
 
     expect(dailyUsageReasonsOf(everything)).toEqual([
@@ -35,7 +42,8 @@ describe('dailyUsageReasonsOf', () => {
       'unreadable',
       'skippedLines',
       'undated',
-      'unreadableSubagents'
+      'unreadableSubagents',
+      'archivedWithoutSubagents'
     ])
   })
 })

@@ -1,12 +1,12 @@
 import { QUARTER_HOUR_MS } from '../shared/quarterHour'
-import type { LeadUsage } from '../transcript/summary/leadUsage'
+import type { LeadSlots } from '../transcript/summary/leadUsage'
 import { compareDailyUsageBuckets } from './compareDailyUsageBuckets'
 import type { DailyUsageBucket, DayKey, SessionDailyUsage } from './dailyUsage'
 
 /** Options for {@link combineDailyUsage}. */
 export interface CombineDailyUsageOptions {
   /** The lead transcript's usage by quarter-hour slot. */
-  readonly lead: LeadUsage
+  readonly lead: LeadSlots
   /** The lead summary's `skippedLines`. */
   readonly leadSkippedLines: number
   /** The subagents' daily usage, with the lead's messages already left out. */

@@ -258,7 +258,7 @@ describe('parseArchivedLeadSlots', () => {
     })
   })
 
-  it('returns null for a transcript that had no lead usage', () => {
+  it('returns null for a scan that held more messages than it keeps', () => {
     expect(parseArchivedLeadSlots('null')).toEqual({ ok: true, value: null })
   })
 

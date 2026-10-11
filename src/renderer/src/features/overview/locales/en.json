@@ -114,6 +114,7 @@
       "skippedLines": "Some sessions have unreadable lines.",
       "undated": "Some sessions have messages with no timestamp, so those messages are on no day.",
       "unreadableSubagents": "Some sessions have subagent files that couldn't be read.",
+      "archivedWithoutSubagents": "Some archived sessions are missing their subagents' usage.",
       "mayBeLow": "A day's total may be low."
     },
     "tableToggle": "Tokens per day as a table"

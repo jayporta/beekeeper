@@ -7,7 +7,8 @@ export const DAILY_USAGE_REASONS = [
   'unreadable',
   'skippedLines',
   'undated',
-  'unreadableSubagents'
+  'unreadableSubagents',
+  'archivedWithoutSubagents'
 ] as const
 
 /** One reason a day's total may be low. */
@@ -27,7 +28,8 @@ export function dailyUsageReasonsOf(summary: DailyUsageSummary): readonly DailyU
     unreadable: partial.unreadable > 0,
     skippedLines: partial.skippedLines > 0,
     undated: partial.undated > 0,
-    unreadableSubagents: partial.unreadableSubagents > 0
+    unreadableSubagents: partial.unreadableSubagents > 0,
+    archivedWithoutSubagents: partial.archivedWithoutSubagents > 0
   }
   return DAILY_USAGE_REASONS.filter((reason) => applies[reason])
 }

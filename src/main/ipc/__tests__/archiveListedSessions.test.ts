@@ -71,13 +71,13 @@ describe('archiveListedSessions sidecars', () => {
     expect(save?.leadSlots).not.toHaveProperty('messageIds')
   })
 
-  it('passes empty lead slots for a transcript with usage of none', () => {
+  it('passes empty lead slots for a transcript with no usage', () => {
     const [save] = archiveOne({ leadUsage: EMPTY_LEAD_USAGE })
 
     expect(save?.leadSlots).toEqual({ slots: [], undatedMessages: 0, invalidAssistantRecords: 0 })
   })
 
-  it('passes null lead slots for a transcript past the id cap', () => {
+  it('passes null lead slots for a scan that held more messages than it keeps', () => {
     const [save] = archiveOne({ leadUsage: null })
 
     expect(save?.leadSlots).toBeNull()

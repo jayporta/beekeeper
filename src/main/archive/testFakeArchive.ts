@@ -3,6 +3,7 @@ import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
 import { sessionRefKey } from '../ipc/sessionRefKey'
 import type {
+  ArchivedLeadSlots,
   ArchivedSession,
   ArchiveReader,
   ArchiveWriter,
@@ -39,6 +40,8 @@ export interface FakeArchiveReads {
   readonly listItems?: readonly SessionListItemDto[]
   /** The sessions it holds, from any folder, after those built from `listItems`. */
   readonly sessions?: readonly ArchivedSession[]
+  /** The lead slots it holds, keyed by {@link sessionRefKey}. A session not in it has none. */
+  readonly leadSlots?: ReadonlyMap<string, ArchivedLeadSlots>
   /** The details it holds, keyed by {@link sessionRefKey}. */
   readonly details?: ReadonlyMap<string, SessionDetailDto>
 }
@@ -81,6 +84,10 @@ export function createFakeArchive(failure?: Error, reads: FakeArchiveReads = {})
       detailSaves.push({ ref, detail, source })
     },
     readSessions,
+    readLeadSlots(ref) {
+      if (failure !== undefined) throw failure
+      return reads.leadSlots?.get(sessionRefKey(ref)) ?? null
+    },
     readDetail(ref) {
       if (failure !== undefined) throw failure
       return reads.details?.get(sessionRefKey(ref)) ?? null

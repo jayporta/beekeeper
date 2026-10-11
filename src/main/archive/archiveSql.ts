@@ -59,3 +59,7 @@ WHERE project_dir = ? AND session_id = ? AND format = ?`
 export const SELECT_DETAIL = `
 SELECT detail FROM sessions
 WHERE project_dir = ? AND session_id = ? AND format = ?`
+
+export const SELECT_LEAD_SLOTS = `
+SELECT lead_slots FROM sessions
+WHERE project_dir = ? AND session_id = ? AND format = ?`

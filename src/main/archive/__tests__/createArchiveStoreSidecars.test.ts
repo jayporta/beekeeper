@@ -230,3 +230,139 @@ describe('backfilling a row that has no sidecars', () => {
     expect(row).toEqual({ team_spawns: JSON.stringify(NO_TEAM_SPAWNS), lead_slots: 'null' })
   })
 })
+
+describe('readLeadSlots', () => {
+  it('returns the lead slots a session was saved with', () => {
+    const store = newStore()
+    store.saveListItems([{ ...listEntry(ITEM), leadSlots: TEST_LEAD_SLOTS }])
+
+    expect(store.readLeadSlots(TEST_REF)).toEqual(TEST_LEAD_SLOTS)
+  })
+
+  it('reads the slots saved by an earlier store over the same archive', () => {
+    newStore().saveListItems([{ ...listEntry(ITEM), leadSlots: TEST_LEAD_SLOTS }])
+
+    expect(newStore().readLeadSlots(TEST_REF)).toEqual(TEST_LEAD_SLOTS)
+  })
+
+  it('returns null for a session whose scan held more messages than it keeps', () => {
+    const store = newStore()
+    store.saveListItems([{ ...listEntry(ITEM), leadSlots: null }])
+
+    expect(store.readLeadSlots(TEST_REF)).toBeNull()
+  })
+
+  it('returns empty slots for a transcript with no usage', () => {
+    const none = { slots: [], undatedMessages: 0, invalidAssistantRecords: 0 }
+    const store = newStore()
+    store.saveListItems([{ ...listEntry(ITEM), leadSlots: none }])
+
+    expect(store.readLeadSlots(TEST_REF)).toEqual(none)
+  })
+
+  it('returns null, and logs nothing, for a row written before lead slots were kept', () => {
+    seedUnbackfilledRow()
+
+    expect(newStore().readLeadSlots(TEST_REF)).toBeNull()
+    expect(logged).toEqual([])
+  })
+
+  it('returns null for a session that was never archived and for the same id in another folder', () => {
+    const store = newStore()
+    store.saveListItems([{ ...listEntry(ITEM), leadSlots: TEST_LEAD_SLOTS }])
+
+    expect(store.readLeadSlots({ ...TEST_REF, sessionId: 'nope' })).toBeNull()
+    expect(store.readLeadSlots({ ...TEST_REF, projectDirName: '-other' })).toBeNull()
+  })
+
+  it('returns null for a row stored in another format', () => {
+    newStore().saveListItems([{ ...listEntry(ITEM), leadSlots: TEST_LEAD_SLOTS }])
+    db.prepare('UPDATE sessions SET format = 0').run()
+
+    expect(newStore().readLeadSlots(TEST_REF)).toBeNull()
+  })
+
+  it.each([
+    ['{corrupt', 'invalid-json'],
+    ['{"slots":[{"slot":"x"}]}', 'invalid-shape']
+  ] as const)('returns null for %s and logs the kind once, without a path', (value, kind) => {
+    newStore().saveListItems([{ ...listEntry(ITEM), leadSlots: TEST_LEAD_SLOTS }])
+    setColumn('lead_slots', value)
+    const fresh = newStore()
+
+    expect(fresh.readLeadSlots(TEST_REF)).toBeNull()
+    expect(fresh.readLeadSlots(TEST_REF)).toBeNull()
+
+    expect(logged).toEqual([`Beekeeper archive skipped unreadable lead slots (${kind}).`])
+  })
+
+  it('returns null after the store is closed', () => {
+    const store = newStore()
+    store.saveListItems([{ ...listEntry(ITEM), leadSlots: TEST_LEAD_SLOTS }])
+    store.close()
+
+    expect(store.readLeadSlots(TEST_REF)).toBeNull()
+  })
+
+  it('reads the row again after a save rewrites it', () => {
+    const store = newStore()
+    store.saveListItems([{ ...listEntry(ITEM), leadSlots: TEST_LEAD_SLOTS }])
+    store.readLeadSlots(TEST_REF)
+    const changed = { ...TEST_SOURCE, size: 900 }
+
+    store.saveListItems([{ ...listEntry(ITEM, changed), leadSlots: null }])
+
+    expect(store.readLeadSlots(TEST_REF)).toBeNull()
+  })
+})
+
+describe('readLeadSlots caching', () => {
+  it('reads and parses a row’s slots once: a second read answers from memory', () => {
+    const store = newStore()
+    store.saveListItems([{ ...listEntry(ITEM), leadSlots: TEST_LEAD_SLOTS }])
+    const first = store.readLeadSlots(TEST_REF)
+    setColumn('lead_slots', '{corrupt')
+    const parse = vi.spyOn(JSON, 'parse')
+
+    const second = store.readLeadSlots(TEST_REF)
+
+    expect(parse).not.toHaveBeenCalled()
+    expect(second).toBe(first)
+    expect(logged).toEqual([])
+  })
+
+  it('remembers a null answer too', () => {
+    const store = newStore()
+    store.saveListItems([{ ...listEntry(ITEM), leadSlots: null }])
+    store.readLeadSlots(TEST_REF)
+    setColumn('lead_slots', JSON.stringify(TEST_LEAD_SLOTS))
+
+    expect(store.readLeadSlots(TEST_REF)).toBeNull()
+  })
+
+  it('reads the slots again once a save rewrites the row', () => {
+    const store = newStore()
+    store.saveListItems([{ ...listEntry(ITEM), leadSlots: TEST_LEAD_SLOTS }])
+    store.readLeadSlots(TEST_REF)
+    const changed = { ...TEST_SOURCE, size: 900 }
+    const other = { ...TEST_LEAD_SLOTS, undatedMessages: 9 }
+
+    store.saveListItems([{ ...listEntry(ITEM, changed), leadSlots: other }])
+
+    expect(store.readLeadSlots(TEST_REF)).toEqual(other)
+  })
+
+  it('keeps one session’s cached slots when a save touches another', () => {
+    const store = newStore()
+    const second = { ...TEST_REF, sessionId: '22222222-2222-4222-8222-222222222222' }
+    store.saveListItems([{ ...listEntry(ITEM), leadSlots: TEST_LEAD_SLOTS }])
+    store.readLeadSlots(TEST_REF)
+    setColumn('lead_slots', '{corrupt')
+
+    store.saveListItems([
+      { ...listEntry({ ...ITEM, sessionId: second.sessionId }), leadSlots: null }
+    ])
+
+    expect(store.readLeadSlots(TEST_REF)).toEqual(TEST_LEAD_SLOTS)
+  })
+})

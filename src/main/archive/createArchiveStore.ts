@@ -179,6 +179,8 @@ export function createArchiveStore(db: ArchiveDb, options: ArchiveStoreOptions =
 
     readSessions: reads.readSessions,
 
+    readLeadSlots: reads.readLeadSlots,
+
     readDetail: reads.readDetail,
 
     skipDetail(ref) {

@@ -1,12 +1,17 @@
 import { chmod, mkdir, rm, utimes, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { QUARTER_HOUR_MS } from '../../../core/shared/quarterHour'
 import type { ProjectDailyUsageDto } from '../../../shared/ipc/projectDailyUsageDto'
 import { buildAssistantRecord } from '../../../core/transcript/testFixtures'
+import type { ArchivedLeadSlots } from '../../archive/archiveStoreTypes'
+import { testArchivedSession } from '../../archive/testArchiveFixtures'
+import { createFakeArchive } from '../../archive/testFakeArchive'
 import { SKIP_UNREAD_SLACK_MS, TOTALS_WINDOW_MS } from '../../overview/totalsWindow'
 import { getProjectDailyUsageHandler } from '../getProjectDailyUsageHandler'
 import { getProjectTotalsHandler } from '../getProjectTotalsHandler'
 import type { IpcDeps } from '../ipcDeps'
+import { sessionRefKey } from '../sessionRefKey'
 import { writeTranscript } from '../testFamilyFixtures'
 import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
 
@@ -373,7 +378,8 @@ describe('getProjectDailyUsageHandler partial results', () => {
       unreadable: 0,
       skippedLines: 0,
       undated: 0,
-      unreadableSubagents: 0
+      unreadableSubagents: 0,
+      archivedWithoutSubagents: 0
     })
   })
 
@@ -386,6 +392,7 @@ describe('getProjectDailyUsageHandler partial results', () => {
     expect(Object.keys(usage).sort()).toEqual(['days', 'partial'])
     expect(Object.keys(usage.days[0] ?? {}).sort()).toEqual(['day', 'models'])
     expect(Object.keys(usage.partial).sort()).toEqual([
+      'archivedWithoutSubagents',
       'skippedLines',
       'undated',
       'unreadable',
@@ -412,5 +419,246 @@ describe('getProjectDailyUsageHandler with the project totals', () => {
     expect(summaryReads()).toBe(2)
     // Only the session with a subagent schedules a daily scan.
     expect(scanKeys).toHaveLength(1)
+  })
+})
+
+describe('getProjectDailyUsageHandler archived sessions', () => {
+  const slotAt = (
+    iso: string,
+    tokens: number,
+    model = 'm'
+  ): ArchivedLeadSlots['slots'][number] => ({
+    slot: Math.floor(Date.parse(iso) / QUARTER_HOUR_MS),
+    model,
+    tokens
+  })
+
+  /** An archived session of the test project, last active on 2026-03-09. */
+  const archived = (
+    n: number,
+    options: Parameters<typeof testArchivedSession>[1] = {}
+  ): ReturnType<typeof testArchivedSession> =>
+    testArchivedSession(idOf(n), {
+      projectDirName: TEST_PROJECT,
+      activity: { earliestMs: Date.parse('2026-03-08T00:00:00Z'), latestMs: NOW - DAY },
+      modifiedMs: NOW - DAY,
+      ...options
+    })
+
+  /** Deps with the clock stopped and an archive holding the sessions, with the slots of each by id. */
+  function withArchive(
+    sessions: readonly ReturnType<typeof testArchivedSession>[],
+    slots: ReadonlyMap<number, ArchivedLeadSlots> = new Map(),
+    timeZone = 'UTC'
+  ): { deps: IpcDeps; archive: ReturnType<typeof createFakeArchive> } {
+    const leadSlots = new Map(
+      [...slots].map(([n, value]) => [
+        sessionRefKey({ projectDirName: TEST_PROJECT, sessionId: idOf(n) }),
+        value
+      ])
+    )
+    const archive = createFakeArchive(undefined, { sessions, leadSlots })
+    return { deps: { ...depsAt(timeZone).deps, archive }, archive }
+  }
+
+  const slotsOf = (...slots: ArchivedLeadSlots['slots'][number][]): ArchivedLeadSlots => ({
+    slots,
+    undatedMessages: 0,
+    invalidAssistantRecords: 0
+  })
+
+  it('counts an archived session’s lead slots on the day each one starts', async () => {
+    await removeTreeSession()
+    const slots = slotsOf(slotAt('2026-03-08T10:00:00Z', 30), slotAt('2026-03-09T10:00:00Z', 70))
+    const { deps } = withArchive([archived(100)], new Map([[100, slots]]))
+
+    const usage = await usageOf(deps)
+
+    expect([tokensOn(usage, '2026-03-08'), tokensOn(usage, '2026-03-09')]).toEqual([30, 70])
+  })
+
+  it('buckets a slot on the local day in the request’s zone, including a zone 45 minutes off the hour', async () => {
+    await removeTreeSession()
+    // 18:00Z is 23:45 on the 8th in Kathmandu (+05:45), and 18:15Z is its midnight.
+    const slots = slotsOf(slotAt('2026-03-08T18:00:00Z', 10), slotAt('2026-03-08T18:15:00Z', 20))
+    const session = archived(100)
+
+    const utc = await usageOf(withArchive([session], new Map([[100, slots]]), 'UTC').deps)
+    const kathmandu = await usageOf(
+      withArchive([session], new Map([[100, slots]]), 'Asia/Kathmandu').deps
+    )
+
+    expect([tokensOn(utc, '2026-03-08'), tokensOn(utc, '2026-03-09')]).toEqual([30, 0])
+    expect([tokensOn(kathmandu, '2026-03-08'), tokensOn(kathmandu, '2026-03-09')]).toEqual([10, 20])
+  })
+
+  it('adds an archived session to the live ones on the same day and model', async () => {
+    await removeTreeSession()
+    await writeSession(1, [{ at: '2026-03-08T10:00:00Z', tokens: 5 }])
+    const { deps } = withArchive(
+      [archived(100)],
+      new Map([[100, slotsOf(slotAt('2026-03-08T11:00:00Z', 7))]])
+    )
+
+    expect(tokensOn(await usageOf(deps), '2026-03-08')).toBe(12)
+  })
+
+  it('never counts the archived row of a live session a second time', async () => {
+    await removeTreeSession()
+    await writeSession(1, [{ at: '2026-03-08T10:00:00Z', tokens: 5 }])
+    const live = await usageOf(depsAt().deps)
+    const { deps } = withArchive(
+      [archived(1)],
+      new Map([[1, slotsOf(slotAt('2026-03-08T10:00:00Z', 999))]])
+    )
+
+    expect(await usageOf(deps)).toEqual(live)
+  })
+
+  it('never counts the archived row of a live session the window left unread', async () => {
+    await removeTreeSession()
+    await writeSession(1, [{ at: '2026-01-01T10:00:00Z' }], NOW - 90 * DAY)
+    const { deps } = withArchive(
+      [archived(1)],
+      new Map([[1, slotsOf(slotAt('2026-03-08T10:00:00Z', 999))]])
+    )
+
+    expect(tokensOn(await usageOf(deps), '2026-03-08')).toBe(0)
+  })
+
+  it('reads the slots of no archived session that ended before the window and its slack', async () => {
+    await removeTreeSession()
+    const old = archived(100, {
+      activity: { earliestMs: 1, latestMs: NOW - TOTALS_WINDOW_MS['7d'] - 3 * DAY },
+      modifiedMs: NOW - TOTALS_WINDOW_MS['7d'] - 3 * DAY
+    })
+    const { deps, archive } = withArchive([old])
+    const read = vi.spyOn(archive, 'readLeadSlots')
+
+    const usage = await usageOf(deps)
+
+    expect(read).not.toHaveBeenCalled()
+    expect(usage.partial.unreadable).toBe(0)
+  })
+
+  it('reads the slots of an archived session inside the day of slack before the window', async () => {
+    await removeTreeSession()
+    const edge = archived(100, {
+      activity: { earliestMs: 1, latestMs: NOW - TOTALS_WINDOW_MS['7d'] - DAY },
+      modifiedMs: NOW - TOTALS_WINDOW_MS['7d'] - DAY
+    })
+    const { deps, archive } = withArchive([edge])
+    const read = vi.spyOn(archive, 'readLeadSlots')
+
+    await usageOf(deps)
+
+    expect(read).toHaveBeenCalledTimes(1)
+  })
+
+  it('counts an archived session in the window with no lead slots as unreadable', async () => {
+    await removeTreeSession()
+    const { deps } = withArchive([archived(100)])
+
+    const usage = await usageOf(deps)
+
+    expect(usage.partial.unreadable).toBe(1)
+  })
+
+  it('counts an archived session with subagents as missing their usage, and still counts its lead', async () => {
+    await removeTreeSession()
+    const slots = new Map([[100, slotsOf(slotAt('2026-03-08T10:00:00Z', 30))]])
+    const { deps } = withArchive([archived(100, { subagentCount: 2 }), archived(101)], slots)
+
+    const usage = await usageOf(deps)
+
+    expect(usage.partial).toMatchObject({ archivedWithoutSubagents: 1, unreadableSubagents: 0 })
+    expect(tokensOn(usage, '2026-03-08')).toBe(30)
+  })
+
+  it('counts an archived session active in the window as missing its subagents’ usage when its own usage is all before it', async () => {
+    await removeTreeSession()
+    const slots = new Map([[100, slotsOf(slotAt('2026-02-20T10:00:00Z', 30))]])
+    const { deps } = withArchive([archived(100, { subagentCount: 2 })], slots)
+
+    expect((await usageOf(deps)).partial.archivedWithoutSubagents).toBe(1)
+  })
+
+  it('counts no missing subagents for an archived session whose last message was before the window’s first day', async () => {
+    await removeTreeSession()
+    // 03-03 12:00Z, inside the filter's slack but a day before the 7-day window's first day, 03-04.
+    const edge = archived(100, {
+      subagentCount: 2,
+      activity: { earliestMs: 1, latestMs: NOW - TOTALS_WINDOW_MS['7d'] },
+      modifiedMs: NOW - TOTALS_WINDOW_MS['7d']
+    })
+    const slots = new Map([[100, slotsOf(slotAt('2026-03-03T10:00:00Z', 30))]])
+
+    expect((await usageOf(withArchive([edge], slots).deps)).partial.archivedWithoutSubagents).toBe(
+      0
+    )
+  })
+
+  it('counts an archived session with subagents and no last message as missing their usage', async () => {
+    await removeTreeSession()
+    const undated = archived(100, { subagentCount: 2, activity: null })
+    const slots = new Map([[100, slotsOf()]])
+
+    expect(
+      (await usageOf(withArchive([undated], slots).deps)).partial.archivedWithoutSubagents
+    ).toBe(1)
+  })
+
+  it('counts missing subagents for an archived session whose last message is on the window’s first local day', async () => {
+    await removeTreeSession()
+    // 03-03 20:00Z is 03-04 05:00 in Tokyo, the 7-day window's first day there.
+    const lastAt = Date.parse('2026-03-03T20:00:00Z')
+    const edge = archived(100, {
+      subagentCount: 2,
+      activity: { earliestMs: 1, latestMs: lastAt },
+      modifiedMs: lastAt
+    })
+    const slots = new Map([[100, slotsOf(slotAt('2026-03-03T19:00:00Z', 30))]])
+
+    const usage = await usageOf(withArchive([edge], slots, 'Asia/Tokyo').deps)
+
+    expect(usage.partial.archivedWithoutSubagents).toBe(1)
+  })
+
+  it('counts an archived session whose subagent count is unknown as missing their usage', async () => {
+    await removeTreeSession()
+    const slots = new Map([[100, slotsOf(slotAt('2026-03-08T10:00:00Z', 30))]])
+    const { deps } = withArchive([archived(100, { subagentCount: null })], slots)
+
+    expect((await usageOf(deps)).partial.archivedWithoutSubagents).toBe(1)
+  })
+
+  it('counts undated messages and unreadable lines an archived session had', async () => {
+    await removeTreeSession()
+    const slots = new Map([
+      [100, { ...slotsOf(slotAt('2026-03-08T10:00:00Z', 30)), undatedMessages: 2 }]
+    ])
+    const { deps } = withArchive([archived(100, { skippedLines: 3 })], slots)
+
+    const usage = await usageOf(deps)
+
+    expect(usage.partial).toMatchObject({ undated: 1, skippedLines: 1 })
+  })
+
+  it('still reports the live sessions, logging the failure once, when the archive cannot be read', async () => {
+    await removeTreeSession()
+    await writeSession(1, [{ at: '2026-03-08T10:00:00Z', tokens: 5 }])
+    const live = await usageOf(depsAt().deps)
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const failing: IpcDeps = {
+      ...depsAt().deps,
+      archive: createFakeArchive(Object.assign(new Error('boom'), { code: 'EDAILYFAIL' }))
+    }
+
+    try {
+      expect(await usageOf(failing)).toEqual(live)
+      expect(warn.mock.calls).toEqual([['Beekeeper archive read failed (EDAILYFAIL).']])
+    } finally {
+      warn.mockRestore()
+    }
   })
 })

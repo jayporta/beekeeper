@@ -67,7 +67,13 @@ export function sumDailyUsage(
   dayCount: number
 ): DailyUsageSummary {
   const byDay = new Map<string, Map<string, number>>()
-  const partial = { unreadable: 0, skippedLines: 0, undated: 0, unreadableSubagents: 0 }
+  const partial = {
+    unreadable: 0,
+    skippedLines: 0,
+    undated: 0,
+    unreadableSubagents: 0,
+    archivedWithoutSubagents: 0
+  }
   let loading = 0
   let failed = 0
   let refreshing = false
@@ -83,6 +89,7 @@ export function sumDailyUsage(
       partial.skippedLines += state.usage.partial.skippedLines
       partial.undated += state.usage.partial.undated
       partial.unreadableSubagents += state.usage.partial.unreadableSubagents
+      partial.archivedWithoutSubagents += state.usage.partial.archivedWithoutSubagents
       for (const { day, models } of state.usage.days) {
         const sums = byDay.get(day) ?? new Map<string, number>()
         byDay.set(day, sums)

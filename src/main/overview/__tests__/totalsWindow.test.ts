@@ -6,6 +6,9 @@ import { toAgentId } from '../../../core/transcript/ids'
 import {
   SKIP_UNREAD_SLACK_MS,
   TOTALS_WINDOW_MS,
+  isBeforeTotalsWindow,
+  mayArchivedCountInWindow,
+  mayArchivedHaveDailyUsage,
   mayCountInWindow,
   mayHaveDailyUsage
 } from '../totalsWindow'
@@ -96,5 +99,68 @@ describe('mayHaveDailyUsage', () => {
     }
 
     expect(mayHaveDailyUsage(entry, window)).toBe(true)
+  })
+})
+
+describe('mayArchivedHaveDailyUsage', () => {
+  const cutoff = NOW - 7 * DAY - DAY - SKIP_UNREAD_SLACK_MS
+
+  it('keeps a session whose last message is at the cutoff, and drops one a millisecond before', () => {
+    expect(mayArchivedHaveDailyUsage({ latestMs: cutoff, modifiedMs: null }, window)).toBe(true)
+    expect(mayArchivedHaveDailyUsage({ latestMs: cutoff - 1, modifiedMs: null }, window)).toBe(
+      false
+    )
+  })
+
+  it('judges by the file time when there is no message time', () => {
+    expect(mayArchivedHaveDailyUsage({ latestMs: null, modifiedMs: cutoff }, window)).toBe(true)
+    expect(mayArchivedHaveDailyUsage({ latestMs: null, modifiedMs: cutoff - 1 }, window)).toBe(
+      false
+    )
+  })
+
+  it('keeps a session when either time is recent, since a restored transcript has a file time later than its messages', () => {
+    expect(mayArchivedHaveDailyUsage({ latestMs: cutoff - 1, modifiedMs: cutoff }, window)).toBe(
+      true
+    )
+    expect(mayArchivedHaveDailyUsage({ latestMs: cutoff, modifiedMs: cutoff - 1 }, window)).toBe(
+      true
+    )
+  })
+
+  it('keeps a session with neither time, to count it as unreadable', () => {
+    expect(mayArchivedHaveDailyUsage({ latestMs: null, modifiedMs: null }, window)).toBe(true)
+  })
+})
+
+describe('mayArchivedCountInWindow', () => {
+  const cutoff = NOW - 7 * DAY
+
+  it('keeps a session last active at the window start, and drops one a millisecond before', () => {
+    expect(mayArchivedCountInWindow({ latestMs: cutoff, modifiedMs: NOW }, window)).toBe(true)
+    expect(mayArchivedCountInWindow({ latestMs: cutoff - 1, modifiedMs: NOW }, window)).toBe(false)
+  })
+
+  it('judges by the file time when there is no message time', () => {
+    expect(mayArchivedCountInWindow({ latestMs: null, modifiedMs: cutoff }, window)).toBe(true)
+    expect(mayArchivedCountInWindow({ latestMs: null, modifiedMs: cutoff - 1 }, window)).toBe(false)
+  })
+
+  it('keeps a session with no file time, since the totals count it as unreadable', () => {
+    expect(mayArchivedCountInWindow({ latestMs: cutoff - 1, modifiedMs: null }, window)).toBe(true)
+  })
+})
+
+describe('isBeforeTotalsWindow', () => {
+  const cutoff = NOW - 7 * DAY
+
+  it('is false at the cutoff and true a millisecond before, by the last message', () => {
+    expect(isBeforeTotalsWindow({ latestMs: cutoff, mtimeMs: 0 }, cutoff)).toBe(false)
+    expect(isBeforeTotalsWindow({ latestMs: cutoff - 1, mtimeMs: NOW }, cutoff)).toBe(true)
+  })
+
+  it('goes by the file time when there is no last message', () => {
+    expect(isBeforeTotalsWindow({ latestMs: null, mtimeMs: cutoff }, cutoff)).toBe(false)
+    expect(isBeforeTotalsWindow({ latestMs: null, mtimeMs: cutoff - 1 }, cutoff)).toBe(true)
   })
 })

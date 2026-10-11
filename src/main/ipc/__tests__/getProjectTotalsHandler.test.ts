@@ -1,12 +1,14 @@
 import { chmod, mkdir, rm, utimes, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   buildAiTitleRecord,
   buildAssistantRecord,
   buildCostStateRecord
 } from '../../../core/transcript/testFixtures'
 import { createSessionSummaryCache } from '../../../core/transcript/summary/sessionSummaryCache'
+import { testArchivedSession } from '../../archive/testArchiveFixtures'
+import { createFakeArchive } from '../../archive/testFakeArchive'
 import { SKIP_UNREAD_SLACK_MS, TOTALS_WINDOW_MS } from '../../overview/totalsWindow'
 import { getProjectTotalsHandler } from '../getProjectTotalsHandler'
 import { guardIpc } from '../guardIpc'
@@ -405,5 +407,125 @@ describe('getProjectTotalsHandler failure codes', () => {
 
     expect(result).toEqual({ ok: false, error: { code: 'internal' } })
     expect(JSON.stringify(result)).not.toContain('secret')
+  })
+})
+
+describe('getProjectTotalsHandler archived sessions', () => {
+  /** An archived session of the test project, with its figures. */
+  const archived = (
+    n: number,
+    options: Parameters<typeof testArchivedSession>[1] = {}
+  ): ReturnType<typeof testArchivedSession> =>
+    testArchivedSession(idOf(n), { projectDirName: TEST_PROJECT, ...options })
+
+  const withArchive = (...sessions: ReturnType<typeof testArchivedSession>[]): IpcDeps => ({
+    ...ctx.deps,
+    archive: createFakeArchive(undefined, { sessions })
+  })
+
+  const GONE = archived(100, {
+    activity: { earliestMs: NOW - 2 * DAY, latestMs: NOW - DAY },
+    usage: { totalUSD: 2, totalTokens: 500 },
+    subagentCount: 2,
+    title: 'Gone'
+  })
+
+  it('adds up an archived session in the window, with its subagents as agents and its title as the latest', async () => {
+    await removeTreeSession()
+
+    const totals = value(await totalsOf(withArchive(GONE)))
+
+    expect(totals).toMatchObject({
+      tokens: 500,
+      usd: 2,
+      sessions: 1,
+      agents: 3,
+      latest: { sessionId: idOf(100), title: 'Gone', latestMs: NOW - DAY }
+    })
+  })
+
+  it('adds an archived session to the live ones in the window', async () => {
+    await removeTreeSession()
+    await writeSession({ n: 1, activeMs: NOW - HOUR })
+    const live = value(await totalsOf(ctx.deps))
+
+    const both = value(await totalsOf(withArchive(GONE)))
+
+    expect(both.tokens).toBe(live.tokens + 500)
+    expect(both.sessions).toBe(live.sessions + 1)
+    expect(both.latest?.sessionId).toBe(idOf(1))
+  })
+
+  it('leaves out an archived session last active before the window', async () => {
+    await removeTreeSession()
+    const old = archived(100, { activity: { earliestMs: 1, latestMs: CUTOFF - 1 } })
+
+    expect(value(await totalsOf(withArchive(old)))).toMatchObject({ sessions: 0, tokens: 0 })
+  })
+
+  it('counts an archived session last active exactly at the window start', async () => {
+    await removeTreeSession()
+    const edge = archived(100, { activity: { earliestMs: 1, latestMs: CUTOFF } })
+
+    expect(value(await totalsOf(withArchive(edge)))).toMatchObject({ sessions: 1 })
+  })
+
+  it('counts an archived teammate as an agent, never as a session', async () => {
+    await removeTreeSession()
+    const role = { kind: 'agent', agentType: null, agentName: 'scout', teamName: 'team-1' } as const
+    const teammate = archived(100, { role, activity: { earliestMs: 1, latestMs: NOW - HOUR } })
+
+    expect(value(await totalsOf(withArchive(teammate)))).toMatchObject({ sessions: 0, agents: 1 })
+  })
+
+  it('counts a session with no timestamps by its file time, and marks it undated', async () => {
+    await removeTreeSession()
+    const inside = archived(100, { activity: null, modifiedMs: NOW - HOUR })
+    const outside = archived(101, { activity: null, modifiedMs: CUTOFF - 1 })
+
+    const totals = value(await totalsOf(withArchive(inside, outside)))
+
+    expect(totals).toMatchObject({ sessions: 1, partial: { undated: 1 } })
+  })
+
+  it('never counts the archived row of a live session a second time', async () => {
+    await removeTreeSession()
+    await writeSession({ n: 1, activeMs: NOW - HOUR })
+    const live = value(await totalsOf(ctx.deps))
+    const stale = archived(1, {
+      activity: { earliestMs: 1, latestMs: NOW - HOUR },
+      usage: { totalUSD: 50, totalTokens: 99_999 }
+    })
+
+    expect(value(await totalsOf(withArchive(stale)))).toEqual(live)
+  })
+
+  it('never counts the archived row of a live session the window left unread', async () => {
+    await removeTreeSession()
+    await writeSession({ n: 1, activeMs: NOW - 90 * DAY })
+    const stale = archived(1, {
+      activity: { earliestMs: 1, latestMs: NOW - HOUR },
+      usage: { totalUSD: 50, totalTokens: 99_999 }
+    })
+
+    expect(value(await totalsOf(withArchive(stale)))).toMatchObject({ sessions: 0, tokens: 0 })
+  })
+
+  it('still totals the live sessions, logging the failure once, when the archive cannot be read', async () => {
+    await removeTreeSession()
+    await writeSession({ n: 1, activeMs: NOW - HOUR })
+    const live = value(await totalsOf(ctx.deps))
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const failing: IpcDeps = {
+      ...ctx.deps,
+      archive: createFakeArchive(Object.assign(new Error('boom'), { code: 'ETOTALSFAIL' }))
+    }
+
+    try {
+      expect(value(await totalsOf(failing))).toEqual(live)
+      expect(warn.mock.calls).toEqual([['Beekeeper archive read failed (ETOTALSFAIL).']])
+    } finally {
+      warn.mockRestore()
+    }
   })
 })
