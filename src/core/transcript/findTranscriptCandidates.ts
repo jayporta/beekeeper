@@ -1,4 +1,4 @@
-import { resolve } from 'node:path'
+import { fileSystem } from '../io/installFileSystem'
 import { compareCodeUnits } from '../shared/compareCodeUnits'
 import { readDirentsOrEmpty } from './readDirentsOrEmpty'
 import { SESSION_TRANSCRIPT_PATTERN } from './sessionTranscriptName'
@@ -11,8 +11,8 @@ export const MAX_TRANSCRIPT_CANDIDATES = 3
  * name order, not the newest.
  *
  * Considers the same files session discovery lists: top-level regular files
- * named for a session id. `Dirent` never follows symlinks, so a symlink is
- * ignored, as is a file in a subfolder. No file is stat'd or opened.
+ * named for a session id. The port's `readDir` reports a symlink as `symlink`, never following
+ * it, so a symlink is ignored, as is a file in a subfolder. No file is stat'd or opened.
  *
  * @param projectPath - The project folder. A relative path is resolved
  * against the working directory.
@@ -22,9 +22,9 @@ export const MAX_TRANSCRIPT_CANDIDATES = 3
  * being missing.
  */
 export async function findTranscriptCandidates(projectPath: string): Promise<string[]> {
-  const dirents = await readDirentsOrEmpty(resolve(projectPath))
+  const dirents = await readDirentsOrEmpty(fileSystem().resolvePath(projectPath))
   return dirents
-    .filter((dirent) => dirent.isFile() && SESSION_TRANSCRIPT_PATTERN.test(dirent.name))
+    .filter((dirent) => dirent.kind === 'file' && SESSION_TRANSCRIPT_PATTERN.test(dirent.name))
     .map((dirent) => dirent.name)
     .sort(compareCodeUnits)
     .slice(0, MAX_TRANSCRIPT_CANDIDATES)

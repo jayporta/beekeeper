@@ -3,7 +3,7 @@ import { lstat, open, readdir, type FileHandle } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { errorCode } from '../../shared/errorCode'
 import { err, ok, type Result } from '../../shared/result'
-import { isMissingEntryError } from '../../transcript/isMissingEntryError'
+import { isMissingEntryError } from '../../shared/isMissingEntryError'
 import type {
   DirEntryKind,
   FileSystemPort,

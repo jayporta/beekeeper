@@ -1,6 +1,6 @@
-import type { Dirent } from 'node:fs'
-import { readdir } from 'node:fs/promises'
-import { isMissingEntryError } from './isMissingEntryError'
+import { fileSystem } from '../io/installFileSystem'
+import type { DirEntry } from '../io/fileSystemPort'
+import { isMissingEntryError } from '../shared/isMissingEntryError'
 
 /**
  * Lists a directory's entries with file-type info, tolerating a directory
@@ -12,9 +12,9 @@ import { isMissingEntryError } from './isMissingEntryError'
  * @throws {Error} When `dir` cannot be read for a reason other than being
  * missing.
  */
-export async function readDirentsOrEmpty(dir: string): Promise<Dirent[]> {
+export async function readDirentsOrEmpty(dir: string): Promise<readonly DirEntry[]> {
   try {
-    return await readdir(dir, { withFileTypes: true })
+    return await fileSystem().readDir(dir)
   } catch (error) {
     if (isMissingEntryError(error)) return []
     throw error

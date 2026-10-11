@@ -1,5 +1,5 @@
-import { join, resolve } from 'node:path'
 import { compareCodeUnits } from '../shared/compareCodeUnits'
+import { fileSystem } from '../io/installFileSystem'
 import { toAgentId, type AgentId } from './ids'
 import { isRealDirectory } from './isRealDirectory'
 import { readDirentsOrEmpty } from './readDirentsOrEmpty'
@@ -34,8 +34,8 @@ export interface SubagentEntry {
  * paired by exact stem when present as a regular file; a meta file with no
  * matching transcript is ignored, as are unrelated siblings such as
  * `agent-<id>.forked-skill.json` or `agent-<id>.marker.json`. A symlinked
- * transcript or meta file is skipped, since `fs.Dirent` never follows
- * symlinks.
+ * transcript or meta file is skipped, since the port's `readDir`
+ * reports a symlink as `symlink` and never follows it.
  *
  * Agents spawned by a workflow live one level down, in
  * `subagents/workflows/<runId>/`. Only a real folder (not a symlink or a
@@ -60,14 +60,15 @@ export interface SubagentEntry {
  * `captureSystemError`).
  */
 export async function discoverSubagents(sessionDir: string): Promise<SubagentEntry[]> {
-  const sessionPath = resolve(sessionDir)
+  const fs = fileSystem()
+  const sessionPath = fs.resolvePath(sessionDir)
   if (!(await isRealDirectory(sessionPath))) return []
 
-  const subagentsDir = join(sessionPath, 'subagents')
+  const subagentsDir = fs.joinPath(sessionPath, 'subagents')
   if (!(await isRealDirectory(subagentsDir))) return []
 
   const candidates = await listAgentFiles(subagentsDir, null)
-  for (const { runId, dir } of await listWorkflowRunDirs(join(subagentsDir, 'workflows'))) {
+  for (const { runId, dir } of await listWorkflowRunDirs(fs.joinPath(subagentsDir, 'workflows'))) {
     candidates.push(...(await listAgentFiles(dir, runId)))
   }
 
@@ -99,10 +100,11 @@ interface WorkflowRunDir {
 async function listWorkflowRunDirs(workflowsDir: string): Promise<WorkflowRunDir[]> {
   if (!(await isRealDirectory(workflowsDir))) return []
 
+  const fs = fileSystem()
   const runs: WorkflowRunDir[] = []
   for (const dirent of await readDirentsOrEmpty(workflowsDir)) {
-    const runId = dirent.isDirectory() ? parseWorkflowRunId(dirent.name) : null
-    if (runId !== null) runs.push({ runId, dir: join(workflowsDir, dirent.name) })
+    const runId = dirent.kind === 'directory' ? parseWorkflowRunId(dirent.name) : null
+    if (runId !== null) runs.push({ runId, dir: fs.joinPath(workflowsDir, dirent.name) })
   }
   return runs.sort((a, b) => compareCodeUnits(a.runId, b.runId))
 }
@@ -121,19 +123,22 @@ async function listAgentFiles(
   dir: string,
   workflowRunId: WorkflowRunId | null
 ): Promise<SubagentEntry[]> {
+  const fs = fileSystem()
   const dirents = await readDirentsOrEmpty(dir)
-  const fileNames = new Set<string>(dirents.filter((dirent) => dirent.isFile()).map((d) => d.name))
+  const fileNames = new Set<string>(
+    dirents.filter((dirent) => dirent.kind === 'file').map((d) => d.name)
+  )
 
   const entries: SubagentEntry[] = []
   for (const name of fileNames) {
     const id = parseSubagentTranscriptId(name)
     if (id === null) continue
 
-    const transcript = await statTranscriptFile(join(dir, name))
+    const transcript = await statTranscriptFile(fs.joinPath(dir, name))
     if (transcript === null) continue
 
     const metaName = `${SUBAGENT_TRANSCRIPT_PREFIX}${id}.meta.json`
-    const metaPath = fileNames.has(metaName) ? join(dir, metaName) : null
+    const metaPath = fileNames.has(metaName) ? fs.joinPath(dir, metaName) : null
 
     entries.push({ agentId: toAgentId(id), transcript, metaPath, workflowRunId })
   }

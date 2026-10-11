@@ -1,4 +1,4 @@
-import { open, type FileHandle } from 'node:fs/promises'
+import { fileSystem } from '../io/installFileSystem'
 import { NEWLINE_BYTE } from './readJsonlLines'
 import type { TranscriptFileInfo } from './statTranscriptFile'
 
@@ -29,22 +29,15 @@ export interface ConfirmTailMarkOptions {
   readonly offset: number
 }
 
-/** Options for {@link readBytes}. */
-interface ReadBytesOptions {
-  /** The open file to read. */
-  readonly handle: FileHandle
-  /** The byte offset to read from. */
-  readonly position: number
-  /** The most bytes to read. */
-  readonly length: number
+/** Reports whether two byte sequences hold the same bytes. */
+function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.byteLength !== b.byteLength) return false
+  return a.every((byte, index) => byte === b[index])
 }
 
-/** Reads up to `length` bytes at `position`, fewer at the end of the file. */
-async function readBytes(options: ReadBytesOptions): Promise<Buffer> {
-  const { handle, position, length } = options
-  const buffer = Buffer.alloc(length)
-  const { bytesRead } = await handle.read(buffer, 0, length, position)
-  return buffer.subarray(0, bytesRead)
+/** Reads the file's first {@link TAIL_MARK_PREFIX_BYTES} bytes, fewer for a shorter file. */
+function readPrefix(path: string): Promise<Uint8Array> {
+  return fileSystem().readRange(path, { position: 0, length: TAIL_MARK_PREFIX_BYTES })
 }
 
 /**
@@ -58,13 +51,8 @@ async function readBytes(options: ReadBytesOptions): Promise<Buffer> {
  * system error code, as when it was deleted after discovery.
  */
 export async function readTailMark(file: TranscriptFileInfo): Promise<TailMark> {
-  const handle = await open(file.path, 'r')
-  try {
-    const prefix = await readBytes({ handle, position: 0, length: TAIL_MARK_PREFIX_BYTES })
-    return { ino: file.ino, dev: file.dev, prefix: Buffer.from(prefix) }
-  } finally {
-    await handle.close()
-  }
+  const prefix = await readPrefix(file.path)
+  return { ino: file.ino, dev: file.dev, prefix: new Uint8Array(prefix) }
 }
 
 /**
@@ -73,7 +61,9 @@ export async function readTailMark(file: TranscriptFileInfo): Promise<TailMark> 
  * bytes, and still hold a newline just before the consumed offset, so a scan
  * that consumed whole lines can carry on from there. A transcript that fails
  * any of them was replaced, rewritten or cut, and has to be scanned again
- * from its start.
+ * from its start. An adapter that can't tell a file's identity reports `ino`
+ * and `dev` as 0 on the file and the mark; they then match, and the prefix
+ * and newline checks alone decide.
  *
  * @param options - The transcript, its earlier mark and the consumed offset.
  * @returns The mark to keep for the next confirmation, with the prefix
@@ -86,22 +76,17 @@ export async function confirmTailMark(options: ConfirmTailMarkOptions): Promise<
   const { file, mark, offset } = options
   if (file.ino !== mark.ino || file.dev !== mark.dev) return null
 
-  const handle = await open(file.path, 'r')
-  try {
-    const prefix = await readBytes({ handle, position: 0, length: TAIL_MARK_PREFIX_BYTES })
-    const held = mark.prefix.byteLength
-    if (prefix.byteLength < held || !prefix.subarray(0, held).equals(mark.prefix)) return null
+  const prefix = await readPrefix(file.path)
+  const held = mark.prefix.byteLength
+  if (prefix.byteLength < held || !bytesEqual(prefix.subarray(0, held), mark.prefix)) return null
 
-    if (offset > 0) {
-      const before =
-        offset <= prefix.byteLength
-          ? prefix.subarray(offset - 1, offset)
-          : await readBytes({ handle, position: offset - 1, length: 1 })
-      if (before[0] !== NEWLINE_BYTE) return null
-    }
-
-    return prefix.byteLength > held ? { ...mark, prefix: Buffer.from(prefix) } : mark
-  } finally {
-    await handle.close()
+  if (offset > 0) {
+    const before =
+      offset <= prefix.byteLength
+        ? prefix.subarray(offset - 1, offset)
+        : await fileSystem().readRange(file.path, { position: offset - 1, length: 1 })
+    if (before[0] !== NEWLINE_BYTE) return null
   }
+
+  return prefix.byteLength > held ? { ...mark, prefix: new Uint8Array(prefix) } : mark
 }

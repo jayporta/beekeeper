@@ -1,4 +1,4 @@
-import { join, resolve } from 'node:path'
+import { fileSystem } from '../io/installFileSystem'
 import { compareCodeUnits } from '../shared/compareCodeUnits'
 import { toProjectDirName, type ProjectDirName } from './ids'
 import { readDirentsOrEmpty } from './readDirentsOrEmpty'
@@ -14,8 +14,9 @@ export interface ProjectEntry {
 /**
  * Lists the project folders directly under a `projects` directory.
  *
- * Only real directories are returned: `fs.Dirent` never follows symlinks,
- * so a symlink at the top level is skipped rather than resolved. Folder
+ * Only real directories are returned: the port's `readDir`
+ * reports a symlink as `symlink`, never following it, so one at the top level
+ * is skipped rather than resolved. Folder
  * names are never decoded back into a filesystem path.
  *
  * @param projectsDir - The `projects` directory itself; the caller resolves
@@ -26,14 +27,15 @@ export interface ProjectEntry {
  * being missing.
  */
 export async function discoverProjects(projectsDir: string): Promise<ProjectEntry[]> {
-  const root = resolve(projectsDir)
+  const fs = fileSystem()
+  const root = fs.resolvePath(projectsDir)
   const dirents = await readDirentsOrEmpty(root)
 
   const entries = dirents
-    .filter((dirent) => dirent.isDirectory())
+    .filter((dirent) => dirent.kind === 'directory')
     .map((dirent): ProjectEntry => ({
       dirName: toProjectDirName(dirent.name),
-      path: join(root, dirent.name)
+      path: fs.joinPath(root, dirent.name)
     }))
 
   entries.sort((a, b) => compareCodeUnits(a.dirName, b.dirName))
