@@ -1,5 +1,5 @@
-import { lstat } from 'node:fs/promises'
-import { isMissingEntryError } from './isMissingEntryError'
+import { fileSystem } from '../io/installFileSystem'
+import { isMissingEntryError } from '../shared/isMissingEntryError'
 
 /**
  * Reports whether a path is a real, on-disk directory. Uses `lstat`, so a
@@ -14,8 +14,8 @@ import { isMissingEntryError } from './isMissingEntryError'
  */
 export async function isRealDirectory(path: string): Promise<boolean> {
   try {
-    const stats = await lstat(path)
-    return stats.isDirectory()
+    const stats = await fileSystem().lstat(path)
+    return stats.kind === 'directory'
   } catch (error) {
     if (isMissingEntryError(error)) return false
     throw error

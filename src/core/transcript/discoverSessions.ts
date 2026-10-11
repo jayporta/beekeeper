@@ -1,7 +1,7 @@
-import { join, resolve } from 'node:path'
 import { compareCodeUnits } from '../shared/compareCodeUnits'
 import { ok, type Result } from '../shared/result'
 import { captureSystemError } from './captureSystemError'
+import { fileSystem } from '../io/installFileSystem'
 import { discoverSubagents, type SubagentEntry } from './discoverSubagents'
 import { toSessionId, type SessionId } from './ids'
 import { readDirentsOrEmpty } from './readDirentsOrEmpty'
@@ -58,15 +58,16 @@ export interface SessionEntry {
  * system error code, including Node's own `ERR_*` programmer errors.
  */
 export async function discoverSessions(projectPath: string): Promise<SessionEntry[]> {
-  const projectDir = resolve(projectPath)
+  const fs = fileSystem()
+  const projectDir = fs.resolvePath(projectPath)
   const dirents = await readDirentsOrEmpty(projectDir)
 
   const entries: SessionEntry[] = []
   for (const dirent of dirents) {
-    if (!dirent.isFile() || !SESSION_TRANSCRIPT_PATTERN.test(dirent.name)) continue
+    if (dirent.kind !== 'file' || !SESSION_TRANSCRIPT_PATTERN.test(dirent.name)) continue
 
     const transcriptResult = await captureSystemError(() =>
-      statTranscriptFile(join(projectDir, dirent.name))
+      statTranscriptFile(fs.joinPath(projectDir, dirent.name))
     )
 
     let transcript: Result<TranscriptFileInfo, UnreadableError>
@@ -79,7 +80,7 @@ export async function discoverSessions(projectPath: string): Promise<SessionEntr
     }
 
     const sessionId = dirent.name.slice(0, -SESSION_TRANSCRIPT_SUFFIX.length)
-    const sessionDir = join(projectDir, sessionId)
+    const sessionDir = fs.joinPath(projectDir, sessionId)
     const subagents = await captureSystemError(() => discoverSubagents(sessionDir))
 
     entries.push({ sessionId: toSessionId(sessionId), sessionDir, transcript, subagents })

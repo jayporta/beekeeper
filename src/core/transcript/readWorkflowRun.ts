@@ -1,4 +1,4 @@
-import { join } from 'node:path'
+import { fileSystem } from '../io/installFileSystem'
 import { err, ok, type Result } from '../shared/result'
 import { isRealDirectory } from './isRealDirectory'
 import { readBoundedJsonFile, type BoundedJsonErrorReason } from './readBoundedJsonFile'
@@ -47,10 +47,14 @@ export async function readWorkflowRun(
   sessionDir: string,
   runId: WorkflowRunId
 ): Promise<Result<WorkflowRunRecord, WorkflowRunRecordError>> {
-  const workflowsDir = join(sessionDir, 'workflows')
+  const fs = fileSystem()
+  const workflowsDir = fs.joinPath(sessionDir, 'workflows')
   if (!(await isRealDirectory(workflowsDir))) return err({ reason: 'missing' })
 
-  const raw = await readBoundedJsonFile(join(workflowsDir, `${runId}.json`), MAX_RUN_RECORD_BYTES)
+  const raw = await readBoundedJsonFile(
+    fs.joinPath(workflowsDir, `${runId}.json`),
+    MAX_RUN_RECORD_BYTES
+  )
   if (!raw.ok) return raw
 
   const result = workflowRunRecordSchema.safeParse(raw.value)

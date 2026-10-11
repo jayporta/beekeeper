@@ -3,6 +3,8 @@ import { existsSync, watch } from 'node:fs'
 import { join } from 'path'
 import { optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { installFileSystem } from '../core/io/installFileSystem'
+import { nodeFileSystem } from '../core/io/node/nodeFileSystem'
 import { createAppArchiver } from './archive/createAppArchiver'
 import { openArchiveStore } from './archive/openArchiveStore'
 import { wireArchiver } from './archive/wireArchiver'
@@ -19,6 +21,8 @@ import { sendOpenAbout } from './sendOpenAbout'
 import { surfaceWindows } from './surfaceWindows'
 import { describeError } from './describeError'
 import { isFatalLoadFailure } from './startupFailure'
+
+installFileSystem(nodeFileSystem)
 
 // An empty value counts as unset, so every check below agrees on it.
 const devServerUrl = (is.dev && process.env['ELECTRON_RENDERER_URL']) || undefined

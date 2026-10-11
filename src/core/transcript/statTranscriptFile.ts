@@ -1,6 +1,6 @@
-import type { Stats } from 'node:fs'
-import { lstat } from 'node:fs/promises'
-import { isMissingEntryError } from './isMissingEntryError'
+import type { FileStat } from '../io/fileSystemPort'
+import { fileSystem } from '../io/installFileSystem'
+import { isMissingEntryError } from '../shared/isMissingEntryError'
 
 /** A transcript file's location, size and identity on disk, as reported by `lstat`. */
 export interface TranscriptFileInfo {
@@ -25,14 +25,14 @@ export interface TranscriptFileInfo {
  * being missing.
  */
 export async function statTranscriptFile(filePath: string): Promise<TranscriptFileInfo | null> {
-  let stats: Stats
+  let stats: FileStat
   try {
-    stats = await lstat(filePath)
+    stats = await fileSystem().lstat(filePath)
   } catch (error) {
     if (isMissingEntryError(error)) return null
     throw error
   }
-  if (!stats.isFile()) return null
+  if (stats.kind !== 'file') return null
   return {
     path: filePath,
     mtimeMs: stats.mtimeMs,

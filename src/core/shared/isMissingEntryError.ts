@@ -1,4 +1,4 @@
-import { errorCode } from '../shared/errorCode'
+import { errorCode } from './errorCode'
 
 /**
  * Reports whether a caught, unknown error is a Node.js filesystem error for

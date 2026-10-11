@@ -9,6 +9,8 @@ import {
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { installFileSystem } from '../../io/installFileSystem'
+import { nodeFileSystem } from '../../io/node/nodeFileSystem'
 import type { TranscriptFileInfo } from '../statTranscriptFile'
 import { statWrittenTranscript } from '../testStatTranscript'
 import { confirmTailMark, readTailMark, TAIL_MARK_PREFIX_BYTES } from '../tailMark'
@@ -42,7 +44,7 @@ describe('readTailMark', () => {
     expect(mark).toEqual({
       ino: file.ino,
       dev: file.dev,
-      prefix: Buffer.from('{"a":1}\n')
+      prefix: new Uint8Array(Buffer.from('{"a":1}\n'))
     })
   })
 
@@ -239,5 +241,33 @@ describe('confirmTailMark', () => {
     await expect(confirmTailMark({ file, mark, offset: 0 })).rejects.toMatchObject({
       code: 'ENOENT'
     })
+  })
+})
+
+describe('confirmTailMark on a port without file identity', () => {
+  afterEach(() => {
+    installFileSystem(nodeFileSystem)
+  })
+
+  it('confirms by prefix and newline alone when the inode and device are unknown', async () => {
+    const consumed = longLines(60)
+    const served = new Uint8Array(Buffer.from(consumed + longLines(5)))
+    installFileSystem({
+      ...nodeFileSystem,
+      readRange: async (_path, { position, length }) =>
+        served.subarray(position, Math.min(position + length, served.byteLength))
+    })
+    const file: TranscriptFileInfo = {
+      path: '/virtual/session.jsonl',
+      mtimeMs: 0,
+      size: served.byteLength,
+      ino: 0,
+      dev: 0
+    }
+
+    const mark = await readTailMark(file)
+    const confirmed = await confirmTailMark({ file, mark, offset: Buffer.byteLength(consumed) })
+
+    expect(confirmed).toEqual(mark)
   })
 })
