@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import type { ReadStream } from 'node:fs'
-import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -190,5 +190,43 @@ describe('nodeFileSystem path helpers', () => {
 
   it('resolves a relative path to an absolute one', () => {
     expect(nodeFileSystem.resolvePath('/a/b/../c')).toBe('/a/c')
+  })
+})
+
+describe('nodeFileSystem.realPath', () => {
+  it('resolves a path reached through a symlink to its target', async () => {
+    await mkdir(join(dir, 'real'))
+    await symlink(join(dir, 'real'), join(dir, 'link'))
+
+    expect(await nodeFileSystem.realPath(join(dir, 'link'))).toBe(await realpath(join(dir, 'real')))
+  })
+
+  it('rejects with ENOENT for a missing path', async () => {
+    await expect(nodeFileSystem.realPath(join(dir, 'missing'))).rejects.toMatchObject({
+      code: 'ENOENT'
+    })
+  })
+})
+
+describe('nodeFileSystem.readLink', () => {
+  it('returns a relative target as written', async () => {
+    await writeFile(join(dir, 'file.txt'), 'x')
+    await symlink('file.txt', join(dir, 'link'))
+
+    expect(await nodeFileSystem.readLink(join(dir, 'link'))).toBe('file.txt')
+  })
+
+  it('rejects with EINVAL for a regular file', async () => {
+    await writeFile(join(dir, 'file.txt'), 'x')
+
+    await expect(nodeFileSystem.readLink(join(dir, 'file.txt'))).rejects.toMatchObject({
+      code: 'EINVAL'
+    })
+  })
+
+  it('rejects with ENOENT for a missing path', async () => {
+    await expect(nodeFileSystem.readLink(join(dir, 'missing'))).rejects.toMatchObject({
+      code: 'ENOENT'
+    })
   })
 })

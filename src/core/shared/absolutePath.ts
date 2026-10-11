@@ -9,3 +9,6 @@
 export function isAbsolutePath(path: string): boolean {
   return path.startsWith('/')
 }
+
+/** The separator of core paths, which are always POSIX. */
+export const PATH_SEPARATOR = '/'

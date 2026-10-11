@@ -1,3 +1,6 @@
+import { concatBytes } from '../shared/concatBytes'
+import { decodeLatin1 } from '../shared/decodeLatin1'
+import { decodeUtf8 } from '../shared/decodeUtf8'
 import { err, ok, type Result } from '../shared/result'
 
 /** One changed file's patch, cut from `git diff --raw -z --patch` output. */
@@ -7,7 +10,7 @@ export interface PatchFile {
   /** The path a rename or copy came from. Repo-controlled. */
   readonly oldPath?: string
   /** The file's whole patch, header lines included, as git wrote it. Not necessarily valid UTF-8. */
-  readonly patch: Buffer
+  readonly patch: Uint8Array
 }
 
 /** Why {@link parseDiffPatch} could not read git's output. */
@@ -15,8 +18,8 @@ export type ParseDiffPatchError = 'malformed-numstat'
 
 /** One record of the raw section: a changed file and, for a rename or copy, where it came from. */
 interface RawEntry {
-  readonly path: Buffer
-  readonly oldPath: Buffer | undefined
+  readonly path: Uint8Array
+  readonly oldPath: Uint8Array | undefined
   /** Whether git reported a type change (status `T`), such as a file turned into a symlink. */
   readonly typeChange: boolean
 }
@@ -24,6 +27,8 @@ interface RawEntry {
 const COLON = 0x3a
 const NEWLINE = 0x0a
 const HEADER_PREFIX = 'diff --git '
+const BLOCK_MARKER = `\n${HEADER_PREFIX}`
+const OFFSET_DECODER = new TextDecoder('windows-1252')
 const CONTROL_ESCAPES: ReadonlyMap<number, string> = new Map([
   [0x07, 'a'],
   [0x08, 'b'],
@@ -35,10 +40,13 @@ const CONTROL_ESCAPES: ReadonlyMap<number, string> = new Map([
 ])
 
 /** Reads one NUL-terminated field. */
-function readField(buffer: Buffer, from: number): { value: Buffer; next: number } | undefined {
-  const end = buffer.indexOf(0, from)
+function readField(
+  bytes: Uint8Array,
+  from: number
+): { value: Uint8Array; next: number } | undefined {
+  const end = bytes.indexOf(0, from)
   if (end === -1) return undefined
-  return { value: buffer.subarray(from, end), next: end + 1 }
+  return { value: bytes.subarray(from, end), next: end + 1 }
 }
 
 /**
@@ -46,7 +54,7 @@ function readField(buffer: Buffer, from: number): { value: Buffer; next: number 
  * paths per changed file, then an empty record that ends the section.
  */
 function parseRaw(
-  stdout: Buffer
+  stdout: Uint8Array
 ): Result<{ entries: RawEntry[]; patchStart: number }, ParseDiffPatchError> {
   const entries: RawEntry[] = []
   let pos = 0
@@ -55,7 +63,7 @@ function parseRaw(
     if (stdout[pos] !== COLON) return err('malformed-numstat')
 
     const meta = readField(stdout, pos + 1)
-    const status = meta?.value.toString('latin1').split(' ')[4]?.[0]
+    const status = meta === undefined ? undefined : decodeLatin1(meta.value).split(' ')[4]?.[0]
     if (meta === undefined || status === undefined) return err('malformed-numstat')
     const first = readField(stdout, meta.next)
     if (first === undefined || first.value.length === 0) return err('malformed-numstat')
@@ -103,8 +111,8 @@ function quoteName(name: string, quoteHigh: boolean): string {
  * non-ASCII bytes, since a repository's config sets that.
  */
 function expectedHeaders(entry: RawEntry): Set<string> {
-  const oldName = `a/${(entry.oldPath ?? entry.path).toString('latin1')}`
-  const newName = `b/${entry.path.toString('latin1')}`
+  const oldName = `a/${decodeLatin1(entry.oldPath ?? entry.path)}`
+  const newName = `b/${decodeLatin1(entry.path)}`
   return new Set(
     [true, false].map(
       (quoteHigh) =>
@@ -117,12 +125,18 @@ function expectedHeaders(entry: RawEntry): Set<string> {
  * Finds where each file's block starts. A header is the only kind of line
  * that starts with `diff --git `: every line of a patch's body starts with a
  * space, a plus, a minus, `@`, or a backslash.
+ *
+ * @remarks
+ * The patch is decoded as windows-1252 only to locate an ASCII marker. That
+ * decoder turns every byte into exactly one UTF-16 code unit, so a string index
+ * is a byte offset. It is never used as text: {@link decodeLatin1} and
+ * {@link decodeUtf8} stay the decoders for the bytes.
  */
-function blockStarts(patch: Buffer): number[] {
+function blockStarts(patch: Uint8Array): number[] {
+  const text = OFFSET_DECODER.decode(patch)
   const starts: number[] = []
-  if (patch.subarray(0, HEADER_PREFIX.length).toString('latin1') === HEADER_PREFIX) starts.push(0)
-  const marker = Buffer.from(`\n${HEADER_PREFIX}`)
-  for (let at = patch.indexOf(marker); at !== -1; at = patch.indexOf(marker, at + 1)) {
+  if (text.startsWith(HEADER_PREFIX)) starts.push(0)
+  for (let at = text.indexOf(BLOCK_MARKER); at !== -1; at = text.indexOf(BLOCK_MARKER, at + 1)) {
     starts.push(at + 1)
   }
   return starts
@@ -145,7 +159,7 @@ function blockStarts(patch: Buffer): number[] {
  * @param stdout - git's output for `--raw -z --patch` with fixed `a/` and `b/` prefixes.
  * @returns The files that have a patch, in git's order.
  */
-export function parseDiffPatch(stdout: Buffer): Result<PatchFile[], ParseDiffPatchError> {
+export function parseDiffPatch(stdout: Uint8Array): Result<PatchFile[], ParseDiffPatchError> {
   if (stdout.length === 0) return ok([])
   const raw = parseRaw(stdout)
   if (!raw.ok) return err(raw.error)
@@ -160,14 +174,14 @@ export function parseDiffPatch(stdout: Buffer): Result<PatchFile[], ParseDiffPat
   for (const [index, start] of starts.entries()) {
     const block = patch.subarray(start, starts[index + 1] ?? patch.length)
     const lineEnd = block.indexOf(NEWLINE)
-    const header = block.subarray(0, lineEnd === -1 ? block.length : lineEnd).toString('latin1')
+    const header = decodeLatin1(block.subarray(0, lineEnd === -1 ? block.length : lineEnd))
     const last = files.at(-1)
     if (
       awaitingSecondBlock !== undefined &&
       last !== undefined &&
       expectedHeaders(awaitingSecondBlock).has(header)
     ) {
-      files[files.length - 1] = { ...last, patch: Buffer.concat([last.patch, block]) }
+      files[files.length - 1] = { ...last, patch: concatBytes([last.patch, block]) }
       awaitingSecondBlock = undefined
       continue
     }
@@ -179,8 +193,8 @@ export function parseDiffPatch(stdout: Buffer): Result<PatchFile[], ParseDiffPat
     }
     if (entry === undefined) return err('malformed-numstat')
     files.push({
-      path: entry.path.toString('utf-8'),
-      ...(entry.oldPath === undefined ? {} : { oldPath: entry.oldPath.toString('utf-8') }),
+      path: decodeUtf8(entry.path),
+      ...(entry.oldPath === undefined ? {} : { oldPath: decodeUtf8(entry.oldPath) }),
       patch: block
     })
     if (entry.typeChange) awaitingSecondBlock = entry

@@ -1,4 +1,6 @@
 import { fileSystem } from '../io/installFileSystem'
+import { concatBytes } from '../shared/concatBytes'
+import { decodeUtf8 } from '../shared/decodeUtf8'
 import { err, ok, type Result } from '../shared/result'
 import { splitCompleteUtf8 } from './splitCompleteUtf8'
 
@@ -97,9 +99,8 @@ export async function* readJsonlLines(
   const { cursor } = options
   const startOffset = options.start ?? 0
   const maxLineChars = options.maxLineChars ?? DEFAULT_MAX_LINE_CHARS
-  // Chunks are decoded whole, without the decoder's `stream` option, which not
+  // Chunks are decoded whole, without a decoder's `stream` option, which not
   // every runtime honors; `carry` holds the bytes of a character a chunk cut short.
-  const decoder = new TextDecoder('utf-8', { ignoreBOM: true })
   let carry: Uint8Array = new Uint8Array(0)
   // Only the start of the file can carry a byte order mark, so a read from a
   // later line keeps a mark there, as a full read does.
@@ -126,9 +127,9 @@ export async function* readJsonlLines(
       if (next.done) break
 
       const chunk = next.value
-      const split = splitCompleteUtf8(carry.length > 0 ? concatBytes(carry, chunk) : chunk)
+      const split = splitCompleteUtf8(carry.length > 0 ? concatBytes([carry, chunk]) : chunk)
       carry = split.rest
-      let text = decoder.decode(split.complete)
+      let text = decodeUtf8(split.complete)
       if (dropLeadingBom && text.length > 0) {
         dropLeadingBom = false
         if (text.startsWith(BYTE_ORDER_MARK)) text = text.slice(1)
@@ -188,14 +189,6 @@ export async function* readJsonlLines(
   } finally {
     await chunks.return?.()
   }
-}
-
-/** Joins a carried partial character to the chunk that completes it. */
-function concatBytes(head: Uint8Array, tail: Uint8Array): Uint8Array {
-  const joined = new Uint8Array(head.length + tail.length)
-  joined.set(head)
-  joined.set(tail, head.length)
-  return joined
 }
 
 /** Whether the last non-empty piece ends with `\r`. */

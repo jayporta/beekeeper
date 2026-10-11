@@ -1,5 +1,5 @@
-import { lstat, readlink } from 'node:fs/promises'
-import { dirname, isAbsolute, join, sep } from 'node:path'
+import { fileSystem } from '../io/installFileSystem'
+import { isAbsolutePath, PATH_SEPARATOR } from '../shared/absolutePath'
 import { isAbsolutePathWithinCap } from '../shared/boundedPath'
 import { errorCode } from '../shared/errorCode'
 import { err, ok, type Result } from '../shared/result'
@@ -71,7 +71,7 @@ export interface ResolveInsideOptions {
 
 /** Splits path text into its non-empty components. */
 function components(text: string): string[] {
-  return text.split(sep).filter((component) => component !== '')
+  return text.split(PATH_SEPARATOR).filter((component) => component !== '')
 }
 
 /**
@@ -100,10 +100,11 @@ export async function resolveInside(
   options: ResolveInsideOptions
 ): Promise<Result<string, ResolveInsideError>> {
   const { root, path } = options
+  const fs = fileSystem()
   const run = withWalkBudget(options.fsRunner ?? defaultFsRunner, Date.now() + MAX_WALK_MS)
   if (!isAbsolutePathWithinCap(path)) return err('too-long')
   if (path === root) return ok(root)
-  const prefix = root.endsWith(sep) ? root : root + sep
+  const prefix = root.endsWith(PATH_SEPARATOR) ? root : root + PATH_SEPARATOR
   if (!path.startsWith(prefix)) return err('escapes-root')
 
   const pending = components(path.slice(prefix.length))
@@ -117,18 +118,18 @@ export async function resolveInside(
     if (steps > MAX_WALK_STEPS) return err('too-many-steps')
     if (next === '.') continue
     if (next === '..') {
-      current = dirname(current)
+      current = fs.joinPath(current, '..')
       if (!isInside(root, current)) return err('escapes-root')
       continue
     }
 
-    const candidate = join(current, next)
+    const candidate = fs.joinPath(current, next)
     let target: string | undefined
     let isDirectory = false
     try {
-      const stats = await run(() => lstat(candidate))
-      isDirectory = stats.isDirectory()
-      if (stats.isSymbolicLink()) target = await run(() => readlink(candidate))
+      const stats = await run(() => fs.lstat(candidate))
+      isDirectory = stats.kind === 'directory'
+      if (stats.kind === 'symlink') target = await run(() => fs.readLink(candidate))
     } catch (error) {
       if (isFsTimeout(error)) return err('timeout')
       const code = errorCode(error)
@@ -145,7 +146,7 @@ export async function resolveInside(
 
     hops += 1
     if (hops > MAX_LINK_HOPS) return err('too-many-links')
-    if (isAbsolute(target)) {
+    if (isAbsolutePath(target)) {
       const insideRoot = target === root || target.startsWith(prefix)
       if (!insideRoot || components(target).includes('..')) return err('escapes-root')
       pending.unshift(...components(target.slice(root.length)))

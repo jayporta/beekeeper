@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isAbsolutePath } from '../absolutePath'
+import { isAbsolutePath, PATH_SEPARATOR } from '../absolutePath'
 
 describe('isAbsolutePath', () => {
   it('accepts an absolute path', () => {
@@ -16,5 +16,12 @@ describe('isAbsolutePath', () => {
 
   it('rejects a Windows-style absolute path', () => {
     expect(isAbsolutePath('C:\\repo\\src')).toBe(false)
+  })
+})
+
+describe('PATH_SEPARATOR', () => {
+  it('is the POSIX separator that absolute paths start with', () => {
+    expect(PATH_SEPARATOR).toBe('/')
+    expect(isAbsolutePath(`${PATH_SEPARATOR}repo`)).toBe(true)
   })
 })

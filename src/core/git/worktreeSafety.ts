@@ -1,5 +1,6 @@
-import { lstat, realpath } from 'node:fs/promises'
+import { fileSystem } from '../io/installFileSystem'
 import { isAbsolutePath } from '../shared/absolutePath'
+import { decodeUtf8 } from '../shared/decodeUtf8'
 import { errorCode } from '../shared/errorCode'
 import { err, ok, type Result } from '../shared/result'
 import { defaultFsRunner, isFsTimeout, type FsRunner } from './fsDeadline'
@@ -40,7 +41,7 @@ interface GitTextOptions {
 async function gitText(options: GitTextOptions): Promise<Result<string | undefined, GitRunError>> {
   const result = await runGit(options)
   if (!result.ok) return err(result.error)
-  const text = result.value.stdout.toString('utf-8').trim()
+  const text = decodeUtf8(result.value.stdout).trim()
   return ok(result.value.exitCode === 0 ? text : undefined)
 }
 
@@ -50,8 +51,9 @@ async function gitText(options: GitTextOptions): Promise<Result<string | undefin
  * directory that can't be read.
  */
 async function isMissing(path: string, run: FsRunner): Promise<Result<boolean, 'timeout'>> {
+  const fs = fileSystem()
   try {
-    await run(() => lstat(path))
+    await run(() => fs.lstat(path))
     return ok(false)
   } catch (error) {
     if (isFsTimeout(error)) return err('timeout')
@@ -69,9 +71,10 @@ async function realpathOrUndefined(
   path: string | undefined,
   run: FsRunner
 ): Promise<Result<string | undefined, 'timeout'>> {
+  const fs = fileSystem()
   if (path === undefined || path.length === 0) return ok(undefined)
   try {
-    return ok(await run(() => realpath(path)))
+    return ok(await run(() => fs.realPath(path)))
   } catch (error) {
     if (isFsTimeout(error)) return err('timeout')
     return ok(undefined)

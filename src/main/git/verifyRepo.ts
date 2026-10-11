@@ -3,6 +3,7 @@ import { defaultFsRunner, isFsTimeout, type FsRunner } from '../../core/git/fsDe
 import type { GitBinary } from '../../core/git/gitBinary'
 import { runGit, type GitRunError } from '../../core/git/runGit'
 import { isAbsolutePath } from '../../core/shared/absolutePath'
+import { decodeUtf8 } from '../../core/shared/decodeUtf8'
 import { err, ok, type Result } from '../../core/shared/result'
 
 /** Why a directory could not be confirmed as a repository. */
@@ -53,7 +54,7 @@ export async function verifyRepo(
   })
   if (!output.ok) return err(output.error)
   if (output.value.exitCode !== 0) return err('not-a-repo')
-  const top = output.value.stdout.toString('utf-8').trim()
+  const top = decodeUtf8(output.value.stdout).trim()
   if (!isAbsolutePath(top)) return err('not-a-repo')
   try {
     return ok(await run(() => realpath(top)))

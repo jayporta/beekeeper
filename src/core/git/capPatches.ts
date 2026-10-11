@@ -1,3 +1,4 @@
+import { decodeUtf8 } from '../shared/decodeUtf8'
 import type { PatchFile } from './parseDiffPatch'
 
 /** The most bytes of one file's patch that are kept: 200 KB. */
@@ -37,7 +38,7 @@ export interface PatchLimits {
 const DEFAULT_LIMITS: PatchLimits = { perFile: MAX_FILE_PATCH_BYTES, total: MAX_TOTAL_PATCH_BYTES }
 
 /** How many bytes at the end of `bytes` start a UTF-8 character that the bytes cut short. */
-function incompleteTail(bytes: Buffer): number {
+function incompleteTail(bytes: Uint8Array): number {
   for (let at = bytes.length - 1; at >= Math.max(0, bytes.length - 3); at -= 1) {
     const byte = bytes[at] ?? 0
     if ((byte & 0xc0) === 0x80) continue
@@ -48,7 +49,7 @@ function incompleteTail(bytes: Buffer): number {
 }
 
 /** Cuts a patch to at most `limit` bytes at a whole line, or when it has none, at a whole character. */
-function cutBytes(patch: Buffer, limit: number): Buffer {
+function cutBytes(patch: Uint8Array, limit: number): Uint8Array {
   const head = patch.subarray(0, limit)
   const lastLine = head.lastIndexOf(0x0a)
   if (lastLine !== -1) return head.subarray(0, lastLine + 1)
@@ -79,12 +80,12 @@ export function capPatches(
     }
     if (file.patch.length <= allowed) {
       remaining -= file.patch.length
-      return { ...base, patch: file.patch.toString('utf-8'), truncated: false }
+      return { ...base, patch: decodeUtf8(file.patch), truncated: false }
     }
     if (remaining < limits.perFile) truncatedTotal = true
     const kept = cutBytes(file.patch, allowed)
     remaining -= kept.length
-    return { ...base, patch: kept.toString('utf-8'), truncated: true }
+    return { ...base, patch: decodeUtf8(kept), truncated: true }
   })
   return { files: capped, truncatedTotal }
 }
