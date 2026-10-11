@@ -10,7 +10,7 @@ import { describeError } from '../core/shared/describeError'
  * or class, never by message. Other codes are expected outcomes and log
  * nothing.
  *
- * @param error - The value caught from a failed handler.
+ * @param error - The value caught from a failed service call or read.
  * @param log - Receives the one-line log of an `internal` failure. Defaults to `console.error`.
  * @returns `not-found` for a missing entry, `unreadable` for a permission
  * failure, and `internal` for everything else.

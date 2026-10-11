@@ -3,7 +3,13 @@ import { errorWithCode } from '../../../core/shared/testErrorWithCode'
 import type { SessionRefDto } from '../../../shared/ipc/sessionRefDto'
 import { createFakeArchive } from '../../../service/archive/testFakeArchive'
 import { guardArchive } from '../guardArchive'
-import { testDetail } from '../../../service/archive/testArchiveFixtures'
+import {
+  listEntry,
+  TEST_LEAD_SLOTS,
+  testDetail,
+  testListItem
+} from '../../../service/archive/testArchiveFixtures'
+import { sessionRefKey } from '../../../service/sessions/sessionRefKey'
 import { collectLog } from '../testCollectLog'
 
 const ref: SessionRefDto = { projectDirName: '-p', sessionId: 's' }
@@ -11,12 +17,23 @@ const source = { mtimeMs: 1, size: 1 }
 const detail = testDetail()
 
 describe('guardArchive', () => {
-  it('answers reads from the store when it works', () => {
+  it('passes reads and writes through to the store when it works', () => {
     const { lines, log } = collectLog()
-    const archive = guardArchive(createFakeArchive(undefined, { details: new Map() }), log)
+    const item = testListItem({ projectDirName: ref.projectDirName, sessionId: ref.sessionId })
+    const store = createFakeArchive(undefined, {
+      listItems: [item],
+      leadSlots: new Map([[sessionRefKey(ref), TEST_LEAD_SLOTS]]),
+      details: new Map([[sessionRefKey(ref), detail]])
+    })
+    const archive = guardArchive(store, log)
 
-    expect(archive.readSessions('-p', new Set())).toEqual([])
-    expect(archive.readDetail(ref)).toBeNull()
+    expect(archive.readSessions('-p', new Set())).toEqual([{ item, teamSpawns: null }])
+    expect(archive.readLeadSlots(ref)).toBe(TEST_LEAD_SLOTS)
+    expect(archive.readDetail(ref)).toBe(detail)
+    archive.saveListItems([listEntry(item, source)])
+    archive.saveDetail(ref, { detail, source })
+    expect(store.listSaves).toEqual([listEntry(item, source)])
+    expect(store.detailSaves).toEqual([{ ref, detail, source }])
     expect(lines).toEqual([])
   })
 
