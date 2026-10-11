@@ -12,7 +12,9 @@ describe('core Node bans', () => {
   it.each([
     "import { readFile } from 'node:fs/promises'",
     "import { join } from 'path'",
-    "import { createReadStream } from 'fs'"
+    "import { createReadStream } from 'fs'",
+    "import { createHash } from 'crypto'",
+    "import { StringDecoder } from 'string_decoder'"
   ])('bans a Node module import in core: %s', async (statement) => {
     const rules = await reportedRules(CORE_FILE, `${statement}\nexport const s = 1\n`)
 

@@ -32,7 +32,10 @@ export interface ConfirmTailMarkOptions {
 /** Reports whether two byte sequences hold the same bytes. */
 function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
   if (a.byteLength !== b.byteLength) return false
-  return a.every((byte, index) => byte === b[index])
+  for (let index = 0; index < a.byteLength; index++) {
+    if (a[index] !== b[index]) return false
+  }
+  return true
 }
 
 /** Reads the file's first {@link TAIL_MARK_PREFIX_BYTES} bytes, fewer for a shorter file. */

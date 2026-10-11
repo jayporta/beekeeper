@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { splitCompleteUtf8 } from '../decodeCompleteUtf8'
+import { splitCompleteUtf8 } from '../splitCompleteUtf8'
 
 function split(...bytes: number[]): { complete: number[]; rest: number[] } {
   const result = splitCompleteUtf8(Uint8Array.from(bytes))
@@ -28,6 +28,14 @@ describe('splitCompleteUtf8', () => {
 
   it('carries a lone four-byte lead byte', () => {
     expect(split(0x61, 0xf0)).toEqual({ complete: [0x61], rest: [0xf0] })
+  })
+
+  it('carries three of the four bytes of an emoji', () => {
+    expect(split(0x61, 0xf0, 0x9f, 0x98)).toEqual({ complete: [0x61], rest: [0xf0, 0x9f, 0x98] })
+  })
+
+  it('carries two of the four bytes of an emoji', () => {
+    expect(split(0x61, 0xf0, 0x9f)).toEqual({ complete: [0x61], rest: [0xf0, 0x9f] })
   })
 
   it('carries a two-byte lead byte with no continuation', () => {
