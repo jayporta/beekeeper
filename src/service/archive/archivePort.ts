@@ -67,8 +67,7 @@ export interface ArchiveWriter {
    * whose source state changed is rewritten, and keeps its detail only when
    * that detail was scanned from the new state. A row stored in another format
    * is rewritten and loses its detail. When a write fails, the whole batch is
-   * rolled back and the error is thrown, and the store behaves as if none of
-   * it had been saved.
+   * rolled back, and the store behaves as if none of it had been saved.
    *
    * A row stored without its team spawns and lead slots (one written before
    * they were kept) counts as out of date, so it is rewritten once with them,

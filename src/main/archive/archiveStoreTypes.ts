@@ -6,7 +6,11 @@ import type {
   SourceState
 } from '../../service/archive/archivePort'
 
-/** The archive store. Errors from SQLite propagate to the caller. */
+/**
+ * The archive store. Unlike the services' archive port, its methods throw:
+ * errors from SQLite propagate to the caller. Wrap it in `guardArchive`
+ * before handing it to a service.
+ */
 export interface ArchiveStore extends ArchiveWriter, ArchiveReader {
   /**
    * Whether the stored list item was built from this source state, at the

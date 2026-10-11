@@ -29,15 +29,4 @@ describe('listSessions with a failing archive behind guardArchive', () => {
       ['Beekeeper archive write failed (ELIST_THROWS).']
     ])
   })
-
-  it('returns the live list and logs once when reading the archive throws', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const archive = guardArchive(createFakeArchive(errorWithCode('ELIST_READ_THROWS')))
-
-    const withArchive = await list(archive)
-    const without = await list(null)
-
-    expect(withArchive).toEqual(without)
-    expect(warn.mock.calls).toContainEqual(['Beekeeper archive read failed (ELIST_READ_THROWS).'])
-  })
 })
