@@ -1,8 +1,8 @@
 import { discoverSessions, type SessionEntry } from '../../core/transcript/discoverSessions'
 import { findProject } from '../../service/projects/findProject'
 import type { IpcDeps } from '../ipc/ipcDeps'
-import { archiveSessionDetail } from '../ipc/archiveSessionDetail'
-import { scanSessionDetail } from '../ipc/scanSessionDetail'
+import { archiveSessionDetail } from '../../service/sessionDetail/archiveSessionDetail'
+import { scanSessionDetail } from '../../service/sessionDetail/scanSessionDetail'
 import type { ArchivableProject } from './createArchiver'
 
 /** Options for {@link openArchivableProject}. */

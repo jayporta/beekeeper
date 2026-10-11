@@ -1,12 +1,12 @@
 import { discoverSessions } from '../../core/transcript/discoverSessions'
 import type { TranscriptFileInfo } from '../../core/transcript/statTranscriptFile'
 import type { IpcErrorCode, IpcResult } from '../../shared/ipc/ipcResult'
-import { getSessionRequestSchema } from '../../shared/ipc/requestSchemas'
+import type { GetSessionRequest } from '../../shared/ipc/requestSchemas'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
-import { findProject, type FoundSession } from '../../service/projects/findProject'
-import type { IpcDeps } from './ipcDeps'
-import { errResult, okResult } from '../../service/ipcResults'
-import { toIpcErrorCode } from '../../service/toIpcErrorCode'
+import { findProject, type FoundSession } from '../projects/findProject'
+import type { ServiceDeps } from '../serviceDeps'
+import { errResult, okResult } from '../ipcResults'
+import { toIpcErrorCode } from '../toIpcErrorCode'
 
 /** A session a renderer request named, found in a fresh listing. */
 export interface RequestedSession {
@@ -23,30 +23,26 @@ export interface RequestedSession {
 /** What looking up a requested session found. */
 export type RequestedSessionLookup =
   | { readonly kind: 'found'; readonly session: RequestedSession }
-  /** The request was valid and its project is listed, but the project has no such session. */
+  /** The request's project is listed, but the project has no such session. */
   | { readonly kind: 'session-missing'; readonly ref: SessionRefDto }
   | { readonly kind: 'error'; readonly code: IpcErrorCode }
 
 /**
- * Validates a session request and looks its session up in fresh listings,
- * telling a session missing from a listed project apart from every other
- * failure.
+ * Looks a requested session up in fresh listings, telling a session missing
+ * from a listed project apart from every other failure.
  *
  * @param deps - The projects root.
- * @param payload - The renderer's payload, validated here.
+ * @param request - A request parsed by `getSessionRequestSchema`, which keeps
+ * its folder name and session id path-free.
  * @returns The session; `session-missing` with the request when the project
- * is listed but the session isn't; or an error with `invalid-request` for a
- * bad payload, `not-found` for a project that isn't listed, or the code for
- * an unreadable transcript.
+ * is listed but the session isn't; or an error with `not-found` for a project
+ * that isn't listed, or the code for an unreadable transcript.
  */
 export async function lookupRequestedSession(
-  deps: Pick<IpcDeps, 'projectsRoot'>,
-  payload: unknown
+  deps: Pick<ServiceDeps, 'projectsRoot'>,
+  request: GetSessionRequest
 ): Promise<RequestedSessionLookup> {
-  const request = getSessionRequestSchema.safeParse(payload)
-  if (!request.success) return { kind: 'error', code: 'invalid-request' }
-
-  const { projectDirName, sessionId } = request.data
+  const { projectDirName, sessionId } = request
   const project = await findProject(deps.projectsRoot, projectDirName)
   if (project === undefined) return { kind: 'error', code: 'not-found' }
 
@@ -68,19 +64,20 @@ export async function lookupRequestedSession(
 }
 
 /**
- * Validates a session request and finds its session in fresh listings.
+ * Finds a requested session in fresh listings.
  *
  * @param deps - The projects root.
- * @param payload - The renderer's payload, validated here.
- * @returns The requested session, `invalid-request` for a bad payload,
+ * @param request - A request parsed by `getSessionRequestSchema`, which keeps
+ * its folder name and session id path-free.
+ * @returns The requested session,
  * `not-found` when the project or session isn't listed, or the code for an
  * unreadable transcript.
  */
 export async function findRequestedSession(
-  deps: Pick<IpcDeps, 'projectsRoot'>,
-  payload: unknown
+  deps: Pick<ServiceDeps, 'projectsRoot'>,
+  request: GetSessionRequest
 ): Promise<IpcResult<RequestedSession>> {
-  const lookup = await lookupRequestedSession(deps, payload)
+  const lookup = await lookupRequestedSession(deps, request)
   if (lookup.kind === 'found') return okResult(lookup.session)
   return errResult(lookup.kind === 'error' ? lookup.code : 'not-found')
 }

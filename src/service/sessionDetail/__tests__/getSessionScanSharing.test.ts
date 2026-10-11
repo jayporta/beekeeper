@@ -1,17 +1,17 @@
 import { chmod, mkdir, rename, rm, utimes, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { getSessionHandler } from '../getSessionHandler'
-import type { IpcDeps } from '../ipcDeps'
-import { NO_SCAN_CACHE, TEST_PROJECT, TEST_SESSION_ID } from '../../../service/testServiceTree'
-import { registerIpcTestTree } from '../testIpcTree'
+import { getSession } from '../getSession'
+import type { ServiceDeps } from '../../serviceDeps'
+import { NO_SCAN_CACHE, TEST_PROJECT, TEST_SESSION_ID } from '../../testServiceTree'
+import { registerServiceTestTree } from '../../testServiceTree'
 
-const ctx = registerIpcTestTree()
+const ctx = registerServiceTestTree()
 const request = { projectDirName: TEST_PROJECT, sessionId: TEST_SESSION_ID }
 
-describe('getSessionHandler scan sharing', () => {
+describe('getSession scan sharing', () => {
   /** Records the keys the handler asks the scheduler to run. */
-  function recordKeys(keys: string[]): IpcDeps['scans'] {
+  function recordKeys(keys: string[]): ServiceDeps['scans'] {
     return {
       run: (key, task) => {
         keys.push(key)
@@ -27,8 +27,8 @@ describe('getSessionHandler scan sharing', () => {
       scans: recordKeys(keys),
       scanCache: NO_SCAN_CACHE
     }
-    await getSessionHandler(deps, request)
-    await getSessionHandler(deps, request)
+    await getSession(deps, request)
+    await getSession(deps, request)
     expect(keys[0]).toBe(keys[1])
   })
 
@@ -39,9 +39,9 @@ describe('getSessionHandler scan sharing', () => {
       scans: recordKeys(keys),
       scanCache: NO_SCAN_CACHE
     }
-    await getSessionHandler(deps, request)
+    await getSession(deps, request)
     await utimes(ctx.tree.sessionPath, new Date(), new Date(1_000_000))
-    await getSessionHandler(deps, request)
+    await getSession(deps, request)
     expect(keys[0]).not.toBe(keys[1])
   })
 
@@ -55,10 +55,10 @@ describe('getSessionHandler scan sharing', () => {
         scanCache: NO_SCAN_CACHE
       }
       const subagentsDir = join(dirname(ctx.tree.sessionPath), TEST_SESSION_ID, 'subagents')
-      await getSessionHandler(deps, request)
+      await getSession(deps, request)
       await chmod(subagentsDir, 0o000)
       try {
-        await getSessionHandler(deps, request)
+        await getSession(deps, request)
       } finally {
         await chmod(subagentsDir, 0o755)
       }
@@ -79,9 +79,9 @@ describe('getSessionHandler scan sharing', () => {
       'subagents',
       'agent-a1.jsonl'
     )
-    await getSessionHandler(deps, request)
+    await getSession(deps, request)
     await utimes(subagentPath, new Date(), new Date(1_000_000))
-    await getSessionHandler(deps, request)
+    await getSession(deps, request)
     expect(keys[0]).not.toBe(keys[1])
   })
 
@@ -98,9 +98,9 @@ describe('getSessionHandler scan sharing', () => {
       'subagents',
       'agent-a1.meta.json'
     )
-    await getSessionHandler(deps, request)
+    await getSession(deps, request)
     await rm(metaPath)
-    await getSessionHandler(deps, request)
+    await getSession(deps, request)
     expect(keys[0]).not.toBe(keys[1])
   })
 
@@ -120,9 +120,9 @@ describe('getSessionHandler scan sharing', () => {
         scans: recordKeys(keys),
         scanCache: NO_SCAN_CACHE
       }
-      await getSessionHandler(deps, request)
+      await getSession(deps, request)
       await utimes(join(workflowsDir(), 'wf_a', 'agent-w1.jsonl'), new Date(), new Date(1_000_000))
-      await getSessionHandler(deps, request)
+      await getSession(deps, request)
       expect(keys[0]).not.toBe(keys[1])
     })
 
@@ -133,9 +133,9 @@ describe('getSessionHandler scan sharing', () => {
         scans: recordKeys(keys),
         scanCache: NO_SCAN_CACHE
       }
-      await getSessionHandler(deps, request)
+      await getSession(deps, request)
       await writeFile(join(workflowsDir(), 'wf_a', 'agent-w2.jsonl'), '{}\n')
-      await getSessionHandler(deps, request)
+      await getSession(deps, request)
       expect(keys[0]).not.toBe(keys[1])
     })
 
@@ -146,9 +146,9 @@ describe('getSessionHandler scan sharing', () => {
         scans: recordKeys(keys),
         scanCache: NO_SCAN_CACHE
       }
-      await getSessionHandler(deps, request)
+      await getSession(deps, request)
       await rename(join(workflowsDir(), 'wf_a'), join(workflowsDir(), 'wf_b'))
-      await getSessionHandler(deps, request)
+      await getSession(deps, request)
       expect(keys[0]).not.toBe(keys[1])
     })
   })
@@ -160,8 +160,8 @@ describe('getSessionHandler scan sharing', () => {
       scans: recordKeys(keys),
       scanCache: ctx.deps.scanCache
     }
-    await getSessionHandler(deps, request)
-    await getSessionHandler(deps, request)
+    await getSession(deps, request)
+    await getSession(deps, request)
     expect(keys).toHaveLength(1)
   })
 })

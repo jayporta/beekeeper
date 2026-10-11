@@ -1,14 +1,15 @@
 import * as fs from 'node:fs'
 import { appendFile, utimes } from 'node:fs/promises'
+import { join } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAgentScanCache } from '../../../core/session/agentScanCache'
 import { RESUME_RECENT_MS } from '../../../core/transcript/resumableScan'
 import { buildAssistantRecord, buildJsonlText } from '../../../core/transcript/testFixtures'
 import { startsDuring } from '../../../core/transcript/testReadStarts'
-import { createIpcDeps } from '../createIpcDeps'
-import { getSessionHandler } from '../getSessionHandler'
-import { NO_SCAN_CACHE, TEST_PROJECT, TEST_SESSION_ID } from '../../../service/testServiceTree'
-import { registerIpcTestTree } from '../testIpcTree'
+import { createServiceDeps } from '../../createServiceDeps'
+import { getSession } from '../getSession'
+import { NO_SCAN_CACHE, TEST_PROJECT, TEST_SESSION_ID } from '../../testServiceTree'
+import { registerServiceTestTree } from '../../testServiceTree'
 
 // Wraps the real `createReadStream` in a spy so a test can see where each
 // read began, which is how a resumed read tells from a rescan.
@@ -17,7 +18,7 @@ vi.mock('node:fs', async (importOriginal) => {
   return { ...actual, createReadStream: vi.fn(actual.createReadStream) }
 })
 
-const ctx = registerIpcTestTree()
+const ctx = registerServiceTestTree()
 const request = { projectDirName: TEST_PROJECT, sessionId: TEST_SESSION_ID }
 
 beforeEach(() => {
@@ -39,14 +40,14 @@ function leadSize(): number {
   return fs.statSync(ctx.tree.sessionPath).size
 }
 
-describe('getSessionHandler resuming transcript scans', () => {
+describe('getSession resuming transcript scans', () => {
   it('reads only the appended bytes of a lead that grew since the last detail scan', async () => {
     const deps = { ...ctx.deps, scanCache: NO_SCAN_CACHE }
-    await getSessionHandler(deps, request)
+    await getSession(deps, request)
     const before = leadSize()
     await appendToLead()
 
-    const starts = await startsDuring(() => getSessionHandler(deps, request))
+    const starts = await startsDuring(() => getSession(deps, request))
 
     // The unchanged subagent is served from its kept scan, so the lead is the only read.
     expect(starts).toEqual([before])
@@ -54,12 +55,15 @@ describe('getSessionHandler resuming transcript scans', () => {
 
   it('returns the detail a scan from scratch returns', async () => {
     const deps = { ...ctx.deps, scanCache: NO_SCAN_CACHE }
-    await getSessionHandler(deps, request)
+    await getSession(deps, request)
     await appendToLead()
 
-    const resumed = await getSessionHandler(deps, request)
-    const fresh = await getSessionHandler(
-      { ...createIpcDeps(ctx.tree.home), scanCache: NO_SCAN_CACHE },
+    const resumed = await getSession(deps, request)
+    const fresh = await getSession(
+      {
+        ...createServiceDeps(join(ctx.tree.home, '.claude', 'projects')),
+        scanCache: NO_SCAN_CACHE
+      },
       request
     )
 
@@ -72,19 +76,19 @@ describe('getSessionHandler resuming transcript scans', () => {
       scanCache: NO_SCAN_CACHE,
       agentScans: createAgentScanCache({ now: () => Date.now() + 2 * RESUME_RECENT_MS })
     }
-    await getSessionHandler(deps, request)
+    await getSession(deps, request)
     await appendToLead()
 
-    const starts = await startsDuring(() => getSessionHandler(deps, request))
+    const starts = await startsDuring(() => getSession(deps, request))
 
     expect(starts).toEqual([0, 0])
   })
 
   it('reads nothing when no transcript changed, even without a cached scan', async () => {
     const deps = { ...ctx.deps, scanCache: NO_SCAN_CACHE }
-    await getSessionHandler(deps, request)
+    await getSession(deps, request)
 
-    const starts = await startsDuring(() => getSessionHandler(deps, request))
+    const starts = await startsDuring(() => getSession(deps, request))
 
     expect(starts).toEqual([])
   })

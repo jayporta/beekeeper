@@ -1,12 +1,16 @@
 import type { IpcResult } from '../../shared/ipc/ipcResult'
 import type { GitAvailabilityDto, WorktreeDiffsDto } from '../../shared/ipc/worktreeDiffDto'
 import { sessionWorktreeDiffs, type AgentWorktreeDiff } from '../git/sessionWorktreeDiffs'
-import { findRequestedSession, type RequestedSession } from './findRequestedSession'
+import { getSessionRequestSchema } from '../../shared/ipc/requestSchemas'
+import {
+  findRequestedSession,
+  type RequestedSession
+} from '../../service/sessionDetail/findRequestedSession'
 import { findSharedWorktree } from './findSharedWorktree'
 import type { IpcDeps } from './ipcDeps'
-import { okResult } from '../../service/ipcResults'
+import { errResult, okResult } from '../../service/ipcResults'
 import { mapWorktreeDiffs } from './mapWorktreeDiffs'
-import { scanFoundSession } from './scanFoundSession'
+import { scanFoundSession } from '../../service/sessionDetail/scanFoundSession'
 
 interface AgentDiffs {
   readonly git: GitAvailabilityDto
@@ -47,7 +51,9 @@ export async function getWorktreeDiffsHandler(
   deps: IpcDeps,
   payload: unknown
 ): Promise<IpcResult<WorktreeDiffsDto>> {
-  const requested = await findRequestedSession(deps, payload)
+  const request = getSessionRequestSchema.safeParse(payload)
+  if (!request.success) return errResult('invalid-request')
+  const requested = await findRequestedSession(deps, request.data)
   if (!requested.ok) return requested
 
   const [diffs, sharedWorktree] = await Promise.all([

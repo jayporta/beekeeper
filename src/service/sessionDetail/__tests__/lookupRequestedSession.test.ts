@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { findRequestedSession, lookupRequestedSession } from '../findRequestedSession'
-import { TEST_PROJECT, TEST_SESSION_ID } from '../../../service/testServiceTree'
-import { registerIpcTestTree } from '../testIpcTree'
+import { TEST_PROJECT, TEST_SESSION_ID } from '../../testServiceTree'
+import { registerServiceTestTree } from '../../testServiceTree'
 
-const ctx = registerIpcTestTree()
+const ctx = registerServiceTestTree()
 const MISSING_ID = '9f9f9f9f-9999-4999-8999-99999999999a'
 
 describe('lookupRequestedSession', () => {
@@ -38,12 +38,6 @@ describe('lookupRequestedSession', () => {
     })
 
     expect(lookup).toEqual({ kind: 'error', code: 'not-found' })
-  })
-
-  it('reports invalid-request for a bad payload', async () => {
-    const lookup = await lookupRequestedSession(ctx.deps, { projectDirName: TEST_PROJECT })
-
-    expect(lookup).toEqual({ kind: 'error', code: 'invalid-request' })
   })
 })
 

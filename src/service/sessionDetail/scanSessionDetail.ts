@@ -1,17 +1,17 @@
 import type { TranscriptFileInfo } from '../../core/transcript/statTranscriptFile'
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
-import type { FoundSession } from '../../service/projects/findProject'
-import type { IpcDeps } from './ipcDeps'
+import type { FoundSession } from '../projects/findProject'
+import type { ServiceDeps } from '../serviceDeps'
 import { mapSessionScan } from './mapSessionScan'
 import { readWorkflowRuns } from './readWorkflowRuns'
 import { scanFoundSession } from './scanFoundSession'
-import { isCompleteScan } from '../../service/sessionDetail/sessionScanCache'
-import { toIpcErrorCode } from '../../service/toIpcErrorCode'
+import { isCompleteScan } from './sessionScanCache'
+import { toIpcErrorCode } from '../toIpcErrorCode'
 
 /** Options for {@link scanSessionDetail}. */
 export interface ScanSessionDetailOptions {
   /** The scan scheduler, the scan cache and the kept transcript scans. */
-  readonly deps: Pick<IpcDeps, 'scans' | 'scanCache' | 'agentScans'>
+  readonly deps: Pick<ServiceDeps, 'scans' | 'scanCache' | 'agentScans'>
   /** The session's id. */
   readonly sessionId: string
   /** The session from a fresh listing. */

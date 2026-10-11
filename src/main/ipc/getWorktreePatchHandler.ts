@@ -4,11 +4,11 @@ import type { IpcResult } from '../../shared/ipc/ipcResult'
 import { getWorktreePatchRequestSchema } from '../../shared/ipc/requestSchemas'
 import type { WorktreePatchDto } from '../../shared/ipc/worktreePatchDto'
 import { readWorktreeAgents } from '../git/sessionWorktreeDiffs'
-import { findRequestedSession } from './findRequestedSession'
+import { findRequestedSession } from '../../service/sessionDetail/findRequestedSession'
 import type { IpcDeps } from './ipcDeps'
 import { errResult, okResult } from '../../service/ipcResults'
 import { mapWorktreePatch } from './mapWorktreePatch'
-import { scanFoundSession } from './scanFoundSession'
+import { scanFoundSession } from '../../service/sessionDetail/scanFoundSession'
 
 /**
  * Reads the patch of what one worktree agent changed, with the same range,

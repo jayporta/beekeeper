@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 import { err, ok } from '../../../core/shared/result'
 import { toSessionId } from '../../../core/transcript/ids'
-import { testDetail } from '../../../service/archive/testArchiveFixtures'
-import { createFakeArchive } from '../../../service/archive/testFakeArchive'
-import { getSessionHandler } from '../getSessionHandler'
+import { testDetail } from '../../archive/testArchiveFixtures'
+import { createFakeArchive } from '../../archive/testFakeArchive'
+import { getSession } from '../getSession'
 import { lookupRequestedSession } from '../findRequestedSession'
-import { sessionRefKey } from '../../../service/sessions/sessionRefKey'
-import { TEST_PROJECT, TEST_SESSION_ID } from '../../../service/testServiceTree'
-import { registerIpcTestTree } from '../testIpcTree'
+import { sessionRefKey } from '../../sessions/sessionRefKey'
+import { TEST_PROJECT, TEST_SESSION_ID } from '../../testServiceTree'
+import { registerServiceTestTree } from '../../testServiceTree'
 
 vi.mock('../../../core/transcript/discoverSessions', () => ({
   discoverSessions: () =>
@@ -21,7 +21,7 @@ vi.mock('../../../core/transcript/discoverSessions', () => ({
     ])
 }))
 
-const ctx = registerIpcTestTree()
+const ctx = registerServiceTestTree()
 const request = { projectDirName: TEST_PROJECT, sessionId: TEST_SESSION_ID }
 
 describe('a listed session whose transcript cannot be read', () => {
@@ -36,7 +36,7 @@ describe('a listed session whose transcript cannot be read', () => {
       details: new Map([[sessionRefKey(request), { ...testDetail(), sessionId: TEST_SESSION_ID }]])
     })
 
-    const result = await getSessionHandler({ ...ctx.deps, archive }, request)
+    const result = await getSession({ ...ctx.deps, archive }, request)
 
     expect(result).toEqual({ ok: false, error: { code: 'unreadable' } })
   })

@@ -1,9 +1,10 @@
 import type { IpcResult } from '../../shared/ipc/ipcResult'
+import type { GetSessionRequest } from '../../shared/ipc/requestSchemas'
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
 import { archiveSessionDetail } from './archiveSessionDetail'
 import { lookupRequestedSession } from './findRequestedSession'
-import type { IpcDeps } from './ipcDeps'
-import { errResult, okResult } from '../../service/ipcResults'
+import type { ServiceDeps } from '../serviceDeps'
+import { errResult, okResult } from '../ipcResults'
 import { readArchivedSessionDetail } from './readArchivedSessionDetail'
 import { scanSessionDetail } from './scanSessionDetail'
 
@@ -13,8 +14,9 @@ import { scanSessionDetail } from './scanSessionDetail'
  * caps how many sessions scan at once.
  *
  * @param deps - The projects root, the scan scheduler, the scan cache, the archive, and the clock.
- * @param payload - The renderer's payload, validated here.
- * @returns The session detail, `invalid-request` for a bad payload, or
+ * @param request - A request parsed by `getSessionRequestSchema`, which keeps
+ * its folder name and session id path-free.
+ * @returns The session detail, or
  * `not-found` when the project isn't in a fresh listing, or the session isn't
  * and has no archived detail. A session missing from a listed project comes
  * back from the archive, marked archived, when one has its detail; a live
@@ -25,13 +27,16 @@ import { scanSessionDetail } from './scanSessionDetail'
  * inside the detail as `subagents: { ok: false }`. A run's record is read on
  * every call, never cached, and a run whose record can't be used comes back
  * with `record: null`. A session quiet for the archive's waiting period has
- * its detail archived, and a failing archive write never changes the result.
+ * its detail archived, and the archive never throws, so a failing archive write never changes the result.
  */
-export async function getSessionHandler(
-  deps: Pick<IpcDeps, 'projectsRoot' | 'scans' | 'scanCache' | 'agentScans' | 'archive' | 'now'>,
-  payload: unknown
+export async function getSession(
+  deps: Pick<
+    ServiceDeps,
+    'projectsRoot' | 'scans' | 'scanCache' | 'agentScans' | 'archive' | 'now'
+  >,
+  request: GetSessionRequest
 ): Promise<IpcResult<SessionDetailDto>> {
-  const lookup = await lookupRequestedSession(deps, payload)
+  const lookup = await lookupRequestedSession(deps, request)
   if (lookup.kind === 'error') return errResult(lookup.code)
   if (lookup.kind === 'session-missing') {
     const archived = readArchivedSessionDetail({ archive: deps.archive, ref: lookup.ref })

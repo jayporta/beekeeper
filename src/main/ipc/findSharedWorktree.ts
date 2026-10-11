@@ -4,13 +4,13 @@ import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
 import type { SharedWorktreeDto } from '../../shared/ipc/worktreeDiffDto'
 import { captureSystemError } from '../../core/transcript/captureSystemError'
 import type { FoundSession } from '../../service/projects/findProject'
-import type { RequestedSession } from './findRequestedSession'
+import type { RequestedSession } from '../../service/sessionDetail/findRequestedSession'
 import {
   groupProjectFamily,
   type ProjectFamilyGrouping
 } from '../../service/sessions/groupProjectFamily'
 import type { IpcDeps } from './ipcDeps'
-import { scanFoundSession } from './scanFoundSession'
+import { scanFoundSession } from '../../service/sessionDetail/scanFoundSession'
 import { readSessionSummary } from '../../service/sessions/scanProjectSessions'
 import { sessionRefKey } from '../../service/sessions/sessionRefKey'
 

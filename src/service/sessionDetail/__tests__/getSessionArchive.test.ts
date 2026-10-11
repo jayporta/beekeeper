@@ -1,17 +1,16 @@
 import { stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ARCHIVE_DETAIL_AFTER_DAYS, DAY_MS } from '../../../service/archive/archiveDetailTiming'
-import { testDetail } from '../../../service/archive/testArchiveFixtures'
-import { createFakeArchive } from '../../../service/archive/testFakeArchive'
-import { sessionRefKey } from '../../../service/sessions/sessionRefKey'
-import { errorWithCode } from '../../../core/shared/testErrorWithCode'
-import { getSessionHandler } from '../getSessionHandler'
-import type { IpcDeps } from '../ipcDeps'
-import { TEST_PROJECT, TEST_SESSION_ID } from '../../../service/testServiceTree'
-import { registerIpcTestTree } from '../testIpcTree'
+import { ARCHIVE_DETAIL_AFTER_DAYS, DAY_MS } from '../../archive/archiveDetailTiming'
+import { testDetail } from '../../archive/testArchiveFixtures'
+import { createFakeArchive } from '../../archive/testFakeArchive'
+import { sessionRefKey } from '../../sessions/sessionRefKey'
+import { getSession } from '../getSession'
+import type { ServiceDeps } from '../../serviceDeps'
+import { TEST_PROJECT, TEST_SESSION_ID } from '../../testServiceTree'
+import { registerServiceTestTree } from '../../testServiceTree'
 
-const ctx = registerIpcTestTree()
+const ctx = registerServiceTestTree()
 const request = { projectDirName: TEST_PROJECT, sessionId: TEST_SESSION_ID }
 
 afterEach(() => {
@@ -19,17 +18,17 @@ afterEach(() => {
 })
 
 /** Deps whose clock is `days` after the transcript's last modification. */
-async function depsAfter(days: number, extra: Partial<IpcDeps>): Promise<IpcDeps> {
+async function depsAfter(days: number, extra: Partial<ServiceDeps>): Promise<ServiceDeps> {
   const { mtimeMs } = await stat(ctx.tree.sessionPath)
   return { ...ctx.deps, now: () => Math.max(mtimeMs, Date.now()) + days * DAY_MS, ...extra }
 }
 
-describe('getSessionHandler archive', () => {
+describe('getSession archive', () => {
   it('saves the detail with the lead transcript state once the session has been quiet long enough', async () => {
     const archive = createFakeArchive()
     const deps = await depsAfter(ARCHIVE_DETAIL_AFTER_DAYS, { archive })
 
-    const result = await getSessionHandler(deps, request)
+    const result = await getSession(deps, request)
 
     const info = await stat(ctx.tree.sessionPath)
     expect(archive.detailSaves).toHaveLength(1)
@@ -42,7 +41,7 @@ describe('getSessionHandler archive', () => {
     const archive = createFakeArchive()
     const deps = await depsAfter(ARCHIVE_DETAIL_AFTER_DAYS - 1, { archive })
 
-    await getSessionHandler(deps, request)
+    await getSession(deps, request)
 
     expect(archive.detailSaves).toEqual([])
   })
@@ -51,7 +50,7 @@ describe('getSessionHandler archive', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const deps = await depsAfter(ARCHIVE_DETAIL_AFTER_DAYS, { archive: null })
 
-    const result = await getSessionHandler(deps, request)
+    const result = await getSession(deps, request)
 
     expect(result.ok).toBe(true)
     expect(warn).not.toHaveBeenCalled()
@@ -61,23 +60,10 @@ describe('getSessionHandler archive', () => {
     const archive = createFakeArchive()
     const deps = await depsAfter(ARCHIVE_DETAIL_AFTER_DAYS, { archive })
 
-    const result = await getSessionHandler(deps, { ...request, sessionId: 'not-a-session' })
+    const result = await getSession(deps, { ...request, sessionId: 'not-a-session' })
 
     expect(result.ok).toBe(false)
     expect(archive.detailSaves).toEqual([])
-  })
-
-  it('returns the same detail when the archive throws', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const archive = createFakeArchive(errorWithCode('EDETAIL_THROWS'))
-    const withArchive = await depsAfter(ARCHIVE_DETAIL_AFTER_DAYS, { archive })
-    const without = await depsAfter(ARCHIVE_DETAIL_AFTER_DAYS, { archive: null })
-
-    const guarded = await getSessionHandler(withArchive, request)
-    const plain = await getSessionHandler(without, request)
-
-    expect(guarded).toEqual(plain)
-    expect(warn.mock.calls).toEqual([['Beekeeper archive write failed (EDETAIL_THROWS).']])
   })
 })
 
@@ -93,9 +79,9 @@ function archiveHolding(...refs: (typeof GONE_REF)[]): ReturnType<typeof createF
   })
 }
 
-describe('getSessionHandler archived sessions', () => {
+describe('getSession archived sessions', () => {
   it('marks a live session detail as not archived', async () => {
-    const result = await getSessionHandler({ ...ctx.deps, archive: archiveHolding() }, request)
+    const result = await getSession({ ...ctx.deps, archive: archiveHolding() }, request)
 
     expect(result.ok && result.value.archived).toBe(false)
   })
@@ -103,7 +89,7 @@ describe('getSessionHandler archived sessions', () => {
   it('returns the archived detail, marked archived, when the transcript is gone', async () => {
     const archive = archiveHolding(GONE_REF)
 
-    const result = await getSessionHandler({ ...ctx.deps, archive }, GONE_REF)
+    const result = await getSession({ ...ctx.deps, archive }, GONE_REF)
 
     expect(result).toEqual({
       ok: true,
@@ -114,14 +100,14 @@ describe('getSessionHandler archived sessions', () => {
   it('never replaces a live detail with the archived copy', async () => {
     const archive = archiveHolding(request)
 
-    const result = await getSessionHandler({ ...ctx.deps, archive }, request)
+    const result = await getSession({ ...ctx.deps, archive }, request)
 
     expect(result.ok && result.value.archived).toBe(false)
     expect(JSON.stringify(result)).not.toContain('kept')
   })
 
   it('answers not-found when the transcript is gone and the archive has no detail', async () => {
-    const result = await getSessionHandler({ ...ctx.deps, archive: archiveHolding() }, GONE_REF)
+    const result = await getSession({ ...ctx.deps, archive: archiveHolding() }, GONE_REF)
 
     expect(result).toEqual({ ok: false, error: { code: 'not-found' } })
   })
@@ -129,7 +115,7 @@ describe('getSessionHandler archived sessions', () => {
   it('answers not-found, touching nothing, when no archive is set', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
-    const result = await getSessionHandler({ ...ctx.deps, archive: null }, GONE_REF)
+    const result = await getSession({ ...ctx.deps, archive: null }, GONE_REF)
 
     expect(result).toEqual({ ok: false, error: { code: 'not-found' } })
     expect(warn).not.toHaveBeenCalled()
@@ -138,35 +124,13 @@ describe('getSessionHandler archived sessions', () => {
   it('answers not-found for a project folder that is gone, even with an archived detail', async () => {
     const gone = { projectDirName: '-no-such-project', sessionId: GONE_ID }
 
-    const result = await getSessionHandler({ ...ctx.deps, archive: archiveHolding(gone) }, gone)
+    const result = await getSession({ ...ctx.deps, archive: archiveHolding(gone) }, gone)
 
     expect(result).toEqual({ ok: false, error: { code: 'not-found' } })
-  })
-
-  it('answers invalid-request for a bad payload without reading the archive', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const result = await getSessionHandler(
-      { ...ctx.deps, archive: createFakeArchive(errorWithCode('EREAD_NEVER')) },
-      { projectDirName: TEST_PROJECT, sessionId: 'not-a-uuid' }
-    )
-
-    expect(result).toEqual({ ok: false, error: { code: 'invalid-request' } })
-    // A read would throw, and the guard would log it instead of failing the request.
-    expect(warn).not.toHaveBeenCalled()
-  })
-
-  it('answers not-found and logs once when reading the archive throws', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const archive = createFakeArchive(errorWithCode('EDETAIL_READ_THROWS'))
-
-    const result = await getSessionHandler({ ...ctx.deps, archive }, GONE_REF)
-
-    expect(result).toEqual({ ok: false, error: { code: 'not-found' } })
-    expect(warn.mock.calls).toEqual([['Beekeeper archive read failed (EDETAIL_READ_THROWS).']])
   })
 })
 
-describe('getSessionHandler archive of an incomplete scan', () => {
+describe('getSession archive of an incomplete scan', () => {
   const metaPath = (): string =>
     join(
       ctx.tree.home,
@@ -183,7 +147,7 @@ describe('getSessionHandler archive of an incomplete scan', () => {
     const archive = createFakeArchive()
     const deps = await depsAfter(ARCHIVE_DETAIL_AFTER_DAYS, { archive })
 
-    const result = await getSessionHandler(deps, request)
+    const result = await getSession(deps, request)
 
     expect(result.ok).toBe(true)
     expect(archive.detailSaves).toEqual([])
@@ -193,10 +157,10 @@ describe('getSessionHandler archive of an incomplete scan', () => {
     await writeFile(metaPath(), 'not json')
     const archive = createFakeArchive()
     const deps = await depsAfter(ARCHIVE_DETAIL_AFTER_DAYS, { archive })
-    await getSessionHandler(deps, request)
+    await getSession(deps, request)
     await writeFile(metaPath(), JSON.stringify({ agentType: 'Explore' }))
 
-    await getSessionHandler(deps, request)
+    await getSession(deps, request)
 
     expect(archive.detailSaves).toHaveLength(1)
   })

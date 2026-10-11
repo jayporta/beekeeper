@@ -3,7 +3,7 @@ import { registerTestGit } from '../../../core/git/testGitRepo'
 import { err, ok } from '../../../core/shared/result'
 import { encodeProjectDir } from '../../git/confineRepo'
 import { addAgentWorktree, projectWorktreesDir } from '../../git/testWorktreeScan'
-import { getSessionHandler } from '../getSessionHandler'
+import { getSession } from '../../../service/sessionDetail/getSession'
 import { getWorktreeDiffsHandler } from '../getWorktreeDiffsHandler'
 import { guardIpc } from '../guardIpc'
 import type { IpcDeps } from '../ipcDeps'
@@ -70,7 +70,7 @@ describe('getWorktreeDiffsHandler', () => {
     const git = gitContext.requireGit(context)
     const { deps: counted, counts } = countingDeps(ctx.deps)
     const deps = { ...counted, git: () => Promise.resolve(ok(git)) }
-    await getSessionHandler(deps, request)
+    await getSession(deps, request)
     await getWorktreeDiffsHandler(deps, request)
     expect(counts.scans).toBe(1)
   })

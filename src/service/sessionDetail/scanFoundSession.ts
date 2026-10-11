@@ -1,13 +1,13 @@
 import { scanSession, type SessionScan } from '../../core/session/scanSession'
 import type { TranscriptFileInfo } from '../../core/transcript/statTranscriptFile'
-import type { FoundSession } from '../../service/projects/findProject'
-import type { IpcDeps } from './ipcDeps'
+import type { FoundSession } from '../projects/findProject'
+import type { ServiceDeps } from '../serviceDeps'
 import { sessionFilesKey } from './sessionFilesKey'
 
 /** Options for {@link scanFoundSession}. */
 export interface ScanFoundSessionOptions {
   /** The scan scheduler, the scan cache and the kept transcript scans. */
-  readonly deps: Pick<IpcDeps, 'scans' | 'scanCache' | 'agentScans'>
+  readonly deps: Pick<ServiceDeps, 'scans' | 'scanCache' | 'agentScans'>
   /** The session from a fresh listing. */
   readonly found: FoundSession
   /** The session's transcript, already checked readable. */

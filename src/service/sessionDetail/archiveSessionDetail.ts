@@ -1,14 +1,13 @@
 import type { TranscriptFileInfo } from '../../core/transcript/statTranscriptFile'
 import type { SessionDetailDto } from '../../shared/ipc/sessionDetailDto'
-import { isDetailDue } from '../../service/archive/isDetailDue'
-import { lastActivityMs } from '../../service/archive/lastActivityMs'
-import { safeArchiveWrite } from '../archive/safeArchiveWrite'
-import type { IpcDeps } from './ipcDeps'
+import { isDetailDue } from '../archive/isDetailDue'
+import { lastActivityMs } from '../archive/lastActivityMs'
+import type { ServiceDeps } from '../serviceDeps'
 
 /** Options for {@link archiveSessionDetail}. */
 export interface ArchiveSessionDetailOptions {
   /** Where to archive and the clock. */
-  readonly deps: Pick<IpcDeps, 'archive' | 'now'>
+  readonly deps: Pick<ServiceDeps, 'archive' | 'now'>
   /** The project folder of the session. */
   readonly projectDirName: string
   /** The scanned detail. */
@@ -24,8 +23,8 @@ export interface ArchiveSessionDetailOptions {
  * period. A more recent session is left to the background archiver, so a
  * session that is still running isn't written on every view. A scan that read
  * incompletely is not archived either, since a temporary failure would
- * otherwise become permanent. A failing write
- * is logged once per kind and never fails the request.
+ * otherwise become permanent. The archive never
+ * throws, so a failing write never fails the request.
  *
  * @param options - The archive, the clock, the session's folder, its detail, whether the scan was complete, and its transcript.
  */
@@ -40,5 +39,5 @@ export function archiveSessionDetail(options: ArchiveSessionDetailOptions): void
   if (!isDetailDue(last, deps.now())) return
   const source = { mtimeMs: transcript.mtimeMs, size: transcript.size }
   const ref = { projectDirName, sessionId: detail.sessionId }
-  safeArchiveWrite(() => archive.saveDetail(ref, { detail, source }))
+  archive.saveDetail(ref, { detail, source })
 }
