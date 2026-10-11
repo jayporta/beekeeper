@@ -28,6 +28,7 @@ describe('guardArchive', () => {
     const archive = guardArchive(store, log)
 
     expect(archive.readSessions('-p', new Set())).toEqual([{ item, teamSpawns: null }])
+    expect(archive.readSessions('-p', new Set([ref.sessionId]))).toEqual([])
     expect(archive.readLeadSlots(ref)).toBe(TEST_LEAD_SLOTS)
     expect(archive.readDetail(ref)).toBe(detail)
     archive.saveListItems([listEntry(item, source)])
