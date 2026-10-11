@@ -4,7 +4,9 @@ import { join } from 'path'
 import { optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { installFileSystem } from '../core/io/installFileSystem'
+import { installProcessPort } from '../core/io/installProcessPort'
 import { nodeFileSystem } from '../core/io/node/nodeFileSystem'
+import { nodeProcess } from '../core/io/node/nodeProcess'
 import { createAppArchiver } from './archive/createAppArchiver'
 import { openArchiveStore } from './archive/openArchiveStore'
 import { wireArchiver } from './archive/wireArchiver'
@@ -23,6 +25,7 @@ import { describeError } from './describeError'
 import { isFatalLoadFailure } from './startupFailure'
 
 installFileSystem(nodeFileSystem)
+installProcessPort(nodeProcess)
 
 // An empty value counts as unset, so every check below agrees on it.
 const devServerUrl = (is.dev && process.env['ELECTRON_RENDERER_URL']) || undefined

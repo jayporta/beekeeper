@@ -1,30 +1,23 @@
 import { describe, expect, it } from 'vitest'
+import type { ProcessPort, ProcessRequest } from '../../io/processPort'
+import { fakeProcessPort } from '../../io/testProcessPort'
+import { err, ok } from '../../shared/result'
 import { toGitBinary } from '../gitBinary'
-import { runGit, type GitExecFn, type GitExecOptions } from '../runGit'
+import { runGit } from '../runGit'
 
 const git = toGitBinary('/fake/git')
 
-interface Call {
-  file: string
-  args: readonly string[]
-  options: GitExecOptions
-}
-
-function recordingExec(calls: Call[]): GitExecFn {
-  return (file, args, options) => {
-    calls.push({ file, args, options })
-    return Promise.resolve({ stdout: Buffer.from('out') })
-  }
-}
-
-function failingExec(error: object): GitExecFn {
-  return () => Promise.reject(Object.assign(new Error('secret /path'), error))
+function recordingPort(calls: ProcessRequest[]): ProcessPort {
+  return fakeProcessPort((request) => {
+    calls.push(request)
+    return Promise.resolve(ok({ exitCode: 0, stdout: Buffer.from('out') }))
+  })
 }
 
 describe('runGit', () => {
   it('prepends the safety config and -C before the arguments', async () => {
-    const calls: Call[] = []
-    await runGit({ git, dir: '/repo', args: ['rev-parse', 'HEAD'], exec: recordingExec(calls) })
+    const calls: ProcessRequest[] = []
+    await runGit({ git, dir: '/repo', args: ['rev-parse', 'HEAD'], port: recordingPort(calls) })
     expect(calls[0]?.file).toBe('/fake/git')
     expect(calls[0]?.args).toEqual([
       '--no-lazy-fetch',
@@ -58,14 +51,14 @@ describe('runGit', () => {
   })
 
   it('passes a scrubbed environment without inherited git variables', async () => {
-    const calls: Call[] = []
+    const calls: ProcessRequest[] = []
     process.env['GIT_DIR'] = '/elsewhere'
     try {
-      await runGit({ git, dir: '/repo', args: ['diff'], exec: recordingExec(calls) })
+      await runGit({ git, dir: '/repo', args: ['diff'], port: recordingPort(calls) })
     } finally {
       delete process.env['GIT_DIR']
     }
-    const env = calls[0]?.options.env ?? {}
+    const env = calls[0]?.env ?? {}
     expect(env).toMatchObject({
       GIT_OPTIONAL_LOCKS: '0',
       GIT_NO_LAZY_FETCH: '1',
@@ -79,20 +72,30 @@ describe('runGit', () => {
     expect(env).not.toHaveProperty('HOME')
   })
 
-  it('asks for buffer output with a timeout and a size cap', async () => {
-    const calls: Call[] = []
-    await runGit({ git, dir: '/repo', args: ['diff'], exec: recordingExec(calls) })
-    expect(calls[0]?.options).toMatchObject({ encoding: 'buffer' })
-    expect(calls[0]?.options.timeout).toBeGreaterThan(0)
-    expect(calls[0]?.options.maxBuffer).toBeGreaterThan(0)
+  it('asks for a timeout and a size cap', async () => {
+    const calls: ProcessRequest[] = []
+    await runGit({ git, dir: '/repo', args: ['diff'], port: recordingPort(calls) })
+    expect(calls[0]?.timeoutMs).toBeGreaterThan(0)
+    expect(calls[0]?.maxOutputBytes).toBeGreaterThan(0)
   })
 
   it.each(['status', 'commit', 'checkout', 'config', '-c', '--exec-path', ''])(
     'throws for the unlisted subcommand %j',
     async (subcommand) => {
       await expect(
-        runGit({ git, dir: '/repo', args: [subcommand], exec: recordingExec([]) })
+        runGit({ git, dir: '/repo', args: [subcommand], port: recordingPort([]) })
       ).rejects.toThrow('git-subcommand-not-allowed')
+    }
+  )
+
+  it.each([[['status']], [['diff', '--output=/tmp/x']]])(
+    'never reaches the port for the refused args %j',
+    async (args) => {
+      const calls: ProcessRequest[] = []
+      await expect(
+        runGit({ git, dir: '/repo', args, port: recordingPort(calls) })
+      ).rejects.toThrow()
+      expect(calls).toEqual([])
     }
   )
 
@@ -102,7 +105,7 @@ describe('runGit', () => {
     [['config', '--global', '--get-regexp', 'x']],
     [['config', '--unset', 'x', 'y']]
   ])('throws for config args %j', async (args) => {
-    await expect(runGit({ git, dir: '/repo', args, exec: recordingExec([]) })).rejects.toThrow(
+    await expect(runGit({ git, dir: '/repo', args, port: recordingPort([]) })).rejects.toThrow(
       'git-subcommand-not-allowed'
     )
   })
@@ -112,7 +115,7 @@ describe('runGit', () => {
       git,
       dir: '/repo',
       args: ['config', '--get-regexp', '^filter\\.'],
-      exec: recordingExec([])
+      port: recordingPort([])
     })
     expect(result.ok).toBe(true)
   })
@@ -124,7 +127,7 @@ describe('runGit', () => {
     [['rev-parse', '--git-dir', 'x']],
     [['merge-base', '-a', 'x', 'y']]
   ])('throws for the flag in %j', async (args) => {
-    await expect(runGit({ git, dir: '/repo', args, exec: recordingExec([]) })).rejects.toThrow(
+    await expect(runGit({ git, dir: '/repo', args, port: recordingPort([]) })).rejects.toThrow(
       'git-option-not-allowed'
     )
   })
@@ -134,7 +137,7 @@ describe('runGit', () => {
       git,
       dir: '/repo',
       args: ['check-attr', '-z', '--all', '--', 'a.bin', '--stdin'],
-      exec: recordingExec([])
+      port: recordingPort([])
     })
     expect(result.ok).toBe(true)
   })
@@ -146,7 +149,7 @@ describe('runGit', () => {
     [['check-attr', '--source', 'HEAD', 'filter', '--', 'a.bin']],
     [['check-attr', '-a', '--', 'a.bin']]
   ])('throws for the check-attr flag in %j', async (args) => {
-    await expect(runGit({ git, dir: '/repo', args, exec: recordingExec([]) })).rejects.toThrow(
+    await expect(runGit({ git, dir: '/repo', args, port: recordingPort([]) })).rejects.toThrow(
       'git-option-not-allowed'
     )
   })
@@ -156,61 +159,30 @@ describe('runGit', () => {
       git,
       dir: '/repo',
       args: ['diff', '--numstat', '--', '--output=x'],
-      exec: recordingExec([])
+      port: recordingPort([])
     })
     expect(result.ok).toBe(true)
   })
 
   it('throws for a relative directory', async () => {
     await expect(
-      runGit({ git, dir: 'repo', args: ['diff'], exec: recordingExec([]) })
+      runGit({ git, dir: 'repo', args: ['diff'], port: recordingPort([]) })
     ).rejects.toThrow('git-dir-not-absolute')
   })
 
   it('throws when there are no arguments', async () => {
-    await expect(runGit({ git, dir: '/repo', args: [], exec: recordingExec([]) })).rejects.toThrow(
+    await expect(runGit({ git, dir: '/repo', args: [], port: recordingPort([]) })).rejects.toThrow(
       'git-subcommand-not-allowed'
     )
   })
 
-  it('returns a non-zero exit code instead of an error', async () => {
-    const result = await runGit({
-      git,
-      dir: '/repo',
-      args: ['merge-base', 'a', 'b'],
-      exec: failingExec({ code: 1, stdout: Buffer.from('') })
-    })
-    expect(result).toEqual({ ok: true, value: { exitCode: 1, stdout: Buffer.from('') } })
-  })
-
-  it('reports output over the cap as output-too-large', async () => {
+  it('passes a port failure through unchanged', async () => {
     const result = await runGit({
       git,
       dir: '/repo',
       args: ['diff'],
-      exec: failingExec({ code: 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER', stdout: Buffer.from('cut') })
-    })
-    expect(result).toEqual({ ok: false, error: 'output-too-large' })
-  })
-
-  it('reports a killed process as a timeout', async () => {
-    const result = await runGit({
-      git,
-      dir: '/repo',
-      args: ['diff'],
-      exec: failingExec({ killed: true, signal: 'SIGTERM', code: null })
+      port: fakeProcessPort(() => Promise.resolve(err('timeout')))
     })
     expect(result).toEqual({ ok: false, error: 'timeout' })
-  })
-
-  it('reports a launch failure as spawn-failed without leaking the message', async () => {
-    const result = await runGit({
-      git,
-      dir: '/repo',
-      args: ['diff'],
-      exec: failingExec({ code: 'ENOENT' })
-    })
-    expect(result).toEqual({ ok: false, error: 'spawn-failed' })
-    expect(JSON.stringify(result)).not.toContain('secret')
   })
 })

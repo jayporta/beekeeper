@@ -1,16 +1,13 @@
-import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
+import { processPort } from '../io/installProcessPort'
+import type { ProcessOutput, ProcessPort, ProcessRunError } from '../io/processPort'
 import { isAbsolutePath } from '../shared/absolutePath'
-import { err, ok, type Result } from '../shared/result'
+import type { Result } from '../shared/result'
 import { assertAllowedGitArgs } from './gitAllowlist'
 import { GIT_ENV } from './gitEnv'
 import type { GitBinary } from './gitBinary'
 
-const execFileAsync = promisify(execFile)
-
 const DEFAULT_TIMEOUT_MS = 30_000
 const DEFAULT_MAX_BUFFER = 16 * 1024 * 1024
-const MAX_BUFFER_CODE = 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'
 /** Options placed before every subcommand. `--no-lazy-fetch` makes git older than 2.44 reject the command. */
 const GLOBAL_ARGS = [
   '--no-lazy-fetch',
@@ -30,35 +27,11 @@ const GLOBAL_ARGS = [
   ])
 ]
 
-/** The subset of `execFile`'s buffer-mode options that {@link runGit} sets. */
-export interface GitExecOptions {
-  /** Environment for the child process. */
-  readonly env: Readonly<Record<string, string>>
-  /** Milliseconds before the child is killed. */
-  readonly timeout: number
-  /** Largest stdout or stderr, in bytes, before the child is killed. */
-  readonly maxBuffer: number
-  /** Always `'buffer'`, so paths that aren't UTF-8 survive. */
-  readonly encoding: 'buffer'
-}
-
-/** Runs a program and resolves to its raw stdout, rejecting like `execFile` does. */
-export type GitExecFn = (
-  file: string,
-  args: readonly string[],
-  options: GitExecOptions
-) => Promise<{ stdout: Buffer }>
-
 /** Why {@link runGit} could not produce output. */
-export type GitRunError = 'output-too-large' | 'timeout' | 'spawn-failed'
+export type GitRunError = ProcessRunError
 
-/** A finished git process. */
-export interface GitOutput {
-  /** The process exit code. Zero means success. */
-  readonly exitCode: number
-  /** Raw stdout bytes. */
-  readonly stdout: Buffer
-}
+/** A finished git process: its exit code (zero means success) and raw stdout bytes. */
+export type GitOutput = ProcessOutput
 
 /** Options for {@link runGit}. */
 export interface RunGitOptions {
@@ -68,45 +41,20 @@ export interface RunGitOptions {
   readonly dir: string
   /** The subcommand followed by its arguments. The subcommand must be allowlisted. */
   readonly args: readonly string[]
-  /** Replaces the real `execFile`, for tests. */
-  readonly exec?: GitExecFn
+  /** Replaces the installed process port, for tests. */
+  readonly port?: ProcessPort
   /** Milliseconds before the child is killed. Defaults to 30 seconds. */
   readonly timeoutMs?: number
   /** Largest output in bytes. Defaults to 16 MiB. */
   readonly maxBuffer?: number
 }
 
-const defaultExec: GitExecFn = async (file, args, options) => {
-  const { stdout } = await execFileAsync(file, [...args], {
-    env: { ...options.env },
-    timeout: options.timeout,
-    maxBuffer: options.maxBuffer,
-    encoding: options.encoding
-  })
-  return { stdout }
-}
-
-function readProp(value: unknown, key: string): unknown {
-  if (typeof value !== 'object' || value === null || !(key in value)) return undefined
-  return (value as Record<string, unknown>)[key]
-}
-
-function classifyFailure(error: unknown): Result<GitOutput, GitRunError> {
-  const code = readProp(error, 'code')
-  if (code === MAX_BUFFER_CODE) return err('output-too-large')
-  if (typeof code === 'number') {
-    const stdout = readProp(error, 'stdout')
-    return ok({ exitCode: code, stdout: Buffer.isBuffer(stdout) ? stdout : Buffer.alloc(0) })
-  }
-  return err(readProp(error, 'killed') === true ? 'timeout' : 'spawn-failed')
-}
-
 /**
  * Runs one allowlisted, read-only git subcommand with a scrubbed environment.
  *
  * @remarks
- * Runs `git --no-lazy-fetch <pinned -c settings> -C <dir> <args>` through `execFile`, so
- * no shell is involved. A non-zero exit is a normal outcome (for example
+ * Runs `git --no-lazy-fetch <pinned -c settings> -C <dir> <args>` through the process
+ * port, so no shell is involved. A non-zero exit is a normal outcome (for example
  * `merge-base` exits 1 when there is no common ancestor), so it comes back
  * as `exitCode`, not as an error.
  *
@@ -121,17 +69,11 @@ function classifyFailure(error: unknown): Result<GitOutput, GitRunError> {
 export async function runGit(options: RunGitOptions): Promise<Result<GitOutput, GitRunError>> {
   assertAllowedGitArgs(options.args)
   if (!isAbsolutePath(options.dir)) throw new Error('git-dir-not-absolute')
-  const exec = options.exec ?? defaultExec
-  const args = [...GLOBAL_ARGS, '-C', options.dir, ...options.args]
-  try {
-    const { stdout } = await exec(options.git, args, {
-      env: GIT_ENV,
-      timeout: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-      maxBuffer: options.maxBuffer ?? DEFAULT_MAX_BUFFER,
-      encoding: 'buffer'
-    })
-    return ok({ exitCode: 0, stdout })
-  } catch (error) {
-    return classifyFailure(error)
-  }
+  return (options.port ?? processPort()).run({
+    file: options.git,
+    args: [...GLOBAL_ARGS, '-C', options.dir, ...options.args],
+    env: GIT_ENV,
+    timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+    maxOutputBytes: options.maxBuffer ?? DEFAULT_MAX_BUFFER
+  })
 }

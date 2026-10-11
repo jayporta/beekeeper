@@ -103,6 +103,22 @@ export interface FileSystemPort {
   readNoFollow(path: string, maxBytes: number): Promise<Result<Uint8Array, ReadNoFollowError>>
 
   /**
+   * Resolves every symbolic link in a path, like `realpath(3)`.
+   * @param path - The path to resolve.
+   * @returns The absolute path with no link left in it.
+   * @throws {Error} With code `ENOENT` when a component is missing.
+   */
+  realPath(path: string): Promise<string>
+
+  /**
+   * Reads a symbolic link's target text, unresolved.
+   * @param path - The link to read.
+   * @returns The target as written, relative or absolute.
+   * @throws {Error} With code `EINVAL` when the path is not a link, `ENOENT` when missing.
+   */
+  readLink(path: string): Promise<string>
+
+  /**
    * Joins path segments the platform's way (`node:path` `join`).
    * @param segments - The segments to join.
    * @returns The joined path.
