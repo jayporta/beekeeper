@@ -96,9 +96,7 @@ describe('worktreeDiffPatch committed work', () => {
     const result = await worktreeDiffPatch(options(git, repo))
 
     expect(result.ok && result.value.files.map((file) => file.path)).toEqual(['keep.txt'])
-    const patch = result.ok
-      ? (decodeUtf8(result.value.files[0]?.patch ?? new Uint8Array()) ?? '')
-      : ''
+    const patch = result.ok ? decodeUtf8(result.value.files[0]?.patch ?? new Uint8Array()) : ''
     expect(patch).toContain('deleted file mode 100644')
     expect(patch).toContain('new file mode 120000')
   })
@@ -304,7 +302,7 @@ describe('worktreeDiffPatch against a hostile repository config', () => {
     const text = files.map((file) => decodeUtf8(file.patch)).join('')
     expect(text).not.toContain('\u001b')
     expect(text).toContain('diff --git a/long.txt b/long.txt')
-    const body = decodeUtf8(files[0]?.patch ?? new Uint8Array()).split('\n') ?? []
+    const body = decodeUtf8(files[0]?.patch ?? new Uint8Array()).split('\n')
     expect(body.filter((line) => line.startsWith(' '))).toHaveLength(6)
   })
 

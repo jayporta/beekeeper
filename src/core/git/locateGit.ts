@@ -27,16 +27,10 @@ export interface LocateGitOptions {
   readonly candidates?: readonly string[]
   /** The host platform. Defaults to the process port's platform. Only macOS has the `xcrun` route and the `/usr/bin/git` shim. */
   readonly platform?: string
-  /** Rejects when `path` isn't an executable file. */
-  readonly checkExecutable?: (path: string) => Promise<void>
+  /** Whether `path` is an executable file. Defaults to the process port's `isExecutable`. */
+  readonly checkExecutable?: (path: string) => Promise<boolean>
   /** Runs an absolute-path program with arguments, resolving to its stdout and rejecting on a non-zero exit. */
   readonly run?: (file: string, args: readonly string[]) => Promise<string>
-}
-
-function defaultCheckExecutable(port: ProcessPort): (path: string) => Promise<void> {
-  return async (path) => {
-    if (!(await port.isExecutable(path))) throw new Error('not-executable')
-  }
 }
 
 function defaultRun(port: ProcessPort): NonNullable<LocateGitOptions['run']> {
@@ -53,27 +47,15 @@ function defaultRun(port: ProcessPort): NonNullable<LocateGitOptions['run']> {
   }
 }
 
-async function isExecutable(
-  path: string,
-  check: (path: string) => Promise<void>
-): Promise<boolean> {
-  try {
-    await check(path)
-    return true
-  } catch {
-    return false
-  }
-}
-
 async function findViaCommandLineTools(
   run: NonNullable<LocateGitOptions['run']>,
-  check: (path: string) => Promise<void>
+  check: (path: string) => Promise<boolean>
 ): Promise<string | undefined> {
   try {
     await run(XCODE_SELECT, ['-p'])
     const found = (await run(XCRUN, ['--find', 'git'])).trim()
     if (!isAbsolutePath(found) || found === SHIM_GIT) return undefined
-    return (await isExecutable(found, check)) ? found : undefined
+    return (await check(found)) ? found : undefined
   } catch {
     return undefined
   }
@@ -83,12 +65,12 @@ async function findViaCommandLineTools(
 async function* executableCandidates(options: {
   readonly candidates: readonly string[]
   readonly isMac: boolean
-  readonly check: (path: string) => Promise<void>
+  readonly check: (path: string) => Promise<boolean>
   readonly run: NonNullable<LocateGitOptions['run']>
 }): AsyncGenerator<string> {
   const { candidates, isMac, check, run } = options
   for (const candidate of isMac ? candidates : [...candidates, SHIM_GIT]) {
-    if (await isExecutable(candidate, check)) yield candidate
+    if (await check(candidate)) yield candidate
   }
   if (!isMac) return
   const viaTools = await findViaCommandLineTools(run, check)
@@ -118,7 +100,7 @@ export async function locateGit(
   for await (const path of executableCandidates({
     candidates: options.candidates ?? DEFAULT_GIT_CANDIDATES,
     isMac: (options.platform ?? port.platform) === 'darwin',
-    check: options.checkExecutable ?? defaultCheckExecutable(port),
+    check: options.checkExecutable ?? ((path) => port.isExecutable(path)),
     run
   })) {
     let version

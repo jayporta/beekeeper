@@ -46,6 +46,16 @@ describe('nodeProcess.run', () => {
     expect(result).toEqual({ ok: false, error: 'output-too-large' })
   })
 
+  it('returns stdout bytes that are not valid UTF-8 unchanged', async () => {
+    const result = await nodeProcess.run({
+      ...BASE,
+      file: '/usr/bin/printf',
+      args: ['\\377\\200abc']
+    })
+
+    expect(result.ok && [...result.value.stdout]).toEqual([0xff, 0x80, 0x61, 0x62, 0x63])
+  })
+
   it('reports a missing program as spawn-failed', async () => {
     const result = await nodeProcess.run({ ...BASE, file: join(dir, 'missing') })
 
@@ -87,7 +97,7 @@ describe('nodeProcess', () => {
     expect(nodeProcess.platform).toBe(process.platform)
   })
 
-  it('returns the exact bytes of stdout', () => {
+  it('claims exact output', () => {
     expect(nodeProcess.exactOutput).toBe(true)
   })
 })

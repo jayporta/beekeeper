@@ -5,10 +5,10 @@ import type { ProcessPort, ProcessRequest } from '../../io/processPort'
 import { err, ok } from '../../shared/result'
 import { locateGit } from '../locateGit'
 
-const allExecutable = (): Promise<void> => Promise.resolve()
+const allExecutable = (): Promise<boolean> => Promise.resolve(true)
 
-function executableOnly(...paths: string[]): (path: string) => Promise<void> {
-  return (path) => (paths.includes(path) ? Promise.resolve() : Promise.reject(new Error('no')))
+function executableOnly(...paths: string[]): (path: string) => Promise<boolean> {
+  return (path) => Promise.resolve(paths.includes(path))
 }
 
 interface Runner {
