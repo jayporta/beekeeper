@@ -50,7 +50,7 @@ describe('useProjectGroupTotals', () => {
     expect(result.current.items[0]?.totals.tokens).toBe(15)
   })
 
-  it('gives each worktree its own totals, by folder name, apart from its project', async () => {
+  it('adds up one folder on its own, apart from its project and its siblings', async () => {
     installBeekeeperApi({
       listProjects: () =>
         Promise.resolve({
@@ -69,10 +69,9 @@ describe('useProjectGroupTotals', () => {
     await waitFor(() => {
       expect(result.current.overall.tokens).toBe(17)
     })
-    const { worktreeTotals } = result.current.items[0] ?? { worktreeTotals: new Map() }
-    expect([...worktreeTotals.keys()]).toEqual(['-a-wt1', '-a-wt2'])
-    expect(worktreeTotals.get('-a-wt1')?.tokens).toBe(5)
-    expect(worktreeTotals.get('-a-wt2')?.tokens).toBe(2)
+    expect(result.current.folderTotals('-a-wt1').tokens).toBe(5)
+    expect(result.current.folderTotals('-a-wt2').tokens).toBe(2)
+    expect(result.current.folderTotals('-a').tokens).toBe(10)
   })
 
   it('lists projects in order, with the whole adding up every one', async () => {
@@ -101,11 +100,12 @@ describe('useProjectGroupTotals', () => {
     await waitFor(() => {
       expect(result.current.overall.tokens).toBe(7)
     })
-    const { items, overall } = result.current
+    const { items, overall, folderTotals } = result.current
 
     rerender()
 
     expect(result.current.items).toBe(items)
     expect(result.current.overall).toBe(overall)
+    expect(result.current.folderTotals).toBe(folderTotals)
   })
 })

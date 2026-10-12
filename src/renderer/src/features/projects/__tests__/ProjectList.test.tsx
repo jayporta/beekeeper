@@ -46,7 +46,7 @@ async function renderLoaded(
   return screen.findByRole('navigation', { name: 'Projects' })
 }
 
-const TOGGLE_NAME = /^(Show|Hide) worktrees of /
+const TOGGLE_NAME = /^Worktrees of /
 
 /** Asserts the rows, by accessible name, are exactly `expected`, in that order. The worktree toggles aren't rows. */
 function expectRows(nav: HTMLElement, expected: readonly string[]): void {
@@ -172,15 +172,15 @@ describe('ProjectList', () => {
   })
 
   describe('worktrees', () => {
-    const showWorktrees = (nav: HTMLElement, project: string): HTMLElement =>
-      within(nav).getByRole('button', { name: `Show worktrees of ${project}` })
-    const hideWorktrees = (nav: HTMLElement, project: string): HTMLElement =>
-      within(nav).getByRole('button', { name: `Hide worktrees of ${project}` })
+    const toggle = (nav: HTMLElement, project: string): HTMLElement =>
+      within(nav).getByRole('button', { name: `Worktrees of ${project}` })
+    const isOpen = (nav: HTMLElement, project: string): string | null =>
+      toggle(nav, project).getAttribute('aria-expanded')
 
     it('lists the current project’s worktrees beneath it, open from the start', async () => {
       const nav = await renderLoaded()
 
-      expect(hideWorktrees(nav, 'acme-web').getAttribute('aria-expanded')).toBe('true')
+      expect(isOpen(nav, 'acme-web')).toBe('true')
       expectRows(nav, ['All projects', 'acme-web', 'x', 'y', BETA])
     })
 
@@ -190,7 +190,7 @@ describe('ProjectList', () => {
         ...PROJECTS.filter((project) => project.dirName !== BETA)
       ])
 
-      expect(showWorktrees(nav, 'acme-web').getAttribute('aria-expanded')).toBe('false')
+      expect(isOpen(nav, 'acme-web')).toBe('false')
       expectRows(nav, ['All projects', BETA, 'acme-web'])
     })
 
@@ -199,9 +199,9 @@ describe('ProjectList', () => {
       await userEvent.click(within(nav).getByRole('button', { name: BETA }))
       useFirstRunStore.setState({ dismissed: false })
 
-      await userEvent.click(showWorktrees(nav, 'acme-web'))
+      await userEvent.click(toggle(nav, 'acme-web'))
 
-      expect(hideWorktrees(nav, 'acme-web').getAttribute('aria-expanded')).toBe('true')
+      expect(isOpen(nav, 'acme-web')).toBe('true')
       expectRows(nav, ['All projects', 'acme-web', 'x', 'y', BETA])
       expect(within(nav).getByRole('button', { name: BETA }).getAttribute('aria-current')).toBe(
         'page'
@@ -214,16 +214,16 @@ describe('ProjectList', () => {
     it('closes an open project’s worktrees when its toggle is pressed', async () => {
       const nav = await renderLoaded()
 
-      await userEvent.click(hideWorktrees(nav, 'acme-web'))
+      await userEvent.click(toggle(nav, 'acme-web'))
 
-      expect(showWorktrees(nav, 'acme-web').getAttribute('aria-expanded')).toBe('false')
+      expect(isOpen(nav, 'acme-web')).toBe('false')
       expectRows(nav, ['All projects', 'acme-web', BETA])
     })
 
     it('points the toggle at the list of worktrees it opens', async () => {
       const nav = await renderLoaded()
 
-      const controls = hideWorktrees(nav, 'acme-web').getAttribute('aria-controls') ?? ''
+      const controls = toggle(nav, 'acme-web').getAttribute('aria-controls') ?? ''
 
       expect(
         document.getElementById(controls)?.contains(within(nav).getByRole('button', { name: 'x' }))
@@ -233,15 +233,14 @@ describe('ProjectList', () => {
     it('gives a project without worktrees no toggle', async () => {
       const nav = await renderLoaded()
 
-      expect(within(nav).queryByRole('button', { name: `Show worktrees of ${BETA}` })).toBeNull()
-      expect(within(nav).queryByRole('button', { name: `Hide worktrees of ${BETA}` })).toBeNull()
+      expect(within(nav).queryByRole('button', { name: `Worktrees of ${BETA}` })).toBeNull()
     })
 
     it('says the parent row contains the current worktree when that group is closed', async () => {
       const nav = await renderLoaded()
       await userEvent.click(within(nav).getByRole('button', { name: 'x' }))
 
-      await userEvent.click(hideWorktrees(nav, 'acme-web'))
+      await userEvent.click(toggle(nav, 'acme-web'))
 
       expect(within(nav).queryByRole('button', { name: 'x' })).toBeNull()
       const parent = within(nav).getByRole('button', {

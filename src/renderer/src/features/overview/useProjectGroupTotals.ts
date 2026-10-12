@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import type { ProjectDto } from '../../../../shared/ipc/projectDto'
 import type { TotalsWindowDto } from '../../../../shared/ipc/projectTotalsDto'
 import { groupProjects, type ProjectGroup } from '@renderer/features/projects/groupProjects'
@@ -13,8 +13,6 @@ export interface ProjectGroupItem {
   readonly group: ProjectGroup
   /** What the project and its worktrees add up to. */
   readonly totals: AggregateTotals
-  /** Each worktree's own totals, by folder name, for the worktree rows. */
-  readonly worktreeTotals: ReadonlyMap<string, AggregateTotals>
 }
 
 /** What {@link useProjectGroupTotals} returns. */
@@ -27,6 +25,8 @@ export interface ProjectGroupTotals {
   readonly items: readonly ProjectGroupItem[]
   /** Every project added together. */
   readonly overall: AggregateTotals
+  /** Adds up one folder on its own, such as a worktree row's figure. It keeps its identity until a folder's totals change. */
+  readonly folderTotals: (dirName: string) => AggregateTotals
 }
 
 /**
@@ -39,23 +39,20 @@ export interface ProjectGroupTotals {
  * change.
  *
  * @returns The project listing (`undefined` until it loads), the window, each
- * project's totals, and the total across all of them.
+ * project's totals, the total across all of them, and a function that adds up one folder.
  */
 export function useProjectGroupTotals(): ProjectGroupTotals {
   const { data: projects } = useProjects()
   const { window: range, byFolder } = useProjectTotals()
   const groups = useMemo(() => groupProjects(projects ?? []), [projects])
   const items = useMemo(
-    () =>
-      groups.map((group) => ({
-        group,
-        totals: projectTotalsOf(group, byFolder),
-        worktreeTotals: new Map(
-          group.worktrees.map(({ dirName }) => [dirName, folderTotalsOf(dirName, byFolder)])
-        )
-      })),
+    () => groups.map((group) => ({ group, totals: projectTotalsOf(group, byFolder) })),
     [groups, byFolder]
   )
   const overall = useMemo(() => overviewTotals(groups, byFolder), [groups, byFolder])
-  return { projects, window: range, items, overall }
+  const folderTotals = useCallback(
+    (dirName: string) => folderTotalsOf(dirName, byFolder),
+    [byFolder]
+  )
+  return { projects, window: range, items, overall, folderTotals }
 }

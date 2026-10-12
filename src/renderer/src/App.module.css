@@ -46,11 +46,8 @@
   }
 }
 
-/* The page's column: centered, and no wider than the design's content width. */
+/* The page's column: centered, and no wider than the design's content width. Each view spaces its own parts. */
 .content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-grid);
   max-width: var(--size-main-max);
   margin-inline: auto;
 }

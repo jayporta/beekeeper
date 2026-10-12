@@ -31,7 +31,7 @@ import { useSelectedProjectStore } from './state/useSelectedProjectStore'
  */
 export function ProjectList(): React.JSX.Element | null {
   const { t } = useTranslation('projects')
-  const { projects: data, items, overall } = useProjectGroupTotals()
+  const { projects: data, items, overall, folderTotals } = useProjectGroupTotals()
   const selected = useSelectedProjectDirName()
   const select = useSelectedProjectStore((state) => state.select)
   const isOverview = useNavigationStore((state) => state.view === 'overview')
@@ -73,6 +73,7 @@ export function ProjectList(): React.JSX.Element | null {
           <ProjectGroupRows
             key={item.group.project.dirName}
             item={item}
+            folderTotals={folderTotals}
             slot={projectColorSlot(index)}
             current={isOverview ? null : selected}
             onChoose={choose}

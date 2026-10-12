@@ -2,9 +2,8 @@
   "list": {
     "label": "Projects",
     "all": "All projects",
-    "showWorktrees": "Show worktrees of {{project}}",
-    "hideWorktrees": "Hide worktrees of {{project}}",
-    "holdsCurrent": "contains the current worktree"
+    "holdsCurrent": "contains the current worktree",
+    "worktreesOf": "Worktrees of {{project}}"
   },
   "heading": "Sessions",
   "empty": {

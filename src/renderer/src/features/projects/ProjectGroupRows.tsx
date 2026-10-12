@@ -1,5 +1,6 @@
 import { useId } from 'react'
 import { SidebarTotal } from '@renderer/features/overview/SidebarTotal'
+import type { AggregateTotals } from '@renderer/features/overview/sumTotals'
 import type { ProjectGroupItem } from '@renderer/features/overview/useProjectGroupTotals'
 import { ProjectDot } from './ProjectDot'
 import styles from './ProjectGroupRows.module.css'
@@ -17,6 +18,8 @@ interface ProjectGroupRowsProps {
   readonly item: ProjectGroupItem
   /** The project's color slot, which its worktrees share. */
   readonly slot: ProjectColorSlot
+  /** Adds up one folder on its own, for a worktree row's figure. */
+  readonly folderTotals: (dirName: string) => AggregateTotals
   /** The folder name of the current page's project, or `null` while the overview shows. */
   readonly current: string | null
   /** Called with a folder name when its row is pressed. */
@@ -34,21 +37,19 @@ interface ProjectGroupRowsProps {
  */
 export function ProjectGroupRows({
   item,
+  folderTotals,
   slot,
   current,
   onChoose
 }: ProjectGroupRowsProps): React.JSX.Element {
-  const { group, totals, worktreeTotals } = item
+  const { group, totals } = item
   const { project, worktrees } = group
   const listId = useId()
-  const toggled = useExpandedProjectsStore((state) => state.toggled)
+  const chosen = useExpandedProjectsStore((state) => state.toggled[project.dirName])
   const setExpanded = useExpandedProjectsStore((state) => state.setExpanded)
   const holdsWorktree =
     current !== null && worktrees.some((worktree) => worktree.dirName === current)
-  const expanded = isGroupExpanded(toggled, {
-    dirName: project.dirName,
-    holdsCurrent: current === project.dirName || holdsWorktree
-  })
+  const expanded = isGroupExpanded(chosen, current === project.dirName || holdsWorktree)
 
   return (
     <li>
@@ -81,7 +82,6 @@ export function ProjectGroupRows({
       {worktrees.length > 0 && (
         <ul id={listId} className={styles.worktrees} hidden={!expanded}>
           {worktrees.map((worktree) => {
-            const own = worktreeTotals.get(worktree.dirName)
             return (
               <li key={worktree.dirName}>
                 <ProjectLine>
@@ -90,7 +90,11 @@ export function ProjectGroupRows({
                     dot={<ProjectDot variant="ring" slot={slot} />}
                     label={projectTitle(worktree)}
                     detail={worktree.dirName}
-                    meta={own === undefined ? undefined : <SidebarTotal totals={own} />}
+                    meta={
+                      expanded ? (
+                        <SidebarTotal totals={folderTotals(worktree.dirName)} />
+                      ) : undefined
+                    }
                     current={current === worktree.dirName}
                     onSelect={() => {
                       onChoose(worktree.dirName)

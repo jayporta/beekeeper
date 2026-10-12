@@ -158,7 +158,6 @@
   --font-weight-regular: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
-  --font-weight-bold: 700;
   --letter-spacing-caps: 0.08em;
   --letter-spacing-title: -0.01em;
   /* Sizes by pixel at a 16px root: 2xs 11, xs 12, sm 13, body 14, md 15, lg 18, xl 19, 2xl 24, 3xl 25, 4xl 32, 5xl 34. */
@@ -199,6 +198,8 @@
 
   /* Layout sizes. */
   --size-sidebar: 16.25rem;
+  /* The least room the sidebar's project list keeps before the card scrolls instead: about three rows. */
+  --size-project-list-min: calc(3 * var(--size-target-min));
   /* The main column's widest content: 1320px, in a padding of 18px above, 24px at the sides and 48px below. The session detail view's fill height subtracts the block and end padding. */
   --size-main-max: 82.5rem;
   --space-main-block: 1.125rem;

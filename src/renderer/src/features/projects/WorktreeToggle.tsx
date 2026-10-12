@@ -34,7 +34,7 @@ export function WorktreeToggle({
       className={styles.toggle}
       aria-expanded={expanded}
       aria-controls={controls}
-      aria-label={t(expanded ? 'list.hideWorktrees' : 'list.showWorktrees', { project })}
+      aria-label={t('list.worktreesOf', { project })}
       onClick={() => {
         onToggle(!expanded)
       }}
