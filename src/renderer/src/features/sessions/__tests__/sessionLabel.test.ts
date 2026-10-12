@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
 import { sessionLabel, type SessionLabel } from '../sessionLabel'
-import { testAgentRole, testSession } from '../testSessionFixtures'
+import { testAgentRole, testSession } from '../../../../../shared/sessions/testSessionFixtures'
 import { testSessionsT } from '../testSessionsT'
 
 const labelOf = (item: SessionListItemDto): SessionLabel => sessionLabel(item, testSessionsT)

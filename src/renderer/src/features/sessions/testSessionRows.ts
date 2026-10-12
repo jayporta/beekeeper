@@ -2,7 +2,7 @@ import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
 import { groupSessionRows } from './groupSessionRows'
 import { sessionKey } from './sessionKey'
 import type { SessionRow } from './sessionRow'
-import { testSession } from './testSessionFixtures'
+import { testSession } from '../../../../shared/sessions/testSessionFixtures'
 import { testSessionsT } from './testSessionsT'
 
 /**

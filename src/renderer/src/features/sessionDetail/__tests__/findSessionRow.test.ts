@@ -6,7 +6,7 @@ import {
   testRef,
   testSession,
   testTeammateTeam
-} from '@renderer/features/sessions/testSessionFixtures'
+} from '../../../../../shared/sessions/testSessionFixtures'
 import { testSessionsT } from '@renderer/features/sessions/testSessionsT'
 import { findSessionRow } from '../findSessionRow'
 

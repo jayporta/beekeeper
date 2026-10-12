@@ -12,7 +12,7 @@ import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
 import { createTestQueryClient } from '@renderer/testQueryWrapper'
 import { useSessionsViewStore } from '../state/useSessionsViewStore'
 import { allowForAnnouncePause, waitPastAnnouncePause } from '../testAnnouncePause'
-import { testSession } from '../testSessionFixtures'
+import { testSession } from '../../../../../shared/sessions/testSessionFixtures'
 
 const DIR = '-Users-a-repo'
 

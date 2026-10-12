@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AgentNodeDto } from '../../../../../../shared/ipc/agentDto'
-import { testRef } from '@renderer/features/sessions/testSessionFixtures'
+import { testRef } from '../../../../../../shared/sessions/testSessionFixtures'
 import { testDetail, testMeta, testNode, testReport } from '../../testSessionDetail'
 import { inspectionOf } from '../inspectionOf'
 

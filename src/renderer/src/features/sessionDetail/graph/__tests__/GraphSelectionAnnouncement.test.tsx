@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { LIVE_COPY_CLEAR_MS } from '@renderer/components/liveCopyClearMs'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
-import { testRef } from '@renderer/features/sessions/testSessionFixtures'
+import { testRef } from '../../../../../../shared/sessions/testSessionFixtures'
 import { testDetail, testNode } from '../../testSessionDetail'
 import { SCENE_SESSION, graphNode, renderGraph, renderGraphWith } from '../testGraphScene'
 

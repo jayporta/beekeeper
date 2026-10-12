@@ -11,7 +11,7 @@ import {
   testSession,
   testTeammateTeam,
   testUsage
-} from '@renderer/features/sessions/testSessionFixtures'
+} from '../../../../../shared/sessions/testSessionFixtures'
 import { testRow } from '@renderer/features/sessions/testSessionRows'
 import type { SessionRow } from '@renderer/features/sessions/sessionRow'
 import { installBeekeeperApi, type TestBeekeeperApi } from '@renderer/testBeekeeperApi'

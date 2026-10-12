@@ -10,7 +10,7 @@ import type {
 import { LISTS_STALE_TIME_MS } from '@renderer/app/listsStaleTime'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { shortId } from '@renderer/features/sessions/sessionLabel'
-import { testRef } from '@renderer/features/sessions/testSessionFixtures'
+import { testRef } from '../../../../../../shared/sessions/testSessionFixtures'
 import { createTestQueryClient } from '@renderer/testQueryWrapper'
 import { SCENE_OTHER_FOLDER, SCENE_SESSION } from '../../graph/testGraphScene'
 import { testDetail, testMeta, testNode, testReport } from '../../testSessionDetail'

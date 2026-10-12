@@ -8,7 +8,7 @@ import {
   testSession,
   testTeammateTeam,
   testUsage
-} from '../testSessionFixtures'
+} from '../../../../../shared/sessions/testSessionFixtures'
 import { testRow } from '../testSessionRows'
 
 const reasons = (row: SessionRow): PartialReason[] => [...partialReasons(row)].sort()
