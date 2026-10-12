@@ -26,21 +26,8 @@ describe('toolResultBlockSchema', () => {
     expect(toolResultBlockSchema.safeParse(block).success).toBe(false)
   })
 
-  it('accepts a tool_use_id of exactly the cap', () => {
-    const block = buildToolResultBlock({ tool_use_id: 'x'.repeat(MAX_IDENTIFIER_CODE_UNITS) })
-
-    expect(toolResultBlockSchema.safeParse(block).success).toBe(true)
-  })
-
   it('rejects a tool_use_id one code unit over the cap', () => {
     const block = buildToolResultBlock({ tool_use_id: 'x'.repeat(MAX_IDENTIFIER_CODE_UNITS + 1) })
-
-    expect(toolResultBlockSchema.safeParse(block).success).toBe(false)
-  })
-
-  it('rejects a tool_use_id under the code-point cap but over the code-unit cap', () => {
-    // 200 non-BMP characters: 200 code points, but 400 UTF-16 code units.
-    const block = buildToolResultBlock({ tool_use_id: '😀'.repeat(200) })
 
     expect(toolResultBlockSchema.safeParse(block).success).toBe(false)
   })

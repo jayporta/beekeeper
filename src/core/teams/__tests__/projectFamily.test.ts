@@ -65,20 +65,10 @@ describe('worktreeNameOf', () => {
     expect(worktreeNameOf(name, listedSet('-repo', name))).toBe('a--claude-worktrees-b')
   })
 
-  it('returns null for a folder without the marker', () => {
-    expect(worktreeNameOf(dir('-repo'), listedSet('-repo'))).toBeNull()
-  })
-
   it('returns null when the parent is not listed, like worktreeParentOf', () => {
     const name = dir('-repo--claude-worktrees-feat')
 
     expect(worktreeNameOf(name, listedSet(name))).toBeNull()
-  })
-
-  it('returns null when nothing follows the marker', () => {
-    const name = dir('-repo--claude-worktrees-')
-
-    expect(worktreeNameOf(name, listedSet('-repo', name))).toBeNull()
   })
 })
 

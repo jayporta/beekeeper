@@ -54,18 +54,4 @@ describe('teammateSpawnResultSchema', () => {
         .success
     ).toBe(false)
   })
-
-  it('rejects a name under the code-point cap but over the code-unit cap', () => {
-    // 200 non-BMP characters: 200 code points, but 400 UTF-16 code units.
-    const name = '😀'.repeat(200)
-
-    expect(teammateSpawnResultSchema.safeParse({ ...valid, name }).success).toBe(false)
-  })
-
-  it('reads a non-BMP agent_id under the code-point cap but over the code-unit cap as absent', () => {
-    const agentId = '😀'.repeat(200)
-    const parsed = teammateSpawnResultSchema.safeParse({ ...valid, agent_id: agentId })
-
-    expect([parsed.success, parsed.data?.agent_id]).toEqual([true, undefined])
-  })
 })

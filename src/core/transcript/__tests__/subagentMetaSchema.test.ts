@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { MAX_BRANCH_CODE_UNITS } from '../../shared/boundedBranch'
 import { MAX_PATH_CODE_UNITS } from '../../shared/boundedPath'
-import { MAX_LABEL_CODE_UNITS } from '../boundedLabel'
-import { MAX_IDENTIFIER_CODE_UNITS } from '../schemas/boundedIdentifier'
 import { subagentMetaSchema } from '../schemas/subagentMeta'
 import { buildMinimalSubagentMeta } from '../testFixtures'
 
@@ -47,18 +45,8 @@ describe('subagentMetaSchema', () => {
     ['a relative worktreePath', { worktreePath: 'relative/tree' }],
     ['an oversized worktreePath', { worktreePath: '/' + 'a'.repeat(MAX_PATH_CODE_UNITS) }],
     ['a non-string worktreePath', { worktreePath: 7 }],
-    // 3000 non-BMP characters: 3000 code points, but 6000 UTF-16 code units.
-    [
-      'a non-BMP worktreePath under the code-point cap but over the code-unit cap',
-      { worktreePath: '/' + '😀'.repeat(3000) }
-    ],
     ['an empty worktreeBranch', { worktreeBranch: '' }],
-    ['an oversized worktreeBranch', { worktreeBranch: 'b'.repeat(MAX_BRANCH_CODE_UNITS + 1) }],
-    // 200 non-BMP characters: 200 code points, but 400 UTF-16 code units.
-    [
-      'a non-BMP worktreeBranch under the code-point cap but over the code-unit cap',
-      { worktreeBranch: '😀'.repeat(200) }
-    ]
+    ['an oversized worktreeBranch', { worktreeBranch: 'b'.repeat(MAX_BRANCH_CODE_UNITS + 1) }]
   ])('keeps the meta and reads %s as absent', (_label, bad) => {
     const parsed = subagentMetaSchema.safeParse({ ...buildMinimalSubagentMeta('reviewer'), ...bad })
 
@@ -73,17 +61,11 @@ describe('subagentMetaSchema', () => {
   describe.each(['teamName', 'name', 'description', 'workflowPhase'] as const)(
     '%s label',
     (field) => {
-      it.each([
-        ['an oversized value', 'x'.repeat(MAX_LABEL_CODE_UNITS + 1)],
-        // Each U+0344 is one code unit that NFC expands to two: 200 fit the cap, 400 do not.
-        ['a value NFC expands past the cap', '̈́'.repeat(200)],
-        ['a value with a newline', 'sc\nout'],
-        ['a value with a bidi override', 'sc‮out'],
-        ['a blank value', '   ']
-      ])('keeps the meta and reads %s as absent', (_label, bad) => {
+      // The label rules themselves are covered in agentLabel.test.ts; this pins that each field uses them.
+      it('keeps the meta and reads an unusable value as absent', () => {
         const parsed = subagentMetaSchema.safeParse({
           ...buildMinimalSubagentMeta('reviewer'),
-          [field]: bad
+          [field]: 'sc\nout'
         })
 
         expect(parsed.success).toBe(true)
@@ -118,18 +100,8 @@ describe('subagentMetaSchema', () => {
   describe.each(['toolUseId', 'parentAgentId', 'model', 'taskKind'] as const)(
     '%s identifier',
     (field) => {
-      it('keeps the meta and reads an over-cap value as absent', () => {
-        const parsed = subagentMetaSchema.safeParse({
-          ...buildMinimalSubagentMeta('reviewer'),
-          [field]: 'x'.repeat(MAX_IDENTIFIER_CODE_UNITS + 1)
-        })
-
-        expect(parsed.success).toBe(true)
-        if (!parsed.success) return
-        expect(parsed.data.agentType).toBe('reviewer')
-        expect(parsed.data[field]).toBeUndefined()
-      })
-
+      // The identifier rules themselves are covered in boundedIdentifier.test.ts; this pins that each
+      // field uses them.
       it('keeps the meta and reads a non-string value as absent', () => {
         const parsed = subagentMetaSchema.safeParse({
           ...buildMinimalSubagentMeta('reviewer'),
@@ -142,27 +114,19 @@ describe('subagentMetaSchema', () => {
         expect(parsed.data[field]).toBeUndefined()
       })
 
-      it.each([
-        ['surrounding spaces', '  id-1 '],
-        ['a decomposed accent', 'café']
-      ])('keeps a value with %s exactly as written', (_label, value) => {
+      it('keeps a value with surrounding spaces exactly as written', () => {
         const parsed = subagentMetaSchema.parse({
           ...buildMinimalSubagentMeta('reviewer'),
-          [field]: value
+          [field]: '  id-1 '
         })
 
-        expect(parsed[field]).toBe(value)
+        expect(parsed[field]).toBe('  id-1 ')
       })
 
-      it.each([
-        ['a newline', 'id\n1'],
-        ['a bidi override', 'id\u202E1'],
-        ['a line separator', 'id\u20281'],
-        ['a control character', 'id\u00071']
-      ])('keeps the meta and reads a value with %s as absent', (_label, value) => {
+      it('keeps the meta and reads an unprintable value as absent', () => {
         const parsed = subagentMetaSchema.safeParse({
           ...buildMinimalSubagentMeta('reviewer'),
-          [field]: value
+          [field]: 'id\u202E1'
         })
 
         expect(parsed.success).toBe(true)
@@ -189,13 +153,8 @@ describe('subagentMetaSchema', () => {
     expect(parsed).toMatchObject(real)
   })
 
-  it.each([
-    ['an oversized agentType', 'x'.repeat(MAX_LABEL_CODE_UNITS + 1)],
-    ['an agentType NFC expands past the cap', '̈́'.repeat(200)],
-    ['an agentType with a newline', 'code\nreviewer'],
-    ['a blank agentType', '  ']
-  ])('rejects the whole meta for %s', (_label, agentType) => {
-    expect(subagentMetaSchema.safeParse({ agentType }).success).toBe(false)
+  it('rejects the whole meta for an unusable agentType', () => {
+    expect(subagentMetaSchema.safeParse({ agentType: 'code\nreviewer' }).success).toBe(false)
   })
 
   it('trims an agentType and normalizes it to NFC', () => {

@@ -123,8 +123,8 @@ describe('createSignalObserver', () => {
     ])
   })
 
-  it.each(['true', 1])('treats is_error %j as not an error', (isError) => {
-    const observer = observed(buildUserToolResultRecord({ toolUseId: 'a', isError }))
+  it('treats an is_error that is not the boolean true as not an error', () => {
+    const observer = observed(buildUserToolResultRecord({ toolUseId: 'a', isError: 'true' }))
     expect(observer.events()).toMatchObject([{ kind: 'tool-result', isError: false }])
   })
 

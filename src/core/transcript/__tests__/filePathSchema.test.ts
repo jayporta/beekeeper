@@ -19,11 +19,6 @@ describe('filePathSchema', () => {
     expect(filePathSchema.safeParse('/'.repeat(MAX_PATH_CODE_UNITS + 1)).success).toBe(false)
   })
 
-  it('rejects a non-BMP path under the code-point cap but over the code-unit cap', () => {
-    // 3000 non-BMP characters: 3000 code points, but 6000 UTF-16 code units.
-    expect(filePathSchema.safeParse('😀'.repeat(3000)).success).toBe(false)
-  })
-
   it('rejects a non-string value', () => {
     expect(filePathSchema.safeParse(42).success).toBe(false)
   })

@@ -20,11 +20,6 @@ describe('toAgentLabel', () => {
     expect(toAgentLabel('x'.repeat(CAP + 1))).toBeNull()
   })
 
-  it('rejects a non-BMP value under the code-point cap but over the code-unit cap', () => {
-    // 200 non-BMP characters: 200 code points, but 400 UTF-16 code units.
-    expect(toAgentLabel('😀'.repeat(200))).toBeNull()
-  })
-
   it('rejects a value that NFC normalization expands past the cap', () => {
     // U+0344 is excluded from composition and expands to two code units.
     expect(toAgentLabel('̈́'.repeat(CAP))).toBeNull()
@@ -42,21 +37,16 @@ describe('toAgentLabel', () => {
     expect(toAgentLabel('a b')).toBe('a b')
   })
 
+  // The classes of unprintable character are covered in hasUnprintable.test.ts.
   it.each([
     ['blank', '   '],
     ['empty', ''],
-    ['a control character', 'a\nb'],
-    ['a format character (bidi override)', 'a‮b'],
-    ['a lone surrogate', 'a\ud800b'],
-    ['a private-use code point', 'ab'],
-    ['a non-breaking space', 'a b'],
-    ['a line separator', 'a b'],
-    ['an interior tab', 'a\tb']
+    ['an unprintable character', 'a\nb']
   ])('rejects %s', (_case, value) => {
     expect(toAgentLabel(value)).toBeNull()
   })
 
-  it.each([[42], [null], [undefined], [{}], [['a']]])('rejects a non-string: %j', (value) => {
-    expect(toAgentLabel(value)).toBeNull()
+  it('rejects a non-string', () => {
+    expect(toAgentLabel(['a'])).toBeNull()
   })
 })

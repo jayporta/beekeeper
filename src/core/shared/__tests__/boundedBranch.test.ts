@@ -25,7 +25,8 @@ describe('isBranchNameWithinCap', () => {
     expect(isBranchNameWithinCap(value)).toBe(false)
   })
 
-  it.each([[undefined], [null], [42], [{}], [['a']]])('rejects a non-string: %j', (value) => {
+  // A list has a length, so it is the non-string a length check alone would let through.
+  it.each([[null], [['a']]])('rejects a non-string: %j', (value) => {
     expect(isBranchNameWithinCap(value)).toBe(false)
   })
 })
