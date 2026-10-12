@@ -195,6 +195,19 @@ describe('ProjectList', () => {
       expectRows(nav, ['All projects', BETA, 'acme-web'])
     })
 
+    it('starts a project folder named like an Object.prototype key closed', async () => {
+      const nav = await renderLoaded([
+        testProject(BETA),
+        testProject('constructor'),
+        testProject('constructor--claude-worktrees-x', {
+          worktreeOf: 'constructor',
+          worktreeName: 'x'
+        })
+      ])
+
+      expect(isOpen(nav, 'constructor')).toBe('false')
+    })
+
     it('opens a closed project’s worktrees when its toggle is pressed, and nothing else changes', async () => {
       const nav = await renderLoaded()
       await userEvent.click(within(nav).getByRole('button', { name: BETA }))

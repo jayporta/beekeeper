@@ -53,7 +53,9 @@ export function ProjectGroupRows({
   const { group, totals } = item
   const { project, worktrees } = group
   const listId = useId()
-  const chosen = useExpandedProjectsStore((state) => state.toggled[project.dirName])
+  const chosen = useExpandedProjectsStore((state) =>
+    Object.hasOwn(state.toggled, project.dirName) ? state.toggled[project.dirName] : undefined
+  )
   const setExpanded = useExpandedProjectsStore((state) => state.setExpanded)
   const holdsWorktree =
     current !== null && worktrees.some((worktree) => worktree.dirName === current)

@@ -15,6 +15,8 @@ interface SidebarWidth {
   preview: (px: number) => void
   /** Saves a width and ends any preview. */
   commit: (px: number) => void
+  /** Drops any preview and keeps the saved width. */
+  cancel: () => void
 }
 
 /**
@@ -23,7 +25,7 @@ interface SidebarWidth {
  * during render, so a window that shrinks narrows the sidebar without touching
  * what was saved.
  *
- * @returns The width, its range, and how to preview and save a new width.
+ * @returns The width, its range, and how to preview, save, or cancel a new width.
  */
 export function useSidebarWidth(): SidebarWidth {
   const viewportWidth = useViewportWidth()
@@ -37,6 +39,9 @@ export function useSidebarWidth(): SidebarWidth {
     max: sidebarMaxWidth(viewportWidth),
     preview: (px) => {
       setLive(px)
+    },
+    cancel: () => {
+      setLive(null)
     },
     commit: (px) => {
       setStored(clampSidebarWidth(px, Number.POSITIVE_INFINITY))

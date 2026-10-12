@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ResizableShell } from '../ResizableShell'
 import { resetPersistedState } from '@renderer/testRenderApp'
 import { SidebarResizer } from '../SidebarResizer'
@@ -18,6 +18,7 @@ function Harness(): React.JSX.Element {
       max={sidebar.max}
       onPreview={sidebar.preview}
       onCommit={sidebar.commit}
+      onCancel={sidebar.cancel}
     />
   )
 }
@@ -134,6 +135,75 @@ describe('SidebarResizer', () => {
     fireEvent.pointerDown(separator(), { clientX: 300, pointerId: 1 })
     fireEvent.pointerUp(separator(), { clientX: 300, pointerId: 1 })
     expect(widthNow()).toBe(DEFAULT_SIDEBAR_WIDTH)
+  })
+
+  it('does not save a click that the browser cancels', () => {
+    render(<Harness />)
+
+    fireEvent.pointerDown(separator(), { clientX: 300, pointerId: 1 })
+    fireEvent.pointerCancel(separator(), { clientX: 300, pointerId: 1 })
+
+    expect(widthNow()).toBe(DEFAULT_SIDEBAR_WIDTH)
+    expect(useSidebarWidthStore.getState().width).toBe(DEFAULT_SIDEBAR_WIDTH)
+  })
+
+  it('drops a cancelled drag without saving its preview, and reports the cancel', async () => {
+    const onCancel = vi.fn()
+    const onCommit = vi.fn()
+    render(
+      <SidebarResizer
+        width={DEFAULT_SIDEBAR_WIDTH}
+        min={MIN_SIDEBAR_WIDTH}
+        max={MAX_SIDEBAR_WIDTH}
+        onPreview={() => undefined}
+        onCommit={onCommit}
+        onCancel={onCancel}
+      />
+    )
+
+    fireEvent.pointerDown(separator(), { clientX: 300, pointerId: 1 })
+    fireEvent.pointerMove(separator(), { clientX: 380, pointerId: 1 })
+    await nextFrame()
+    fireEvent.pointerCancel(separator(), { clientX: 380, pointerId: 1 })
+    fireEvent.lostPointerCapture(separator(), { pointerId: 1 })
+
+    expect(onCommit).not.toHaveBeenCalled()
+    expect(onCancel).toHaveBeenCalledTimes(1)
+  })
+
+  it('clears the live preview when a drag is cancelled', async () => {
+    render(<Harness />)
+
+    fireEvent.pointerDown(separator(), { clientX: 300, pointerId: 1 })
+    fireEvent.pointerMove(separator(), { clientX: 380, pointerId: 1 })
+    await nextFrame()
+    expect(widthNow()).toBe(DEFAULT_SIDEBAR_WIDTH + 80)
+    fireEvent.pointerCancel(separator(), { clientX: 380, pointerId: 1 })
+
+    expect(widthNow()).toBe(DEFAULT_SIDEBAR_WIDTH)
+    expect(useSidebarWidthStore.getState().width).toBe(DEFAULT_SIDEBAR_WIDTH)
+  })
+
+  it('commits once when the pointer is released and capture is then lost', () => {
+    const onCommit = vi.fn()
+    const onCancel = vi.fn()
+    render(
+      <SidebarResizer
+        width={DEFAULT_SIDEBAR_WIDTH}
+        min={MIN_SIDEBAR_WIDTH}
+        max={MAX_SIDEBAR_WIDTH}
+        onPreview={() => undefined}
+        onCommit={onCommit}
+        onCancel={onCancel}
+      />
+    )
+
+    fireEvent.pointerDown(separator(), { clientX: 300, pointerId: 1 })
+    fireEvent.pointerUp(separator(), { clientX: 300, pointerId: 1 })
+    fireEvent.lostPointerCapture(separator(), { pointerId: 1 })
+
+    expect(onCommit).toHaveBeenCalledTimes(1)
+    expect(onCancel).not.toHaveBeenCalled()
   })
 
   it('narrows the effective width when the window shrinks', async () => {

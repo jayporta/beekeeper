@@ -49,6 +49,7 @@ export function ResizableShell({
           max={size.max}
           onPreview={size.preview}
           onCommit={size.commit}
+          onCancel={size.cancel}
         />
       </aside>
       {main}

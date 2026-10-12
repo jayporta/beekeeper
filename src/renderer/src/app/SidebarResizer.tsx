@@ -19,6 +19,8 @@ interface SidebarResizerProps {
   onPreview: (px: number) => void
   /** Called with the width in px to save. */
   onCommit: (px: number) => void
+  /** Called when the browser cancels a press or drag, so any preview is dropped without saving. */
+  onCancel: () => void
 }
 
 /** Where a drag began and how far it has gone. */
@@ -36,14 +38,15 @@ interface Drag {
  * a click without a drag toggles between the default and the widest.
  *
  * @example
- * <SidebarResizer width={260} min={200} max={560} onPreview={preview} onCommit={commit} />
+ * <SidebarResizer width={260} min={200} max={560} onPreview={preview} onCommit={commit} onCancel={cancel} />
  */
 export function SidebarResizer({
   width,
   min,
   max,
   onPreview,
-  onCommit
+  onCommit,
+  onCancel
 }: SidebarResizerProps): React.JSX.Element {
   const { t } = useTranslation()
   const drag = useRef<Drag | null>(null)
@@ -73,6 +76,14 @@ export function SidebarResizer({
     } else {
       onCommit(current.width)
     }
+  }
+
+  function cancel(): void {
+    if (drag.current === null) return
+    drag.current = null
+    cancelFrame()
+    setDragging(false)
+    onCancel()
   }
 
   function onKeyDown(event: React.KeyboardEvent): void {
@@ -122,8 +133,8 @@ export function SidebarResizer({
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={end}
-      onPointerCancel={end}
-      onLostPointerCapture={end}
+      onPointerCancel={cancel}
+      onLostPointerCapture={cancel}
     />
   )
 }
