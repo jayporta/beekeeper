@@ -1,4 +1,6 @@
 .row {
+  /* Contains the row's visually hidden text, which would otherwise escape the sidebar's scrollers and lengthen the page. */
+  position: relative;
   display: flex;
   flex: 1;
   gap: var(--space-2);

@@ -78,7 +78,8 @@
   --color-kind-lead-text: #ffffff;
   --color-kind-teammate: #1a9aa6;
   --color-kind-teammate-bg: #effafb;
-  --color-kind-workflow: #e09a12;
+  /* The spec's #e09a12 is 2.4:1 on white; this holds 3:1 on the ground, the surface and its own tint. */
+  --color-kind-workflow: #bc810f;
   --color-kind-workflow-bg: #fff8eb;
   --color-kind-subagent: #7c5cff;
 
@@ -302,7 +303,10 @@
     --color-accent-900: #e4e5ff;
     --color-accent-strong: #cfd1ff;
 
+    /* The light lead is 2.7:1 on the dark ground; this holds 3:1 there and 4.5:1 under white text. */
+    --color-kind-lead: #5a51e7;
     --color-kind-teammate-bg: #10292c;
+    --color-kind-workflow: #e09a12;
     --color-kind-workflow-bg: #2e2410;
 
     --color-pill-error-bg: #3d1f1f;

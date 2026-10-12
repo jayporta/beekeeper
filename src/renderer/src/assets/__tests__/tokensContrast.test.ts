@@ -117,7 +117,9 @@ const MARK_TOKENS = [
   '--color-model-sonnet',
   '--color-model-haiku',
   '--color-model-other',
+  '--color-kind-lead',
   '--color-kind-teammate',
+  '--color-kind-workflow',
   '--color-kind-subagent'
 ]
 
