@@ -28,20 +28,13 @@ function countingDeps(base: IpcDeps): { deps: IpcDeps; counts: { scans: number; 
 }
 
 describe('getWorktreePatchHandler request validation', () => {
+  // Which requests the schema refuses is covered in requestSchemas.test.ts; these show the
+  // handler refuses one before it locates git or scans anything.
   it.each([
     ['no agent id', { projectDirName: TEST_PROJECT, sessionId: TEST_SESSION_ID }],
-    ['an empty agent id', { ...request, agentId: '' }],
     ['an agent id with a slash', { ...request, agentId: '../a1' }],
-    ['an agent id with a backslash', { ...request, agentId: '..\\a1' }],
-    ['an agent id with NUL', { ...request, agentId: 'a1\0' }],
-    ['an agent id of dots', { ...request, agentId: '..' }],
-    ['an agent id that is too long', { ...request, agentId: 'a'.repeat(MAX_AGENT_ID_LENGTH + 1) }],
-    ['an agent id that is not text', { ...request, agentId: 7 }],
     ['an extra field', { ...request, path: '/etc' }],
-    ['a project name that is a path', { ...request, projectDirName: '../x' }],
-    ['a session id that is not a uuid', { ...request, sessionId: 'abc' }],
-    ['no payload', undefined],
-    ['a payload that is not an object', 'a1']
+    ['no payload', undefined]
   ])('refuses %s, locating no git and scanning nothing', async (_label, payload) => {
     const { deps, counts } = countingDeps(ctx.deps)
 
