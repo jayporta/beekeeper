@@ -29,11 +29,19 @@ interface ProjectGroupRowsProps {
 /**
  * A top-level project's list item: its row, a toggle for its worktrees when it
  * has any, and the worktree rows. The worktrees show when the person opened
- * them, or by default while the group holds the current page. A closed group
- * is hidden, so its rows leave the tab order.
+ * them, or by default while the group holds the current page. The list stays
+ * in the page so the toggle's `aria-controls` is valid, but a closed group is
+ * hidden and renders no rows, which keeps them out of the tab order and out of
+ * the work of rendering them.
  *
  * @example
- * <ProjectGroupRows item={item} slot={1} current={selected} onChoose={choose} />
+ * <ProjectGroupRows
+ *   item={item}
+ *   folderTotals={folderTotals}
+ *   slot={1}
+ *   current={selected}
+ *   onChoose={choose}
+ * />
  */
 export function ProjectGroupRows({
   item,
@@ -81,8 +89,8 @@ export function ProjectGroupRows({
       </ProjectLine>
       {worktrees.length > 0 && (
         <ul id={listId} className={styles.worktrees} hidden={!expanded}>
-          {worktrees.map((worktree) => {
-            return (
+          {expanded &&
+            worktrees.map((worktree) => (
               <li key={worktree.dirName}>
                 <ProjectLine>
                   <ProjectRow
@@ -90,11 +98,7 @@ export function ProjectGroupRows({
                     dot={<ProjectDot variant="ring" slot={slot} />}
                     label={projectTitle(worktree)}
                     detail={worktree.dirName}
-                    meta={
-                      expanded ? (
-                        <SidebarTotal totals={folderTotals(worktree.dirName)} />
-                      ) : undefined
-                    }
+                    meta={<SidebarTotal totals={folderTotals(worktree.dirName)} />}
                     current={current === worktree.dirName}
                     onSelect={() => {
                       onChoose(worktree.dirName)
@@ -102,8 +106,7 @@ export function ProjectGroupRows({
                   />
                 </ProjectLine>
               </li>
-            )
-          })}
+            ))}
         </ul>
       )}
     </li>

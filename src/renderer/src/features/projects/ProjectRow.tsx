@@ -25,7 +25,7 @@ interface ProjectRowProps {
    */
   readonly holdsCurrent?: boolean
   /**
-   * Whether the row sits indented beneath another.
+   * Whether the row is a worktree's, which sets its label in regular weight. The list around it does the indenting.
    * @defaultValue false
    */
   readonly nested?: boolean

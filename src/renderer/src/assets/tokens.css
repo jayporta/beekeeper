@@ -198,8 +198,11 @@
 
   /* Layout sizes. */
   --size-sidebar: 16.25rem;
-  /* The least room the sidebar's project list keeps before the card scrolls instead: about three rows. */
-  --size-project-list-min: calc(3 * var(--size-target-min));
+  /* The least room the sidebar's project list keeps before the card scrolls instead: three rows, the "Projects" label with its padding, and the gap and focus-ring padding around them. */
+  --size-project-list-min: calc(
+    3 * var(--size-target-min) + var(--font-size-xs) * var(--line-height-body) + var(--space-1-5) +
+      3 * var(--space-1)
+  );
   /* The main column's widest content: 1320px, in a padding of 18px above, 24px at the sides and 48px below. The session detail view's fill height subtracts the block and end padding. */
   --size-main-max: 82.5rem;
   --space-main-block: 1.125rem;

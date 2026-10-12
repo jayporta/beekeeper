@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { BeekeeperApi } from '../../../../../shared/ipc/beekeeperApi'
@@ -7,6 +7,7 @@ import { testTotals } from '@renderer/features/overview/testTotals'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
+import { createTestQueryClient } from '@renderer/testQueryWrapper'
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
 import { useExpandedProjectsStore } from '../state/useExpandedProjectsStore'
 import { useSelectedProjectStore } from '../state/useSelectedProjectStore'
@@ -321,20 +322,55 @@ describe('ProjectList', () => {
       expect(within(nav).getByRole('button', { name: 'y 900K tokens, last 7 days' })).toBeTruthy()
     })
 
-    it('shows no total for a worktree whose totals are loading or failed', async () => {
+    it('shows no total for a worktree whose totals are still loading', async () => {
       const nav = await renderLoaded(PROJECTS, {
         getProjectTotals: (dirName: string) =>
           dirName === WORKTREE_X
             ? new Promise(() => undefined)
-            : dirName === WORKTREE_Y
-              ? Promise.reject(new Error('unreadable'))
-              : Promise.resolve({ ok: true, value: testTotals({ tokens: 5 }) })
+            : Promise.resolve({ ok: true, value: testTotals({ tokens: 5 }) })
       })
 
       await within(nav).findByRole('button', { name: /^-Users-a-beta .*tokens/ })
 
       expect(within(nav).getByRole('button', { name: 'x' })).toBeTruthy()
+    })
+
+    it('shows no total for a worktree whose totals failed, while its sibling shows one', async () => {
+      installBeekeeperApi({
+        listProjects: () => Promise.resolve({ ok: true, value: PROJECTS }),
+        listSessions: () => Promise.resolve({ ok: true, value: [] }),
+        getProjectTotals: (dirName: string) =>
+          Promise.resolve(
+            dirName === WORKTREE_Y
+              ? { ok: false, error: { code: 'unreadable' } }
+              : { ok: true, value: testTotals({ tokens: 1_200_000 }) }
+          )
+      })
+      const client = createTestQueryClient()
+      renderApp(client)
+      const nav = await screen.findByRole('navigation', { name: 'Projects' })
+
+      await waitFor(() => {
+        expect(client.getQueryState(['projectTotals', WORKTREE_Y, '7d'])?.status).toBe('error')
+      })
+
+      expect(
+        await within(nav).findByRole('button', { name: 'x 1.2M tokens, last 7 days' })
+      ).toBeTruthy()
       expect(within(nav).getByRole('button', { name: 'y' })).toBeTruthy()
+    })
+
+    it('leaves a closed group’s worktree rows out of the page, not just hidden', async () => {
+      const nav = await renderLoaded()
+
+      await userEvent.click(toggle(nav, 'acme-web'))
+
+      const list = document.getElementById(
+        toggle(nav, 'acme-web').getAttribute('aria-controls') ?? ''
+      )
+      expect(list?.hasAttribute('hidden')).toBe(true)
+      expect(list?.children).toHaveLength(0)
+      expect(within(nav).queryByRole('button', { name: 'x', hidden: true })).toBeNull()
     })
   })
 
