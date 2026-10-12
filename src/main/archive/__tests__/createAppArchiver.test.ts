@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite'
-import { copyFile, mkdir, stat, writeFile } from 'node:fs/promises'
+import { chmod, copyFile, mkdir, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { TEST_PROJECT, TEST_SESSION_ID } from '../../../service/testServiceTree'
@@ -131,7 +131,7 @@ describe('createAppArchiver', () => {
     expect(uiCache).toEqual({ gets: 0, sets: 0 })
   })
 
-  describe('a session whose scan is incomplete', () => {
+  describe('a session whose subagent meta file failed', () => {
     const metaPath = (): string =>
       join(
         ctx.tree.home,
@@ -142,21 +142,38 @@ describe('createAppArchiver', () => {
         'subagents',
         'agent-a1.meta.json'
       )
+    const pendingIds = (): string[] =>
+      store.pendingDetails().map((pending) => pending.ref.sessionId)
 
-    it('is not archived, stays pending, and is archived once a later scan is complete', async () => {
-      await writeFile(metaPath(), 'not json')
-      const later = archiver(ARCHIVE_DETAIL_AFTER_DAYS)
+    it.each([
+      ['does not match the expected shape', '{}'],
+      ['is not valid JSON', 'not json']
+    ])('is archived and no longer pending when the meta %s', async (_name, content) => {
+      await writeFile(metaPath(), content)
 
-      await later.runPass()
-      const rowsAfterIncomplete = detailRows()
-      const stillPending = store.pendingDetails().map((pending) => pending.ref.sessionId)
-      await writeFile(metaPath(), JSON.stringify({ agentType: 'Explore' }))
-      await later.runPass()
+      await archiver(ARCHIVE_DETAIL_AFTER_DAYS).runPass()
 
-      expect(rowsAfterIncomplete).toBe(0)
-      expect(stillPending).toEqual([TEST_SESSION_ID])
       expect(detailRows()).toBe(1)
+      expect(pendingIds()).toEqual([])
     })
+
+    it.skipIf(process.getuid?.() === 0)(
+      'stays pending while the meta is unreadable and is archived once it can be read',
+      async () => {
+        await chmod(metaPath(), 0o000)
+        const later = archiver(ARCHIVE_DETAIL_AFTER_DAYS)
+
+        await later.runPass()
+        const rowsWhileUnreadable = detailRows()
+        const stillPending = pendingIds()
+        await chmod(metaPath(), 0o600)
+        await later.runPass()
+
+        expect(rowsWhileUnreadable).toBe(0)
+        expect(stillPending).toEqual([TEST_SESSION_ID])
+        expect(detailRows()).toBe(1)
+      }
+    )
   })
 
   describe('a pending session whose transcript is gone', () => {
