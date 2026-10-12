@@ -64,8 +64,8 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 
-  /* The full name is one hover or focus away, with no title tooltip a keyboard can't reach. */
-  .row:is(:hover, :focus-visible) & {
+  /* Keyboard focus shows the full name, since no title tooltip can reach a keyboard; the accessible name always holds it. */
+  .row:focus-visible & {
     overflow-wrap: anywhere;
     white-space: normal;
   }

@@ -35,7 +35,7 @@ interface ProjectRowProps {
 
 /**
  * One row of the sidebar's project list: a button with a mark, a label that
- * shows in full on hover and focus, and an optional note. The caller supplies
+ * shows in full on keyboard focus, and an optional note. The caller supplies
  * the list item around it.
  *
  * @example
