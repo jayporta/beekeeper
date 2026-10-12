@@ -26,6 +26,9 @@ export default defineConfig({
         test: {
           name: 'jsdom',
           environment: 'jsdom',
+          // One jsdom per worker, with each file still in its own VM context: building jsdom
+          // for every file in a fresh fork cost a third of the suite's time.
+          pool: 'vmThreads',
           include: ['src/**/*.test.tsx'],
           exclude,
           setupFiles: ['src/renderer/src/testSetup.ts']
