@@ -199,7 +199,6 @@
   --space-8: 2rem;
 
   /* Layout sizes. */
-  --size-sidebar: 16.25rem;
   /* The sidebar resize handle's grab zone: 24px, the gap between the sidebar card and main. */
   --size-sidebar-resizer: 1.5rem;
   /* The least room the sidebar's project list keeps before the card scrolls instead: three rows, the "Projects" label with its padding, and the gap and focus-ring padding around them. */

@@ -18,9 +18,10 @@ interface SidebarWidth {
 }
 
 /**
- * The sidebar's width for the current window. The stored width is limited
- * during render, so a window that shrinks narrows the sidebar without
- * touching what was saved.
+ * The sidebar's width for the current window. The stored width is the one the
+ * person chose, limited only to the absolute range. It is limited to the window
+ * during render, so a window that shrinks narrows the sidebar without touching
+ * what was saved.
  *
  * @returns The width, its range, and how to preview and save a new width.
  */
@@ -38,7 +39,7 @@ export function useSidebarWidth(): SidebarWidth {
       setLive(px)
     },
     commit: (px) => {
-      setStored(clampSidebarWidth(px, viewportWidth))
+      setStored(clampSidebarWidth(px, Number.POSITIVE_INFINITY))
       setLive(null)
     }
   }

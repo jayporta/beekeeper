@@ -1,9 +1,11 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { ResizableShell } from '../ResizableShell'
 import { resetPersistedState } from '@renderer/testRenderApp'
 import { SidebarResizer } from '../SidebarResizer'
 import { DEFAULT_SIDEBAR_WIDTH, MAX_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH } from '../sidebarWidth'
+import { useSidebarWidthStore } from '../state/useSidebarWidthStore'
 import { useSidebarWidth } from '../useSidebarWidth'
 
 /** The resizer wired to the real width hook, as the shell wires it. */
@@ -25,6 +27,13 @@ function setViewport(width: number): void {
   window.innerWidth = width
   act(() => {
     window.dispatchEvent(new Event('resize'))
+  })
+}
+
+/** Waits for the next animation frame, where a coalesced preview lands. */
+async function nextFrame(): Promise<void> {
+  await act(async () => {
+    await new Promise((resolve) => requestAnimationFrame(resolve))
   })
 }
 
@@ -93,11 +102,12 @@ describe('SidebarResizer', () => {
     expect(widthNow()).toBe(DEFAULT_SIDEBAR_WIDTH)
   })
 
-  it('follows a drag and keeps the width where it ends', () => {
+  it('follows a drag and keeps the width where it ends', async () => {
     render(<Harness />)
 
     fireEvent.pointerDown(separator(), { clientX: 300, pointerId: 1 })
     fireEvent.pointerMove(separator(), { clientX: 380, pointerId: 1 })
+    await nextFrame()
     expect(widthNow()).toBe(DEFAULT_SIDEBAR_WIDTH + 80)
     fireEvent.pointerUp(separator(), { clientX: 380, pointerId: 1 })
 
@@ -133,7 +143,59 @@ describe('SidebarResizer', () => {
 
     setViewport(1000)
 
+    expect(widthNow()).toBe(450)
+    expect(separator().getAttribute('aria-valuemax')).toBe('450')
+  })
+
+  it('ignores a press with a button other than the primary one', () => {
+    render(<Harness />)
+
+    fireEvent.pointerDown(separator(), { clientX: 300, pointerId: 1, button: 2 })
+    fireEvent.pointerUp(separator(), { clientX: 300, pointerId: 1, button: 2 })
+
+    expect(widthNow()).toBe(DEFAULT_SIDEBAR_WIDTH)
+  })
+
+  it('steps from the width a narrow window shows, and keeps that step when the window widens', async () => {
+    render(<Harness />)
+    separator().focus()
+    await userEvent.keyboard('{End}')
+
+    setViewport(800)
     expect(widthNow()).toBe(360)
-    expect(separator().getAttribute('aria-valuemax')).toBe('360')
+    await userEvent.keyboard('{ArrowLeft}')
+    setViewport(1600)
+
+    expect(widthNow()).toBe(344)
+  })
+
+  it('previews an arrow step at once and saves it on key release', async () => {
+    render(<Harness />)
+    separator().focus()
+
+    fireEvent.keyDown(separator(), { key: 'ArrowRight' })
+    expect(widthNow()).toBe(DEFAULT_SIDEBAR_WIDTH + 16)
+    expect(useSidebarWidthStore.getState().width).toBe(DEFAULT_SIDEBAR_WIDTH)
+    fireEvent.keyUp(separator(), { key: 'ArrowRight' })
+
+    expect(useSidebarWidthStore.getState().width).toBe(DEFAULT_SIDEBAR_WIDTH + 16)
+  })
+
+  it('does not re-render the sidebar content while a drag moves', async () => {
+    let renders = 0
+    function Content(): null {
+      renders += 1
+      return null
+    }
+    const sidebar = <Content />
+    render(<ResizableShell skipLink={null} sidebar={sidebar} main={<main />} />)
+    const before = renders
+
+    fireEvent.pointerDown(separator(), { clientX: 300, pointerId: 1 })
+    fireEvent.pointerMove(separator(), { clientX: 380, pointerId: 1 })
+    await nextFrame()
+
+    expect(widthNow()).toBe(DEFAULT_SIDEBAR_WIDTH + 80)
+    expect(renders).toBe(before)
   })
 })

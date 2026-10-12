@@ -16,8 +16,8 @@ export const SIDEBAR_STEP_LARGE = 64
 /** The share of the window the sidebar may take. */
 const MAX_WINDOW_SHARE = 0.45
 
-/** The room main keeps beside the sidebar, in px: the width where the layout stacks (40rem). */
-const MAIN_MIN_WIDTH = 640
+/** The room main keeps beside the sidebar, in px: 25rem. */
+const MAIN_MIN_WIDTH = 400
 
 /**
  * The widest the sidebar may be in a window: a share of the window, never more

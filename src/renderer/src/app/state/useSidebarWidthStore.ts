@@ -9,7 +9,7 @@ export const SIDEBAR_WIDTH_STORAGE_KEY = 'sidebar-width'
 
 /** The sidebar's width as the person last set it. */
 interface SidebarWidthState {
-  /** The width in px, before the window's size limits it (see `clampSidebarWidth`). */
+  /** The width in px the person chose, limited only to the absolute range. The window limits what is drawn (see `clampSidebarWidth`). */
   readonly width: number
   /** Sets the width in px. */
   setWidth: (px: number) => void

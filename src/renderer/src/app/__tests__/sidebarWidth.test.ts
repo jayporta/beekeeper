@@ -16,8 +16,8 @@ describe('sidebarMaxWidth', () => {
     expect(sidebarMaxWidth(1200)).toBe(540)
   })
 
-  it('leaves main 640px in a window just wide enough', () => {
-    expect(sidebarMaxWidth(900)).toBe(260)
+  it('leaves main 400px in a window where that is the tighter limit', () => {
+    expect(sidebarMaxWidth(720)).toBe(320)
   })
 
   it('never goes below the minimum', () => {
@@ -35,7 +35,7 @@ describe('clampSidebarWidth', () => {
   })
 
   it('lowers a width above what the window leaves main', () => {
-    expect(clampSidebarWidth(900, 1100)).toBe(460)
+    expect(clampSidebarWidth(900, 1100)).toBe(495)
   })
 
   it('rounds to whole pixels', () => {
