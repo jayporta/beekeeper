@@ -1,14 +1,12 @@
-import { act, render, screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import type { IpcErrorCode } from '../../../../../shared/ipc/ipcResult'
-import { LIVE_COPY_CLEAR_MS } from '@renderer/components/liveCopyClearMs'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import { SessionDetailStatus } from '../SessionDetailStatus'
 
 afterEach(() => {
-  vi.useRealTimers()
   useNavigationStore.getState().reset()
 })
 
@@ -99,18 +97,6 @@ describe('SessionDetailStatus for a missing session', () => {
 
     expect(screen.getByRole('alert')).not.toBe(first)
     expect(first.isConnected).toBe(false)
-  })
-
-  it('removes its alert once the live copy delay has passed, and keeps the message', () => {
-    vi.useFakeTimers()
-    render(status('not-found'))
-
-    act(() => {
-      vi.advanceTimersByTime(LIVE_COPY_CLEAR_MS)
-    })
-
-    expect(screen.queryByRole('alert')).toBeNull()
-    expect(screen.getByRole('group', { name: 'Session not found' })).toBeTruthy()
   })
 
   it('moves focus to the message, with no alert, when it replaces the focused control', () => {

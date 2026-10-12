@@ -123,12 +123,9 @@ describe('session search by workflow run', () => {
 })
 
 describe('session search by subagent', () => {
-  it.each([
-    ['name', 'SCOUT'],
-    ['description', 'map the AUTH'],
-    ['type', 'explore']
-  ])('shows a session whose subagent matches by %s, naming the subagent', async (_field, text) => {
-    await search(text, [refactor, lead, mate])
+  // Which subagent fields a search reads is covered in sessionMatches.test.ts.
+  it('shows a session whose subagent matches, naming the subagent', async () => {
+    await search('SCOUT', [refactor, lead, mate])
 
     const shown = await card('Refactor parser')
     expect(within(shown).getByText('matching subagent scout')).toBeTruthy()

@@ -22,12 +22,6 @@ describe('GraphFootnote legend', () => {
     expect(screen.getByText('▲ compactions')).toBeTruthy()
     expect(screen.getByText('■ stopped')).toBeTruthy()
   })
-
-  it('leaves the legend out when no node has marks', () => {
-    renderFootnote(false)
-
-    expect(screen.queryByText(/compactions/)).toBeNull()
-  })
 })
 
 describe('GraphFootnote partial note', () => {

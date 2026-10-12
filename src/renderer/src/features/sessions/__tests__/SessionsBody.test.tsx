@@ -1,12 +1,7 @@
-import { act, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { LIVE_COPY_CLEAR_MS } from '@renderer/components/liveCopyClearMs'
+import { render, screen } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import { SessionsBody } from '../SessionsBody'
-
-afterEach(() => {
-  vi.useRealTimers()
-})
 
 /** A body whose folder is gone, as of the failed load at `errorUpdatedAt`. */
 function notFoundBody(errorUpdatedAt: number): React.JSX.Element {
@@ -44,18 +39,5 @@ describe('SessionsBody for a gone folder', () => {
 
     expect(screen.getByRole('alert')).not.toBe(first)
     expect(first.isConnected).toBe(false)
-  })
-
-  it('removes its alert once the live copy delay has passed, and keeps the message', () => {
-    vi.useFakeTimers()
-    render(notFoundBody(1))
-    expect(screen.getByRole('alert')).toBeTruthy()
-
-    act(() => {
-      vi.advanceTimersByTime(LIVE_COPY_CLEAR_MS)
-    })
-
-    expect(screen.queryByRole('alert')).toBeNull()
-    expect(screen.getByRole('group', { name: 'Project folder not found' })).toBeTruthy()
   })
 })

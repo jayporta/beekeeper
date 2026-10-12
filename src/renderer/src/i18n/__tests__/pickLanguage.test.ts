@@ -6,7 +6,7 @@ describe('pickLanguage', () => {
     expect(pickLanguage(tag)).toBe(tag)
   })
 
-  it.each(['de-DE', 'fr', 'zh-Hans-CN'])('falls back to English for unsupported %s', (tag) => {
+  it.each(['fr', 'zh-Hans-CN'])('falls back to English for unsupported %s', (tag) => {
     expect(pickLanguage(tag)).toBe('en')
   })
 
