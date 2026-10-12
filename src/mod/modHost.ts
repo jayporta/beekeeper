@@ -42,6 +42,28 @@ export interface HostTailResult {
   readonly signal: string | null
 }
 
+/** One git run, or one of locateGit's macOS probes. */
+export interface HostRunRequest {
+  /** Absolute path of the program. */
+  readonly file: string
+  /** Arguments after the program. */
+  readonly args: readonly string[]
+  /** Variables set over the engine's inherited environment. */
+  readonly env: Readonly<Record<string, string>>
+  /** Milliseconds before the child is killed. */
+  readonly timeoutMs: number
+}
+
+/** The fields of a finished run the process port uses. */
+export interface HostRunResult {
+  /** The child's exit status. */
+  readonly exitCode: number
+  /** Standard output as text, capped at 4 MiB. */
+  readonly stdout: string
+  /** Whether `stdout` was cut at the cap. */
+  readonly isStdoutTruncated: boolean
+}
+
 /** What the mod's logic may ask of the engine. `register.ts` builds one from `$` and is the only place that touches `$`. */
 export interface ModHost {
   /** The engine's version: `$.session.version()`. */
@@ -58,4 +80,14 @@ export interface ModHost {
    * iteration early kills the child. Only `readThroughTail` calls it, after confining `path`.
    */
   tail(path: string, start: number): AsyncGenerator<HostTailChunk, HostTailResult>
+  /** Runs git, or one of locateGit's macOS probes: `$.process.run([request.file, ...request.args], { env, timeoutMs })`. Rejects any other argv. */
+  runGit(request: HostRunRequest): Promise<HostRunResult>
+  /** `uname -s`'s output: `$.process.run(['uname', '-s'])`. */
+  osName(): Promise<string>
+  /** `CLAUDE_CONFIG_DIR`, or undefined: `$.env.get('CLAUDE_CONFIG_DIR')`. */
+  configDir(): Promise<string | undefined>
+  /** `HOME`, or undefined: `$.env.get('HOME')`. */
+  home(): Promise<string | undefined>
+  /** Names of the inherited git repository variables that are set, each read with its own `$.env.get('<literal>')`. */
+  gitRepoVariablesSet(): Promise<readonly string[]>
 }

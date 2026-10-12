@@ -2,6 +2,7 @@ import type { Engine, Register } from 'claude-code'
 import {
   EmptyPane,
   MINIMUM_CLAUDE_CODE,
+  isAllowedArgv,
   startMod,
   t,
   type ModHost,
@@ -10,6 +11,22 @@ import {
 
 const PANE_ID = 'beekeeper'
 
+/** The names among the git repository variables that Claude Code's environment sets, even to empty. */
+async function gitRepoVariablesSet($: Engine): Promise<string[]> {
+  const found = await Promise.all([
+    $.env.get('GIT_DIR').then((value) => ['GIT_DIR', value] as const),
+    $.env.get('GIT_WORK_TREE').then((value) => ['GIT_WORK_TREE', value] as const),
+    $.env.get('GIT_COMMON_DIR').then((value) => ['GIT_COMMON_DIR', value] as const),
+    $.env.get('GIT_INDEX_FILE').then((value) => ['GIT_INDEX_FILE', value] as const),
+    $.env.get('GIT_OBJECT_DIRECTORY').then((value) => ['GIT_OBJECT_DIRECTORY', value] as const),
+    $.env
+      .get('GIT_ALTERNATE_OBJECT_DIRECTORIES')
+      .then((value) => ['GIT_ALTERNATE_OBJECT_DIRECTORIES', value] as const),
+    $.env.get('GIT_NAMESPACE').then((value) => ['GIT_NAMESPACE', value] as const)
+  ])
+  return found.filter(([, value]) => value !== undefined).map(([name]) => name)
+}
+
 /** The mod's only `$` calls, as closures lib can use without seeing `$`. */
 export function hostOf($: Engine): ModHost {
   return {
@@ -17,6 +34,14 @@ export function hostOf($: Engine): ModHost {
     readBytes: async (path) =>
       Uint8Array.fromBase64((await $.fs.read(path, { as: 'bytes' })).base64),
     list: (path) => $.fs.list(path),
+    runGit: async ({ file, args, env, timeoutMs }) => {
+      if (!isAllowedArgv(file, args)) throw new RangeError('argv is not allowed')
+      return $.process.run([file, ...args], { env, timeoutMs })
+    },
+    osName: async () => (await $.process.run(['uname', '-s'])).stdout,
+    configDir: () => $.env.get('CLAUDE_CONFIG_DIR'),
+    home: () => $.env.get('HOME'),
+    gitRepoVariablesSet: () => gitRepoVariablesSet($),
     stat: (path) => $.fs.stat(path, { resolve: true }),
     tail: (path, start) => {
       if (!Number.isSafeInteger(start) || start < 0) throw new RangeError('start is not an offset')
@@ -41,7 +66,7 @@ async function announce($: Engine, outcome: StartOutcome): Promise<void> {
 export const register: Register = (on) => {
   on('session.start', async ($, e, next) => {
     const started = await next(e)
-    const outcome = await startMod(hostOf($))
+    const outcome = await startMod(hostOf($), { cwd: e.cwd })
     if (e.isInteractive) await announce($, outcome)
     return started
   }).catch(($, e, next) => next(e))

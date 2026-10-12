@@ -18,6 +18,8 @@ export interface TestEngine {
 export interface TestEngineAnswers {
   /** The engine version `$.session.version()` reports. */
   version?: SessionVersion
+  /** The environment variables `$.env.get` reads; `HOME` defaults to `/home/u`. */
+  env?: Record<string, string>
   /** Makes `$.session.version()` reject, as an engine that can't report its version would. */
   versionFails?: boolean
 }
@@ -76,7 +78,7 @@ export function createTestEngine(answers: TestEngineAnswers = {}): TestEngine {
     env: {
       get: async (name) => {
         record('env.get', name)
-        return undefined
+        return (answers.env ?? { HOME: '/home/u' })[name]
       }
     },
     fs: {

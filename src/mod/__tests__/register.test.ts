@@ -16,7 +16,7 @@ async function startSession(
   const { $, calls } = createTestEngine(answers)
   const { next } = createNext({ cwd: '/work' })
   await start?.hook($, { cwd: '/work', surface: 'terminal', isInteractive }, next)
-  return calls.filter((call) => call.name !== 'session.version')
+  return calls.filter((call) => call.name === 'command.register' || call.name === 'ui.toast')
 }
 
 describe('register', () => {
@@ -92,6 +92,72 @@ describe('register', () => {
 
       expect(() => hostOf($).tail(path, start)).toThrow()
       expect(calls).toEqual([])
+    })
+
+    it('runs git by absolute path through $.process.run with the env and timeout', async () => {
+      const { $, calls } = createTestEngine()
+
+      const result = await hostOf($).runGit({
+        file: '/usr/bin/git',
+        args: ['status'],
+        env: { A: 'b' },
+        timeoutMs: 1000
+      })
+
+      expect(result.exitCode).toBe(0)
+      expect(calls).toEqual([
+        {
+          name: 'process.run',
+          args: [['/usr/bin/git', 'status'], { env: { A: 'b' }, timeoutMs: 1000 }]
+        }
+      ])
+    })
+
+    it.each([
+      ['another program', '/usr/bin/curl', ['https://example.com']],
+      ['git by relative path', 'git', ['status']]
+    ])('refuses to run %s', async (_name, file, args) => {
+      const { $, calls } = createTestEngine()
+
+      await expect(hostOf($).runGit({ file, args, env: {}, timeoutMs: 1000 })).rejects.toThrow()
+      expect(calls).toEqual([])
+    })
+
+    it('asks uname -s for the OS name', async () => {
+      const { $, calls } = createTestEngine()
+
+      await hostOf($).osName()
+
+      expect(calls).toEqual([{ name: 'process.run', args: [['uname', '-s'], undefined] }])
+    })
+
+    it('reads HOME and CLAUDE_CONFIG_DIR by literal name', async () => {
+      const { $, calls } = createTestEngine({ env: { HOME: '/h', CLAUDE_CONFIG_DIR: '/c' } })
+
+      expect(await hostOf($).home()).toBe('/h')
+      expect(await hostOf($).configDir()).toBe('/c')
+      expect(calls.map((call) => call.args[0])).toEqual(['HOME', 'CLAUDE_CONFIG_DIR'])
+    })
+
+    it('names the git repository variables that are set, counting an empty one', async () => {
+      const { $ } = createTestEngine({ env: { GIT_DIR: '', GIT_NAMESPACE: 'n', HOME: '/h' } })
+
+      expect(await hostOf($).gitRepoVariablesSet()).toEqual(['GIT_DIR', 'GIT_NAMESPACE'])
+    })
+
+    it('names none when no git repository variable is set', async () => {
+      const { $, calls } = createTestEngine({ env: { HOME: '/h' } })
+
+      expect(await hostOf($).gitRepoVariablesSet()).toEqual([])
+      expect(calls.map((call) => call.args[0]).sort()).toEqual([
+        'GIT_ALTERNATE_OBJECT_DIRECTORIES',
+        'GIT_COMMON_DIR',
+        'GIT_DIR',
+        'GIT_INDEX_FILE',
+        'GIT_NAMESPACE',
+        'GIT_OBJECT_DIRECTORY',
+        'GIT_WORK_TREE'
+      ])
     })
 
     // readBytes is not tested here: Uint8Array.fromBase64 needs Node 25, and CI runs Node 24.

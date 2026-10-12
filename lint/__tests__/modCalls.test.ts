@@ -38,6 +38,14 @@ describe('parseValidateReport', () => {
     expect(parsed.calls).toEqual(['$.fs.read', '$.ui.open'])
   })
 
+  it('keeps the calls apart when a via marker names several functions', () => {
+    const parsed = parseValidateReport(
+      report(['./register.js calls: $.env.get (via gitRepoVariablesSet, hostOf), $.ui.open'])
+    )
+
+    expect(parsed.calls).toEqual(['$.env.get', '$.ui.open'])
+  })
+
   it('reads "nothing on $" as no calls', () => {
     expect(parseValidateReport(report(['./register.js calls: nothing on $'])).calls).toEqual([])
   })

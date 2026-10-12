@@ -81,8 +81,9 @@ function describeError(error) {
 function namesOf(value) {
   if (/^nothing( on \$)?$/.test(value.trim())) return []
   return value
+    .replace(/\s*\(via [^)]*\)/g, '')
     .split(',')
-    .map((name) => name.replace(/\s*\(via [^)]*\)\s*$/, '').trim())
+    .map((name) => name.trim())
     .filter((name) => name !== '')
 }
 

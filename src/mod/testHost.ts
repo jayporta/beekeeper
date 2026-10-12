@@ -1,4 +1,11 @@
-import type { HostEntry, HostStat, HostTailChunk, HostTailResult, ModHost } from './modHost'
+import type {
+  HostEntry,
+  HostRunResult,
+  HostStat,
+  HostTailChunk,
+  HostTailResult,
+  ModHost
+} from './modHost'
 
 /** One path in the fake host's file system. */
 export type TestPath =
@@ -35,6 +42,14 @@ export interface TestHostAnswers {
   paths?: Readonly<Record<string, TestPath>>
   /** What a call on a path throws instead of answering, as an engine rejection would. */
   failures?: Readonly<Record<string, unknown>>
+  /** The environment variables the host can read; `HOME` defaults to `/home/u`. */
+  env?: Readonly<Record<string, string>>
+  /** What `uname -s` prints, or a function that throws to simulate a missing `uname`. */
+  os?: string | (() => never)
+  /** The git repository variables that are set. */
+  gitRepoVariables?: readonly string[]
+  /** What a git run answers; defaults to an empty success. */
+  git?: HostRunResult
 }
 
 /** How many characters of a file the fake `tail` hands out at a time. */
@@ -47,7 +62,15 @@ const TAIL_PIECE = 3
  * @returns The fake host.
  */
 export function createTestHost(answers: TestHostAnswers = {}): ModHost {
-  const { version = { version: '2.1.296', base: '2.1.296' }, paths = {}, failures = {} } = answers
+  const {
+    version = { version: '2.1.296', base: '2.1.296' },
+    paths = {},
+    failures = {},
+    env = { HOME: '/home/u' },
+    os = 'Darwin\n',
+    gitRepoVariables = [],
+    git = { exitCode: 0, stdout: '', isStdoutTruncated: false }
+  } = answers
   const lookup = (path: string): TestPath => {
     if (path in failures) throw failures[path]
     const found = paths[path]
@@ -56,6 +79,11 @@ export function createTestHost(answers: TestHostAnswers = {}): ModHost {
   }
   return {
     version: async () => (typeof version === 'function' ? version() : version),
+    runGit: async () => git,
+    osName: async () => (typeof os === 'function' ? os() : os),
+    configDir: async () => env['CLAUDE_CONFIG_DIR'],
+    home: async () => env['HOME'],
+    gitRepoVariablesSet: async () => gitRepoVariables,
     readBytes: async (path) => {
       const found = lookup(path)
       if (found.kind !== 'file')
