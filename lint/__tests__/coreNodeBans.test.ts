@@ -3,7 +3,7 @@ import { reportedRules, WARM_UP_TIMEOUT_MS } from '../testLint'
 
 const CORE_FILE = 'src/core/transcript/probe.ts'
 
-describe('core Node bans', () => {
+describe('core and service Node bans', () => {
   // The first lint pays ESLint's start-up cost, which can pass a test's 5s timeout under full-suite load.
   beforeAll(async () => {
     await reportedRules(CORE_FILE, '')
@@ -54,6 +54,36 @@ describe('core Node bans', () => {
       expect(rules).toContain('no-restricted-globals')
     }
   )
+
+  it('bans a Node module import in service', async () => {
+    const rules = await reportedRules(
+      'src/service/sessions/probe.ts',
+      "import { join } from 'node:path'\nexport const s = join\n"
+    )
+
+    expect(rules).toContain('no-restricted-imports')
+  })
+
+  it('bans a Node global in service', async () => {
+    const rules = await reportedRules(
+      'src/service/sessions/probe.ts',
+      "export const s = Buffer.from('x')\n"
+    )
+
+    expect(rules).toContain('no-restricted-globals')
+  })
+
+  it.each([
+    ['a service test', 'src/service/sessions/__tests__/probe.test.ts'],
+    ['a service test helper', 'src/service/testProbe.ts']
+  ])('allows a Node module import in %s', async (_label, path) => {
+    const rules = await reportedRules(
+      path,
+      "import { join } from 'node:path'\nexport const s = join\n"
+    )
+
+    expect(rules).not.toContain('no-restricted-imports')
+  })
 
   it('still bans a bare network module import in core', async () => {
     const rules = await reportedRules(

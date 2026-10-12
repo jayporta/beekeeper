@@ -1,6 +1,9 @@
 import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { IPC_CHANNELS } from '../../../shared/ipc/channels'
+import { errorWithCode } from '../../../core/shared/testErrorWithCode'
+import { createFakeArchive } from '../../../service/archive/testFakeArchive'
+import { guardArchive } from '../../archive/guardArchive'
 import { createOtelRuntime } from '../../otel/createOtelRuntime'
 import { TEST_SESSION_ID } from '../../otel/testOtlpLogs'
 import { createIpcDeps } from '../createIpcDeps'
@@ -8,7 +11,12 @@ import type { IpcDeps } from '../ipcDeps'
 import { registerIpcHandlers, type IpcMainLike } from '../registerIpcHandlers'
 import { isTrustedSender, type SenderEvent } from '../senderValidation'
 import { TEST_INDEX_URL, TEST_ORIGINS } from '../testSender'
-import { buildIpcTestTree, TEST_PROJECT, type IpcTestTree } from '../testIpcTree'
+import {
+  buildServiceTestTree,
+  TEST_PROJECT,
+  TEST_SESSION_ID as TREE_SESSION_ID,
+  type ServiceTestTree
+} from '../../../service/testServiceTree'
 
 type Listener = Parameters<IpcMainLike['handle']>[1]
 
@@ -27,25 +35,31 @@ function fakeIpcMain(): { ipcMain: IpcMainLike; listeners: Map<string, Listener>
   }
 }
 
-let tree: IpcTestTree
+let tree: ServiceTestTree
 
 beforeEach(async () => {
-  tree = await buildIpcTestTree()
+  tree = await buildServiceTestTree()
 })
 
 afterEach(async () => {
+  vi.restoreAllMocks()
   await tree.cleanup()
 })
 
-function register(
-  otel: IpcDeps['otel'] = null,
-  copyToClipboard: IpcDeps['copyToClipboard'] = null
-): Map<string, Listener> {
+/** What {@link register} wires in beyond the temp tree's defaults. */
+interface RegisterOptions {
+  readonly otel?: IpcDeps['otel']
+  readonly copyToClipboard?: IpcDeps['copyToClipboard']
+  readonly archive?: IpcDeps['archive']
+}
+
+function register(options: RegisterOptions = {}): Map<string, Listener> {
+  const { otel = null, copyToClipboard = null, archive = null } = options
   const { ipcMain, listeners } = fakeIpcMain()
   registerIpcHandlers({
     ipcMain,
     isTrusted: (event) => isTrustedSender(event, TEST_ORIGINS),
-    deps: { ...createIpcDeps(tree.home), otel, copyToClipboard }
+    deps: { ...createIpcDeps(tree.home), otel, copyToClipboard, archive }
   })
   return listeners
 }
@@ -63,12 +77,49 @@ describe('registerIpcHandlers', () => {
     })
   })
 
+  it.each([
+    ['a traversal name', { projectDirName: '..' }],
+    ['a non-object payload', TEST_PROJECT]
+  ])('answers invalid-request on the listSessions channel for %s', async (_label, payload) => {
+    const listener = register().get(IPC_CHANNELS.listSessions)
+
+    expect(await listener?.(trustedEvent, payload)).toEqual({
+      ok: false,
+      error: { code: 'invalid-request' }
+    })
+  })
+
+  it.each([
+    ['a traversal project name', { projectDirName: '..', sessionId: TREE_SESSION_ID }],
+    [
+      'an uppercase session id',
+      { projectDirName: TEST_PROJECT, sessionId: TREE_SESSION_ID.toUpperCase() }
+    ],
+    ['a missing session id', { projectDirName: TEST_PROJECT }],
+    ['a session id that is not a uuid', { projectDirName: TEST_PROJECT, sessionId: 'not-a-uuid' }],
+    ['a non-object payload', TEST_PROJECT]
+  ])(
+    'answers invalid-request on the getSession channel for %s without reading the archive',
+    async (_label, payload) => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const archive = guardArchive(createFakeArchive(errorWithCode('EGETSESSION_NEVER')))
+      const listener = register({ archive }).get(IPC_CHANNELS.getSession)
+
+      expect(await listener?.(trustedEvent, payload)).toEqual({
+        ok: false,
+        error: { code: 'invalid-request' }
+      })
+      // A read would throw, and the guard would log it instead of failing the request.
+      expect(warn).not.toHaveBeenCalled()
+    }
+  )
+
   it('serves the telemetry receiver channels from the runtime it is given', async () => {
     const runtime = createOtelRuntime({
       settingsPath: join(tree.home, 'otel.json'),
       pickPort: () => 0
     })
-    const listeners = register(runtime)
+    const listeners = register({ otel: runtime })
     const on = await listeners.get(IPC_CHANNELS.setOtelReceiverEnabled)?.(trustedEvent, {
       enabled: true
     })
@@ -88,7 +139,9 @@ describe('registerIpcHandlers', () => {
 
   it('copies text for a trusted sender and refuses an untrusted one', async () => {
     const copied: string[] = []
-    const listener = register(null, (text) => copied.push(text)).get(IPC_CHANNELS.copyText)
+    const listener = register({ copyToClipboard: (text) => copied.push(text) }).get(
+      IPC_CHANNELS.copyText
+    )
 
     const trusted = await listener?.(trustedEvent, { text: 'a=b' })
     const foreign = await listener?.({ senderFrame: null }, { text: 'c=d' })

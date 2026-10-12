@@ -15,7 +15,7 @@ import {
   TEST_LEAD_SLOTS,
   TEST_REF,
   TEST_TEAM_SPAWNS
-} from '../testArchiveFixtures'
+} from '../../../service/archive/testArchiveFixtures'
 
 /** A list item the archive would hold: a readable summary and no team. */
 function storedItem(overrides: Record<string, unknown> = {}): string {

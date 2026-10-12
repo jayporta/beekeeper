@@ -3,7 +3,7 @@ import { QUARTER_HOUR_MS } from '../../../core/shared/quarterHour'
 import { combineDailyUsage } from '../../../core/usage/combineDailyUsage'
 import { EMPTY_SUBAGENT_DAILY_USAGE } from '../../../core/usage/scanSubagentDailyUsage'
 import { EMPTY_LEAD_USAGE } from '../../../core/transcript/summary/testSessionSummary'
-import { createDayKeyOf } from '../localDayKey'
+import { createDayKeyOf } from '../../../service/overview/localDayKey'
 
 const MODEL = 'claude-opus-5'
 

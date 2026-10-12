@@ -8,6 +8,7 @@ import { installProcessPort } from '../core/io/installProcessPort'
 import { nodeFileSystem } from '../core/io/node/nodeFileSystem'
 import { nodeProcess } from '../core/io/node/nodeProcess'
 import { createAppArchiver } from './archive/createAppArchiver'
+import { guardArchive } from './archive/guardArchive'
 import { openArchiveStore } from './archive/openArchiveStore'
 import { wireArchiver } from './archive/wireArchiver'
 import { buildAppMenuTemplate } from './appMenu'
@@ -21,7 +22,7 @@ import { hardenDefaultSession } from './security/session'
 import { hardenWebContents } from './security/windowSecurity'
 import { sendOpenAbout } from './sendOpenAbout'
 import { surfaceWindows } from './surfaceWindows'
-import { describeError } from './describeError'
+import { describeError } from '../core/shared/describeError'
 import { isFatalLoadFailure } from './startupFailure'
 
 installFileSystem(nodeFileSystem)
@@ -117,7 +118,7 @@ if (!is.dev && !app.requestSingleInstanceLock()) {
         ...createIpcDeps(app.getPath('home')),
         otel,
         copyToClipboard: (text: string) => clipboard.writeText(text),
-        archive
+        archive: archive === null ? null : guardArchive(archive)
       }
 
       // Registered once, before any window: `activate` recreates windows, and a

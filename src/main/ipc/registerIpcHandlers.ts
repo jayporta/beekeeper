@@ -1,17 +1,19 @@
+import { listProjects } from '../../service/projects/listProjects'
+import { listSessions } from '../../service/sessions/listSessions'
 import { IPC_CHANNELS, type IpcChannel } from '../../shared/ipc/channels'
 import type { IpcResult } from '../../shared/ipc/ipcResult'
+import { getSessionRequestSchema, listSessionsRequestSchema } from '../../shared/ipc/requestSchemas'
 import { copyTextHandler } from './copyTextHandler'
 import { getOtelReceiverHandler } from './getOtelReceiverHandler'
 import { getProjectDailyUsageHandler } from './getProjectDailyUsageHandler'
 import { getProjectTotalsHandler } from './getProjectTotalsHandler'
 import { getReportedCostHandler } from './getReportedCostHandler'
-import { getSessionHandler } from './getSessionHandler'
+import { getSession } from '../../service/sessionDetail/getSession'
 import { getWorktreeDiffsHandler } from './getWorktreeDiffsHandler'
 import { getWorktreePatchHandler } from './getWorktreePatchHandler'
 import { guardIpc } from './guardIpc'
 import type { IpcDeps } from './ipcDeps'
-import { listProjectsHandler } from './listProjectsHandler'
-import { listSessionsHandler } from './listSessionsHandler'
+import { parseThen } from './parseThen'
 import type { SenderEvent } from './senderValidation'
 import { setOtelReceiverEnabledHandler } from './setOtelReceiverEnabledHandler'
 
@@ -42,9 +44,15 @@ export interface RegisterIpcHandlersOptions {
 export function registerIpcHandlers(options: RegisterIpcHandlersOptions): void {
   const { ipcMain, isTrusted, deps } = options
   const handlers: Record<IpcChannel, (payload: unknown) => Promise<IpcResult<unknown>>> = {
-    [IPC_CHANNELS.listProjects]: () => listProjectsHandler(deps),
-    [IPC_CHANNELS.listSessions]: (payload) => listSessionsHandler(deps, payload),
-    [IPC_CHANNELS.getSession]: (payload) => getSessionHandler(deps, payload),
+    [IPC_CHANNELS.listProjects]: () => listProjects(deps),
+    [IPC_CHANNELS.listSessions]: parseThen({
+      schema: listSessionsRequestSchema,
+      run: (request) => listSessions(deps, request)
+    }),
+    [IPC_CHANNELS.getSession]: parseThen({
+      schema: getSessionRequestSchema,
+      run: (request) => getSession(deps, request)
+    }),
     [IPC_CHANNELS.getWorktreeDiffs]: (payload) => getWorktreeDiffsHandler(deps, payload),
     [IPC_CHANNELS.getProjectTotals]: (payload) => getProjectTotalsHandler(deps, payload),
     [IPC_CHANNELS.getProjectDailyUsage]: (payload) => getProjectDailyUsageHandler(deps, payload),

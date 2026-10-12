@@ -1,12 +1,13 @@
 import { DatabaseSync } from 'node:sqlite'
-import { stat, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../../ipc/testIpcTree'
-import { ARCHIVE_DETAIL_AFTER_DAYS, DAY_MS } from '../archiveConstants'
+import { TEST_PROJECT, TEST_SESSION_ID } from '../../../service/testServiceTree'
+import { registerIpcTestTree } from '../../ipc/testIpcTree'
+import { ARCHIVE_DETAIL_AFTER_DAYS, DAY_MS } from '../../../service/archive/archiveDetailTiming'
 import { createAppArchiver } from '../createAppArchiver'
 import type { ArchiveStore } from '../archiveStoreTypes'
-import { listEntry, testListItem } from '../testArchiveFixtures'
+import { listEntry, testListItem } from '../../../service/archive/testArchiveFixtures'
 import { createArchiveStore } from '../createArchiveStore'
 import { openArchive } from '../openArchive'
 
@@ -42,6 +43,26 @@ describe('createAppArchiver', () => {
   it('archives the list item of a session found in a project', async () => {
     await archiver(0).runPass()
 
+    expect(store.hasListItem(REF, await sourceState())).toBe(true)
+  })
+
+  it('skips a project folder whose name the list request schema rejects', async () => {
+    const badName = '-Users-test-bad\\proj'
+    const transcript = join(
+      ctx.tree.home,
+      '.claude',
+      'projects',
+      badName,
+      `${TEST_SESSION_ID}.jsonl`
+    )
+    await mkdir(join(ctx.tree.home, '.claude', 'projects', badName))
+    await copyFile(ctx.tree.sessionPath, transcript)
+    const info = await stat(transcript)
+
+    await archiver(0).runPass()
+
+    const bad = { projectDirName: badName, sessionId: TEST_SESSION_ID }
+    expect(store.hasListItem(bad, { mtimeMs: info.mtimeMs, size: info.size })).toBe(false)
     expect(store.hasListItem(REF, await sourceState())).toBe(true)
   })
 

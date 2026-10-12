@@ -1,4 +1,4 @@
-import { describeError } from '../describeError'
+import { describeError } from '../../core/shared/describeError'
 
 /** SQLite's primary result code for a locked database. */
 const SQLITE_BUSY = 5

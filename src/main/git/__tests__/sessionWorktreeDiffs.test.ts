@@ -2,7 +2,7 @@ import { toAgentId } from '../../../core/transcript/ids'
 import { describe, expect, it, vi } from 'vitest'
 import { resolveBranch } from '../../../core/git/resolveBranch'
 import { registerTestGit } from '../../../core/git/testGitRepo'
-import { createScanScheduler, type ScanScheduler } from '../../ipc/scanScheduler'
+import { createScanScheduler, type ScanScheduler } from '../../../service/scheduling/scanScheduler'
 import { encodeProjectDir } from '../confineRepo'
 import { sessionWorktreeDiffs } from '../sessionWorktreeDiffs'
 import {

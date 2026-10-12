@@ -1,9 +1,9 @@
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
 import { ARCHIVE_PASS_DELAY_MS, ARCHIVE_PASS_INTERVAL_MS } from './archiveConstants'
-import type { PendingDetail } from './archiveStoreTypes'
+import type { PendingDetail } from '../../service/archive/archivePort'
 import { describeArchiveError } from './describeArchiveError'
-import { isDetailDue } from './isDetailDue'
-import { lastActivityMs } from './lastActivityMs'
+import { isDetailDue } from '../../service/archive/isDetailDue'
+import { lastActivityMs } from '../../service/archive/lastActivityMs'
 
 /** A project's sessions, discovered once so each pending detail needs no further lookup. */
 export interface ArchivableProject {

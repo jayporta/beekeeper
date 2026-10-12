@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { testDetail } from '../../archive/testArchiveFixtures'
-import { createFakeArchive } from '../../archive/testFakeArchive'
+import { testDetail } from '../../../service/archive/testArchiveFixtures'
+import { createFakeArchive } from '../../../service/archive/testFakeArchive'
 import { getWorktreeDiffsHandler } from '../getWorktreeDiffsHandler'
 import { getWorktreePatchHandler } from '../getWorktreePatchHandler'
-import { sessionRefKey } from '../sessionRefKey'
-import { TEST_PROJECT, registerIpcTestTree } from '../testIpcTree'
+import { sessionRefKey } from '../../../service/sessions/sessionRefKey'
+import { TEST_PROJECT } from '../../../service/testServiceTree'
+import { registerIpcTestTree } from '../testIpcTree'
 
 const ctx = registerIpcTestTree()
 const GONE = { projectDirName: TEST_PROJECT, sessionId: '9f9f9f9f-9999-4999-8999-99999999999a' }

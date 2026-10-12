@@ -9,8 +9,11 @@ import {
   scanSubagentDailyUsage
 } from '../../core/usage/scanSubagentDailyUsage'
 import type { IpcDeps } from '../ipc/ipcDeps'
-import { readSessionSummaryInBackground } from '../ipc/scanProjectSessions'
-import { sessionFilesKey, type SessionFilesKeyOptions } from '../ipc/sessionFilesKey'
+import { readSessionSummaryInBackground } from '../../service/sessions/scanProjectSessions'
+import {
+  sessionFilesKey,
+  type SessionFilesKeyOptions
+} from '../../service/sessionDetail/sessionFilesKey'
 
 /** What {@link readSessionDailyUsage} reads through. */
 export interface ReadSessionDailyUsageDeps extends Pick<

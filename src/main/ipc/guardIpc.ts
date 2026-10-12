@@ -1,6 +1,6 @@
 import type { IpcResult } from '../../shared/ipc/ipcResult'
-import { errResult } from './ipcResults'
-import { toIpcErrorCode } from './toIpcErrorCode'
+import { errResult } from '../../service/ipcResults'
+import { toIpcErrorCode } from '../../service/toIpcErrorCode'
 
 /** Options for {@link guardIpc}. */
 export interface GuardIpcOptions<E, T> {

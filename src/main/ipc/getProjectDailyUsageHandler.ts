@@ -4,13 +4,13 @@ import type { ProjectDailyUsageDto } from '../../shared/ipc/projectDailyUsageDto
 import { getProjectDailyUsageRequestSchema } from '../../shared/ipc/requestSchemas'
 import { archivedDailyOutcomes } from '../overview/archivedDailyOutcomes'
 import { folderDailyUsage, type SessionDailyOutcome } from '../overview/folderDailyUsage'
-import { createDayKeyOf } from '../overview/localDayKey'
+import { createDayKeyOf } from '../../service/overview/localDayKey'
 import { readSessionDailyUsage } from '../overview/readSessionDailyUsage'
 import { mayHaveDailyUsage, TOTALS_WINDOW_MS } from '../overview/totalsWindow'
 import { windowDays } from '../overview/windowDays'
-import { findProject } from './findProject'
+import { findProject } from '../../service/projects/findProject'
 import type { IpcDeps } from './ipcDeps'
-import { errResult, okResult } from './ipcResults'
+import { errResult, okResult } from '../../service/ipcResults'
 
 /**
  * Adds up one project folder's own tokens by local day and model over a 7 or

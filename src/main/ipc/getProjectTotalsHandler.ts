@@ -9,13 +9,13 @@ import {
   mayCountInWindow,
   TOTALS_WINDOW_MS
 } from '../overview/totalsWindow'
-import { findProject } from './findProject'
+import { findProject } from '../../service/projects/findProject'
 import type { IpcDeps } from './ipcDeps'
-import { errResult, okResult } from './ipcResults'
+import { errResult, okResult } from '../../service/ipcResults'
 import { mapProjectTotals } from './mapProjectTotals'
-import type { ScannedSession } from './mapSessionListItem'
-import { readArchivedSessions } from './readArchivedSessions'
-import { scanProjectSessions } from './scanProjectSessions'
+import type { ScannedSession } from '../../service/sessions/mapSessionListItem'
+import { readArchivedSessions } from '../../service/sessions/readArchivedSessions'
+import { scanProjectSessions } from '../../service/sessions/scanProjectSessions'
 
 function toTotalsSession({ entry, summary }: ScannedSession): TotalsSession {
   return {

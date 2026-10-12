@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { IPC_EVENTS } from '../../../shared/ipc/channels'
-import { errorWithCode } from '../../testErrorWithCode'
+import { errorWithCode } from '../../../core/shared/testErrorWithCode'
 import { LIVE_UPDATE_INTERVAL_MS } from '../changeBatcher'
 import {
   createProjectsWatcher,

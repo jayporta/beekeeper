@@ -66,6 +66,7 @@ npm run build         # typecheck, then electron-vite build
 
 ```
 src/core/              pure TypeScript, no Electron imports; reusable outside the app
+src/service/           host-agnostic services behind the IPC contract; no Electron, no Node
 src/main/              Electron main process: windows, IPC handlers, security
 src/preload/           the single typed bridge exposed to the renderer
 src/shared/            the IPC contract, shared by main and renderer
@@ -74,7 +75,7 @@ src/renderer/src/i18n/                 i18next setup and the strings shared acro
 ```
 
 - **Vertical slices.** Code is organized by feature, and everything a feature needs lives in its folder. Feature-specific helpers stay in the feature, not in a global `utils` or `lib` folder. Truly shared, feature-agnostic pieces (design-system components, pure functions) live in shared locations.
-- **Dependencies run one way.** `core` depends on nothing app-specific. `main` depends on `core` and `shared`. The renderer depends on `shared` and never on `main` or `core` directly. Components can depend on services, never the reverse.
+- **Dependencies run one way.** `core` depends on nothing app-specific. `service` depends on `core` and `shared`, and never on Node, Electron, or the archive's implementation. `main` depends on `core`, `service` and `shared`. The renderer depends on `shared` and never on `main`, `service` or `core` directly. Components can depend on services, never the reverse.
 - **Single responsibility.** One component, hook, or logical flow per file, and never a hook or a Context in the same file as a component. No catch-all files of unrelated constants and helpers.
 - **Size threshold.** When a source file passes 250 lines, or a change would add more than 50 lines of new logic to an existing file, extract discrete pieces (sub-components, pure transformations) into co-located files first. Before adding a function to a large file, state why it belongs there rather than in a new file. Generated data files are exempt.
 - **DRY.** Keep a single source of truth. Don't duplicate anything that can be derived, read, or called.

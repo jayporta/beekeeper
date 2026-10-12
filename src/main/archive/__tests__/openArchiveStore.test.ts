@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { openArchiveStore } from '../openArchiveStore'
-import { listEntry, testListItem, TEST_SOURCE } from '../testArchiveFixtures'
+import { listEntry, testListItem, TEST_SOURCE } from '../../../service/archive/testArchiveFixtures'
 import { collectLog } from '../testCollectLog'
 
 let dir: string

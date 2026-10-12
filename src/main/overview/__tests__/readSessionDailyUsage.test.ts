@@ -8,10 +8,10 @@ import { buildAssistantRecord, buildJsonlText } from '../../../core/transcript/t
 import { createSessionSummaryCache } from '../../../core/transcript/summary/sessionSummaryCache'
 import { buildSessionSummary } from '../../../core/transcript/summary/testSessionSummary'
 import type { SubagentEntry } from '../../../core/transcript/discoverSubagents'
-import type { SessionFilesKeyOptions } from '../../ipc/sessionFilesKey'
-import { createScanScheduler } from '../../ipc/scanScheduler'
-import { createDailyUsageCache } from '../dailyUsageCache'
-import { createDayKeyOf } from '../localDayKey'
+import type { SessionFilesKeyOptions } from '../../../service/sessionDetail/sessionFilesKey'
+import { createScanScheduler } from '../../../service/scheduling/scanScheduler'
+import { createDailyUsageCache } from '../../../service/overview/dailyUsageCache'
+import { createDayKeyOf } from '../../../service/overview/localDayKey'
 import { readSessionDailyUsage } from '../readSessionDailyUsage'
 
 /** How many times the full lead and subagent scan ran. */

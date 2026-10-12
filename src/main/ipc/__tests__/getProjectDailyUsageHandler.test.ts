@@ -4,16 +4,18 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { QUARTER_HOUR_MS } from '../../../core/shared/quarterHour'
 import type { ProjectDailyUsageDto } from '../../../shared/ipc/projectDailyUsageDto'
 import { buildAssistantRecord } from '../../../core/transcript/testFixtures'
-import type { ArchivedLeadSlots } from '../../archive/archiveStoreTypes'
-import { testArchivedSession } from '../../archive/testArchiveFixtures'
-import { createFakeArchive } from '../../archive/testFakeArchive'
+import type { ArchivedLeadSlots } from '../../../service/archive/archivePort'
+import { testArchivedSession } from '../../../service/archive/testArchiveFixtures'
+import { guardArchive } from '../../archive/guardArchive'
+import { createFakeArchive } from '../../../service/archive/testFakeArchive'
 import { SKIP_UNREAD_SLACK_MS, TOTALS_WINDOW_MS } from '../../overview/totalsWindow'
 import { getProjectDailyUsageHandler } from '../getProjectDailyUsageHandler'
 import { getProjectTotalsHandler } from '../getProjectTotalsHandler'
 import type { IpcDeps } from '../ipcDeps'
-import { sessionRefKey } from '../sessionRefKey'
-import { writeTranscript } from '../testFamilyFixtures'
-import { TEST_PROJECT, TEST_SESSION_ID, registerIpcTestTree } from '../testIpcTree'
+import { sessionRefKey } from '../../../service/sessions/sessionRefKey'
+import { writeTranscript } from '../../../service/sessions/testFamilyFixtures'
+import { TEST_PROJECT, TEST_SESSION_ID } from '../../../service/testServiceTree'
+import { registerIpcTestTree } from '../testIpcTree'
 
 const ctx = registerIpcTestTree()
 const NOW = Date.parse('2026-03-10T12:00:00.000Z')
@@ -651,7 +653,9 @@ describe('getProjectDailyUsageHandler archived sessions', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const failing: IpcDeps = {
       ...depsAt().deps,
-      archive: createFakeArchive(Object.assign(new Error('boom'), { code: 'EDAILYFAIL' }))
+      archive: guardArchive(
+        createFakeArchive(Object.assign(new Error('boom'), { code: 'EDAILYFAIL' }))
+      )
     }
 
     try {

@@ -1,14 +1,9 @@
 import type { SessionListItemDto } from '../../shared/ipc/sessionListDto'
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
-import { sessionRefKey } from '../ipc/sessionRefKey'
+import { sessionRefKey } from '../../service/sessions/sessionRefKey'
 import { ARCHIVE_FORMAT, MAX_ARCHIVED_DETAIL_CHARS } from './archiveConstants'
-import type {
-  ArchiveStore,
-  ArchiveStoreOptions,
-  ListItemEntry,
-  PendingDetail,
-  SourceState
-} from './archiveStoreTypes'
+import type { ArchiveStore, ArchiveStoreOptions } from './archiveStoreTypes'
+import type { ListItemEntry, PendingDetail, SourceState } from '../../service/archive/archivePort'
 import { SELECT_STATES, UPDATE_DETAIL, UPSERT_LIST_ITEM } from './archiveSql'
 import { createArchiveReader } from './createArchiveReader'
 import type { ArchiveDb } from './openArchive'

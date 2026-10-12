@@ -1,14 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SessionRefDto } from '../../../shared/ipc/sessionRefDto'
-import {
-  ARCHIVE_DETAIL_AFTER_DAYS,
-  ARCHIVE_PASS_DELAY_MS,
-  ARCHIVE_PASS_INTERVAL_MS,
-  DAY_MS
-} from '../archiveConstants'
+import { ARCHIVE_DETAIL_AFTER_DAYS, DAY_MS } from '../../../service/archive/archiveDetailTiming'
+import { ARCHIVE_PASS_DELAY_MS, ARCHIVE_PASS_INTERVAL_MS } from '../archiveConstants'
 import { createArchiver, type ArchivableProject, type ArchiverOptions } from '../createArchiver'
-import type { PendingDetail } from '../archiveStoreTypes'
-import { errorWithCode } from '../../testErrorWithCode'
+import type { PendingDetail } from '../../../service/archive/archivePort'
+import { errorWithCode } from '../../../core/shared/testErrorWithCode'
 
 const NOW = 1_000 * DAY_MS
 const OLD = NOW - (ARCHIVE_DETAIL_AFTER_DAYS + 1) * DAY_MS

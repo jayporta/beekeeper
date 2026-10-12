@@ -9,7 +9,7 @@ import type {
   WorktreeDiffStatDto
 } from '../../shared/ipc/worktreeDiffDto'
 import type { AgentWorktreeDiff } from '../git/sessionWorktreeDiffs'
-import { mapSessionRef } from './mapSessionRef'
+import { mapSessionRef } from '../../service/sessions/mapSessionRef'
 
 function mapEntry(entry: NumstatEntry): NumstatEntryDto {
   return {

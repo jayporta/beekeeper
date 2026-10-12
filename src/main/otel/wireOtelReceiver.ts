@@ -1,4 +1,4 @@
-import { describeError } from '../describeError'
+import { describeError } from '../../core/shared/describeError'
 import { createOtelRuntime, type OtelRuntime } from './createOtelRuntime'
 
 /** The app events the telemetry receiver follows, so tests need no Electron. */

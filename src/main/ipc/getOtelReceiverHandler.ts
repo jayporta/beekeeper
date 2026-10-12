@@ -1,7 +1,7 @@
 import type { IpcResult } from '../../shared/ipc/ipcResult'
 import type { OtelReceiverDto } from '../../shared/ipc/otelReceiverDto'
 import type { IpcDeps } from './ipcDeps'
-import { okResult } from './ipcResults'
+import { okResult } from '../../service/ipcResults'
 
 /**
  * Reads the opt-in telemetry receiver's state.

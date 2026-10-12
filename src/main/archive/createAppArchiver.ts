@@ -1,8 +1,10 @@
 import { join } from 'node:path'
 import { discoverProjects } from '../../core/transcript/discoverProjects'
 import type { IpcDeps } from '../ipc/ipcDeps'
-import { listSessionsHandler } from '../ipc/listSessionsHandler'
-import { createSessionScanCache } from '../ipc/sessionScanCache'
+import { listSessions } from '../../service/sessions/listSessions'
+import { listSessionsRequestSchema } from '../../shared/ipc/requestSchemas'
+import { createSessionScanCache } from '../../service/sessionDetail/sessionScanCache'
+import { guardArchive } from './guardArchive'
 import { createArchiver, type Archiver } from './createArchiver'
 import type { ArchiveStore } from './archiveStoreTypes'
 import { hasChangedSessions } from './hasChangedSessions'
@@ -16,14 +18,14 @@ export const ARCHIVER_SCAN_CACHE_CAPACITY = 1
 
 /** Options for {@link createAppArchiver}. */
 export interface AppArchiverOptions {
-  /** The handlers' dependencies. Their `archive` is replaced by `store` and their `scanCache` by one of the archiver's own. */
+  /** The handlers' dependencies. Their `archive` is replaced by `store`, guarded, and their `scanCache` by one of the archiver's own. */
   readonly deps: IpcDeps
   /** The archive the sessions are written to. */
   readonly store: ArchiveStore
 }
 
 /**
- * Creates the archiver that runs the app's own list handler and detail scan, so
+ * Creates the archiver that runs the session list and detail scan services, so
  * its reads share the handlers' caches and schedulers with the UI. A project is
  * listed only when a stat shows a new or changed session, and a detail is
  * scanned only for a session that is pending and quiet for the waiting period.
@@ -38,7 +40,7 @@ export function createAppArchiver(options: AppArchiverOptions): Archiver {
   const { store } = options
   const deps: IpcDeps = {
     ...options.deps,
-    archive: store,
+    archive: guardArchive(store),
     scanCache: createSessionScanCache({ capacity: ARCHIVER_SCAN_CACHE_CAPACITY })
   }
   return createArchiver({
@@ -50,7 +52,8 @@ export function createAppArchiver(options: AppArchiverOptions): Archiver {
         store
       }),
     listSessions: async (projectDirName) => {
-      await listSessionsHandler(deps, { projectDirName })
+      const request = listSessionsRequestSchema.safeParse({ projectDirName })
+      if (request.success) await listSessions(deps, request.data)
     },
     pendingDetails: () => store.pendingDetails(),
     openProject: (projectDirName) => openArchivableProject({ deps, projectDirName }),

@@ -1,7 +1,7 @@
 import { createServer, type Server } from 'node:http'
 import { errorCode } from '../../core/shared/errorCode'
 import type { OtelReceiverFailureDto } from '../../shared/ipc/otelReceiverFailureDto'
-import { describeError } from '../describeError'
+import { describeError } from '../../core/shared/describeError'
 import { createOtlpRequestHandler } from './createOtlpRequestHandler'
 import type { ReportedCostStore } from './createReportedCostStore'
 import type { OtelBinding } from './otelBinding'

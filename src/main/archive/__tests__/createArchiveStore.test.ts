@@ -2,7 +2,8 @@ import type { DatabaseSync } from 'node:sqlite'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
 import { MAX_ARCHIVED_DETAIL_CHARS } from '../archiveConstants'
-import type { ArchiveStore, ListItemEntry, SourceState } from '../archiveStoreTypes'
+import type { ArchiveStore } from '../archiveStoreTypes'
+import type { ListItemEntry, SourceState } from '../../../service/archive/archivePort'
 import { createArchiveStore } from '../createArchiveStore'
 import { openArchive } from '../openArchive'
 import {
@@ -12,7 +13,7 @@ import {
   testOkSummary,
   TEST_REF,
   TEST_SOURCE
-} from '../testArchiveFixtures'
+} from '../../../service/archive/testArchiveFixtures'
 
 let db: DatabaseSync
 let clock: number

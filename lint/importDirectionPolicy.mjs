@@ -8,9 +8,13 @@
  * @type {Record<string, { folders?: string[], packages?: string[] }>}
  */
 export const importDirectionPolicy = {
-  core: { folders: ['main', 'preload', 'renderer', 'shared'], packages: ['electron'] },
-  renderer: { folders: ['core', 'main', 'preload'] },
+  core: {
+    folders: ['main', 'preload', 'renderer', 'service', 'shared'],
+    packages: ['electron']
+  },
+  service: { folders: ['main', 'preload', 'renderer'], packages: ['electron'] },
+  renderer: { folders: ['core', 'main', 'preload', 'service'] },
   main: { folders: ['preload', 'renderer'] },
-  preload: { folders: ['core', 'main', 'renderer'] },
-  shared: { folders: ['core', 'main', 'preload', 'renderer'] }
+  preload: { folders: ['core', 'main', 'renderer', 'service'] },
+  shared: { folders: ['core', 'main', 'preload', 'renderer', 'service'] }
 }

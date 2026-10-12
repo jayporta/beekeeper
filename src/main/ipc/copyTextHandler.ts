@@ -1,7 +1,7 @@
 import type { IpcResult } from '../../shared/ipc/ipcResult'
 import { copyTextRequestSchema } from '../../shared/ipc/requestSchemas'
 import type { IpcDeps } from './ipcDeps'
-import { errResult, okResult } from './ipcResults'
+import { errResult, okResult } from '../../service/ipcResults'
 
 /**
  * Copies text to the system clipboard for the renderer, whose own clipboard
