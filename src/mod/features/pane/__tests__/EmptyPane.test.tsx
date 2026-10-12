@@ -10,15 +10,14 @@ describe('EmptyPane', () => {
   beforeAll(installTestH)
   afterAll(removeTestH)
 
-  it('draws one column box holding the empty-state text', () => {
+  it('draws one column box holding the pane title, then the empty-state text', () => {
     const tree = EmptyPane({ Box, Text }) as TestNode
 
     expect(tree.type).toBe(Box)
     expect(tree.props).toEqual({ flexDirection: 'column' })
-    expect(tree.children).toHaveLength(1)
-    const text = tree.children[0] as TestNode
-    expect(text.type).toBe(Text)
-    expect(text.children).toEqual([t('pane.empty')])
+    const lines = tree.children as TestNode[]
+    expect(lines.map((line) => line.type)).toEqual([Text, Text])
+    expect(lines.map((line) => line.children)).toEqual([[t('pane.title')], [t('pane.empty')]])
   })
 
   it('words the empty state as the locale says', () => {

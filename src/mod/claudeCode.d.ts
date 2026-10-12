@@ -181,14 +181,19 @@ declare module 'claude-code' {
       /** Adds a slash command. */
       register: (spec: { name: string; description: string }) => Promise<unknown>
     }
-    /** Panes and toasts. */
+    /** Panes and the status line. */
     ui: {
       /** Opens (or retitles) a pane. */
-      open: (pane: { id: string; title?: string }) => Promise<{ isPlaced: boolean }>
+      open: (pane: {
+        id: string
+        title?: string
+        focus?: true
+        closeOnEscape?: true
+      }) => Promise<{ isPlaced: boolean }>
       /** The elements of the surface a render input names. */
       resolve: (e: { surface: RenderSurface }) => Elements
-      /** Shows a short message. */
-      toast: (text: string, options?: { timeoutMs?: number }) => void
+      /** Sets the status line, which stays until replaced; undefined clears it. */
+      status: (text: string | undefined) => void
     }
     /** The process environment. */
     env: {

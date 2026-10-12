@@ -46,7 +46,9 @@ describe('readThroughTail', () => {
     const host = setup({ [FILE]: bigFile() })
     const tail = vi.spyOn(host, 'tail')
 
-    const text = await textOf(readThroughTail({ host, projectsRoot: ROOT, path: FILE, start: 0 }))
+    const text = await textOf(
+      readThroughTail({ host, projectsRoot: ROOT, realPath: FILE, start: 0 })
+    )
 
     expect(text).toBe('abcdefghij')
     expect(tail).toHaveBeenCalledWith(FILE, 0)
@@ -56,36 +58,34 @@ describe('readThroughTail', () => {
     const host = setup({ [FILE]: bigFile() })
     const tail = vi.spyOn(host, 'tail')
 
-    const text = await textOf(readThroughTail({ host, projectsRoot: ROOT, path: FILE, start: 5 }))
+    const text = await textOf(
+      readThroughTail({ host, projectsRoot: ROOT, realPath: FILE, start: 5 })
+    )
 
     expect(text).toBe('fghij')
     expect(tail).toHaveBeenCalledWith(FILE, 5)
   })
 
-  it('runs tail on the resolved path, not the one it was given', async () => {
-    const link = `${ROOT}/p/link.jsonl`
-    const host = setup({ [FILE]: bigFile(), [link]: bigFile({ isLink: true, realPath: FILE }) })
-    const tail = vi.spyOn(host, 'tail')
+  it('does not stat the file again', async () => {
+    const host = setup({ [FILE]: bigFile() })
+    const stat = vi.spyOn(host, 'stat')
 
-    await textOf(readThroughTail({ host, projectsRoot: ROOT, path: link, start: 0 }))
+    await textOf(readThroughTail({ host, projectsRoot: ROOT, realPath: FILE, start: 0 }))
 
-    expect(tail).toHaveBeenCalledWith(FILE, 0)
+    expect(stat).not.toHaveBeenCalled()
   })
 
   it.each([
-    [
-      'a link to a file outside the projects folder',
-      `${ROOT}/p/key`,
-      { realPath: '/home/u/.ssh/id_ed25519' }
-    ],
-    ['a path that climbs out with ..', `${ROOT}/../../.ssh/id_ed25519`, {}],
-    ['a sibling folder that shares the root as a prefix', `${ROOT}-evil/x`, {}]
-  ])('refuses %s before any spawn', async (_name, path, extra) => {
-    const host = setup({ [path]: bigFile(extra) })
+    ['a file outside the projects folder', '/home/u/.ssh/id_ed25519'],
+    ['a path that climbs out with ..', `${ROOT}/../../.ssh/id_ed25519`],
+    ['a sibling folder that shares the root as a prefix', `${ROOT}-evil/x`],
+    ['no real path at all', undefined]
+  ])('refuses %s before any spawn', async (_name, realPath) => {
+    const host = setup({})
     const tail = vi.spyOn(host, 'tail')
 
     const error = await rejectionOf(
-      textOf(readThroughTail({ host, projectsRoot: ROOT, path, start: 0 }))
+      textOf(readThroughTail({ host, projectsRoot: ROOT, realPath, start: 0 }))
     )
 
     expect(errorCode(error)).toBe('EACCES')
@@ -93,34 +93,11 @@ describe('readThroughTail', () => {
     expect(tail).not.toHaveBeenCalled()
   })
 
-  it('refuses a path the engine reports no real path for', async () => {
-    const host = setup({ [FILE]: bigFile() })
-    vi.spyOn(host, 'stat').mockResolvedValue({ kind: 'file', size: BIG, mtimeMs: 0, isLink: false })
-    const tail = vi.spyOn(host, 'tail')
-
-    const error = await rejectionOf(
-      textOf(readThroughTail({ host, projectsRoot: ROOT, path: FILE, start: 0 }))
-    )
-
-    expect(errorCode(error)).toBe('EACCES')
-    expect(tail).not.toHaveBeenCalled()
-  })
-
-  it('rejects ENOENT for a missing file', async () => {
-    const host = setup({})
-
-    const error = await rejectionOf(
-      textOf(readThroughTail({ host, projectsRoot: ROOT, path: FILE, start: 0 }))
-    )
-
-    expect(errorCode(error)).toBe('ENOENT')
-  })
-
   it('rejects EIO with no path in the message when tail exits non-zero', async () => {
     const host = setup({ [FILE]: bigFile({ tailExitCode: 1 }) })
 
     const error = await rejectionOf(
-      textOf(readThroughTail({ host, projectsRoot: ROOT, path: FILE, start: 0 }))
+      textOf(readThroughTail({ host, projectsRoot: ROOT, realPath: FILE, start: 0 }))
     )
 
     expect(errorCode(error)).toBe('EIO')
@@ -141,7 +118,7 @@ describe('readThroughTail', () => {
       }
     })
 
-    const chunks = readThroughTail({ host, projectsRoot: ROOT, path: FILE, start: 0 })
+    const chunks = readThroughTail({ host, projectsRoot: ROOT, realPath: FILE, start: 0 })
     await chunks.next()
     await chunks.return()
 
@@ -159,7 +136,9 @@ describe('readThroughTail', () => {
       return { code: 0, signal: null }
     })
 
-    const text = await textOf(readThroughTail({ host, projectsRoot: ROOT, path: FILE, start: 0 }))
+    const text = await textOf(
+      readThroughTail({ host, projectsRoot: ROOT, realPath: FILE, start: 0 })
+    )
 
     expect(text).toBe('ok')
   })

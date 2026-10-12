@@ -1,7 +1,8 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi, type MockInstance } from 'vitest'
 import { errorCode } from '../../../core/shared/errorCode'
 import { installFileSystem } from '../../../core/io/installFileSystem'
 import { readJsonlLines } from '../../../core/transcript/readJsonlLines'
+import type { ModHost } from '../../modHost'
 import { createTestHost, type TestPath } from '../../testHost'
 import { FS_READ_LIMIT } from '../fsReadLimit'
 import { createModFileSystem } from '../modFileSystem'
@@ -218,6 +219,22 @@ describe('readChunks', () => {
     expect(await collect(port.readChunks('/f', { start: 99 }))).toEqual([])
   })
 
+  it('falls back to the default chunk size for a fractional size that floors to zero', async () => {
+    const { port } = filesystemOf(file)
+
+    expect(await collect(port.readChunks('/f', { start: 0, chunkSize: 0.5 }))).toEqual(['abcdefgh'])
+  })
+
+  it('floors a fractional chunk size', async () => {
+    const { port } = filesystemOf(file)
+
+    expect(await collect(port.readChunks('/f', { start: 0, chunkSize: 3.9 }))).toEqual([
+      'abc',
+      'def',
+      'gh'
+    ])
+  })
+
   it('falls back to the default chunk size when asked for none that makes sense', async () => {
     const { port } = filesystemOf(file)
 
@@ -244,6 +261,24 @@ describe('readChunks', () => {
 
     expect((await collect(port.readChunks('/p/f', { start: 2 }))).join('')).toBe('cdefgh')
     expect(tail).toHaveBeenCalledWith('/p/f', 2)
+  })
+
+  it('runs tail on the real path of a link under the projects folder', async () => {
+    const { port, host } = filesystemOf({
+      ...bigFile('/p/real'),
+      '/p/link': {
+        kind: 'file',
+        bytes: encode('abcdefgh'),
+        size: FS_READ_LIMIT + 1,
+        isLink: true,
+        realPath: '/p/real'
+      }
+    })
+    const tail = vi.spyOn(host, 'tail')
+
+    await collect(port.readChunks('/p/link', { start: 0 }))
+
+    expect(tail).toHaveBeenCalledWith('/p/real', 0)
   })
 
   it('rejects EACCES on the first pull for a big file outside the projects folder', async () => {
@@ -389,5 +424,73 @@ describe('with core installed on it', () => {
     }
 
     expect(lines).toEqual(['{"a":1}', '{"b":2}'])
+  })
+})
+
+describe('the last whole-file read', () => {
+  const file = (extra: Partial<TestPath> = {}): TestPath => ({
+    kind: 'file',
+    bytes: encode('abcdefgh'),
+    ...extra
+  })
+
+  function setup(): {
+    port: ReturnType<typeof createModFileSystem>
+    paths: Record<string, TestPath>
+    readBytes: MockInstance<ModHost['readBytes']>
+  } {
+    const paths: Record<string, TestPath> = { '/p/f': file(), '/p/g': file() }
+    const { port, host } = filesystemOf(paths)
+    return { port, paths, readBytes: vi.spyOn(host, 'readBytes') }
+  }
+
+  it('is reused by readRange, readChunks and readNoFollow on an unchanged file', async () => {
+    const { port, readBytes } = setup()
+
+    await port.readRange('/p/f', { position: 0, length: 2 })
+    await collect(port.readChunks('/p/f', { start: 0 }))
+    await port.readNoFollow('/p/f', 100)
+    await port.readRange('/p/f', { position: 4, length: 2 })
+
+    expect(readBytes).toHaveBeenCalledTimes(1)
+  })
+
+  it('still answers each call from the right bytes', async () => {
+    const { port } = setup()
+
+    await port.readRange('/p/f', { position: 0, length: 2 })
+
+    expect(decode(await port.readRange('/p/f', { position: 3, length: 4 }))).toBe('defg')
+    expect((await collect(port.readChunks('/p/f', { start: 6 }))).join('')).toBe('gh')
+  })
+
+  it('is read again when the size changes', async () => {
+    const { port, paths, readBytes } = setup()
+    await port.readRange('/p/f', { position: 0, length: 2 })
+
+    paths['/p/f'] = file({ bytes: encode('abcdefghi') })
+
+    expect(decode(await port.readRange('/p/f', { position: 8, length: 2 }))).toBe('i')
+    expect(readBytes).toHaveBeenCalledTimes(2)
+  })
+
+  it('is read again when the modification time changes', async () => {
+    const { port, paths, readBytes } = setup()
+    await port.readRange('/p/f', { position: 0, length: 2 })
+
+    paths['/p/f'] = file({ bytes: encode('ABCDEFGH'), mtimeMs: 2000 })
+
+    expect(decode(await port.readRange('/p/f', { position: 0, length: 2 }))).toBe('AB')
+    expect(readBytes).toHaveBeenCalledTimes(2)
+  })
+
+  it('holds one file: reading another path replaces it', async () => {
+    const { port, readBytes } = setup()
+
+    await port.readRange('/p/f', { position: 0, length: 1 })
+    await port.readRange('/p/g', { position: 0, length: 1 })
+    await port.readRange('/p/f', { position: 0, length: 1 })
+
+    expect(readBytes).toHaveBeenCalledTimes(3)
   })
 })

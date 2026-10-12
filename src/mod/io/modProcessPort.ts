@@ -2,20 +2,36 @@ import type { ProcessPort } from '../../core/io/processPort'
 import { err, ok } from '../../core/shared/result'
 import type { ModHost } from '../modHost'
 
-/** Set over the request's env so the user's own git configuration and discovery settings don't leak in. */
+/**
+ * Pinned beside the request's env, which wins where it sets the same name: the variables that
+ * change how git reads its configuration, finds a repository, matches paths or logs, set to the
+ * values that turn that off.
+ */
 const ISOLATION_ENV = {
   GIT_CONFIG_COUNT: '0',
   GIT_CONFIG_PARAMETERS: '',
   GIT_CEILING_DIRECTORIES: '',
-  GIT_DISCOVERY_ACROSS_FILESYSTEM: ''
+  GIT_DISCOVERY_ACROSS_FILESYSTEM: '',
+  GIT_LITERAL_PATHSPECS: '0',
+  GIT_ICASE_PATHSPECS: '0',
+  GIT_GLOB_PATHSPECS: '0',
+  GIT_NOGLOB_PATHSPECS: '0',
+  GIT_TRACE: '0',
+  GIT_TRACE2: '0',
+  GIT_TRACE2_EVENT: '0',
+  GIT_TRACE2_PERF: '0',
+  GIT_TRACE_PACKET: '0',
+  GIT_TRACE_PERFORMANCE: '0',
+  GIT_TRACE_SETUP: '0'
 }
 
 /**
  * A {@link ProcessPort} over the engine's `$.process.run`, through a {@link ModHost}.
  *
  * Promises of the port that the mod can't keep: the child's environment is the request's env set
- * over the engine's inherited one, not the whole of it, so git is refused instead when an inherited
- * repository variable could redirect it (`gitDisabled`); and stdout comes back as text, so
+ * over the engine's inherited one, not the whole of it. Git is refused (`gitDisabled`) when an
+ * inherited repository variable could redirect it, and the variables that most change its behavior
+ * are pinned, but any other inherited variable still reaches it. Stdout comes back as text, so
  * `exactOutput` is false.
  *
  * @param options - The host; the platform name; and whether to refuse every run.
@@ -37,7 +53,7 @@ export function createModProcessPort(options: {
         result = await host.runGit({
           file: request.file,
           args: request.args,
-          env: { ...request.env, ...ISOLATION_ENV },
+          env: { ...ISOLATION_ENV, ...request.env },
           timeoutMs: request.timeoutMs
         })
       } catch {

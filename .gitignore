@@ -11,6 +11,7 @@ out
 # The mod's built hooks, and the types the engine writes when it loads the mod
 mod/hooks/*.js
 mod/.claude-plugin/types/
+mod/tsconfig.json
 
 # Personal Claude Code files, never shared
 **/.claude/settings.local.json

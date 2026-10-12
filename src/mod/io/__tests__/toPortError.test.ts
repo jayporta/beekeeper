@@ -19,6 +19,16 @@ describe('toPortError', () => {
     expect(isMissingEntryError(converted)).toBe(true)
   })
 
+  it('skips an uppercase word that is not an errno name', () => {
+    const original = new Error("EXPORTS: open '/data/EXPORTS/x': ENOENT")
+
+    expect(errorCode(toPortError(original))).toBe('ENOENT')
+  })
+
+  it('picks the first known errno name in the message', () => {
+    expect(errorCode(toPortError(new Error('EACCES after ENOENT')))).toBe('EACCES')
+  })
+
   it('falls back to EIO when there is no code anywhere', () => {
     expect(errorCode(toPortError(new Error('something at /secret/path')))).toBe('EIO')
   })

@@ -16,7 +16,7 @@ async function startSession(
   const { $, calls } = createTestEngine(answers)
   const { next } = createNext({ cwd: '/work' })
   await start?.hook($, { cwd: '/work', surface: 'terminal', isInteractive }, next)
-  return calls.filter((call) => call.name === 'command.register' || call.name === 'ui.toast')
+  return calls.filter((call) => call.name === 'command.register' || call.name === 'ui.status')
 }
 
 describe('register', () => {
@@ -40,8 +40,25 @@ describe('register', () => {
 
     const reply = await (command?.hook as unknown as (engine: typeof $) => Promise<unknown>)($)
 
-    expect(calls).toEqual([{ name: 'ui.open', args: [{ id: 'beekeeper', title: 'beekeeper' }] }])
+    expect(calls).toEqual([
+      {
+        name: 'ui.open',
+        args: [{ id: 'beekeeper', title: 'beekeeper', focus: true, closeOnEscape: true }]
+      }
+    ])
     expect(reply).toEqual({ text: t('command.opened') })
+  })
+
+  it('says the pane is open but not shown when the engine does not place it', async () => {
+    const { on, registered } = recordingOn()
+    register(on, {})
+    const command = registered.find((entry) => entry.event === 'command.run')
+    const { $ } = createTestEngine({ isPlaced: false })
+
+    const reply = await (command?.hook as unknown as (engine: typeof $) => Promise<unknown>)($)
+
+    expect(reply).toEqual({ text: t('command.waiting') })
+    expect(t('command.waiting')).toBe("beekeeper pane is open but can't be shown here yet.")
   })
 
   it('answers the host version call with the engine version', async () => {
@@ -140,9 +157,22 @@ describe('register', () => {
     })
 
     it('names the git repository variables that are set, counting an empty one', async () => {
-      const { $ } = createTestEngine({ env: { GIT_DIR: '', GIT_NAMESPACE: 'n', HOME: '/h' } })
+      const { $ } = createTestEngine({
+        env: {
+          GIT_DIR: '',
+          GIT_NAMESPACE: 'n',
+          GIT_ATTR_SOURCE: 'x',
+          GIT_REPLACE_REF_BASE: 'y',
+          HOME: '/h'
+        }
+      })
 
-      expect(await hostOf($).gitRepoVariablesSet()).toEqual(['GIT_DIR', 'GIT_NAMESPACE'])
+      expect(await hostOf($).gitRepoVariablesSet()).toEqual([
+        'GIT_DIR',
+        'GIT_NAMESPACE',
+        'GIT_ATTR_SOURCE',
+        'GIT_REPLACE_REF_BASE'
+      ])
     })
 
     it('names none when no git repository variable is set', async () => {
@@ -151,11 +181,13 @@ describe('register', () => {
       expect(await hostOf($).gitRepoVariablesSet()).toEqual([])
       expect(calls.map((call) => call.args[0]).sort()).toEqual([
         'GIT_ALTERNATE_OBJECT_DIRECTORIES',
+        'GIT_ATTR_SOURCE',
         'GIT_COMMON_DIR',
         'GIT_DIR',
         'GIT_INDEX_FILE',
         'GIT_NAMESPACE',
         'GIT_OBJECT_DIRECTORY',
+        'GIT_REPLACE_REF_BASE',
         'GIT_WORK_TREE'
       ])
     })
@@ -176,7 +208,7 @@ describe('register', () => {
       ])
     })
 
-    it('toasts the version and registers no command when Claude Code is too old', async () => {
+    it('shows the version in the status line and registers no command when Claude Code is too old', async () => {
       const calls = await startSession(
         { version: { version: '2.1.200', base: '2.1.200' } },
         { isInteractive: true }
@@ -184,19 +216,25 @@ describe('register', () => {
 
       expect(calls).toEqual([
         {
-          name: 'ui.toast',
-          args: [t('start.tooOld', { minimum: '2.1.296', version: '2.1.200' }), undefined]
+          name: 'ui.status',
+          args: [t('start.tooOld', { minimum: '2.1.296', version: '2.1.200' })]
         }
       ])
     })
 
-    it('toasts fixed text and registers no command when the version call fails', async () => {
+    it('shows fixed text in the status line and registers no command when the version call fails', async () => {
       const calls = await startSession({ versionFails: true }, { isInteractive: true })
 
-      expect(calls).toEqual([{ name: 'ui.toast', args: [t('start.failed'), undefined] }])
+      expect(calls).toEqual([{ name: 'ui.status', args: [t('start.failed')] }])
     })
 
-    it('registers nothing and toasts nothing on a session that is not interactive', async () => {
+    it('registers no command and sets no status on a non-interactive session that is ready', async () => {
+      const calls = await startSession({}, { isInteractive: false })
+
+      expect(calls).toEqual([])
+    })
+
+    it('registers nothing and sets no status on a session that is not interactive', async () => {
       const calls = await startSession(
         { version: { version: '2.1.200', base: '2.1.200' } },
         { isInteractive: false }

@@ -20,6 +20,8 @@ export type TestPath =
       readonly isLink?: boolean
       /** Where the path lands; defaults to the path itself. */
       readonly realPath?: string
+      /** The modification time to report; defaults to 1000. */
+      readonly mtimeMs?: number
       /** The exit status `tail` ends with; defaults to 0. */
       readonly tailExitCode?: number
     }
@@ -110,7 +112,7 @@ export function createTestHost(answers: TestHostAnswers = {}): ModHost {
       return {
         kind: found.kind,
         size: found.kind === 'file' ? (found.size ?? found.bytes?.length ?? 0) : 0,
-        mtimeMs: 1000,
+        mtimeMs: found.kind === 'file' ? (found.mtimeMs ?? 1000) : 1000,
         isLink: found.isLink ?? false,
         realPath: found.realPath ?? path
       }

@@ -31,7 +31,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
 
 test('session.start registers /beekeeper on a current Claude Code', async ($, on) => {
   const registered: string[] = []
-  const toasts: string[] = []
+  const statuses: string[] = []
   mock.env(on, { HOME: '/home/u' })
   on('session.start', async (_$, e) => ({ cwd: e.cwd }))
   on('session.version', async () => ({ value: { version: '2.1.296', base: '2.1.296' } }))
@@ -51,20 +51,20 @@ test('session.start registers /beekeeper on a current Claude Code', async ($, on
     registered.push(e.name)
     return { value: { command: e.name } }
   })
-  on('ui.toast', async (_$, e) => {
-    toasts.push(e.text)
+  on('ui.status', async (_$, e) => {
+    statuses.push(e.text ?? '')
     return { value: undefined }
   })
 
   await $.session.start({ cwd: '/work', surface: 'terminal', isInteractive: true })
 
-  expect(toasts).toEqual([])
+  expect(statuses).toEqual([])
   expect(registered).toEqual(['beekeeper'])
 })
 
-test('session.start toasts and registers nothing on a Claude Code that is too old', async ($, on) => {
+test('session.start sets the status line and registers nothing on a Claude Code that is too old', async ($, on) => {
   const registered: string[] = []
-  const toasts: string[] = []
+  const statuses: string[] = []
   mock.env(on, { HOME: '/home/u' })
   on('session.start', async (_$, e) => ({ cwd: e.cwd }))
   on('session.version', async () => ({ value: { version: '2.1.200', base: '2.1.200' } }))
@@ -72,13 +72,13 @@ test('session.start toasts and registers nothing on a Claude Code that is too ol
     registered.push(e.name)
     return { value: { command: e.name } }
   })
-  on('ui.toast', async (_$, e) => {
-    toasts.push(e.text)
+  on('ui.status', async (_$, e) => {
+    statuses.push(e.text ?? '')
     return { value: undefined }
   })
 
   await $.session.start({ cwd: '/work', surface: 'terminal', isInteractive: true })
 
   expect(registered).toEqual([])
-  expect(toasts).toEqual(['beekeeper needs Claude Code 2.1.296 or later. This is 2.1.200.'])
+  expect(statuses).toEqual(['beekeeper needs Claude Code 2.1.296 or later. This is 2.1.200.'])
 })

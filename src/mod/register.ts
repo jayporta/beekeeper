@@ -22,7 +22,9 @@ async function gitRepoVariablesSet($: Engine): Promise<string[]> {
     $.env
       .get('GIT_ALTERNATE_OBJECT_DIRECTORIES')
       .then((value) => ['GIT_ALTERNATE_OBJECT_DIRECTORIES', value] as const),
-    $.env.get('GIT_NAMESPACE').then((value) => ['GIT_NAMESPACE', value] as const)
+    $.env.get('GIT_NAMESPACE').then((value) => ['GIT_NAMESPACE', value] as const),
+    $.env.get('GIT_ATTR_SOURCE').then((value) => ['GIT_ATTR_SOURCE', value] as const),
+    $.env.get('GIT_REPLACE_REF_BASE').then((value) => ['GIT_REPLACE_REF_BASE', value] as const)
   ])
   return found.filter(([, value]) => value !== undefined).map(([name]) => name)
 }
@@ -51,14 +53,14 @@ export function hostOf($: Engine): ModHost {
   }
 }
 
-/** Shows what starting came to: registers `/beekeeper` when ready, or toasts fixed text when not. */
+/** Shows what starting came to: registers `/beekeeper` when ready, or sets the status line to fixed text when not. */
 async function announce($: Engine, outcome: StartOutcome): Promise<void> {
   if (outcome.kind === 'ready') {
     await $.command.register({ name: 'beekeeper', description: t('command.description') })
   } else if (outcome.kind === 'too-old') {
-    $.ui.toast(t('start.tooOld', { minimum: MINIMUM_CLAUDE_CODE, version: outcome.version }))
+    $.ui.status(t('start.tooOld', { minimum: MINIMUM_CLAUDE_CODE, version: outcome.version }))
   } else {
-    $.ui.toast(t('start.failed'))
+    $.ui.status(t('start.failed'))
   }
 }
 
@@ -71,8 +73,13 @@ export const register: Register = (on) => {
     return started
   }).catch(($, e, next) => next(e))
   on('command.run', { command: 'beekeeper' }, async ($) => {
-    await $.ui.open({ id: PANE_ID, title: t('pane.title') })
-    return { text: t('command.opened') }
+    const { isPlaced } = await $.ui.open({
+      id: PANE_ID,
+      title: t('pane.title'),
+      focus: true,
+      closeOnEscape: true
+    })
+    return { text: t(isPlaced ? 'command.opened' : 'command.waiting') }
   })
   on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) =>
     EmptyPane($.ui.resolve(e))

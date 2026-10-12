@@ -20,6 +20,8 @@ export interface TestEngineAnswers {
   version?: SessionVersion
   /** The environment variables `$.env.get` reads; `HOME` defaults to `/home/u`. */
   env?: Record<string, string>
+  /** Whether `$.ui.open` places the pane; true by default. */
+  isPlaced?: boolean
   /** Makes `$.session.version()` reject, as an engine that can't report its version would. */
   versionFails?: boolean
 }
@@ -62,7 +64,7 @@ export function createTestEngine(answers: TestEngineAnswers = {}): TestEngine {
     ui: {
       open: async (pane) => {
         record('ui.open', pane)
-        return { isPlaced: true }
+        return { isPlaced: answers.isPlaced ?? true }
       },
       resolve: (e) => {
         record('ui.resolve', e)
@@ -71,8 +73,8 @@ export function createTestEngine(answers: TestEngineAnswers = {}): TestEngine {
           Text: () => ({})
         }
       },
-      toast: (text, options) => {
-        record('ui.toast', text, options)
+      status: (text) => {
+        record('ui.status', text)
       }
     },
     env: {

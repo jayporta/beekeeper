@@ -20,7 +20,7 @@ export type StartOutcome =
     }
   /** Claude Code is older than the minimum; `version` is what it reported. */
   | { readonly kind: 'too-old'; readonly version: string }
-  /** Something failed while starting; the cause is left to the engine's debug log. */
+  /** Something failed while starting. */
   | { readonly kind: 'failed' }
 
 /**
@@ -36,10 +36,13 @@ export async function startMod(host: ModHost, session: { cwd: string }): Promise
     if (!meetsMinimumVersion(version, MINIMUM_CLAUDE_CODE)) {
       return { kind: 'too-old', version: version.version }
     }
-    const projectsRoot = await locateProjectsRoot(host)
+    const [projectsRoot, platform, repoVariables] = await Promise.all([
+      locateProjectsRoot(host),
+      host.osName().then(platformOf, () => platformOf('')),
+      host.gitRepoVariablesSet()
+    ])
     if (projectsRoot === undefined) return { kind: 'failed' }
-    const platform = await host.osName().then(platformOf, () => platformOf(''))
-    const gitDisabled = (await host.gitRepoVariablesSet()).length > 0
+    const gitDisabled = repoVariables.length > 0
     installFileSystem(createModFileSystem({ host, cwd: session.cwd, projectsRoot }))
     installProcessPort(createModProcessPort({ host, platform, gitDisabled }))
     return { kind: 'ready', projectsRoot, gitDisabled }

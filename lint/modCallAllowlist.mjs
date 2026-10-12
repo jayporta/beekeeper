@@ -17,8 +17,8 @@ export const MOD_ALLOWLIST = Object.freeze({
     '$.ui.open',
     // Looks up the elements a surface draws with.
     '$.ui.resolve',
-    // Shows a fixed-text notice when the mod can't start.
-    '$.ui.toast',
+    // Sets a fixed-text line in the status line when the mod can't start; it stays until replaced.
+    '$.ui.status',
     // Reads one environment variable by literal name; the names are limited below.
     '$.env.get',
     // Reads session files (up to 4 MiB); the engine offers no write that shares this call.
@@ -45,6 +45,8 @@ export const MOD_ALLOWLIST = Object.freeze({
     'GIT_INDEX_FILE',
     'GIT_OBJECT_DIRECTORY',
     'GIT_ALTERNATE_OBJECT_DIRECTORIES',
-    'GIT_NAMESPACE'
+    'GIT_NAMESPACE',
+    'GIT_ATTR_SOURCE',
+    'GIT_REPLACE_REF_BASE'
   ])
 })

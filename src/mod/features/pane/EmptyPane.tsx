@@ -12,7 +12,8 @@ export interface PaneElements {
 }
 
 /**
- * The pane's tree before any content exists: one line saying so.
+ * The pane's tree before any content exists: its title, which the engine omits while only one pane
+ * is open, then one line saying there is nothing yet.
  *
  * @param elements - The engine's `Box` and `Text` for the surface being drawn.
  * @returns The tree the `ui.render` hook returns.
@@ -22,6 +23,7 @@ export interface PaneElements {
 export function EmptyPane({ Box, Text }: PaneElements): object {
   return (
     <Box flexDirection="column">
+      <Text>{t('pane.title')}</Text>
       <Text>{t('pane.empty')}</Text>
     </Box>
   )

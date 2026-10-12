@@ -14,6 +14,7 @@ import { FS_READ_LIMIT } from './fsReadLimit'
 import { joinPath, resolvePath } from './posixPath'
 import { readThroughTail } from './readThroughTail'
 import { portError, withPortError } from './toPortError'
+import { createWholeFileCache } from './wholeFileCache'
 
 const DEFAULT_CHUNK_SIZE = 64 * 1024
 
@@ -39,6 +40,8 @@ function assertOffset(value: number, name: string): void {
  *
  * Reads go through `$.fs.read`, which returns a whole file up to {@link FS_READ_LIMIT}. A larger
  * file streams through `tail` (see {@link readThroughTail}) and must lie under the projects folder.
+ * The last file read whole is kept, so a transcript read in several calls crosses the engine once
+ * while it is unchanged (its size and modification time are the same).
  * The engine reports no inode, so `lstat` answers `ino` and `dev` as 0. Rejections carry a code and
  * no engine text.
  *
@@ -53,14 +56,19 @@ export function createModFileSystem(options: {
 }): FileSystemPort {
   const { host, cwd, projectsRoot } = options
 
-  const throughTail = (path: string, start: number): AsyncGenerator<Uint8Array, void> =>
-    readThroughTail({ host, projectsRoot, path, start })
+  const cache = createWholeFileCache()
 
-  /** The bytes of a file whose size is known, read whole. */
-  async function readSized(path: string, size: number): Promise<Uint8Array> {
-    return size > FS_READ_LIMIT
-      ? collectBytes(throughTail(path, 0), Infinity)
-      : withPortError(host.readBytes(path))
+  const throughTail = (stat: HostStat, start: number): AsyncGenerator<Uint8Array, void> =>
+    readThroughTail({ host, projectsRoot, realPath: stat.realPath, start })
+
+  /** The bytes of a file, whole, from the last read when the file hasn't changed since. */
+  async function readWhole(path: string, stat: HostStat): Promise<Uint8Array> {
+    if (stat.size > FS_READ_LIMIT) return collectBytes(throughTail(stat, 0), Infinity)
+    const cached = cache.get(path, stat)
+    if (cached !== undefined) return cached
+    const bytes = await withPortError(host.readBytes(path))
+    cache.set({ path, size: stat.size, mtimeMs: stat.mtimeMs, bytes })
+    return bytes
   }
 
   async function* readChunks(
@@ -68,14 +76,14 @@ export function createModFileSystem(options: {
     { start, chunkSize }: ReadChunksOptions
   ): AsyncGenerator<Uint8Array> {
     assertOffset(start, 'start')
-    const { size } = await withPortError(host.stat(path))
-    if (size > FS_READ_LIMIT) {
-      yield* throughTail(path, start)
+    const stat = await withPortError(host.stat(path))
+    if (stat.size > FS_READ_LIMIT) {
+      yield* throughTail(stat, start)
       return
     }
-    const step =
-      chunkSize !== undefined && chunkSize > 0 ? Math.floor(chunkSize) : DEFAULT_CHUNK_SIZE
-    const bytes = await withPortError(host.readBytes(path))
+    const floored = Math.floor(chunkSize ?? 0)
+    const step = floored >= 1 ? floored : DEFAULT_CHUNK_SIZE
+    const bytes = await readWhole(path, stat)
     for (let offset = start; offset < bytes.length; offset += step) {
       yield bytes.subarray(offset, offset + step)
     }
@@ -87,12 +95,12 @@ export function createModFileSystem(options: {
   ): Promise<Uint8Array> {
     assertOffset(position, 'position')
     assertOffset(length, 'length')
-    const { size } = await withPortError(host.stat(path))
-    if (size > FS_READ_LIMIT) {
-      const bytes = await collectBytes(throughTail(path, position), length)
+    const stat = await withPortError(host.stat(path))
+    if (stat.size > FS_READ_LIMIT) {
+      const bytes = await collectBytes(throughTail(stat, position), length)
       return bytes.subarray(0, length)
     }
-    return (await withPortError(host.readBytes(path))).subarray(position, position + length)
+    return (await readWhole(path, stat)).subarray(position, position + length)
   }
 
   /**
@@ -108,7 +116,7 @@ export function createModFileSystem(options: {
       if (stat.isLink) return err({ reason: 'symlink' })
       if (stat.kind !== 'file') return err({ reason: 'not-a-file' })
       if (stat.size > maxBytes) return err({ reason: 'too-large' })
-      const bytes = await readSized(path, stat.size)
+      const bytes = await readWhole(path, stat)
       return bytes.length > maxBytes ? err({ reason: 'too-large' }) : ok(bytes)
     } catch (error) {
       if (isMissingEntryError(error)) return err({ reason: 'missing' })

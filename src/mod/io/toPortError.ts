@@ -1,6 +1,26 @@
 import { errorCode } from '../../core/shared/errorCode'
 
-const CODE_IN_MESSAGE = /\bE[A-Z]{2,}\b/
+/** The errno names the mod recognizes in an engine message. */
+const KNOWN_CODES: ReadonlySet<string> = new Set([
+  'ENOENT',
+  'ENOTDIR',
+  'EACCES',
+  'EPERM',
+  'EISDIR',
+  'ELOOP',
+  'ENAMETOOLONG',
+  'EINVAL',
+  'EIO',
+  'EFBIG',
+  'EMFILE',
+  'ENFILE',
+  'EBUSY',
+  'EEXIST',
+  'ENOTEMPTY',
+  'ETIMEDOUT'
+])
+
+const CODE_LIKE = /\bE[A-Z]+\b/g
 
 /**
  * Builds the error a {@link FileSystemPort} method rejects with: a Node-style `code` and nothing else.
@@ -20,12 +40,13 @@ export function portError(code: string, message: string = code): Error {
  * never kept, not even as `cause`, so nothing downstream can log its text.
  *
  * @param error - What the engine call rejected with.
- * @returns A new `Error` carrying the original's string `code`, else the first `ENOENT`-style code
+ * @returns A new `Error` carrying the original's string `code`, else the first known errno name
  * in its message, else `EIO`.
  */
 export function toPortError(error: unknown): Error {
-  const message = error instanceof Error ? error.message : undefined
-  return portError(errorCode(error) ?? message?.match(CODE_IN_MESSAGE)?.[0] ?? 'EIO')
+  const message = error instanceof Error ? error.message : ''
+  const named = message.match(CODE_LIKE)?.find((word) => KNOWN_CODES.has(word))
+  return portError(errorCode(error) ?? named ?? 'EIO')
 }
 
 /**

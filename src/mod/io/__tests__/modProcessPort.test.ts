@@ -8,7 +8,7 @@ import { createModProcessPort } from '../modProcessPort'
 const REQUEST: ProcessRequest = {
   file: '/usr/bin/git',
   args: ['status'],
-  env: { PATH: '/usr/bin', GIT_CONFIG_COUNT: '7' },
+  env: { PATH: '/usr/bin', GIT_TRACE: '1' },
   timeoutMs: 5000,
   maxOutputBytes: 10
 }
@@ -26,7 +26,7 @@ describe('createModProcessPort run', () => {
     vi.restoreAllMocks()
   })
 
-  it('asks the host to run the request with the git-isolating variables over its env', async () => {
+  it('asks the host to run the request with the git-isolating variables beside its env', async () => {
     const { host, port } = portWith()
     const runGit = vi.spyOn(host, 'runGit')
 
@@ -37,10 +37,21 @@ describe('createModProcessPort run', () => {
       args: ['status'],
       env: {
         PATH: '/usr/bin',
+        GIT_TRACE: '1',
         GIT_CONFIG_COUNT: '0',
         GIT_CONFIG_PARAMETERS: '',
         GIT_CEILING_DIRECTORIES: '',
-        GIT_DISCOVERY_ACROSS_FILESYSTEM: ''
+        GIT_DISCOVERY_ACROSS_FILESYSTEM: '',
+        GIT_LITERAL_PATHSPECS: '0',
+        GIT_ICASE_PATHSPECS: '0',
+        GIT_GLOB_PATHSPECS: '0',
+        GIT_NOGLOB_PATHSPECS: '0',
+        GIT_TRACE2: '0',
+        GIT_TRACE2_EVENT: '0',
+        GIT_TRACE2_PERF: '0',
+        GIT_TRACE_PACKET: '0',
+        GIT_TRACE_PERFORMANCE: '0',
+        GIT_TRACE_SETUP: '0'
       },
       timeoutMs: 5000
     })
