@@ -1,5 +1,5 @@
 import type { ProjectTotalsDto } from '../../shared/ipc/projectTotalsDto'
-import type { FolderTotals } from '../overview/folderTotals'
+import type { FolderTotals } from './folderTotals'
 
 /**
  * Maps a folder's totals onto their transfer shape, field by field.

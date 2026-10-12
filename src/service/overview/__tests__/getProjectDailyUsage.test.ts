@@ -3,24 +3,23 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { QUARTER_HOUR_MS } from '../../../core/shared/quarterHour'
 import type { ProjectDailyUsageDto } from '../../../shared/ipc/projectDailyUsageDto'
+import type { GetProjectDailyUsageRequest } from '../../../shared/ipc/requestSchemas'
 import { buildAssistantRecord } from '../../../core/transcript/testFixtures'
-import type { ArchivedLeadSlots } from '../../../service/archive/archivePort'
-import { testArchivedSession } from '../../../service/archive/testArchiveFixtures'
-import { guardArchive } from '../../archive/guardArchive'
-import { createFakeArchive } from '../../../service/archive/testFakeArchive'
-import { SKIP_UNREAD_SLACK_MS, TOTALS_WINDOW_MS } from '../../overview/totalsWindow'
-import { getProjectDailyUsageHandler } from '../getProjectDailyUsageHandler'
-import { getProjectTotalsHandler } from '../getProjectTotalsHandler'
-import type { IpcDeps } from '../ipcDeps'
-import { sessionRefKey } from '../../../service/sessions/sessionRefKey'
-import { writeTranscript } from '../../../service/sessions/testFamilyFixtures'
-import { TEST_PROJECT, TEST_SESSION_ID } from '../../../service/testServiceTree'
-import { registerIpcTestTree } from '../testIpcTree'
+import type { ArchivedLeadSlots } from '../../archive/archivePort'
+import { testArchivedSession } from '../../archive/testArchiveFixtures'
+import { createFakeArchive } from '../../archive/testFakeArchive'
+import { SKIP_UNREAD_SLACK_MS, TOTALS_WINDOW_MS } from '../totalsWindow'
+import { getProjectDailyUsage } from '../getProjectDailyUsage'
+import { getProjectTotals } from '../getProjectTotals'
+import type { ServiceDeps } from '../../serviceDeps'
+import { sessionRefKey } from '../../sessions/sessionRefKey'
+import { writeTranscript } from '../../sessions/testFamilyFixtures'
+import { registerServiceTestTree, TEST_PROJECT, TEST_SESSION_ID } from '../../testServiceTree'
 
-const ctx = registerIpcTestTree()
+const ctx = registerServiceTestTree()
 const NOW = Date.parse('2026-03-10T12:00:00.000Z')
 const DAY = 24 * 60 * 60 * 1000
-const request = { projectDirName: TEST_PROJECT, window: '7d' }
+const request = { projectDirName: TEST_PROJECT, window: '7d' } as const
 const idOf = (n: number): string => `${String(n).padStart(8, '0')}-0000-4000-8000-000000000000`
 
 afterEach(async () => {
@@ -94,7 +93,7 @@ async function removeTreeSession(): Promise<void> {
 
 /** What {@link depsAt} returns. */
 interface SpyingDeps {
-  readonly deps: IpcDeps
+  readonly deps: ServiceDeps
   /** The keys the daily usage scheduler was asked to run. */
   readonly scanKeys: string[]
   /** How many times the time zone was read. */
@@ -115,7 +114,7 @@ function depsAt(timeZone = 'UTC'): SpyingDeps {
   let zoneReads = 0
   const scanned = new Set<object>()
   const { dailyUsageScans, summaryCache } = ctx.deps
-  const deps: IpcDeps = {
+  const deps: ServiceDeps = {
     ...ctx.deps,
     now: () => NOW,
     timeZone: () => {
@@ -141,8 +140,11 @@ function depsAt(timeZone = 'UTC'): SpyingDeps {
 
 type Usage = ProjectDailyUsageDto
 
-async function usageOf(deps: IpcDeps, payload: unknown = request): Promise<Usage> {
-  const result = await getProjectDailyUsageHandler(deps, payload)
+async function usageOf(
+  deps: ServiceDeps,
+  payload: GetProjectDailyUsageRequest = request
+): Promise<Usage> {
+  const result = await getProjectDailyUsage(deps, payload)
   if (!result.ok) throw new Error(`expected usage, got ${result.error.code}`)
   return result.value
 }
@@ -150,33 +152,18 @@ async function usageOf(deps: IpcDeps, payload: unknown = request): Promise<Usage
 const tokensOn = (usage: Usage, day: string): number =>
   usage.days.find((d) => d.day === day)?.models.reduce((sum, m) => sum + m.tokens, 0) ?? -1
 
-describe('getProjectDailyUsageHandler request validation', () => {
-  it.each([
-    ['an unknown window', { ...request, window: '1d' }],
-    ['no window', { projectDirName: TEST_PROJECT }],
-    ['an extra field', { ...request, path: '/etc' }],
-    ['a project name that is a path', { ...request, projectDirName: '../x' }],
-    ['no payload', undefined]
-  ])('refuses %s, reading nothing', async (_label, payload) => {
-    const { deps, scanKeys } = depsAt()
-
-    expect(await getProjectDailyUsageHandler(deps, payload)).toEqual({
-      ok: false,
-      error: { code: 'invalid-request' }
-    })
-    expect(scanKeys).toEqual([])
-  })
-
+describe('getProjectDailyUsage unknown project', () => {
   it('finds no project that is not listed', async () => {
     const { deps } = depsAt()
 
-    expect(
-      await getProjectDailyUsageHandler(deps, { ...request, projectDirName: '-nope' })
-    ).toEqual({ ok: false, error: { code: 'not-found' } })
+    expect(await getProjectDailyUsage(deps, { ...request, projectDirName: '-nope' })).toEqual({
+      ok: false,
+      error: { code: 'not-found' }
+    })
   })
 })
 
-describe('getProjectDailyUsageHandler usage', () => {
+describe('getProjectDailyUsage usage', () => {
   it('reads the time zone once for the request, however many sessions it reads', async () => {
     await removeTreeSession()
     await writeSession(1, [{ at: '2026-03-05T10:00:00Z' }])
@@ -285,7 +272,7 @@ describe('getProjectDailyUsageHandler usage', () => {
   })
 })
 
-describe('getProjectDailyUsageHandler reading only what can count', () => {
+describe('getProjectDailyUsage reading only what can count', () => {
   it('never reads a session whose files are older than the window, a day, and the slack', async () => {
     await removeTreeSession()
     const stale = NOW - TOTALS_WINDOW_MS['7d'] - DAY - SKIP_UNREAD_SLACK_MS - 1000
@@ -301,7 +288,7 @@ describe('getProjectDailyUsageHandler reading only what can count', () => {
   })
 })
 
-describe('getProjectDailyUsageHandler cache', () => {
+describe('getProjectDailyUsage cache', () => {
   it('reads nothing the second time when the files are unchanged', async () => {
     await removeTreeSession()
     await writeSession(1, [{ at: '2026-03-05T10:00:00Z', tokens: 8 }])
@@ -350,7 +337,7 @@ describe('getProjectDailyUsageHandler cache', () => {
   )
 })
 
-describe('getProjectDailyUsageHandler partial results', () => {
+describe('getProjectDailyUsage partial results', () => {
   it('counts a line that could not be read', async () => {
     await removeTreeSession()
     const path = await writeSession(1, [{ at: '2026-03-05T10:00:00Z' }])
@@ -403,7 +390,7 @@ describe('getProjectDailyUsageHandler partial results', () => {
   })
 })
 
-describe('getProjectDailyUsageHandler with the project totals', () => {
+describe('getProjectDailyUsage with the project totals', () => {
   it('reads each lead once when the totals and the chart are asked for together', async () => {
     await removeTreeSession()
     await writeSession(1, [{ at: '2026-03-05T10:00:00Z' }])
@@ -412,8 +399,8 @@ describe('getProjectDailyUsageHandler with the project totals', () => {
     const { deps, summaryReads, scanKeys } = depsAt()
 
     const [totals, usage] = await Promise.all([
-      getProjectTotalsHandler(deps, request),
-      getProjectDailyUsageHandler(deps, request)
+      getProjectTotals(deps, request),
+      getProjectDailyUsage(deps, request)
     ])
 
     expect(totals.ok).toBe(true)
@@ -424,7 +411,7 @@ describe('getProjectDailyUsageHandler with the project totals', () => {
   })
 })
 
-describe('getProjectDailyUsageHandler archived sessions', () => {
+describe('getProjectDailyUsage archived sessions', () => {
   const slotAt = (
     iso: string,
     tokens: number,
@@ -452,7 +439,7 @@ describe('getProjectDailyUsageHandler archived sessions', () => {
     sessions: readonly ReturnType<typeof testArchivedSession>[],
     slots: ReadonlyMap<number, ArchivedLeadSlots> = new Map(),
     timeZone = 'UTC'
-  ): { deps: IpcDeps; archive: ReturnType<typeof createFakeArchive> } {
+  ): { deps: ServiceDeps; archive: ReturnType<typeof createFakeArchive> } {
     const leadSlots = new Map(
       [...slots].map(([n, value]) => [
         sessionRefKey({ projectDirName: TEST_PROJECT, sessionId: idOf(n) }),
@@ -644,25 +631,5 @@ describe('getProjectDailyUsageHandler archived sessions', () => {
     const usage = await usageOf(deps)
 
     expect(usage.partial).toMatchObject({ undated: 1, skippedLines: 1 })
-  })
-
-  it('still reports the live sessions, logging the failure once, when the archive cannot be read', async () => {
-    await removeTreeSession()
-    await writeSession(1, [{ at: '2026-03-08T10:00:00Z', tokens: 5 }])
-    const live = await usageOf(depsAt().deps)
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const failing: IpcDeps = {
-      ...depsAt().deps,
-      archive: guardArchive(
-        createFakeArchive(Object.assign(new Error('boom'), { code: 'EDAILYFAIL' }))
-      )
-    }
-
-    try {
-      expect(await usageOf(failing)).toEqual(live)
-      expect(warn.mock.calls).toEqual([['Beekeeper archive read failed (EDAILYFAIL).']])
-    } finally {
-      warn.mockRestore()
-    }
   })
 })

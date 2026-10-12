@@ -1,21 +1,17 @@
 import type { IpcResult } from '../../shared/ipc/ipcResult'
 import type { ProjectTotalsDto } from '../../shared/ipc/projectTotalsDto'
-import { getProjectTotalsRequestSchema } from '../../shared/ipc/requestSchemas'
-import { archivedTimesOf } from '../overview/archivedTimes'
-import { archivedTotalsSession } from '../overview/archivedTotalsSession'
-import { folderTotals, type TotalsSession } from '../overview/folderTotals'
-import {
-  mayArchivedCountInWindow,
-  mayCountInWindow,
-  TOTALS_WINDOW_MS
-} from '../overview/totalsWindow'
-import { findProject } from '../../service/projects/findProject'
-import type { IpcDeps } from './ipcDeps'
-import { errResult, okResult } from '../../service/ipcResults'
+import type { GetProjectTotalsRequest } from '../../shared/ipc/requestSchemas'
+import { archivedTimesOf } from './archivedTimes'
+import { archivedTotalsSession } from './archivedTotalsSession'
+import { folderTotals, type TotalsSession } from './folderTotals'
+import { mayArchivedCountInWindow, mayCountInWindow, TOTALS_WINDOW_MS } from './totalsWindow'
+import { findProject } from '../projects/findProject'
+import type { ServiceDeps } from '../serviceDeps'
+import { errResult, okResult } from '../ipcResults'
 import { mapProjectTotals } from './mapProjectTotals'
-import type { ScannedSession } from '../../service/sessions/mapSessionListItem'
-import { readArchivedSessions } from '../../service/sessions/readArchivedSessions'
-import { scanProjectSessions } from '../../service/sessions/scanProjectSessions'
+import type { ScannedSession } from '../sessions/mapSessionListItem'
+import { readArchivedSessions } from '../sessions/readArchivedSessions'
+import { scanProjectSessions } from '../sessions/scanProjectSessions'
 
 function toTotalsSession({ entry, summary }: ScannedSession): TotalsSession {
   return {
@@ -46,23 +42,21 @@ function toTotalsSession({ entry, summary }: ScannedSession): TotalsSession {
  *
  * @param deps - The projects root, the summary cache, the summaries scheduler,
  * the archive, and the clock, which gives the end of the window.
- * @param payload - The renderer's payload, validated here.
- * @returns The totals, `invalid-request` for a bad payload, or `not-found` for
- * an unknown project. A folder that can't be read comes back as the code of its
- * system error, through the IPC guard.
+ * @param request - A request parsed by `getProjectTotalsRequestSchema`, which
+ * keeps its folder name path-free and its window one of the known ones.
+ * @returns The totals, or `not-found` for an unknown project. A folder that
+ * can't be read comes back as the code of its system error, through the IPC
+ * guard.
  */
-export async function getProjectTotalsHandler(
-  deps: Pick<IpcDeps, 'projectsRoot' | 'summaryCache' | 'summaries' | 'archive' | 'now'>,
-  payload: unknown
+export async function getProjectTotals(
+  deps: Pick<ServiceDeps, 'projectsRoot' | 'summaryCache' | 'summaries' | 'archive' | 'now'>,
+  request: GetProjectTotalsRequest
 ): Promise<IpcResult<ProjectTotalsDto>> {
-  const request = getProjectTotalsRequestSchema.safeParse(payload)
-  if (!request.success) return errResult('invalid-request')
-
-  const project = await findProject(deps.projectsRoot, request.data.projectDirName)
+  const project = await findProject(deps.projectsRoot, request.projectDirName)
   if (project === undefined) return errResult('not-found')
 
   const nowMs = deps.now()
-  const windowMs = TOTALS_WINDOW_MS[request.data.window]
+  const windowMs = TOTALS_WINDOW_MS[request.window]
   // `keep` sees every session on disk before any read, so it also gathers the live ids.
   const liveSessionIds = new Set<string>()
   const scanned = await scanProjectSessions(

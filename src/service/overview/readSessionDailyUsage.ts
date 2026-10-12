@@ -8,16 +8,13 @@ import {
   EMPTY_SUBAGENT_DAILY_USAGE,
   scanSubagentDailyUsage
 } from '../../core/usage/scanSubagentDailyUsage'
-import type { IpcDeps } from '../ipc/ipcDeps'
-import { readSessionSummaryInBackground } from '../../service/sessions/scanProjectSessions'
-import {
-  sessionFilesKey,
-  type SessionFilesKeyOptions
-} from '../../service/sessionDetail/sessionFilesKey'
+import type { ServiceDeps } from '../serviceDeps'
+import { readSessionSummaryInBackground } from '../sessions/scanProjectSessions'
+import { sessionFilesKey, type SessionFilesKeyOptions } from '../sessionDetail/sessionFilesKey'
 
 /** What {@link readSessionDailyUsage} reads through. */
 export interface ReadSessionDailyUsageDeps extends Pick<
-  IpcDeps,
+  ServiceDeps,
   'dailyUsageScans' | 'dailyUsageCache' | 'summaryCache' | 'summaries'
 > {
   /** The IANA time zone the days are bucketed in, which is part of the cache key. */

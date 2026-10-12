@@ -1,35 +1,32 @@
 import { chmod, mkdir, rm, utimes, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import {
   buildAiTitleRecord,
   buildAssistantRecord,
   buildCostStateRecord
 } from '../../../core/transcript/testFixtures'
 import { createSessionSummaryCache } from '../../../core/transcript/summary/sessionSummaryCache'
-import { testArchivedSession } from '../../../service/archive/testArchiveFixtures'
-import { guardArchive } from '../../archive/guardArchive'
-import { createFakeArchive } from '../../../service/archive/testFakeArchive'
-import { SKIP_UNREAD_SLACK_MS, TOTALS_WINDOW_MS } from '../../overview/totalsWindow'
-import { getProjectTotalsHandler } from '../getProjectTotalsHandler'
-import { guardIpc } from '../guardIpc'
-import type { IpcDeps } from '../ipcDeps'
+import { testArchivedSession } from '../../archive/testArchiveFixtures'
+import { createFakeArchive } from '../../archive/testFakeArchive'
+import { SKIP_UNREAD_SLACK_MS, TOTALS_WINDOW_MS } from '../totalsWindow'
+import { getProjectTotals } from '../getProjectTotals'
+import type { ServiceDeps } from '../../serviceDeps'
 import {
   AGENT_SESSION_ID,
   WORKTREE,
   scoutRecords,
   writeTranscript
-} from '../../../service/sessions/testFamilyFixtures'
-import { TEST_PROJECT, TEST_SESSION_ID } from '../../../service/testServiceTree'
-import { registerIpcTestTree } from '../testIpcTree'
+} from '../../sessions/testFamilyFixtures'
+import { registerServiceTestTree, TEST_PROJECT, TEST_SESSION_ID } from '../../testServiceTree'
 
-const ctx = registerIpcTestTree()
+const ctx = registerServiceTestTree()
 const NOW = Date.parse('2026-03-01T00:00:00.000Z')
 const HOUR = 60 * 60 * 1000
 const DAY = 24 * HOUR
 const WEEK = TOTALS_WINDOW_MS['7d']
 const CUTOFF = NOW - WEEK
-const request = { projectDirName: TEST_PROJECT, window: '7d' }
+const request = { projectDirName: TEST_PROJECT, window: '7d' } as const
 
 afterEach(async () => {
   await chmod(join(ctx.tree.home, '.claude', 'projects', TEST_PROJECT), 0o755).catch(
@@ -71,10 +68,10 @@ async function writeSession(session: SessionToWrite): Promise<string> {
 }
 
 /** Deps whose summary cache records every transcript it reads, by path. */
-function spyingDeps(): { deps: IpcDeps; reads: string[] } {
+function spyingDeps(): { deps: ServiceDeps; reads: string[] } {
   const reads: string[] = []
   const inner = createSessionSummaryCache()
-  const deps: IpcDeps = {
+  const deps: ServiceDeps = {
     ...ctx.deps,
     summaryCache: {
       read: (file) => {
@@ -92,13 +89,12 @@ async function removeTreeSession(): Promise<void> {
 }
 
 /** `deps` with the clock stopped at {@link NOW}. */
-const atNow = (deps: IpcDeps): IpcDeps => ({ ...deps, now: () => NOW })
+const atNow = (deps: ServiceDeps): ServiceDeps => ({ ...deps, now: () => NOW })
 
 const totalsOf = async (
-  deps: IpcDeps,
+  deps: ServiceDeps,
   window: '7d' | '30d' = '7d'
-): ReturnType<typeof getProjectTotalsHandler> =>
-  getProjectTotalsHandler(atNow(deps), { ...request, window })
+): ReturnType<typeof getProjectTotals> => getProjectTotals(atNow(deps), { ...request, window })
 
 function value(
   result: Awaited<ReturnType<typeof totalsOf>>
@@ -107,28 +103,11 @@ function value(
   return result.value
 }
 
-describe('getProjectTotalsHandler request validation', () => {
-  it.each([
-    ['an unknown window', { ...request, window: '1d' }],
-    ['no window', { projectDirName: TEST_PROJECT }],
-    ['a window that is not text', { ...request, window: 7 }],
-    ['an extra field', { ...request, path: '/etc' }],
-    ['a project name that is a path', { ...request, projectDirName: '../x' }],
-    ['no payload', undefined]
-  ])('refuses %s, reading nothing', async (_label, payload) => {
-    const { deps, reads } = spyingDeps()
-
-    expect(await getProjectTotalsHandler(atNow(deps), payload)).toEqual({
-      ok: false,
-      error: { code: 'invalid-request' }
-    })
-    expect(reads).toEqual([])
-  })
-
+describe('getProjectTotals unknown project', () => {
   it('finds no project that is not listed, reading nothing', async () => {
     const { deps, reads } = spyingDeps()
 
-    const result = await getProjectTotalsHandler(atNow(deps), {
+    const result = await getProjectTotals(atNow(deps), {
       ...request,
       projectDirName: '-nope'
     })
@@ -138,7 +117,7 @@ describe('getProjectTotalsHandler request validation', () => {
   })
 })
 
-describe('getProjectTotalsHandler totals', () => {
+describe('getProjectTotals totals', () => {
   it('adds up the sessions in the window, with the latest one’s title', async () => {
     await removeTreeSession()
     await writeSession({ n: 1, activeMs: NOW - DAY, title: 'Older' })
@@ -294,7 +273,7 @@ describe('getProjectTotalsHandler totals', () => {
   })
 })
 
-describe('getProjectTotalsHandler window edge', () => {
+describe('getProjectTotals window edge', () => {
   it('counts a session active exactly at the start of the window', async () => {
     await removeTreeSession()
     await writeSession({ n: 1, activeMs: CUTOFF })
@@ -310,7 +289,7 @@ describe('getProjectTotalsHandler window edge', () => {
   })
 })
 
-describe('getProjectTotalsHandler reading only what can count', () => {
+describe('getProjectTotals reading only what can count', () => {
   it('never reads a session whose file is older than the window and the slack', async () => {
     await removeTreeSession()
     const old = await writeSession({ n: 1, activeMs: CUTOFF - SKIP_UNREAD_SLACK_MS - 1000 })
@@ -365,7 +344,7 @@ describe('getProjectTotalsHandler reading only what can count', () => {
     const fresh = await writeSession({ n: 1, activeMs: NOW - HOUR })
     const background: string[] = []
     const foreground: string[] = []
-    const deps: IpcDeps = {
+    const deps: ServiceDeps = {
       ...ctx.deps,
       summaries: {
         run: (key, task) => {
@@ -387,37 +366,7 @@ describe('getProjectTotalsHandler reading only what can count', () => {
   })
 })
 
-describe('getProjectTotalsHandler failure codes', () => {
-  it('answers a folder that can’t be read with the unreadable code alone, through the guard', async (context) => {
-    if (process.getuid?.() === 0) return context.skip()
-    await chmod(join(ctx.tree.home, '.claude', 'projects', TEST_PROJECT), 0o000)
-    const listener = guardIpc({
-      isTrusted: () => true,
-      handle: (payload) => getProjectTotalsHandler(atNow(ctx.deps), payload)
-    })
-
-    expect(await listener({}, request)).toEqual({ ok: false, error: { code: 'unreadable' } })
-  })
-
-  it('answers an unexpected failure with the internal code alone, without its message', async () => {
-    const deps: IpcDeps = {
-      ...ctx.deps,
-      summaryCache: { read: () => Promise.reject(new Error('/secret/path leaked')) }
-    }
-    const listener = guardIpc({
-      isTrusted: () => true,
-      handle: (payload) => getProjectTotalsHandler(atNow(deps), payload),
-      log: () => undefined
-    })
-
-    const result = await listener({}, request)
-
-    expect(result).toEqual({ ok: false, error: { code: 'internal' } })
-    expect(JSON.stringify(result)).not.toContain('secret')
-  })
-})
-
-describe('getProjectTotalsHandler archived sessions', () => {
+describe('getProjectTotals archived sessions', () => {
   /** An archived session of the test project, with its figures. */
   const archived = (
     n: number,
@@ -425,7 +374,7 @@ describe('getProjectTotalsHandler archived sessions', () => {
   ): ReturnType<typeof testArchivedSession> =>
     testArchivedSession(idOf(n), { projectDirName: TEST_PROJECT, ...options })
 
-  const withArchive = (...sessions: ReturnType<typeof testArchivedSession>[]): IpcDeps => ({
+  const withArchive = (...sessions: ReturnType<typeof testArchivedSession>[]): ServiceDeps => ({
     ...ctx.deps,
     archive: createFakeArchive(undefined, { sessions })
   })
@@ -516,25 +465,5 @@ describe('getProjectTotalsHandler archived sessions', () => {
     })
 
     expect(value(await totalsOf(withArchive(stale)))).toMatchObject({ sessions: 0, tokens: 0 })
-  })
-
-  it('still totals the live sessions, logging the failure once, when the archive cannot be read', async () => {
-    await removeTreeSession()
-    await writeSession({ n: 1, activeMs: NOW - HOUR })
-    const live = value(await totalsOf(ctx.deps))
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const failing: IpcDeps = {
-      ...ctx.deps,
-      archive: guardArchive(
-        createFakeArchive(Object.assign(new Error('boom'), { code: 'ETOTALSFAIL' }))
-      )
-    }
-
-    try {
-      expect(value(await totalsOf(failing))).toEqual(live)
-      expect(warn.mock.calls).toEqual([['Beekeeper archive read failed (ETOTALSFAIL).']])
-    } finally {
-      warn.mockRestore()
-    }
   })
 })

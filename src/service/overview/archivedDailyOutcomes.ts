@@ -1,10 +1,9 @@
 import { combineDailyUsage } from '../../core/usage/combineDailyUsage'
 import type { DayKey } from '../../core/usage/dailyUsage'
 import { EMPTY_SUBAGENT_DAILY_USAGE } from '../../core/usage/scanSubagentDailyUsage'
-import type { ArchivedSession } from '../../service/archive/archivePort'
-import { guardArchiveCall } from '../archive/guardArchiveCall'
-import type { IpcDeps } from '../ipc/ipcDeps'
-import { readArchivedSessions } from '../../service/sessions/readArchivedSessions'
+import type { ArchivedSession } from '../archive/archivePort'
+import type { ServiceDeps } from '../serviceDeps'
+import { readArchivedSessions } from '../sessions/readArchivedSessions'
 import { archivedTimesOf } from './archivedTimes'
 import type { SessionDailyOutcome } from './folderDailyUsage'
 import { mayArchivedHaveDailyUsage } from './totalsWindow'
@@ -12,7 +11,7 @@ import { mayArchivedHaveDailyUsage } from './totalsWindow'
 /** Options for {@link archivedDailyOutcomes}. */
 export interface ArchivedDailyOutcomesOptions {
   /** Where to read from, or `null` to read nothing. */
-  readonly archive: IpcDeps['archive']
+  readonly archive: ServiceDeps['archive']
   /** The folder whose archived sessions to read. */
   readonly projectDirName: string
   /** The ids of every session on disk in the folder, which the archive must not shadow. */
@@ -34,8 +33,8 @@ export interface ArchivedDailyOutcomesOptions {
  * unless its last message was before the window's first day: its subagents'
  * results are written to its transcript, so they ran no later than that. A
  * session whose slots can't be had (none stored, unreadable, or a failing read)
- * is unreadable. A failing archive read is logged once per kind and never fails
- * the request.
+ * is unreadable. The archive never throws, so a failing archive read never
+ * fails the request.
  *
  * @param options - The archive, the folder, its live ids, the window and its first day, and the day mapping.
  * @returns One outcome per archived session in range.
@@ -52,17 +51,15 @@ export function archivedDailyOutcomes(
 
 function outcomeOf(options: {
   readonly session: ArchivedSession
-  readonly archive: NonNullable<IpcDeps['archive']>
+  readonly archive: NonNullable<ServiceDeps['archive']>
   readonly firstDay: DayKey
   readonly dayKeyOf: (epochMs: number) => DayKey
 }): SessionDailyOutcome {
   const { session, archive, firstDay, dayKeyOf } = options
   const { item } = session
-  const slots = guardArchiveCall({
-    run: () =>
-      archive.readLeadSlots({ projectDirName: item.projectDirName, sessionId: item.sessionId }),
-    fallback: null,
-    kind: 'read'
+  const slots = archive.readLeadSlots({
+    projectDirName: item.projectDirName,
+    sessionId: item.sessionId
   })
   if (slots === null || !item.summary.ok) return { ok: false }
   const latestMs = item.summary.value.activity?.latestMs ?? null

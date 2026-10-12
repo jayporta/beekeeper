@@ -1,4 +1,4 @@
-import { DAY_MS } from '../../service/archive/archiveDetailTiming'
+import { DAY_MS } from '../../core/shared/dayMs'
 
 /** The version of the DTO JSON stored in the archive. A row at another version is rewritten, never read. */
 export const ARCHIVE_FORMAT = 1

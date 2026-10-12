@@ -1,9 +1,7 @@
+import { DAY_MS } from '../../core/shared/dayMs'
 import type { SessionEntry } from '../../core/transcript/discoverSessions'
 import type { TotalsWindowDto } from '../../shared/ipc/projectTotalsDto'
 import type { ArchivedTimes } from './archivedTimes'
-
-/** One day, in milliseconds. */
-export const DAY_MS = 24 * 60 * 60 * 1000
 
 /** How long each totals window is, in milliseconds. */
 export const TOTALS_WINDOW_MS: Readonly<Record<TotalsWindowDto, number>> = {

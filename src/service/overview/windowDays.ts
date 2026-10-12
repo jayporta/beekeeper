@@ -1,6 +1,7 @@
+import { DAY_MS } from '../../core/shared/dayMs'
 import type { TotalsWindowDto } from '../../shared/ipc/projectTotalsDto'
 import type { DayKey } from '../../core/usage/dailyUsage'
-import { DAY_MS, TOTALS_WINDOW_MS } from './totalsWindow'
+import { TOTALS_WINDOW_MS } from './totalsWindow'
 
 /** Options for {@link windowDays}. */
 export interface WindowDaysOptions {

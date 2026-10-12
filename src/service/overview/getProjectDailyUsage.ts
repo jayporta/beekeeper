@@ -1,16 +1,16 @@
 import { discoverSessions } from '../../core/transcript/discoverSessions'
 import type { IpcResult } from '../../shared/ipc/ipcResult'
 import type { ProjectDailyUsageDto } from '../../shared/ipc/projectDailyUsageDto'
-import { getProjectDailyUsageRequestSchema } from '../../shared/ipc/requestSchemas'
-import { archivedDailyOutcomes } from '../overview/archivedDailyOutcomes'
-import { folderDailyUsage, type SessionDailyOutcome } from '../overview/folderDailyUsage'
-import { createDayKeyOf } from '../../service/overview/localDayKey'
-import { readSessionDailyUsage } from '../overview/readSessionDailyUsage'
-import { mayHaveDailyUsage, TOTALS_WINDOW_MS } from '../overview/totalsWindow'
-import { windowDays } from '../overview/windowDays'
-import { findProject } from '../../service/projects/findProject'
-import type { IpcDeps } from './ipcDeps'
-import { errResult, okResult } from '../../service/ipcResults'
+import type { GetProjectDailyUsageRequest } from '../../shared/ipc/requestSchemas'
+import { archivedDailyOutcomes } from './archivedDailyOutcomes'
+import { folderDailyUsage, type SessionDailyOutcome } from './folderDailyUsage'
+import { createDayKeyOf } from './localDayKey'
+import { readSessionDailyUsage } from './readSessionDailyUsage'
+import { mayHaveDailyUsage, TOTALS_WINDOW_MS } from './totalsWindow'
+import { windowDays } from './windowDays'
+import { findProject } from '../projects/findProject'
+import type { ServiceDeps } from '../serviceDeps'
+import { errResult, okResult } from '../ipcResults'
 
 /**
  * Adds up one project folder's own tokens by local day and model over a 7 or
@@ -34,14 +34,15 @@ import { errResult, okResult } from '../../service/ipcResults'
  * @param deps - The projects root, the daily usage and summary caches and
  * schedulers, the archive, the clock, and the time zone that decides where a
  * day begins, read once per request.
- * @param payload - The renderer's payload, validated here.
- * @returns The usage, `invalid-request` for a bad payload, or `not-found` for
- * an unknown project. A folder that can't be read comes back as the code of
- * its system error, through the IPC guard.
+ * @param request - A request parsed by `getProjectDailyUsageRequestSchema`,
+ * which keeps its folder name path-free and its window one of the known ones.
+ * @returns The usage, or `not-found` for an unknown project. A folder that
+ * can't be read comes back as the code of its system error, through the IPC
+ * guard.
  */
-export async function getProjectDailyUsageHandler(
+export async function getProjectDailyUsage(
   deps: Pick<
-    IpcDeps,
+    ServiceDeps,
     | 'projectsRoot'
     | 'dailyUsageScans'
     | 'dailyUsageCache'
@@ -51,15 +52,12 @@ export async function getProjectDailyUsageHandler(
     | 'now'
     | 'timeZone'
   >,
-  payload: unknown
+  request: GetProjectDailyUsageRequest
 ): Promise<IpcResult<ProjectDailyUsageDto>> {
-  const request = getProjectDailyUsageRequestSchema.safeParse(payload)
-  if (!request.success) return errResult('invalid-request')
-
-  const project = await findProject(deps.projectsRoot, request.data.projectDirName)
+  const project = await findProject(deps.projectsRoot, request.projectDirName)
   if (project === undefined) return errResult('not-found')
 
-  const { window } = request.data
+  const { window } = request
   const nowMs = deps.now()
   const timeZone = deps.timeZone()
   const dayKeyOf = createDayKeyOf(timeZone)

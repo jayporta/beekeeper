@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { errorWithCode } from '../../../core/shared/testErrorWithCode'
-import { ARCHIVE_DETAIL_AFTER_DAYS, DAY_MS } from '../../../service/archive/archiveDetailTiming'
+import { DAY_MS } from '../../../core/shared/dayMs'
+import { ARCHIVE_DETAIL_AFTER_DAYS } from '../../../service/archive/archiveDetailTiming'
 import { createFakeArchive } from '../../../service/archive/testFakeArchive'
 import { getSession } from '../../../service/sessionDetail/getSession'
 import {

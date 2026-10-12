@@ -156,6 +156,61 @@ describe('registerIpcHandlers', () => {
     }
   )
 
+  it.each([
+    ['an unknown window', { projectDirName: TEST_PROJECT, window: '1d' }],
+    ['no window', { projectDirName: TEST_PROJECT }],
+    ['an extra field', { projectDirName: TEST_PROJECT, window: '7d', path: '/etc' }],
+    ['a traversal project name', { projectDirName: '../x', window: '7d' }],
+    ['a non-object payload', TEST_PROJECT]
+  ])(
+    'answers invalid-request on the getProjectTotals channel for %s, reading nothing',
+    async (_label, payload) => {
+      const reads: string[] = []
+      const summaryCache: IpcDeps['summaryCache'] = {
+        read: (file) => {
+          reads.push(file.path)
+          return Promise.reject(new Error('never read'))
+        }
+      }
+      const listener = register({ overrides: { summaryCache } }).get(IPC_CHANNELS.getProjectTotals)
+
+      expect(await listener?.(trustedEvent, payload)).toEqual({
+        ok: false,
+        error: { code: 'invalid-request' }
+      })
+      expect(reads).toEqual([])
+    }
+  )
+
+  it.each([
+    ['an unknown window', { projectDirName: TEST_PROJECT, window: '1d' }],
+    ['no window', { projectDirName: TEST_PROJECT }],
+    ['an extra field', { projectDirName: TEST_PROJECT, window: '7d', path: '/etc' }],
+    ['a traversal project name', { projectDirName: '../x', window: '7d' }],
+    ['a non-object payload', TEST_PROJECT]
+  ])(
+    'answers invalid-request on the getProjectDailyUsage channel for %s, scanning nothing',
+    async (_label, payload) => {
+      let scans = 0
+      const real = createIpcDeps(tree.home).dailyUsageScans
+      const dailyUsageScans: IpcDeps['dailyUsageScans'] = {
+        run: (key, task) => {
+          scans += 1
+          return real.run(key, task)
+        }
+      }
+      const listener = register({ overrides: { dailyUsageScans } }).get(
+        IPC_CHANNELS.getProjectDailyUsage
+      )
+
+      expect(await listener?.(trustedEvent, payload)).toEqual({
+        ok: false,
+        error: { code: 'invalid-request' }
+      })
+      expect(scans).toBe(0)
+    }
+  )
+
   it('serves the telemetry receiver channels from the runtime it is given', async () => {
     const runtime = createOtelRuntime({
       settingsPath: join(tree.home, 'otel.json'),

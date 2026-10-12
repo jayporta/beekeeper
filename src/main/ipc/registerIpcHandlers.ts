@@ -1,16 +1,18 @@
+import { getProjectDailyUsage } from '../../service/overview/getProjectDailyUsage'
+import { getProjectTotals } from '../../service/overview/getProjectTotals'
 import { listProjects } from '../../service/projects/listProjects'
 import { listSessions } from '../../service/sessions/listSessions'
 import { IPC_CHANNELS, type IpcChannel } from '../../shared/ipc/channels'
 import type { IpcResult } from '../../shared/ipc/ipcResult'
 import {
+  getProjectDailyUsageRequestSchema,
+  getProjectTotalsRequestSchema,
   getSessionRequestSchema,
   getWorktreePatchRequestSchema,
   listSessionsRequestSchema
 } from '../../shared/ipc/requestSchemas'
 import { copyTextHandler } from './copyTextHandler'
 import { getOtelReceiverHandler } from './getOtelReceiverHandler'
-import { getProjectDailyUsageHandler } from './getProjectDailyUsageHandler'
-import { getProjectTotalsHandler } from './getProjectTotalsHandler'
 import { getReportedCostHandler } from './getReportedCostHandler'
 import { getSession } from '../../service/sessionDetail/getSession'
 import { getWorktreeDiffs } from '../../service/worktrees/getWorktreeDiffs'
@@ -61,8 +63,14 @@ export function registerIpcHandlers(options: RegisterIpcHandlersOptions): void {
       schema: getSessionRequestSchema,
       run: (request) => getWorktreeDiffs(deps, request)
     }),
-    [IPC_CHANNELS.getProjectTotals]: (payload) => getProjectTotalsHandler(deps, payload),
-    [IPC_CHANNELS.getProjectDailyUsage]: (payload) => getProjectDailyUsageHandler(deps, payload),
+    [IPC_CHANNELS.getProjectTotals]: parseThen({
+      schema: getProjectTotalsRequestSchema,
+      run: (request) => getProjectTotals(deps, request)
+    }),
+    [IPC_CHANNELS.getProjectDailyUsage]: parseThen({
+      schema: getProjectDailyUsageRequestSchema,
+      run: (request) => getProjectDailyUsage(deps, request)
+    }),
     [IPC_CHANNELS.getWorktreePatch]: parseThen({
       schema: getWorktreePatchRequestSchema,
       run: (request) => getWorktreePatch(deps, request)

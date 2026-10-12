@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { ARCHIVE_DETAIL_AFTER_DAYS, DAY_MS } from '../archiveDetailTiming'
+import { DAY_MS } from '../../../core/shared/dayMs'
+import { ARCHIVE_DETAIL_AFTER_DAYS } from '../archiveDetailTiming'
 import { isDetailDue } from '../isDetailDue'
 
 const NOW = 100 * DAY_MS
