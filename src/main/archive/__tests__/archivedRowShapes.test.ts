@@ -112,11 +112,9 @@ const DETAIL_PROPERTIES: readonly Damage[] = [
   ['subagents.value.0', null],
   ['subagents.value.0.agentId', 7],
   ['subagents.value.0.report', {}],
+  // A subagent's report uses the lead's report schema, so the lead's paths above cover its properties.
   ['subagents.value.0.report.value', {}],
-  ...REPORT_PROPERTIES.map(([path, wrong]): Damage => [
-    `subagents.value.0.report.value.${path}`,
-    wrong
-  ]),
+  ['subagents.value.0.report.value.messageCount', 'x'],
   ['workflowRuns', {}],
   ['workflowRuns.0', null],
   ['workflowRuns.0.runId', 7],

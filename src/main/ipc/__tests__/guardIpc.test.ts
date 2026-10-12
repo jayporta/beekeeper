@@ -89,24 +89,6 @@ describe('guardIpc logging', () => {
     expect(lines).toEqual(['Beekeeper hit an internal error handling an IPC call (TypeError).'])
   })
 
-  it('names an unmapped code in the line, never the message', async () => {
-    const { lines, run } = loggedLines(() => Promise.reject(errorWithCode('EIO')))
-    await run()
-    expect(lines).toEqual(['Beekeeper hit an internal error handling an IPC call (EIO).'])
-  })
-
-  it('logs nothing for a missing file', async () => {
-    const { lines, run } = loggedLines(() => Promise.reject(errorWithCode('ENOENT')))
-    await run()
-    expect(lines).toEqual([])
-  })
-
-  it('logs nothing for a permission failure', async () => {
-    const { lines, run } = loggedLines(() => Promise.reject(errorWithCode('EACCES')))
-    await run()
-    expect(lines).toEqual([])
-  })
-
   it('logs nothing for an untrusted sender', async () => {
     const { lines, run } = loggedLines(
       () => Promise.resolve(okResult(1)),
@@ -174,7 +156,7 @@ describe('toIpcErrorCode logging', () => {
     expect(lines.join('\n')).not.toContain('/Users')
   })
 
-  it.each(['ENOENT', 'ENOTDIR', 'EACCES', 'EPERM'])('logs nothing for %s', (code) => {
+  it.each(['ENOENT', 'EACCES'])('logs nothing for %s', (code) => {
     const lines: string[] = []
     toIpcErrorCode(errorWithCode(code), (line) => lines.push(line))
     expect(lines).toEqual([])

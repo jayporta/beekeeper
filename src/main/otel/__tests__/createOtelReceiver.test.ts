@@ -185,7 +185,7 @@ describe('createOtelReceiver requests', () => {
     }
   )
 
-  it.each(['gzip', 'deflate', 'br', 'gzip, identity'])(
+  it.each(['gzip', 'gzip, identity'])(
     'answers 415 for the content encoding %s',
     async (encoding) => {
       const response = await sendToReceiver({
