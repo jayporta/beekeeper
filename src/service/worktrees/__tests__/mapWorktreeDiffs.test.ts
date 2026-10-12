@@ -1,0 +1,89 @@
+import { describe, expect, it } from 'vitest'
+import { err, ok } from '../../../core/shared/result'
+import { toAgentId } from '../../../core/transcript/ids'
+import type { AgentWorktreeDiff } from '../sessionWorktreeDiffs'
+import { mapWorktreeDiffs } from '../mapWorktreeDiffs'
+
+const FORGED = 'must not cross the bridge'
+
+describe('mapWorktreeDiffs', () => {
+  it('copies only whitelisted fields of a successful diff', () => {
+    const stat = {
+      uncommitted: 'included',
+      files: [{ path: 'a.ts', oldPath: 'b.ts', added: 1, deleted: null, extra: FORGED }],
+      untracked: ['loose.txt'],
+      extra: FORGED
+    } as const
+    const agent: AgentWorktreeDiff = {
+      agentId: toAgentId('a'),
+      inferredBase: true,
+      result: ok(stat)
+    }
+
+    const dto = mapWorktreeDiffs({ git: 'ok', agents: [agent], sharedWorktree: null })
+
+    expect(dto).toEqual({
+      git: 'ok',
+      sharedWorktree: null,
+      agents: [
+        {
+          agentId: 'a',
+          inferredBase: true,
+          result: {
+            ok: true,
+            diff: {
+              uncommitted: 'included',
+              files: [{ path: 'a.ts', oldPath: 'b.ts', added: 1, deleted: null }],
+              untracked: ['loose.txt']
+            }
+          }
+        }
+      ]
+    })
+    expect(JSON.stringify(dto)).not.toContain(FORGED)
+  })
+
+  it('omits oldPath when the entry has none', () => {
+    const agent: AgentWorktreeDiff = {
+      agentId: toAgentId('a'),
+      inferredBase: false,
+      result: ok({
+        uncommitted: 'no-worktree',
+        files: [{ path: 'a.ts', added: 2, deleted: 0 }],
+        untracked: []
+      })
+    }
+    const [mapped] = mapWorktreeDiffs({ git: 'ok', agents: [agent], sharedWorktree: null }).agents
+    const files = mapped?.result.ok === true ? mapped.result.diff.files : []
+    expect(files[0]).not.toHaveProperty('oldPath')
+  })
+
+  it('carries a failure as its code only', () => {
+    const agent: AgentWorktreeDiff = {
+      agentId: toAgentId('a'),
+      inferredBase: false,
+      result: err('outside-project')
+    }
+    expect(
+      mapWorktreeDiffs({ git: 'ok', agents: [agent], sharedWorktree: null }).agents[0]?.result
+    ).toEqual({
+      ok: false,
+      code: 'outside-project'
+    })
+  })
+
+  it('copies only the whitelisted fields of a shared worktree', () => {
+    const forged = {
+      lead: { projectDirName: 'p', sessionId: 's', extra: 'x' },
+      agentId: 'a',
+      extra: 'y'
+    }
+
+    const dto = mapWorktreeDiffs({ git: 'ok', agents: [], sharedWorktree: forged })
+
+    expect(dto.sharedWorktree).toEqual({
+      lead: { projectDirName: 'p', sessionId: 's' },
+      agentId: 'a'
+    })
+  })
+})

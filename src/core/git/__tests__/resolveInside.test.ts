@@ -99,6 +99,13 @@ describe('resolveInside', () => {
     expect(result).toEqual({ ok: false, error: 'escapes-root' })
   })
 
+  it('refuses a sibling whose name only extends the root name', async () => {
+    expect(await resolveInside({ root, path: `${root}-other` })).toEqual({
+      ok: false,
+      error: 'escapes-root'
+    })
+  })
+
   it('refuses a path that does not start with the root', async () => {
     expect(await resolveInside({ root, path: join(parent, 'elsewhere') })).toEqual({
       ok: false,

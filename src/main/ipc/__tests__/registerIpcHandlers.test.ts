@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { IPC_CHANNELS } from '../../../shared/ipc/channels'
 import { errorWithCode } from '../../../core/shared/testErrorWithCode'
 import { createFakeArchive } from '../../../service/archive/testFakeArchive'
+import { countingDeps } from '../../../service/worktrees/testCountingDeps'
 import { guardArchive } from '../../archive/guardArchive'
 import { createOtelRuntime } from '../../otel/createOtelRuntime'
 import { TEST_SESSION_ID } from '../../otel/testOtlpLogs'
@@ -51,15 +52,16 @@ interface RegisterOptions {
   readonly otel?: IpcDeps['otel']
   readonly copyToClipboard?: IpcDeps['copyToClipboard']
   readonly archive?: IpcDeps['archive']
+  readonly overrides?: Partial<IpcDeps>
 }
 
 function register(options: RegisterOptions = {}): Map<string, Listener> {
-  const { otel = null, copyToClipboard = null, archive = null } = options
+  const { otel = null, copyToClipboard = null, archive = null, overrides } = options
   const { ipcMain, listeners } = fakeIpcMain()
   registerIpcHandlers({
     ipcMain,
     isTrusted: (event) => isTrustedSender(event, TEST_ORIGINS),
-    deps: { ...createIpcDeps(tree.home), otel, copyToClipboard, archive }
+    deps: { ...createIpcDeps(tree.home), otel, copyToClipboard, archive, ...overrides }
   })
   return listeners
 }
@@ -111,6 +113,105 @@ describe('registerIpcHandlers', () => {
       })
       // A read would throw, and the guard would log it instead of failing the request.
       expect(warn).not.toHaveBeenCalled()
+    }
+  )
+
+  it.each([
+    ['a traversal project name', { projectDirName: '..', sessionId: TREE_SESSION_ID }],
+    ['a non-object payload', TEST_PROJECT]
+  ])(
+    'answers invalid-request on the getWorktreeDiffs channel for %s, locating no git and scanning nothing',
+    async (_label, payload) => {
+      const { deps: counting, counts } = countingDeps(createIpcDeps(tree.home))
+      const overrides = { scans: counting.scans, git: counting.git }
+      const listener = register({ overrides }).get(IPC_CHANNELS.getWorktreeDiffs)
+
+      expect(await listener?.(trustedEvent, payload)).toEqual({
+        ok: false,
+        error: { code: 'invalid-request' }
+      })
+      expect(counts).toEqual({ scans: 0, git: 0 })
+    }
+  )
+
+  it.each([
+    ['no agent id', { projectDirName: TEST_PROJECT, sessionId: TREE_SESSION_ID }],
+    [
+      'a path as the agent id',
+      { projectDirName: TEST_PROJECT, sessionId: TREE_SESSION_ID, agentId: '../a1' }
+    ],
+    ['a non-object payload', TEST_PROJECT]
+  ])(
+    'answers invalid-request on the getWorktreePatch channel for %s, locating no git and scanning nothing',
+    async (_label, payload) => {
+      const { deps: counting, counts } = countingDeps(createIpcDeps(tree.home))
+      const overrides = { scans: counting.scans, git: counting.git }
+      const listener = register({ overrides }).get(IPC_CHANNELS.getWorktreePatch)
+
+      expect(await listener?.(trustedEvent, payload)).toEqual({
+        ok: false,
+        error: { code: 'invalid-request' }
+      })
+      expect(counts).toEqual({ scans: 0, git: 0 })
+    }
+  )
+
+  it.each([
+    ['an unknown window', { projectDirName: TEST_PROJECT, window: '1d' }],
+    ['no window', { projectDirName: TEST_PROJECT }],
+    ['an extra field', { projectDirName: TEST_PROJECT, window: '7d', path: '/etc' }],
+    ['a non-string window', { projectDirName: TEST_PROJECT, window: 7 }],
+    ['a traversal project name', { projectDirName: '../x', window: '7d' }],
+    ['a non-object payload', TEST_PROJECT],
+    ['no payload', undefined]
+  ])(
+    'answers invalid-request on the getProjectTotals channel for %s, reading nothing',
+    async (_label, payload) => {
+      const reads: string[] = []
+      const summaryCache: IpcDeps['summaryCache'] = {
+        read: (file) => {
+          reads.push(file.path)
+          return Promise.reject(new Error('never read'))
+        }
+      }
+      const listener = register({ overrides: { summaryCache } }).get(IPC_CHANNELS.getProjectTotals)
+
+      expect(await listener?.(trustedEvent, payload)).toEqual({
+        ok: false,
+        error: { code: 'invalid-request' }
+      })
+      expect(reads).toEqual([])
+    }
+  )
+
+  it.each([
+    ['an unknown window', { projectDirName: TEST_PROJECT, window: '1d' }],
+    ['no window', { projectDirName: TEST_PROJECT }],
+    ['an extra field', { projectDirName: TEST_PROJECT, window: '7d', path: '/etc' }],
+    ['a non-string window', { projectDirName: TEST_PROJECT, window: 7 }],
+    ['a traversal project name', { projectDirName: '../x', window: '7d' }],
+    ['a non-object payload', TEST_PROJECT],
+    ['no payload', undefined]
+  ])(
+    'answers invalid-request on the getProjectDailyUsage channel for %s, scanning nothing',
+    async (_label, payload) => {
+      let scans = 0
+      const real = createIpcDeps(tree.home).dailyUsageScans
+      const dailyUsageScans: IpcDeps['dailyUsageScans'] = {
+        run: (key, task) => {
+          scans += 1
+          return real.run(key, task)
+        }
+      }
+      const listener = register({ overrides: { dailyUsageScans } }).get(
+        IPC_CHANNELS.getProjectDailyUsage
+      )
+
+      expect(await listener?.(trustedEvent, payload)).toEqual({
+        ok: false,
+        error: { code: 'invalid-request' }
+      })
+      expect(scans).toBe(0)
     }
   )
 

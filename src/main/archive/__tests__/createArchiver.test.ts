@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SessionRefDto } from '../../../shared/ipc/sessionRefDto'
-import { ARCHIVE_DETAIL_AFTER_DAYS, DAY_MS } from '../../../service/archive/archiveDetailTiming'
+import { DAY_MS } from '../../../core/shared/dayMs'
+import { ARCHIVE_DETAIL_AFTER_DAYS } from '../../../service/archive/archiveDetailTiming'
 import { ARCHIVE_PASS_DELAY_MS, ARCHIVE_PASS_INTERVAL_MS } from '../archiveConstants'
 import { createArchiver, type ArchivableProject, type ArchiverOptions } from '../createArchiver'
 import type { PendingDetail } from '../../../service/archive/archivePort'
