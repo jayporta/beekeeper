@@ -23,6 +23,7 @@
     "typecheck:mod": "tsc --noEmit -p tsconfig.mod.json && tsc --noEmit -p tsconfig.mod.test.json",
     "typecheck": "npm run typecheck:node && npm run typecheck:web && npm run typecheck:mod",
     "build:mod": "node scripts/buildMod.mjs",
+    "check:mod": "node scripts/checkModCalls.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "start": "electron-vite preview",

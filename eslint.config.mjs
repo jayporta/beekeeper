@@ -21,8 +21,69 @@ import {
   telemetryReceiverTestImports
 } from './lint/networkBans.mjs'
 
+/** Only src/mod/register.ts talks to the engine; the rest of the mod gets a ModHost. */
+const modEngineImport = {
+  name: 'claude-code',
+  message: 'Only src/mod/register.ts talks to the engine; lib gets a ModHost.'
+}
+
+/** The engine elements' props whose string values are layout or style names, not text. */
+const MOD_LAYOUT_PROPS = ['flexDirection', 'justifyContent', 'alignItems', 'borderStyle', 'color']
+
+/**
+ * The options for `i18next/no-literal-string`, shared by the renderer and the mod.
+ *
+ * @param {string[]} extraAttributes - JSX attributes, beyond the usual, whose values are not text.
+ */
+const noLiteralStringOptions = (extraAttributes) => ({
+  // Checks string literals anywhere in JSX, attributes and component props included.
+  // It does not see strings built in code (constants, helpers, `.ts` files), template
+  // literals in props or children, or a `label` prop on any element, so reviewers check those.
+  mode: 'jsx-only',
+  // Setting an option replaces the plugin's default for it, so the defaults are restated
+  // here, except the HTML entity names, which would need a deep import and match no text we use.
+  'jsx-attributes': {
+    exclude: [
+      'className',
+      'styleName',
+      'style',
+      'type',
+      'key',
+      'id',
+      'width',
+      'height',
+      // Props whose values are identifiers or roles, not text.
+      'role',
+      'as',
+      'ns',
+      'emptyReason',
+      ...extraAttributes
+    ]
+  },
+  words: {
+    exclude: [
+      '[0-9!-/:-@[-`{-~]+',
+      '[A-Z_-]+',
+      /^\p{Emoji}+$/u,
+      // The decorative, aria-hidden disclosure glyphs.
+      '^[▾▸]$'
+    ]
+  }
+})
+
 export default defineConfig(
-  { ignores: ['**/node_modules', '**/dist', '**/out', '.claude/worktrees/**', '.remember/**'] },
+  {
+    ignores: [
+      '**/node_modules',
+      '**/dist',
+      '**/out',
+      '.claude/worktrees/**',
+      '.remember/**',
+      // Built by `npm run build:mod`, and written by the engine when it loads the mod. ESLint doesn't read .gitignore.
+      'mod/hooks/*.js',
+      'mod/.claude-plugin/types/**'
+    ]
+  },
   tseslint.configs.recommended,
   eslintPluginReact.configs.flat.recommended,
   eslintPluginReact.configs.flat['jsx-runtime'],
@@ -60,16 +121,32 @@ export default defineConfig(
     }
   },
   {
-    // core and service run in the mod too, so they have no Node modules or globals outside core's Node adapter.
-    // Rules in a later block replace an earlier block's options, so the network bans repeat here.
-    files: ['src/core/**/*.ts', 'src/service/**/*.ts'],
+    // core, service and the mod run in Claude Code's engine, so they have no Node modules or globals outside
+    // core's Node adapter. Rules in a later block replace an earlier block's options, so the network bans repeat here.
+    files: ['src/core/**/*.ts', 'src/service/**/*.ts', 'src/mod/**/*.{ts,tsx}'],
     ignores: [
       'src/core/io/node/**',
       'src/core/**/__tests__/**',
       'src/core/**/test*.ts',
       'src/service/**/__tests__/**',
-      'src/service/**/test*.ts'
+      'src/service/**/test*.ts',
+      'src/mod/**/__tests__/**',
+      'src/mod/**/test*.ts'
     ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [...networkBannedImports, ...coreBannedImportPaths, modEngineImport],
+          patterns: coreBannedImportPatterns
+        }
+      ],
+      'no-restricted-globals': ['error', ...networkBannedGlobals, ...coreBannedGlobals]
+    }
+  },
+  {
+    // register.ts is the one file that imports the engine's API. Its other bans stay.
+    files: ['src/mod/register.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -77,8 +154,7 @@ export default defineConfig(
           paths: [...networkBannedImports, ...coreBannedImportPaths],
           patterns: coreBannedImportPatterns
         }
-      ],
-      'no-restricted-globals': ['error', ...networkBannedGlobals, ...coreBannedGlobals]
+      ]
     }
   },
   {
@@ -131,48 +207,17 @@ export default defineConfig(
     files: ['src/renderer/src/**/*.tsx'],
     ignores: ['src/renderer/src/**/__tests__/**', 'src/renderer/src/**/test*.tsx'],
     plugins: { i18next: eslintPluginI18next },
-    rules: {
-      'i18next/no-literal-string': [
-        'error',
-        {
-          // Checks string literals anywhere in JSX, attributes and component props included.
-          // It does not see strings built in code (constants, helpers, `.ts` files), template
-          // literals in props or children, or a `label` prop on any element, so reviewers check those.
-          mode: 'jsx-only',
-          // Setting an option replaces the plugin's default for it, so the defaults are restated
-          // here, except the HTML entity names, which would need a deep import and match no text we use.
-          'jsx-attributes': {
-            exclude: [
-              'className',
-              'styleName',
-              'style',
-              'type',
-              'key',
-              'id',
-              'width',
-              'height',
-              // Props whose values are identifiers or roles, not text.
-              'role',
-              'as',
-              'ns',
-              'emptyReason'
-            ]
-          },
-          words: {
-            exclude: [
-              '[0-9!-/:-@[-`{-~]+',
-              '[A-Z_-]+',
-              /^\p{Emoji}+$/u,
-              // The decorative, aria-hidden disclosure glyphs.
-              '^[▾▸]$'
-            ]
-          }
-        }
-      ]
-    }
+    rules: { 'i18next/no-literal-string': ['error', noLiteralStringOptions([])] }
   },
   {
-    files: ['docs/**/*.js', 'lint/**/*.mjs'],
+    // The mod draws with the engine's elements, whose layout props take string values that are not text.
+    files: ['src/mod/**/*.tsx'],
+    ignores: ['src/mod/**/__tests__/**', 'src/mod/**/test*.tsx'],
+    plugins: { i18next: eslintPluginI18next },
+    rules: { 'i18next/no-literal-string': ['error', noLiteralStringOptions(MOD_LAYOUT_PROPS)] }
+  },
+  {
+    files: ['docs/**/*.js', 'lint/**/*.mjs', 'scripts/**/*.mjs'],
     rules: {
       // Plain JS has no type annotations to require; JSDoc carries the types.
       '@typescript-eslint/explicit-function-return-type': 'off'

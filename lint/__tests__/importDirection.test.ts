@@ -66,6 +66,12 @@ ruleTester.run('importDirection', importDirection, {
       options
     },
     {
+      name: 'mod imports core, service and shared',
+      filename: at('src/mod/features/start/startMod.ts'),
+      code: "import { a } from '../../../core/shared/errorCode'\nimport { b } from '../../../service/sessions/listSessions'\nimport { c } from '../../../shared/ipc/ipcResult'",
+      options
+    },
+    {
       name: 'main imports core and shared',
       filename: at('src/main/ipc/guardIpc.ts'),
       code: "import { a } from '../../core/shared/errorCode'\nimport { b } from '../../shared/ipc/ipcResult'",
@@ -133,6 +139,27 @@ ruleTester.run('importDirection', importDirection, {
       code: "import { x } from '../../shared/ipc/ipcResult'",
       options,
       errors: forbidden
+    },
+    {
+      name: 'main imports mod',
+      filename: at('src/main/ipc/registerIpcHandlers.ts'),
+      code: "import { x } from '../../mod/lib'",
+      options,
+      errors: forbidden
+    },
+    {
+      name: 'mod imports main',
+      filename: at('src/mod/features/start/startMod.ts'),
+      code: "import { x } from '../../../main/index'",
+      options,
+      errors: forbidden
+    },
+    {
+      name: 'mod imports react',
+      filename: at('src/mod/features/pane/EmptyPane.tsx'),
+      code: "import { useState } from 'react'",
+      options,
+      errors: [{ messageId: 'forbiddenPackage' }]
     },
     {
       name: 'core imports electron',

@@ -1,26 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import type { On } from 'claude-code'
 import { t } from '../i18n/modI18n'
 import { hostOf, register } from '../register'
 import { createTestEngine } from '../testEngine'
-
-interface Registered {
-  readonly event: string
-  readonly matcher: unknown
-  readonly hook: (...args: never[]) => unknown
-}
-
-/** An `on` that records each registration instead of adding a hook. */
-function recordingOn(): { on: On; registered: Registered[] } {
-  const registered: Registered[] = []
-  const on = ((event: string, ...rest: unknown[]) => {
-    const hook = rest.at(-1) as Registered['hook']
-    const matcher = rest.length > 1 ? rest[0] : undefined
-    registered.push({ event, matcher, hook })
-    return { catch: () => undefined }
-  }) as unknown as On
-  return { on, registered }
-}
+import { recordingOn } from '../testOn'
 
 describe('register', () => {
   it('registers session.start, the beekeeper command and the Pane render', () => {

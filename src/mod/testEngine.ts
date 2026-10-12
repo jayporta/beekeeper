@@ -104,3 +104,17 @@ export function createTestEngine(answers: TestEngineAnswers = {}): TestEngine {
   }
   return { $, calls }
 }
+
+/**
+ * Builds a `$` whose every method throws, as an engine that is down would: the call fails before it
+ * returns, which an `await` in an async hook sees the same as a rejection.
+ *
+ * @returns The failing `$`.
+ */
+export function createFailingEngine(): Engine {
+  const fail = (): never => {
+    throw new Error('engine unavailable')
+  }
+  const noun = new Proxy({}, { get: () => fail })
+  return new Proxy({}, { get: () => noun }) as Engine
+}

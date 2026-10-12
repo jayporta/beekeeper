@@ -9,12 +9,16 @@
  */
 export const importDirectionPolicy = {
   core: {
-    folders: ['main', 'preload', 'renderer', 'service', 'shared'],
+    folders: ['main', 'mod', 'preload', 'renderer', 'service', 'shared'],
     packages: ['electron']
   },
-  service: { folders: ['main', 'preload', 'renderer'], packages: ['electron'] },
-  renderer: { folders: ['core', 'main', 'preload', 'service'] },
-  main: { folders: ['preload', 'renderer'] },
-  preload: { folders: ['core', 'main', 'renderer', 'service'] },
-  shared: { folders: ['core', 'main', 'preload', 'renderer', 'service'] }
+  mod: {
+    folders: ['main', 'preload', 'renderer'],
+    packages: ['electron', 'react', 'react-dom', 'react-i18next']
+  },
+  service: { folders: ['main', 'mod', 'preload', 'renderer'], packages: ['electron'] },
+  renderer: { folders: ['core', 'main', 'mod', 'preload', 'service'] },
+  main: { folders: ['mod', 'preload', 'renderer'] },
+  preload: { folders: ['core', 'main', 'mod', 'renderer', 'service'] },
+  shared: { folders: ['core', 'main', 'mod', 'preload', 'renderer', 'service'] }
 }
