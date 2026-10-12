@@ -9,7 +9,7 @@ import {
   testRef,
   testSession,
   testTeammateTeam
-} from '../testSessionFixtures'
+} from '../../../../../shared/sessions/testSessionFixtures'
 import { testSessionsT } from '../testSessionsT'
 import { useReusedRows } from '../useReusedRows'
 

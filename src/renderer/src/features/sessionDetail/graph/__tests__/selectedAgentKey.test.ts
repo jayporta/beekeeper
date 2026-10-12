@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { testRef } from '@renderer/features/sessions/testSessionFixtures'
+import { testRef } from '../../../../../../shared/sessions/testSessionFixtures'
 import type { AgentGraphNode } from '../agentGraphNode'
 import { selectedAgentKey } from '../selectedAgentKey'
 import { testGraphNode } from '../testGraphNode'

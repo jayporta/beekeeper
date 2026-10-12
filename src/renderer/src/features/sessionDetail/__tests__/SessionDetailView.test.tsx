@@ -15,7 +15,7 @@ import {
   testSession,
   testTeammateTeam,
   testUsage
-} from '@renderer/features/sessions/testSessionFixtures'
+} from '../../../../../shared/sessions/testSessionFixtures'
 import { installBeekeeperApi, type TestBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { createQueryWrapper } from '@renderer/testQueryWrapper'
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'

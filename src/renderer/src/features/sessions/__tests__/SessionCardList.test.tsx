@@ -8,7 +8,7 @@ import {
   testRef,
   testSession,
   testTeammateTeam
-} from '../testSessionFixtures'
+} from '../../../../../shared/sessions/testSessionFixtures'
 import { testSessionsT } from '../testSessionsT'
 
 /** How many times each card's title cell has rendered, by the card's title. */

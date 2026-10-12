@@ -7,7 +7,7 @@ import {
   testSession,
   testSessionId,
   testTeammateTeam
-} from '../testSessionFixtures'
+} from '../../../../../shared/sessions/testSessionFixtures'
 import { testSessionsT } from '../testSessionsT'
 
 const keys = (rows: ReturnType<typeof groupSessionRows>): string[] => rows.map((row) => row.key)

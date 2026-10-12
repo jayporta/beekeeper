@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { archivedNote, folderNote, stoppedNote } from '../itemNotes'
-import { testRef, testSession, testTeammateTeam } from '../testSessionFixtures'
+import {
+  testRef,
+  testSession,
+  testTeammateTeam
+} from '../../../../../shared/sessions/testSessionFixtures'
 import { testSessionsT } from '../testSessionsT'
 
 describe('stoppedNote', () => {

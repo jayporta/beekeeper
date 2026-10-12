@@ -8,7 +8,7 @@ import {
   testSession,
   testSessionId,
   testTeammateTeam
-} from '../testSessionFixtures'
+} from '../../../../../shared/sessions/testSessionFixtures'
 import { testSessionsT } from '../testSessionsT'
 
 const lead = testSession(1, {

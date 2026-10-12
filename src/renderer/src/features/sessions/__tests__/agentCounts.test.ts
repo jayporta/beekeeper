@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { agentCounts } from '../agentCounts'
-import { testLeadTeam, testRef, testSession } from '../testSessionFixtures'
+import {
+  testLeadTeam,
+  testRef,
+  testSession
+} from '../../../../../shared/sessions/testSessionFixtures'
 
 describe('agentCounts', () => {
   it('takes the workflow agents out of the subagents, which the session counts them in', () => {

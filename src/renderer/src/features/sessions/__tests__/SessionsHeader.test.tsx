@@ -12,7 +12,7 @@ import { createQueryWrapper } from '@renderer/testQueryWrapper'
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
 import { SessionsView } from '../SessionsView'
 import { useSessionsViewStore } from '../state/useSessionsViewStore'
-import { testSession } from '../testSessionFixtures'
+import { testSession } from '../../../../../shared/sessions/testSessionFixtures'
 
 const DIR = '-Users-a-acme'
 const WORKTREE_DIR = '-Users-a-acme--claude-worktrees-fix-bug'

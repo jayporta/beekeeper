@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { EMPTY_AGENT_SIGNALS_DTO } from '../../../../../shared/ipc/emptyAgentSignals'
 import { groupSessionRows } from '../groupSessionRows'
 import { SignalScopeNote } from '../SignalScopeNote'
-import { testSession } from '../testSessionFixtures'
+import { testSession } from '../../../../../shared/sessions/testSessionFixtures'
 import { testSessionsT } from '../testSessionsT'
 
 const NOTE = 'Card counts cover the lead and its teammates. Open a session to see its subagents.'

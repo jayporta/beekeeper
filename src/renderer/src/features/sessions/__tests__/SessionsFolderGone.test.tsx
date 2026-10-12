@@ -23,7 +23,7 @@ import App from '@renderer/App'
 import { SessionsContent } from '../SessionsContent'
 import { useSessionsViewStore } from '../state/useSessionsViewStore'
 import { allowForAnnouncePause, waitPastAnnouncePause } from '../testAnnouncePause'
-import { testSession } from '../testSessionFixtures'
+import { testSession } from '../../../../../shared/sessions/testSessionFixtures'
 
 const ALPHA = '-Users-a-alpha'
 const BETA = '-Users-a-beta'

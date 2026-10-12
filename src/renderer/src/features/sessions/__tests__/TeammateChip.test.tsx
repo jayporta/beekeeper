@@ -12,7 +12,7 @@ import {
   testRef,
   testSession,
   testTeammateTeam
-} from '../testSessionFixtures'
+} from '../../../../../shared/sessions/testSessionFixtures'
 import { testRow } from '../testSessionRows'
 
 const DIR = '-p'

@@ -5,7 +5,7 @@ import type { IpcResult } from '../../../../../../shared/ipc/ipcResult'
 import type { SessionDetailDto } from '../../../../../../shared/ipc/sessionDetailDto'
 import { LIVE_COPY_CLEAR_MS } from '@renderer/components/liveCopyClearMs'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
-import { testRef } from '@renderer/features/sessions/testSessionFixtures'
+import { testRef } from '../../../../../../shared/sessions/testSessionFixtures'
 import { testDetail, testMeta, testNode, testReport, testTokenGroup } from '../../testSessionDetail'
 import {
   SCENE_OTHER_FOLDER,

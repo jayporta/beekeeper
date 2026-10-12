@@ -10,7 +10,7 @@ import {
   testSession,
   testTeammateTeam,
   testUsage
-} from '@renderer/features/sessions/testSessionFixtures'
+} from '../../../../../../shared/sessions/testSessionFixtures'
 import { testDetail, testMeta, testNode, testReport, testTokenGroup } from '../../testSessionDetail'
 import { testSessionDetailT } from '../../testSessionDetailT'
 import { buildAgentGraph } from '../buildAgentGraph'
