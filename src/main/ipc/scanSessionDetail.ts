@@ -5,7 +5,7 @@ import type { IpcDeps } from './ipcDeps'
 import { mapSessionScan } from './mapSessionScan'
 import { readWorkflowRuns } from './readWorkflowRuns'
 import { scanFoundSession } from './scanFoundSession'
-import { isCompleteScan } from './sessionScanCache'
+import { isArchivableScan } from './sessionScanCache'
 import { toIpcErrorCode } from './toIpcErrorCode'
 
 /** Options for {@link scanSessionDetail}. */
@@ -25,12 +25,13 @@ export interface ScannedSessionDetail {
   /** The session's detail. */
   readonly detail: SessionDetailDto
   /**
-   * Whether the scan read everything it needed: no unreadable subagent
-   * transcript or meta file, and a subagents folder that could be listed. An
-   * incomplete scan may read differently once the failure clears, so it is
-   * never archived.
+   * Whether the scan is safe to archive: no unreadable subagent transcript,
+   * no meta file that can still clear once the session is quiet, and a
+   * subagents folder that could be listed. A meta failure that can't clear
+   * doesn't block it. A scan that may read differently once a failure clears
+   * is never archived.
    */
-  readonly complete: boolean
+  readonly archivable: boolean
 }
 
 /**
@@ -41,7 +42,7 @@ export interface ScannedSessionDetail {
  * folder comes back inside the detail as `subagents: { ok: false }`.
  *
  * @param options - The dependencies and the listed session.
- * @returns The session detail, and whether the scan was complete.
+ * @returns The session detail, and whether the scan is archivable.
  */
 export async function scanSessionDetail(
   options: ScanSessionDetailOptions
@@ -55,6 +56,6 @@ export async function scanSessionDetail(
     : []
   return {
     detail: mapSessionScan({ sessionId, scan, subagentsError, workflowRuns }),
-    complete: isCompleteScan(scan, subagents.ok)
+    archivable: isArchivableScan(scan, subagents.ok)
   }
 }

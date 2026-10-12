@@ -1,4 +1,4 @@
-import { stat, writeFile } from 'node:fs/promises'
+import { chmod, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ARCHIVE_DETAIL_AFTER_DAYS, DAY_MS } from '../../archive/archiveConstants'
@@ -165,7 +165,7 @@ describe('getSessionHandler archived sessions', () => {
   })
 })
 
-describe('getSessionHandler archive of an incomplete scan', () => {
+describe('getSessionHandler archive of a scan with a failed meta file', () => {
   const metaPath = (): string =>
     join(
       ctx.tree.home,
@@ -177,7 +177,7 @@ describe('getSessionHandler archive of an incomplete scan', () => {
       'agent-a1.meta.json'
     )
 
-  it('returns the detail but does not archive it while a subagent meta file cannot be read', async () => {
+  it('archives the detail of a quiet session whose subagent meta is not valid JSON', async () => {
     await writeFile(metaPath(), 'not json')
     const archive = createFakeArchive()
     const deps = await depsAfter(ARCHIVE_DETAIL_AFTER_DAYS, { archive })
@@ -185,18 +185,35 @@ describe('getSessionHandler archive of an incomplete scan', () => {
     const result = await getSessionHandler(deps, request)
 
     expect(result.ok).toBe(true)
-    expect(archive.detailSaves).toEqual([])
-  })
-
-  it('archives the detail once a later scan is complete', async () => {
-    await writeFile(metaPath(), 'not json')
-    const archive = createFakeArchive()
-    const deps = await depsAfter(ARCHIVE_DETAIL_AFTER_DAYS, { archive })
-    await getSessionHandler(deps, request)
-    await writeFile(metaPath(), JSON.stringify({ agentType: 'Explore' }))
-
-    await getSessionHandler(deps, request)
-
     expect(archive.detailSaves).toHaveLength(1)
   })
+
+  it.skipIf(process.getuid?.() === 0)(
+    'returns the detail but does not archive it while a subagent meta file cannot be read',
+    async () => {
+      await chmod(metaPath(), 0o000)
+      const archive = createFakeArchive()
+      const deps = await depsAfter(ARCHIVE_DETAIL_AFTER_DAYS, { archive })
+
+      const result = await getSessionHandler(deps, request)
+
+      expect(result.ok).toBe(true)
+      expect(archive.detailSaves).toEqual([])
+    }
+  )
+
+  it.skipIf(process.getuid?.() === 0)(
+    'archives the detail once the meta file can be read',
+    async () => {
+      await chmod(metaPath(), 0o000)
+      const archive = createFakeArchive()
+      const deps = await depsAfter(ARCHIVE_DETAIL_AFTER_DAYS, { archive })
+      await getSessionHandler(deps, request)
+      await chmod(metaPath(), 0o600)
+
+      await getSessionHandler(deps, request)
+
+      expect(archive.detailSaves).toHaveLength(1)
+    }
+  )
 })

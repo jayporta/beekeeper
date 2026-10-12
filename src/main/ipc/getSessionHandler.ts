@@ -39,7 +39,7 @@ export async function getSessionHandler(
   }
 
   const { projectDirName, sessionId, found, transcript } = lookup.session
-  const { detail, complete } = await scanSessionDetail({ deps, sessionId, found, transcript })
-  archiveSessionDetail({ deps, projectDirName, detail, complete, transcript })
+  const { detail, archivable } = await scanSessionDetail({ deps, sessionId, found, transcript })
+  archiveSessionDetail({ deps, projectDirName, detail, archivable, transcript })
   return okResult(detail)
 }
