@@ -1,13 +1,13 @@
-import type { AgentSignalsDto } from '../../../../shared/ipc/agentDto'
-import { EMPTY_AGENT_SIGNALS_DTO } from '../../../../shared/ipc/emptyAgentSignals'
+import type { AgentSignalsDto } from '../ipc/agentDto'
+import { EMPTY_AGENT_SIGNALS_DTO } from '../ipc/emptyAgentSignals'
 import type {
   AgentSearchTermDto,
   SessionListItemDto,
   SessionSummaryDto
-} from '../../../../shared/ipc/sessionListDto'
-import type { SessionRefDto } from '../../../../shared/ipc/sessionRefDto'
-import type { SessionRoleDto } from '../../../../shared/ipc/sessionRoleDto'
-import type { SessionTeamDto, TeamUsageRollupDto } from '../../../../shared/ipc/sessionTeamDto'
+} from '../ipc/sessionListDto'
+import type { SessionRefDto } from '../ipc/sessionRefDto'
+import type { SessionRoleDto } from '../ipc/sessionRoleDto'
+import type { SessionTeamDto, TeamUsageRollupDto } from '../ipc/sessionTeamDto'
 
 /** Options for {@link testSession}. */
 interface TestSessionOptions {

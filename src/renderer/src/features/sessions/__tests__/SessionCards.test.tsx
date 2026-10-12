@@ -17,7 +17,7 @@ import {
   testSession,
   testTeammateTeam,
   testUsage
-} from '../testSessionFixtures'
+} from '../../../../../shared/sessions/testSessionFixtures'
 
 const DIR = '-Users-a-repo'
 const OTHER = '-Users-a-other'

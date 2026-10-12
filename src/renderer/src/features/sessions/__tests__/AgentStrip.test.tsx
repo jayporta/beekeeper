@@ -2,7 +2,11 @@ import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { AgentStrip } from '../AgentStrip'
 import { AGENT_MARK_LIMIT } from '../agentMarks'
-import { testLeadTeam, testRef, testSession } from '../testSessionFixtures'
+import {
+  testLeadTeam,
+  testRef,
+  testSession
+} from '../../../../../shared/sessions/testSessionFixtures'
 
 /** The marks the strip draws. They are decorative, so they have no role or text to query. */
 const marks = (container: HTMLElement): NodeListOf<Element> =>

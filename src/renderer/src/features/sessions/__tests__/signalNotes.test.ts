@@ -7,7 +7,7 @@ import {
   testSession,
   testTeammateTeam,
   testUsage
-} from '../testSessionFixtures'
+} from '../../../../../shared/sessions/testSessionFixtures'
 import { testSessionsT } from '../testSessionsT'
 
 const COUNTS = { toolErrors: 12, compactions: 2, agentsKilled: 0, partial: false }

@@ -9,7 +9,7 @@ import {
   testRef,
   testSession,
   testUsage
-} from '@renderer/features/sessions/testSessionFixtures'
+} from '../../../../../../shared/sessions/testSessionFixtures'
 import { testDetail, testNode, testReport, testTokenGroup } from '../../testSessionDetail'
 import { layoutGraph as layoutGraphOriginal } from '../layoutGraph'
 import { COLUMN_WIDTH, LEAF_PITCH, NODE_HEIGHT, NODE_WIDTH } from '../graphMetrics'

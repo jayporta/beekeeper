@@ -4,6 +4,9 @@ import { configDefaults, defineConfig } from 'vitest/config'
 /** Claude Code's worktrees hold full checkouts of other branches, with their own tests. */
 const exclude = [...configDefaults.exclude, '.claude/worktrees/**']
 
+/** The mod runs in Claude Code's engine, not Node or jsdom, so it has its own project. */
+const excludeMod = [...exclude, 'src/mod/**']
+
 export default defineConfig({
   test: {
     projects: [
@@ -15,7 +18,7 @@ export default defineConfig({
           name: 'node',
           environment: 'node',
           include: ['src/**/*.test.ts', 'lint/**/*.test.ts'],
-          exclude,
+          exclude: excludeMod,
           setupFiles: ['src/core/io/node/testInstallNodeAdapters.ts']
         }
       },
@@ -28,8 +31,18 @@ export default defineConfig({
           name: 'jsdom',
           environment: 'jsdom',
           include: ['src/**/*.test.tsx'],
-          exclude,
+          exclude: excludeMod,
           setupFiles: ['src/renderer/src/testSetup.ts']
+        }
+      },
+      {
+        // The mod's JSX calls the engine's global `h`, which tests install themselves.
+        esbuild: { jsx: 'transform', jsxFactory: 'h', jsxFragment: 'Fragment' },
+        test: {
+          name: 'mod',
+          environment: 'node',
+          include: ['src/mod/**/*.test.{ts,tsx}'],
+          exclude
         }
       }
     ]

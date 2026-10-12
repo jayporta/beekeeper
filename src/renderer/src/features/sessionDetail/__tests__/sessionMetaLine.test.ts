@@ -7,7 +7,7 @@ import {
   testSession,
   testTeammateTeam,
   testUsage
-} from '@renderer/features/sessions/testSessionFixtures'
+} from '../../../../../shared/sessions/testSessionFixtures'
 import { testRow } from '@renderer/features/sessions/testSessionRows'
 import { testSessionsT } from '@renderer/features/sessions/testSessionsT'
 import { sessionMetaLine } from '../sessionMetaLine'

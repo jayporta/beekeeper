@@ -6,7 +6,7 @@ import {
   testRef,
   testSession,
   testTeammateTeam
-} from '../testSessionFixtures'
+} from '../../../../../shared/sessions/testSessionFixtures'
 
 describe('agentMarks', () => {
   it('gives a solo session with no subagents one lead mark', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { testRef } from '@renderer/features/sessions/testSessionFixtures'
+import { testRef } from '../../../../../../shared/sessions/testSessionFixtures'
 import { inspectionTarget } from '../inspectionTarget'
 
 const SESSION = testRef(1)

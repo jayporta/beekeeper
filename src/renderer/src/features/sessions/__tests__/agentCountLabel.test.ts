@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
 import { agentCountLabel, hasAgents } from '../agentCountLabel'
-import { testLeadTeam, testRef, testSession, testTeammateTeam } from '../testSessionFixtures'
+import {
+  testLeadTeam,
+  testRef,
+  testSession,
+  testTeammateTeam
+} from '../../../../../shared/sessions/testSessionFixtures'
 import { testSessionsT } from '../testSessionsT'
 
 const withSubagents = (item: SessionListItemDto, count: number | null): SessionListItemDto => ({

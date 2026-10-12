@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { EMPTY_AGENT_SIGNALS_DTO } from '../../../../../../shared/ipc/emptyAgentSignals'
-import { testSession } from '@renderer/features/sessions/testSessionFixtures'
+import { testSession } from '../../../../../../shared/sessions/testSessionFixtures'
 import { sessionFacts } from '../sessionFacts'
 
 describe('sessionFacts marks', () => {
