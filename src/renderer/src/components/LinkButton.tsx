@@ -11,6 +11,11 @@ interface LinkButtonProps {
    * @defaultValue false
    */
   readonly strong?: boolean
+  /**
+   * Sets the text at `--font-size-body`, to read at the size of the text around it, instead of its own smaller size.
+   * @defaultValue false
+   */
+  readonly larger?: boolean
 }
 
 /**
@@ -23,12 +28,15 @@ interface LinkButtonProps {
 export function LinkButton({
   children,
   onClick,
-  strong = false
+  strong = false,
+  larger = false
 }: LinkButtonProps): React.JSX.Element {
   return (
     <button
       type="button"
-      className={`${styles.link} ${strong ? styles.strong : styles.quiet}`}
+      className={[styles.link, strong ? styles.strong : styles.quiet, larger && styles.larger]
+        .filter(Boolean)
+        .join(' ')}
       onClick={onClick}
     >
       {children}

@@ -19,3 +19,8 @@
   color: var(--color-text);
   font-size: var(--font-size-xs);
 }
+
+/* After the two above, so it wins at equal specificity. */
+.larger {
+  font-size: var(--font-size-body);
+}

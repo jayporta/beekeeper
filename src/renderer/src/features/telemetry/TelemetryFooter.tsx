@@ -26,6 +26,7 @@ export function TelemetryFooter(): React.JSX.Element {
   return (
     <>
       <LinkButton
+        larger
         onClick={() => {
           setOpen(true)
         }}
