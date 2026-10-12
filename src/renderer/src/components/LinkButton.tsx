@@ -11,11 +11,6 @@ interface LinkButtonProps {
    * @defaultValue false
    */
   readonly strong?: boolean
-  /**
-   * Adds inline padding, to line the text up with padded text beside it.
-   * @defaultValue false
-   */
-  readonly padded?: boolean
 }
 
 /**
@@ -28,15 +23,12 @@ interface LinkButtonProps {
 export function LinkButton({
   children,
   onClick,
-  strong = false,
-  padded = false
+  strong = false
 }: LinkButtonProps): React.JSX.Element {
   return (
     <button
       type="button"
-      className={[styles.link, strong ? styles.strong : styles.quiet, padded && styles.padded]
-        .filter(Boolean)
-        .join(' ')}
+      className={`${styles.link} ${strong ? styles.strong : styles.quiet}`}
       onClick={onClick}
     >
       {children}

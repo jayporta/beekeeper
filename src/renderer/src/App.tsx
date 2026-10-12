@@ -44,7 +44,11 @@ function App(): React.JSX.Element {
         aria-labelledby={MAIN_HEADING_ID}
         className={styles.main}
       >
-        {hydrated && <MainView />}
+        {hydrated && (
+          <div className={styles.content}>
+            <MainView />
+          </div>
+        )}
       </main>
       <AboutDialog />
     </div>

@@ -198,10 +198,8 @@
   --space-8: 2rem;
 
   /* Layout sizes. */
-  /* Main's padding; the session detail view's fill height subtracts it. */
-  --space-main: var(--space-6);
   --size-sidebar: 16.25rem;
-  /* The main column's widest content: 1320px, in a padding of 18px above, 24px at the sides and 48px below. */
+  /* The main column's widest content: 1320px, in a padding of 18px above, 24px at the sides and 48px below. The session detail view's fill height subtracts the block and end padding. */
   --size-main-max: 82.5rem;
   --space-main-block: 1.125rem;
   --space-main-inline: var(--space-6);

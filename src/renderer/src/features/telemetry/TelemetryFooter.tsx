@@ -8,9 +8,9 @@ import { useOtelReceiver } from './useOtelReceiver'
 import { useOtelReceiverChanges } from './useOtelReceiverChanges'
 
 /**
- * The sidebar footer: the note that beekeeper is local only and read-only, which
- * adds that it is receiving Claude Code telemetry on 127.0.0.1 while the
- * receiver is listening, and the button that opens the telemetry dialog. It also
+ * The sidebar footer: the button that opens the telemetry dialog, then the note
+ * that beekeeper is local only and read-only, which adds that it is receiving
+ * Claude Code telemetry on 127.0.0.1 while the receiver is listening. It also
  * keeps the receiver's state current when the main process reports a change.
  *
  * @example
@@ -25,17 +25,16 @@ export function TelemetryFooter(): React.JSX.Element {
 
   return (
     <>
-      <MutedText smaller className={styles.note}>
-        {listening ? t('localOnlyListening') : t('localOnly', { ns: 'common' })}
-      </MutedText>
       <LinkButton
-        padded
         onClick={() => {
           setOpen(true)
         }}
       >
         {t('footerButton')}
       </LinkButton>
+      <MutedText className={styles.note}>
+        {listening ? t('localOnlyListening') : t('localOnly', { ns: 'common' })}
+      </MutedText>
       <TelemetryDialog
         open={open}
         onClose={() => {

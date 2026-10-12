@@ -52,6 +52,18 @@ describe('SidebarContent', () => {
     expect(await within(sidebar).findByRole('checkbox', { name: 'Live updates' })).toBeTruthy()
   })
 
+  it('lists the footer as live updates, then the telemetry button, then the local-only note', async () => {
+    renderApp()
+
+    const sidebar = await screen.findByRole('complementary', { name: 'Sidebar' })
+    const live = await within(sidebar).findByRole('checkbox', { name: 'Live updates' })
+    const telemetry = within(sidebar).getByRole('button', { name: 'Claude Code telemetry' })
+    const note = within(sidebar).getByText('Local only · read-only')
+
+    expect(live.compareDocumentPosition(telemetry) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(telemetry.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
   it('shows only the name and footer while there are no projects', async () => {
     installBeekeeperApi({ listProjects: () => Promise.resolve({ ok: true, value: [] }) })
     renderApp()
