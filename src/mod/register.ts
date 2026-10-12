@@ -12,7 +12,13 @@ const PANE_ID = 'beekeeper'
 
 /** The mod's only `$` calls, as closures lib can use without seeing `$`. */
 export function hostOf($: Engine): ModHost {
-  return { version: () => $.session.version() }
+  return {
+    version: () => $.session.version(),
+    readBytes: async (path) =>
+      Uint8Array.fromBase64((await $.fs.read(path, { as: 'bytes' })).base64),
+    list: (path) => $.fs.list(path),
+    stat: (path) => $.fs.stat(path, { resolve: true })
+  }
 }
 
 /** Shows what starting came to: registers `/beekeeper` when ready, or toasts fixed text when not. */

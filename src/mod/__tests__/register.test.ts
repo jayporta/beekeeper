@@ -53,6 +53,28 @@ describe('register', () => {
     expect(calls).toEqual([{ name: 'session.version', args: [] }])
   })
 
+  describe('hostOf', () => {
+    it('lists a directory through $.fs.list', async () => {
+      const { $, calls } = createTestEngine()
+
+      const entries = await hostOf($).list('/d')
+
+      expect(entries).toEqual([])
+      expect(calls).toEqual([{ name: 'fs.list', args: ['/d'] }])
+    })
+
+    it('stats a path through $.fs.stat and resolves links', async () => {
+      const { $, calls } = createTestEngine()
+
+      await hostOf($).stat('/p')
+
+      expect(calls).toEqual([{ name: 'fs.stat', args: ['/p', { resolve: true }] }])
+    })
+
+    // readBytes is not tested here: Uint8Array.fromBase64 needs Node 25, and CI runs Node 24.
+    // The plugin smoke test covers it.
+  })
+
   describe('session.start', () => {
     it('registers /beekeeper on an interactive session that meets the minimum', async () => {
       const calls = await startSession({}, { isInteractive: true })
