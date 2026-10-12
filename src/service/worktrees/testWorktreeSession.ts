@@ -6,9 +6,9 @@ import type { GitBinary } from '../../core/git/gitBinary'
 import { ok } from '../../core/shared/result'
 import { buildJsonlText } from '../../core/transcript/testFixtures'
 import { buildSpawnRecord } from '../../core/session/testSpawnFixtures'
-import { createIpcDeps } from './createIpcDeps'
-import type { IpcDeps } from './ipcDeps'
-import { TEST_SESSION_ID } from '../../service/testServiceTree'
+import { createServiceDeps } from '../createServiceDeps'
+import type { ServiceDeps } from '../serviceDeps'
+import { TEST_SESSION_ID } from '../testServiceTree'
 
 /** One subagent of a synthetic session, as its meta file names it. */
 export interface WorktreeSessionAgent {
@@ -30,14 +30,14 @@ export interface WorktreeSessionOptions {
   readonly cwd: string
   /** The session's subagents, each spawned from its `spawnCwd` or the lead's `cwd`. */
   readonly agents: readonly WorktreeSessionAgent[]
-  /** The git the handlers locate. */
+  /** The git the services locate. */
   readonly git: GitBinary
 }
 
-/** A synthetic session on disk, and handler dependencies that read it. */
+/** A synthetic session on disk, and service dependencies that read it. */
 export interface WorktreeSession {
-  /** Handler dependencies rooted at the synthetic home, locating the given git. */
-  readonly deps: IpcDeps
+  /** Service dependencies rooted at the synthetic home, locating the given git. */
+  readonly deps: ServiceDeps
   /** The request naming the session, without an agent. */
   readonly request: { readonly projectDirName: string; readonly sessionId: string }
 }
@@ -88,7 +88,10 @@ export function registerWorktreeSessions(): WorktreeSessions {
         )
       }
       return {
-        deps: { ...createIpcDeps(home), git: () => Promise.resolve(ok(git)) },
+        deps: {
+          ...createServiceDeps(join(home, '.claude', 'projects')),
+          git: () => Promise.resolve(ok(git))
+        },
         request: { projectDirName, sessionId: TEST_SESSION_ID }
       }
     }

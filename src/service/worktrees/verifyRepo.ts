@@ -1,6 +1,6 @@
-import { lstat, realpath } from 'node:fs/promises'
 import { defaultFsRunner, isFsTimeout, type FsRunner } from '../../core/git/fsDeadline'
 import type { GitBinary } from '../../core/git/gitBinary'
+import { fileSystem } from '../../core/io/installFileSystem'
 import { runGit, type GitRunError } from '../../core/git/runGit'
 import { isAbsolutePath } from '../../core/shared/absolutePath'
 import { decodeUtf8 } from '../../core/shared/decodeUtf8'
@@ -39,10 +39,11 @@ export async function verifyRepo(
 ): Promise<Result<string, VerifyRepoError>> {
   if (!isAbsolutePath(options.dir)) return err('repo-missing')
   const run = options.fsRunner ?? defaultFsRunner
+  const fs = fileSystem()
   let real: string
   try {
-    real = await run(() => realpath(options.dir))
-    if (!(await run(() => lstat(real))).isDirectory()) return err('not-a-repo')
+    real = await run(() => fs.realPath(options.dir))
+    if ((await run(() => fs.lstat(real))).kind !== 'directory') return err('not-a-repo')
   } catch (error) {
     return err(isFsTimeout(error) ? 'timeout' : 'repo-missing')
   }
@@ -57,7 +58,7 @@ export async function verifyRepo(
   const top = decodeUtf8(output.value.stdout).trim()
   if (!isAbsolutePath(top)) return err('not-a-repo')
   try {
-    return ok(await run(() => realpath(top)))
+    return ok(await run(() => fs.realPath(top)))
   } catch (error) {
     return err(isFsTimeout(error) ? 'timeout' : 'repo-missing')
   }

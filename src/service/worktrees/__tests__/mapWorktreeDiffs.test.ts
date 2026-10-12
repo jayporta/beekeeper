@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { err, ok } from '../../../core/shared/result'
 import { toAgentId } from '../../../core/transcript/ids'
-import type { AgentWorktreeDiff } from '../../git/sessionWorktreeDiffs'
+import type { AgentWorktreeDiff } from '../sessionWorktreeDiffs'
 import { mapWorktreeDiffs } from '../mapWorktreeDiffs'
 
 const FORGED = 'must not cross the bridge'

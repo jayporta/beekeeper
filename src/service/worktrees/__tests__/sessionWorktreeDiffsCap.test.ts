@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { registerTestGit } from '../../../core/git/testGitRepo'
 import { toAgentId } from '../../../core/transcript/ids'
-import { createScanScheduler, type ScanScheduler } from '../../../service/scheduling/scanScheduler'
+import { createScanScheduler, type ScanScheduler } from '../../scheduling/scanScheduler'
 import { encodeProjectDir } from '../confineRepo'
 import { MAX_WORKTREE_AGENTS_PER_REQUEST, sessionWorktreeDiffs } from '../sessionWorktreeDiffs'
 import { registerWorktreeScans } from '../testWorktreeScan'

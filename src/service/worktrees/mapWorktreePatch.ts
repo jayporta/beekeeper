@@ -2,7 +2,7 @@ import { capPatches } from '../../core/git/capPatches'
 import type { WorktreeDiffPatch } from '../../core/git/worktreeDiffPatch'
 import type { Result } from '../../core/shared/result'
 import type { WorktreePatchDto } from '../../shared/ipc/worktreePatchDto'
-import type { WorktreeDiffCode } from '../git/sessionWorktreeDiffs'
+import type { WorktreeDiffCode } from './sessionWorktreeDiffs'
 
 /**
  * Maps one agent's patch result onto its transfer shape: patches cut to the

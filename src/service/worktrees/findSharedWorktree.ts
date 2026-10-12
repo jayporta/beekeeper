@@ -3,19 +3,17 @@ import { discoverProjects, type ProjectEntry } from '../../core/transcript/disco
 import type { SessionRefDto } from '../../shared/ipc/sessionRefDto'
 import type { SharedWorktreeDto } from '../../shared/ipc/worktreeDiffDto'
 import { captureSystemError } from '../../core/transcript/captureSystemError'
-import type { FoundSession } from '../../service/projects/findProject'
-import type { RequestedSession } from '../../service/sessionDetail/findRequestedSession'
-import {
-  groupProjectFamily,
-  type ProjectFamilyGrouping
-} from '../../service/sessions/groupProjectFamily'
-import type { IpcDeps } from './ipcDeps'
-import { scanFoundSession } from '../../service/sessionDetail/scanFoundSession'
-import { readSessionSummary } from '../../service/sessions/scanProjectSessions'
-import { sessionRefKey } from '../../service/sessions/sessionRefKey'
+import type { FoundSession } from '../projects/findProject'
+import type { RequestedSession } from '../sessionDetail/findRequestedSession'
+import { groupProjectFamily, type ProjectFamilyGrouping } from '../sessions/groupProjectFamily'
+import type { ServiceDeps } from '../serviceDeps'
+import { scanFoundSession } from '../sessionDetail/scanFoundSession'
+import { readSessionSummary } from '../sessions/scanProjectSessions'
+import { sessionRefKey } from '../sessions/sessionRefKey'
 
-type SharedWorktreeDeps = Pick<
-  IpcDeps,
+/** What {@link findSharedWorktree} reads. */
+export type SharedWorktreeDeps = Pick<
+  ServiceDeps,
   'projectsRoot' | 'summaryCache' | 'summaries' | 'scans' | 'scanCache' | 'agentScans' | 'archive'
 >
 

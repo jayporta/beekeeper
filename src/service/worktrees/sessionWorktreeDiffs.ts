@@ -11,7 +11,7 @@ import type { AgentTreeNode } from '../../core/session/agentTree'
 import type { SessionScan } from '../../core/session/scanSession'
 import { err, ok, type Result } from '../../core/shared/result'
 import type { AgentId } from '../../core/transcript/ids'
-import type { ScanScheduler } from '../../service/scheduling/scanScheduler'
+import type { ScanScheduler } from '../scheduling/scanScheduler'
 import { createRepoConfiner, type ConfineRepoError } from './confineRepo'
 
 /**

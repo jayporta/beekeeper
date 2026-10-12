@@ -5,11 +5,11 @@ import { describe, expect, it, type TestContext } from 'vitest'
 import { PATCH_ARGS } from '../../../core/git/gitAllowlist'
 import { MAX_FILE_PATCH_BYTES, MAX_TOTAL_PATCH_BYTES } from '../../../core/git/capPatches'
 import { registerTestGit, type TestRepo } from '../../../core/git/testGitRepo'
-import { encodeProjectDir } from '../../git/confineRepo'
+import { encodeProjectDir } from '../confineRepo'
 import { registerGitSpies } from '../../../core/git/testGitSpy'
-import { addAgentWorktree, projectWorktreesDir } from '../../git/testWorktreeScan'
-import { getWorktreeDiffsHandler } from '../getWorktreeDiffsHandler'
-import { getWorktreePatchHandler } from '../getWorktreePatchHandler'
+import { addAgentWorktree, projectWorktreesDir } from '../testWorktreeScan'
+import { getWorktreeDiffs } from '../getWorktreeDiffs'
+import { getWorktreePatch } from '../getWorktreePatch'
 import { registerWorktreeSessions, type WorktreeSession } from '../testWorktreeSession'
 import type { GitBinary } from '../../../core/git/gitBinary'
 import type { WorktreePatchDto } from '../../../shared/ipc/worktreePatchDto'
@@ -54,18 +54,18 @@ async function scene(
 async function patchOf(
   session: WorktreeSession,
   agentId: string
-): ReturnType<typeof getWorktreePatchHandler> {
-  return getWorktreePatchHandler(session.deps, { ...session.request, agentId })
+): ReturnType<typeof getWorktreePatch> {
+  return getWorktreePatch(session.deps, { ...session.request, agentId })
 }
 
 function ready(
-  result: Awaited<ReturnType<typeof getWorktreePatchHandler>>
+  result: Awaited<ReturnType<typeof getWorktreePatch>>
 ): Extract<WorktreePatchDto, { kind: 'ready' }> {
   if (!result.ok || result.value.kind !== 'ready') throw new Error('expected a ready patch')
   return result.value
 }
 
-describe('getWorktreePatchHandler on a real repository', () => {
+describe('getWorktreePatch on a real repository', () => {
   it('returns the patch of a worktree agent, uncommitted edits included', async (context) => {
     const { repo, worktree, session } = await scene(context)
     await repo.write({ path: 'wt1.txt', content: 'edited\n', dir: worktree })
@@ -196,7 +196,7 @@ describe('getWorktreePatchHandler on a real repository', () => {
 
     const [patch, diffs] = await Promise.all([
       patchOf(session, 'a'),
-      getWorktreeDiffsHandler(session.deps, session.request)
+      getWorktreeDiffs(session.deps, session.request)
     ])
 
     expect(ready(patch).files).toHaveLength(1)

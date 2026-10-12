@@ -7,8 +7,8 @@ import {
   buildJsonlText,
   buildUserRecord
 } from '../../../core/transcript/testFixtures'
-import { getWorktreeDiffsHandler } from '../getWorktreeDiffsHandler'
-import type { IpcDeps } from '../ipcDeps'
+import { getWorktreeDiffs } from '../getWorktreeDiffs'
+import type { ServiceDeps } from '../../serviceDeps'
 import {
   AGENT_SESSION_ID,
   HUMAN_SESSION_ID,
@@ -16,11 +16,10 @@ import {
   scoutRecords,
   writeLead,
   writeTranscript
-} from '../../../service/sessions/testFamilyFixtures'
-import { TEST_PROJECT, TEST_SESSION_ID } from '../../../service/testServiceTree'
-import { registerIpcTestTree } from '../testIpcTree'
+} from '../../sessions/testFamilyFixtures'
+import { registerServiceTestTree, TEST_PROJECT, TEST_SESSION_ID } from '../../testServiceTree'
 
-const ctx = registerIpcTestTree()
+const ctx = registerServiceTestTree()
 
 const CWD = '/repo/.claude/worktrees/agent-x'
 
@@ -61,14 +60,14 @@ async function writeScout(cwd: string | undefined): Promise<void> {
 async function sharedWorktreeOf(
   projectDirName: string,
   sessionId: string,
-  deps: IpcDeps = ctx.deps
+  deps: ServiceDeps = ctx.deps
 ): Promise<unknown> {
-  const result = await getWorktreeDiffsHandler(deps, { projectDirName, sessionId })
+  const result = await getWorktreeDiffs(deps, { projectDirName, sessionId })
   if (!result.ok) throw new Error('getWorktreeDiffs failed')
   return result.value.sharedWorktree
 }
 
-describe('getWorktreeDiffsHandler sharedWorktree', () => {
+describe('getWorktreeDiffs sharedWorktree', () => {
   it('points a worktree-folder teammate at the lead subagent owning its cwd', async () => {
     await writeLead(ctx.tree.home)
     await writeOwningSubagent()
@@ -84,9 +83,9 @@ describe('getWorktreeDiffsHandler sharedWorktree', () => {
     await writeLead(ctx.tree.home)
     await writeOwningSubagent()
     await writeScout(CWD)
-    const deps: IpcDeps = { ...ctx.deps, git: () => Promise.resolve(err('git-not-found')) }
+    const deps: ServiceDeps = { ...ctx.deps, git: () => Promise.resolve(err('git-not-found')) }
 
-    const result = await getWorktreeDiffsHandler(deps, {
+    const result = await getWorktreeDiffs(deps, {
       projectDirName: WORKTREE,
       sessionId: AGENT_SESSION_ID
     })
@@ -136,7 +135,7 @@ describe('getWorktreeDiffsHandler sharedWorktree', () => {
     await writeLead(ctx.tree.home)
     await writeScout(CWD)
     const reads: string[] = []
-    const deps: IpcDeps = {
+    const deps: ServiceDeps = {
       ...ctx.deps,
       summaryCache: {
         read: (file) => {
@@ -180,7 +179,7 @@ describe('getWorktreeDiffsHandler sharedWorktree', () => {
     await writeLead(ctx.tree.home)
     await writeOwningSubagent()
     await writeScout(CWD)
-    const deps: IpcDeps = {
+    const deps: ServiceDeps = {
       ...ctx.deps,
       scans: {
         run: (key, task) =>
@@ -195,7 +194,7 @@ describe('getWorktreeDiffsHandler sharedWorktree', () => {
 
   describe('when the teammate own scan fails', () => {
     /** Deps with no git, so only `findSharedWorktree` scans the teammate, that fail with `failure`. */
-    function depsFailingTeammateScan(failure: Error): IpcDeps {
+    function depsFailingTeammateScan(failure: Error): ServiceDeps {
       return {
         ...ctx.deps,
         git: () => Promise.resolve(err('git-not-found')),
@@ -244,7 +243,7 @@ describe('getWorktreeDiffsHandler sharedWorktree', () => {
       join(ctx.tree.home, '.claude', 'projects', TEST_PROJECT, `${TEST_SESSION_ID}.jsonl`)
 
     /** Deps that make the lead's transcript unreadable right after its summary is read. */
-    function depsBlockingLeadTranscript(): IpcDeps {
+    function depsBlockingLeadTranscript(): ServiceDeps {
       return {
         ...ctx.deps,
         summaryCache: {

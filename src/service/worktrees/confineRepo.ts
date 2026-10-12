@@ -1,7 +1,7 @@
 import type { GitBinary } from '../../core/git/gitBinary'
-import { realpath } from 'node:fs/promises'
 import { defaultFsRunner, type FsRunner } from '../../core/git/fsDeadline'
-import { sep } from 'node:path'
+import { fileSystem } from '../../core/io/installFileSystem'
+import { PATH_SEPARATOR } from '../../core/shared/absolutePath'
 import { resolveInside, type ResolveInsideError } from '../../core/git/resolveInside'
 import { err, ok, type Result } from '../../core/shared/result'
 import { isInside } from '../../core/git/isInside'
@@ -73,12 +73,16 @@ async function resolveFirstCwd(options: {
   readonly run: FsRunner
 }): Promise<FirstCwdResolution> {
   const { cwd, top, run } = options
+  const fs = fileSystem()
   try {
-    const real = await run(() => realpath(cwd))
+    const real = await run(() => fs.realPath(cwd))
     if (!isInside(top, real)) return { real: undefined, lexicalTop: top }
     const suffix = real.slice(top.length)
     const lexical = suffix === '' ? cwd : cwd.endsWith(suffix) ? cwd.slice(0, -suffix.length) : top
-    return { real, lexicalTop: (await run(() => realpath(lexical))) === top ? lexical : top }
+    return {
+      real,
+      lexicalTop: (await run(() => fs.realPath(lexical))) === top ? lexical : top
+    }
   } catch {
     return { real: undefined, lexicalTop: top }
   }
@@ -87,7 +91,7 @@ async function resolveFirstCwd(options: {
 /** Drops the trailing separators of a spelled directory, except for a bare root. */
 function withoutTrailingSeparators(directory: string): string {
   let end = directory.length
-  while (end > 1 && directory[end - 1] === sep) end -= 1
+  while (end > 1 && directory[end - 1] === PATH_SEPARATOR) end -= 1
   return directory.slice(0, end)
 }
 
@@ -104,7 +108,7 @@ function withoutTrailingSeparators(directory: string): string {
 function rebase(project: Project, path: string): { root: string; path: string } | undefined {
   for (const { spelled, real } of project.bases) {
     const base = withoutTrailingSeparators(spelled)
-    if (path === base || path.startsWith(base === sep ? base : base + sep)) {
+    if (path === base || path.startsWith(base === PATH_SEPARATOR ? base : base + PATH_SEPARATOR)) {
       return { root: project.top, path: real + path.slice(base.length) }
     }
   }
