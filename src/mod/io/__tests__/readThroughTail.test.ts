@@ -133,25 +133,46 @@ describe('readThroughTail', () => {
   })
 
   it.each([
-    ['fails to start', 'spawn /secret/path ENOENT', 'ENOENT', false],
-    ['fails mid-stream', 'read of /secret/path went wrong', 'EIO', true]
-  ])('rejects with a code and no path when the spawn %s', async (_name, text, code, midStream) => {
+    ['fails to start with a message', new Error('spawn /secret/path ENOENT'), false],
+    [
+      'fails to start with a code',
+      Object.assign(new Error('spawn tail ENOENT'), { code: 'ENOENT' }),
+      false
+    ],
+    ['fails mid-stream', new Error('read of /secret/path went wrong'), true]
+  ])('rejects EIO, whatever its code, when the spawn %s', async (_name, failure, midStream) => {
     const host = setup({ [FILE]: bigFile() })
     vi.spyOn(host, 'tail').mockImplementation(async function* (): AsyncGenerator<
       HostTailChunk,
       HostTailResult
     > {
       if (midStream) yield { stream: 'stdout', text: 'ok' }
-      throw new Error(text)
+      throw failure
     })
 
     const error = await rejectionOf(
       textOf(readThroughTail({ host, projectsRoot: ROOT, realPath: FILE, start: 0 }))
     )
 
-    expect(errorCode(error)).toBe(code)
-    expect((error as Error).message).toBe(code)
-    expect((error as Error).message).not.toContain('/secret/path')
+    expect(errorCode(error)).toBe('EIO')
+    expect((error as Error).message).toBe('EIO')
+  })
+
+  it('rejects EIO when stopping the child fails', async () => {
+    const host = setup({ [FILE]: bigFile() })
+    vi.spyOn(host, 'tail').mockImplementation(
+      () =>
+        ({
+          next: async () => ({ done: false, value: { stream: 'stdout', text: 'ab' } }),
+          return: async () => {
+            throw Object.assign(new Error('kill /secret/path'), { code: 'EPERM' })
+          }
+        }) as unknown as ReturnType<typeof host.tail>
+    )
+    const chunks = readThroughTail({ host, projectsRoot: ROOT, realPath: FILE, start: 0 })
+    await chunks.next()
+
+    expect(errorCode(await rejectionOf(chunks.return()))).toBe('EIO')
   })
 
   it('ignores stderr text', async () => {

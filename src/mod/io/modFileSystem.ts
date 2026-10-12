@@ -69,8 +69,11 @@ export function createModFileSystem(options: {
   async function resolvedRoot(): Promise<string> {
     if (!isRootResolved) {
       try {
-        projectsRoot = (await host.stat(projectsRoot)).realPath ?? projectsRoot
-        isRootResolved = true
+        const { realPath } = await host.stat(projectsRoot)
+        if (realPath !== undefined) {
+          projectsRoot = realPath
+          isRootResolved = true
+        }
       } catch (error) {
         const failure = toPortError(error)
         // Still absent: confine against the path as it stands.

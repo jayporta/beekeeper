@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { fileSystem } from '../../../../core/io/installFileSystem'
 import { processPort } from '../../../../core/io/installProcessPort'
-import { createTestHost, type TestHostAnswers } from '../../../testHost'
+import { createTestHost, type TestHostAnswers, type TestPath } from '../../../testHost'
+import { FS_READ_LIMIT } from '../../../io/fsReadLimit'
 import { startMod } from '../startMod'
 
 const CWD = '/work/repo'
@@ -120,6 +121,22 @@ describe('startMod installs the ports', () => {
         maxOutputBytes: 100
       })
     ).toEqual({ ok: false, error: 'spawn-failed' })
+  })
+
+  it('resolves a projects folder that appears behind a link after startup', async () => {
+    const big = '/data/projects/p/s.jsonl'
+    const paths: Record<string, TestPath> = {
+      [big]: { kind: 'file', bytes: new TextEncoder().encode('abcdefgh'), size: FS_READ_LIMIT + 1 }
+    }
+    await start({ paths })
+    paths['/home/u/.claude/projects'] = { kind: 'dir', isLink: true, realPath: '/data/projects' }
+
+    let text = ''
+    for await (const chunk of fileSystem().readChunks(big, { start: 0 })) {
+      text += new TextDecoder().decode(chunk)
+    }
+
+    expect(text).toBe('abcdefgh')
   })
 
   it('lets git run when no repository variable is set', async () => {

@@ -445,6 +445,7 @@ describe('a projects folder that did not exist at startup', () => {
   function setup(isProjectsRootResolved: boolean): {
     port: ReturnType<typeof createModFileSystem>
     paths: Record<string, TestPath>
+    real: ModHost['stat']
     stat: MockInstance<ModHost['stat']>
   } {
     const paths: Record<string, TestPath> = {
@@ -458,12 +459,29 @@ describe('a projects folder that did not exist at startup', () => {
       isProjectsRootResolved
     })
     installFileSystem(port)
-    return { port, paths, stat: vi.spyOn(host, 'stat') }
+    const real = host.stat.bind(host)
+    return { port, paths, real, stat: vi.spyOn(host, 'stat') }
   }
 
   const makeRootAppear = (paths: Record<string, TestPath>): void => {
     paths[ROOT_LINK] = { kind: 'dir', isLink: true, realPath: REAL_ROOT }
   }
+
+  it('keeps looking while the link has no target yet, then resolves once it has one', async () => {
+    const { port, paths, real, stat } = setup(false)
+    makeRootAppear(paths)
+    let hasTarget = false
+    stat.mockImplementation(async (path) => {
+      const found = await real(path)
+      return path === ROOT_LINK && !hasTarget ? { ...found, realPath: undefined } : found
+    })
+    const first = port.readChunks(FILE, { start: 0 })[Symbol.asyncIterator]()
+    expect(errorCode(await rejectionOf(first.next()))).toBe('EACCES')
+
+    hasTarget = true
+
+    expect((await collect(port.readChunks(FILE, { start: 0 }))).join('')).toBe('abcdefgh')
+  })
 
   it('refuses a big file until the folder exists', async () => {
     const { port } = setup(false)

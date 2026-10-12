@@ -1,6 +1,6 @@
 import { isInside } from '../../core/git/isInside'
 import type { ModHost } from '../modHost'
-import { portError, withPortError } from './toPortError'
+import { portError } from './toPortError'
 
 /** What {@link readThroughTail} needs to stream a file. */
 export interface ReadThroughTailOptions {
@@ -12,6 +12,15 @@ export interface ReadThroughTailOptions {
   realPath: string | undefined
   /** The byte offset to start at. */
   start: number
+}
+
+/** Awaits a call on the spawned child, turning any failure into `EIO` so the engine's text never escapes. */
+async function spawned<T>(call: Promise<T>): Promise<T> {
+  try {
+    return await call
+  } catch {
+    throw portError('EIO')
+  }
 }
 
 /**
@@ -26,9 +35,9 @@ export interface ReadThroughTailOptions {
  *
  * @param options - The host, the projects folder, the file's real path, and where to start.
  * @returns The file's bytes in order.
- * @throws {Error} With code `EACCES` when the file lands outside the projects folder, `EIO` when
- * `tail` exits non-zero, or the code the engine's failure carries when the spawn fails (`EIO`
- * if it has none). The message is the code alone, never the engine's text.
+ * @throws {Error} With code `EACCES` when the file lands outside the projects folder, or `EIO` when
+ * `tail` can't run, fails mid-stream, can't be stopped, or exits non-zero. Whatever code the engine's
+ * failure carried, the message is the code alone, never the engine's text.
  */
 export async function* readThroughTail(
   options: ReadThroughTailOptions
@@ -42,7 +51,7 @@ export async function* readThroughTail(
   const tail = host.tail(realPath, start)
   try {
     for (;;) {
-      const step = await withPortError(tail.next())
+      const step = await spawned(tail.next())
       if (step.done) {
         if (step.value.code !== 0) throw portError('EIO')
         return
@@ -50,6 +59,6 @@ export async function* readThroughTail(
       if (step.value.stream === 'stdout') yield encoder.encode(step.value.text)
     }
   } finally {
-    await withPortError(tail.return({ code: null, signal: null }))
+    await spawned(tail.return({ code: null, signal: null }))
   }
 }

@@ -7,7 +7,7 @@ import { toPortError } from '../../io/toPortError'
 export interface ProjectsRoot {
   /** The folder's real path, or the unresolved path when the folder doesn't exist yet. */
   readonly path: string
-  /** Whether `path` is the real path: false when the folder was absent, so it may sit behind a link. */
+  /** Whether `path` is the real path: false when the folder was absent or a link to nothing yet, so it may sit behind a link. */
   readonly isResolved: boolean
 }
 
@@ -27,7 +27,8 @@ export async function locateProjectsRoot(host: ModHost): Promise<ProjectsRoot | 
   const root = joinPath(claudeDir, 'projects')
   if (!root.startsWith('/')) return undefined
   try {
-    return { path: (await host.stat(root)).realPath ?? root, isResolved: true }
+    const { realPath } = await host.stat(root)
+    return { path: realPath ?? root, isResolved: realPath !== undefined }
   } catch (error) {
     const failure = toPortError(error)
     if (isMissingEntryError(failure)) return { path: root, isResolved: false }
