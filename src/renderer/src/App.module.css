@@ -6,7 +6,7 @@
  */
 .shell {
   display: grid;
-  grid-template-columns: var(--size-sidebar) minmax(0, 1fr);
+  grid-template-columns: var(--size-sidebar-current, var(--size-sidebar)) minmax(0, 1fr);
   min-height: 100vh;
   background: var(--color-surface);
 

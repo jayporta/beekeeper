@@ -8,6 +8,8 @@
     "reload": "Reload"
   },
   "localOnly": "Local only · read-only",
+  "resizeSidebar": "Resize sidebar",
+  "sidebarWidth": "{{px}} pixels",
   "skipToMain": "Skip to main content",
   "usd": "{{value, usd}}",
   "usdUnderCent": "<{{value, usd}}",

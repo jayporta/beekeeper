@@ -1,0 +1,38 @@
+/*
+ * The grab zone sits in the gap between the sidebar card and main, on the
+ * sidebar's right edge, so it never covers the card. The line is drawn
+ * inside it.
+ */
+.separator {
+  position: absolute;
+  height: auto;
+  border: 0;
+  inset-block: 0;
+  inset-inline-end: calc(-1 * var(--size-sidebar-resizer));
+  width: var(--size-sidebar-resizer);
+  cursor: col-resize;
+  /* The pointer drags the handle, not the page. */
+  touch-action: none;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset-block: var(--space-main-block);
+    inset-inline-start: 50%;
+    width: 1px;
+    background: transparent;
+  }
+
+  &:hover::after,
+  &:focus-visible::after {
+    background: var(--color-rule);
+  }
+
+  &[data-dragging]::after {
+    background: var(--color-accent);
+  }
+
+  @media (max-width: 40rem) {
+    display: none;
+  }
+}

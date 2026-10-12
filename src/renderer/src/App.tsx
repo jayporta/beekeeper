@@ -5,8 +5,12 @@ import { AboutDialog } from '@renderer/features/about/AboutDialog'
 import { MainView } from '@renderer/app/MainView'
 import { MAIN_HEADING_ID } from '@renderer/components/mainHeading'
 import { SidebarContent } from '@renderer/app/SidebarContent'
+import { SidebarResizer } from '@renderer/app/SidebarResizer'
+import { SIDEBAR_ID } from '@renderer/app/sidebarId'
 import { SkipLink } from '@renderer/app/SkipLink'
 import { useFocusMainOnNavigate } from '@renderer/app/useFocusMainOnNavigate'
+import { useSidebarWidth } from '@renderer/app/useSidebarWidth'
+import { useSidebarWidthStore } from '@renderer/app/state/useSidebarWidthStore'
 import { useFocusOnFirstRunClose } from '@renderer/features/firstRun/state/useFocusOnFirstRunClose'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useSelectedProjectStore } from '@renderer/features/projects/state/useSelectedProjectStore'
@@ -26,16 +30,30 @@ function App(): React.JSX.Element {
   const { t } = useTranslation()
   const firstRunHydrated = usePersistHydrated(useFirstRunStore.persist)
   const selectionHydrated = usePersistHydrated(useSelectedProjectStore.persist)
-  const hydrated = firstRunHydrated && selectionHydrated
+  const widthHydrated = usePersistHydrated(useSidebarWidthStore.persist)
+  const hydrated = firstRunHydrated && selectionHydrated && widthHydrated
+  const sidebar = useSidebarWidth()
   const mainRef = useRef<HTMLElement>(null)
   useFocusOnFirstRunClose({ main: mainRef, hydrated })
   useFocusMainOnNavigate(mainRef)
 
   return (
-    <div className={styles.shell}>
+    // The one inline style: a class can't carry the runtime width, so it goes in a custom property
+    // that the stylesheet reads. React sets it through the CSSOM, which the CSP allows.
+    <div
+      className={styles.shell}
+      style={{ '--size-sidebar-current': `${sidebar.width}px` } as React.CSSProperties}
+    >
       <SkipLink target={mainRef} />
-      <aside className={styles.sidebar} aria-label={t('sidebar')}>
+      <aside id={SIDEBAR_ID} className={styles.sidebar} aria-label={t('sidebar')}>
         {hydrated && <SidebarContent />}
+        <SidebarResizer
+          width={sidebar.width}
+          min={sidebar.min}
+          max={sidebar.max}
+          onPreview={sidebar.preview}
+          onCommit={sidebar.commit}
+        />
       </aside>
       <main
         id="main"

@@ -25,7 +25,18 @@ export default defineConfig(
   {
     rules: {
       // A scrollable region is a tab stop, so the keyboard can scroll it even when it holds no control.
-      'jsx-a11y/no-noninteractive-tabindex': ['error', { roles: ['region'] }]
+      // A focusable hr (a separator) is the ARIA window-splitter pattern: the sidebar resize handle.
+      'jsx-a11y/no-noninteractive-tabindex': ['error', { tags: ['hr'], roles: ['region'] }],
+      // The same handle, an hr, takes arrow keys, so an hr may carry onKeyDown. The strict defaults stay otherwise.
+      'jsx-a11y/no-noninteractive-element-interactions': [
+        'error',
+        {
+          body: ['onError', 'onLoad'],
+          iframe: ['onError', 'onLoad'],
+          img: ['onError', 'onLoad'],
+          hr: ['onKeyDown']
+        }
+      ]
     }
   },
   {

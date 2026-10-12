@@ -1,0 +1,45 @@
+import { useState } from 'react'
+import { useSidebarWidthStore } from '@renderer/app/state/useSidebarWidthStore'
+import { MIN_SIDEBAR_WIDTH, clampSidebarWidth, sidebarMaxWidth } from './sidebarWidth'
+import { useViewportWidth } from './useViewportWidth'
+
+/** The sidebar's width and the ways to change it. */
+interface SidebarWidth {
+  /** The width to draw in px: the live drag width while dragging, else the stored width, limited by the window. */
+  readonly width: number
+  /** The narrowest width in px. */
+  readonly min: number
+  /** The widest width in px for the current window. */
+  readonly max: number
+  /** Shows a width while the person drags, without saving it. */
+  preview: (px: number) => void
+  /** Saves a width and ends any preview. */
+  commit: (px: number) => void
+}
+
+/**
+ * The sidebar's width for the current window. The stored width is limited
+ * during render, so a window that shrinks narrows the sidebar without
+ * touching what was saved.
+ *
+ * @returns The width, its range, and how to preview and save a new width.
+ */
+export function useSidebarWidth(): SidebarWidth {
+  const viewportWidth = useViewportWidth()
+  const stored = useSidebarWidthStore((state) => state.width)
+  const setStored = useSidebarWidthStore((state) => state.setWidth)
+  const [live, setLive] = useState<number | null>(null)
+
+  return {
+    width: clampSidebarWidth(live ?? stored, viewportWidth),
+    min: MIN_SIDEBAR_WIDTH,
+    max: sidebarMaxWidth(viewportWidth),
+    preview: (px) => {
+      setLive(px)
+    },
+    commit: (px) => {
+      setStored(clampSidebarWidth(px, viewportWidth))
+      setLive(null)
+    }
+  }
+}
