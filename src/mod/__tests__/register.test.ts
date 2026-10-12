@@ -1,8 +1,23 @@
 import { describe, expect, it } from 'vitest'
 import { t } from '../i18n/modI18n'
 import { hostOf, register } from '../register'
-import { createTestEngine } from '../testEngine'
+import { createTestEngine, type TestEngineAnswers } from '../testEngine'
+import { createNext } from '../testNext'
 import { recordingOn } from '../testOn'
+
+/** Runs the registered session.start hook against a fake `$` and returns the calls it made. */
+async function startSession(
+  answers: TestEngineAnswers,
+  { isInteractive }: { isInteractive: boolean }
+): Promise<ReturnType<typeof createTestEngine>['calls']> {
+  const { on, registered } = recordingOn()
+  register(on, {})
+  const start = registered.find((entry) => entry.event === 'session.start')
+  const { $, calls } = createTestEngine(answers)
+  const { next } = createNext({ cwd: '/work' })
+  await start?.hook($, { cwd: '/work', surface: 'terminal', isInteractive }, next)
+  return calls.filter((call) => call.name !== 'session.version')
+}
 
 describe('register', () => {
   it('registers session.start, the beekeeper command and the Pane render', () => {
@@ -36,5 +51,47 @@ describe('register', () => {
 
     expect(version).toEqual({ version: '2.1.300' })
     expect(calls).toEqual([{ name: 'session.version', args: [] }])
+  })
+
+  describe('session.start', () => {
+    it('registers /beekeeper on an interactive session that meets the minimum', async () => {
+      const calls = await startSession({}, { isInteractive: true })
+
+      expect(calls).toEqual([
+        {
+          name: 'command.register',
+          args: [{ name: 'beekeeper', description: t('command.description') }]
+        }
+      ])
+    })
+
+    it('toasts the version and registers no command when Claude Code is too old', async () => {
+      const calls = await startSession(
+        { version: { version: '2.1.200', base: '2.1.200' } },
+        { isInteractive: true }
+      )
+
+      expect(calls).toEqual([
+        {
+          name: 'ui.toast',
+          args: [t('start.tooOld', { minimum: '2.1.296', version: '2.1.200' }), undefined]
+        }
+      ])
+    })
+
+    it('toasts fixed text and registers no command when the version call fails', async () => {
+      const calls = await startSession({ versionFails: true }, { isInteractive: true })
+
+      expect(calls).toEqual([{ name: 'ui.toast', args: [t('start.failed'), undefined] }])
+    })
+
+    it('registers nothing and toasts nothing on a session that is not interactive', async () => {
+      const calls = await startSession(
+        { version: { version: '2.1.200', base: '2.1.200' } },
+        { isInteractive: false }
+      )
+
+      expect(calls).toEqual([])
+    })
   })
 })

@@ -18,6 +18,8 @@ export interface TestEngine {
 export interface TestEngineAnswers {
   /** The engine version `$.session.version()` reports. */
   version?: SessionVersion
+  /** Makes `$.session.version()` reject, as an engine that can't report its version would. */
+  versionFails?: boolean
 }
 
 const EMPTY_RUN: ProcessRunResult = {
@@ -45,6 +47,7 @@ export function createTestEngine(answers: TestEngineAnswers = {}): TestEngine {
     session: {
       version: async () => {
         record('session.version')
+        if (answers.versionFails) throw new Error('version unavailable')
         return answers.version ?? { version: '2.1.296', base: '2.1.296' }
       }
     },
