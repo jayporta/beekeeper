@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.mod.json",
+  "compilerOptions": { "types": ["node"] },
+  "include": ["src/mod/**/*.d.ts", "src/mod/**/__tests__/**/*", "src/mod/**/test*.ts"],
+  "exclude": []
+}

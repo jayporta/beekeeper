@@ -1,0 +1,8 @@
+{
+  "command": { "description": "Open the beekeeper pane", "opened": "beekeeper pane opened." },
+  "pane": { "title": "beekeeper", "empty": "Nothing here yet." },
+  "start": {
+    "tooOld": "beekeeper needs Claude Code {{minimum}} or later. This is {{version}}.",
+    "failed": "beekeeper couldn't start. Run claude --debug for details."
+  }
+}
