@@ -160,8 +160,10 @@ describe('registerIpcHandlers', () => {
     ['an unknown window', { projectDirName: TEST_PROJECT, window: '1d' }],
     ['no window', { projectDirName: TEST_PROJECT }],
     ['an extra field', { projectDirName: TEST_PROJECT, window: '7d', path: '/etc' }],
+    ['a non-string window', { projectDirName: TEST_PROJECT, window: 7 }],
     ['a traversal project name', { projectDirName: '../x', window: '7d' }],
-    ['a non-object payload', TEST_PROJECT]
+    ['a non-object payload', TEST_PROJECT],
+    ['no payload', undefined]
   ])(
     'answers invalid-request on the getProjectTotals channel for %s, reading nothing',
     async (_label, payload) => {
@@ -186,8 +188,10 @@ describe('registerIpcHandlers', () => {
     ['an unknown window', { projectDirName: TEST_PROJECT, window: '1d' }],
     ['no window', { projectDirName: TEST_PROJECT }],
     ['an extra field', { projectDirName: TEST_PROJECT, window: '7d', path: '/etc' }],
+    ['a non-string window', { projectDirName: TEST_PROJECT, window: 7 }],
     ['a traversal project name', { projectDirName: '../x', window: '7d' }],
-    ['a non-object payload', TEST_PROJECT]
+    ['a non-object payload', TEST_PROJECT],
+    ['no payload', undefined]
   ])(
     'answers invalid-request on the getProjectDailyUsage channel for %s, scanning nothing',
     async (_label, payload) => {
