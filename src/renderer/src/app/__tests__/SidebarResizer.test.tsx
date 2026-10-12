@@ -169,14 +169,11 @@ describe('SidebarResizer', () => {
     expect(widthNow()).toBe(344)
   })
 
-  it('previews an arrow step at once and saves it on key release', async () => {
+  it('saves an arrow step as soon as the key is pressed, so leaving the handle loses nothing', () => {
     render(<Harness />)
     separator().focus()
 
     fireEvent.keyDown(separator(), { key: 'ArrowRight' })
-    expect(widthNow()).toBe(DEFAULT_SIDEBAR_WIDTH + 16)
-    expect(useSidebarWidthStore.getState().width).toBe(DEFAULT_SIDEBAR_WIDTH)
-    fireEvent.keyUp(separator(), { key: 'ArrowRight' })
 
     expect(useSidebarWidthStore.getState().width).toBe(DEFAULT_SIDEBAR_WIDTH + 16)
   })

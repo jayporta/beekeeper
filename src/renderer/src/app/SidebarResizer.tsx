@@ -49,7 +49,6 @@ export function SidebarResizer({
   const drag = useRef<Drag | null>(null)
   const [dragging, setDragging] = useState(false)
   const frame = useRef<number | null>(null)
-  const pendingKey = useRef<number | null>(null)
 
   useEffect(() => cancelFrame, [])
 
@@ -61,12 +60,6 @@ export function SidebarResizer({
 
   function limit(px: number): number {
     return Math.min(max, Math.max(min, px))
-  }
-
-  function commitKey(): void {
-    if (pendingKey.current === null) return
-    onCommit(pendingKey.current)
-    pendingKey.current = null
   }
 
   function end(): void {
@@ -86,15 +79,10 @@ export function SidebarResizer({
     const step = event.shiftKey ? SIDEBAR_STEP_LARGE : SIDEBAR_STEP
     const jump = { Home: min, End: max, Enter: DEFAULT_SIDEBAR_WIDTH }[event.key]
     const nudge = { ArrowLeft: width - step, ArrowRight: width + step }[event.key]
-    if (jump !== undefined) {
-      event.preventDefault()
-      onCommit(jump)
-    } else if (nudge !== undefined) {
-      // Arrow steps preview at once and save when the key is released, so a held key doesn't write on every repeat.
-      event.preventDefault()
-      pendingKey.current = limit(nudge)
-      onPreview(pendingKey.current)
-    }
+    const next = jump ?? (nudge === undefined ? undefined : limit(nudge))
+    if (next === undefined) return
+    event.preventDefault()
+    onCommit(next)
   }
 
   function onPointerDown(event: React.PointerEvent<HTMLHRElement>): void {
@@ -131,7 +119,6 @@ export function SidebarResizer({
       className={styles.separator}
       data-dragging={dragging || undefined}
       onKeyDown={onKeyDown}
-      onKeyUp={commitKey}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={end}
