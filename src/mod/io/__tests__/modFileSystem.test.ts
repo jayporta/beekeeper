@@ -9,13 +9,22 @@ import { createModFileSystem } from '../modFileSystem'
 const encode = (text: string): Uint8Array => new TextEncoder().encode(text)
 const decode = (bytes: Uint8Array): string => new TextDecoder().decode(bytes)
 
+const ROOT = '/p'
+
+/** A fake host and the port over it, which is also what core's `isInside` sees as installed. */
 function filesystemOf(
   paths: Record<string, TestPath>,
   failures: Record<string, unknown> = {}
 ): { port: ReturnType<typeof createModFileSystem>; host: ReturnType<typeof createTestHost> } {
   const host = createTestHost({ paths, failures })
-  return { host, port: createModFileSystem({ host, cwd: '/work' }) }
+  const port = createModFileSystem({ host, cwd: '/work', projectsRoot: ROOT })
+  installFileSystem(port)
+  return { host, port }
 }
+
+const bigFile = (path = '/p/f'): Record<string, TestPath> => ({
+  [path]: { kind: 'file', bytes: encode('abcdefgh'), size: FS_READ_LIMIT + 1 }
+})
 
 async function collect(chunks: AsyncIterable<Uint8Array>): Promise<string[]> {
   const out: string[] = []
@@ -145,14 +154,35 @@ describe('readNoFollow', () => {
     expect(await port.readNoFollow('/f', 4)).toEqual({ ok: false, error: { reason: 'missing' } })
   })
 
-  it('rejects EFBIG for a file over the engine read limit that fits the cap', async () => {
-    const { port, host } = filesystemOf({ '/f': { kind: 'file', size: FS_READ_LIMIT + 1 } })
+  it('reads a file over the engine read limit through tail when it fits the cap', async () => {
+    const { port, host } = filesystemOf(bigFile())
     const readBytes = vi.spyOn(host, 'readBytes')
 
-    const error = await rejectionOf(port.readNoFollow('/f', FS_READ_LIMIT * 2))
+    const result = await port.readNoFollow('/p/f', FS_READ_LIMIT * 2)
 
-    expect(errorCode(error)).toBe('EFBIG')
+    expect(result.ok && decode(result.value)).toBe('abcdefgh')
     expect(readBytes).not.toHaveBeenCalled()
+  })
+
+  it('refuses a file over the engine read limit that is over the cap', async () => {
+    const { port } = filesystemOf(bigFile())
+
+    expect(await port.readNoFollow('/p/f', FS_READ_LIMIT)).toEqual({
+      ok: false,
+      error: { reason: 'too-large' }
+    })
+  })
+
+  it('rejects EACCES for a big file whose real path is outside the projects folder', async () => {
+    const { port, host } = filesystemOf({
+      '/p/f': { kind: 'file', size: FS_READ_LIMIT + 1, isLink: false, realPath: '/etc/passwd' }
+    })
+    const tail = vi.spyOn(host, 'tail')
+
+    expect(errorCode(await rejectionOf(port.readNoFollow('/p/f', FS_READ_LIMIT * 2)))).toBe(
+      'EACCES'
+    )
+    expect(tail).not.toHaveBeenCalled()
   })
 
   it('rethrows other failures as port errors', async () => {
@@ -208,11 +238,19 @@ describe('readChunks', () => {
     expect(await rejectionOf(chunks.next())).toBeInstanceOf(RangeError)
   })
 
-  it('rejects EFBIG on the first pull for a file over the engine read limit', async () => {
-    const { port } = filesystemOf({ '/f': { kind: 'file', size: FS_READ_LIMIT + 1 } })
-    const chunks = port.readChunks('/f', { start: 0 })[Symbol.asyncIterator]()
+  it('streams a file over the engine read limit through tail', async () => {
+    const { port, host } = filesystemOf(bigFile())
+    const tail = vi.spyOn(host, 'tail')
 
-    expect(errorCode(await rejectionOf(chunks.next()))).toBe('EFBIG')
+    expect((await collect(port.readChunks('/p/f', { start: 2 }))).join('')).toBe('cdefgh')
+    expect(tail).toHaveBeenCalledWith('/p/f', 2)
+  })
+
+  it('rejects EACCES on the first pull for a big file outside the projects folder', async () => {
+    const { port } = filesystemOf(bigFile('/etc/big'))
+    const chunks = port.readChunks('/etc/big', { start: 0 })[Symbol.asyncIterator]()
+
+    expect(errorCode(await rejectionOf(chunks.next()))).toBe('EACCES')
   })
 })
 
@@ -245,12 +283,40 @@ describe('readRange', () => {
     )
   })
 
-  it('rejects EFBIG for a file over the engine read limit', async () => {
-    const { port } = filesystemOf({ '/f': { kind: 'file', size: FS_READ_LIMIT + 1 } })
+  it('reads a range of a file over the engine read limit through tail', async () => {
+    const { port, host } = filesystemOf(bigFile())
+    const tail = vi.spyOn(host, 'tail')
 
-    expect(errorCode(await rejectionOf(port.readRange('/f', { position: 0, length: 1 })))).toBe(
-      'EFBIG'
-    )
+    expect(decode(await port.readRange('/p/f', { position: 2, length: 3 }))).toBe('cde')
+    expect(tail).toHaveBeenCalledWith('/p/f', 2)
+  })
+
+  it('stops pulling from tail once it has the bytes it asked for', async () => {
+    const { port, host } = filesystemOf(bigFile())
+    let pulled = 0
+    let returned = false
+    vi.spyOn(host, 'tail').mockImplementation(async function* () {
+      try {
+        for (;;) {
+          pulled += 1
+          yield { stream: 'stdout' as const, text: 'abcd' }
+        }
+      } finally {
+        returned = true
+      }
+    })
+
+    expect(decode(await port.readRange('/p/f', { position: 0, length: 6 }))).toBe('abcdab')
+    expect(pulled).toBe(2)
+    expect(returned).toBe(true)
+  })
+
+  it('answers empty for a zero length without spawning tail', async () => {
+    const { port, host } = filesystemOf(bigFile())
+    const tail = vi.spyOn(host, 'tail')
+
+    expect(await port.readRange('/p/f', { position: 0, length: 0 })).toHaveLength(0)
+    expect(tail).not.toHaveBeenCalled()
   })
 })
 
@@ -264,7 +330,7 @@ describe('realPath', () => {
   it('rejects ENOENT when the engine reports no real path', async () => {
     const { host } = filesystemOf({})
     vi.spyOn(host, 'stat').mockResolvedValue({ kind: 'file', size: 0, mtimeMs: 0, isLink: false })
-    const port = createModFileSystem({ host, cwd: '/work' })
+    const port = createModFileSystem({ host, cwd: '/work', projectsRoot: ROOT })
 
     expect(errorCode(await rejectionOf(port.realPath('/x')))).toBe('ENOENT')
   })

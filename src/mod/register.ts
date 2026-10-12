@@ -17,7 +17,12 @@ export function hostOf($: Engine): ModHost {
     readBytes: async (path) =>
       Uint8Array.fromBase64((await $.fs.read(path, { as: 'bytes' })).base64),
     list: (path) => $.fs.list(path),
-    stat: (path) => $.fs.stat(path, { resolve: true })
+    stat: (path) => $.fs.stat(path, { resolve: true }),
+    tail: (path, start) => {
+      if (!Number.isSafeInteger(start) || start < 0) throw new RangeError('start is not an offset')
+      if (!path.startsWith('/')) throw new RangeError('path is not absolute')
+      return $.process.spawn({ argv: ['tail', '-c', `+${start + 1}`, path] })
+    }
   }
 }
 

@@ -26,6 +26,22 @@ export interface HostStat {
   readonly realPath?: string
 }
 
+/** One decoded piece of a spawned child's output. */
+export interface HostTailChunk {
+  /** The pipe the text came from. */
+  readonly stream: 'stdout' | 'stderr'
+  /** What the child wrote, decoded as UTF-8. */
+  readonly text: string
+}
+
+/** How a spawned child ended. */
+export interface HostTailResult {
+  /** The exit status; null when a signal ended it. */
+  readonly code: number | null
+  /** The signal that ended it; null when it exited on its own. */
+  readonly signal: string | null
+}
+
 /** What the mod's logic may ask of the engine. `register.ts` builds one from `$` and is the only place that touches `$`. */
 export interface ModHost {
   /** The engine's version: `$.session.version()`. */
@@ -36,4 +52,10 @@ export interface ModHost {
   list(path: string): Promise<readonly HostEntry[]>
   /** What a path leads to and where it lands: `$.fs.stat(path, { resolve: true })`. */
   stat(path: string): Promise<HostStat>
+  /**
+   * A file's text from byte `start` on: `$.process.spawn({ argv: ['tail', '-c', '+<start + 1>', path] })`.
+   * Throws unless `start` is a non-negative safe integer and `path` is absolute. Ending the
+   * iteration early kills the child. Only `readThroughTail` calls it, after confining `path`.
+   */
+  tail(path: string, start: number): AsyncGenerator<HostTailChunk, HostTailResult>
 }

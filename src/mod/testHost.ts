@@ -1,4 +1,4 @@
-import type { HostEntry, HostStat, ModHost } from './modHost'
+import type { HostEntry, HostStat, HostTailChunk, HostTailResult, ModHost } from './modHost'
 
 /** One path in the fake host's file system. */
 export type TestPath =
@@ -13,6 +13,8 @@ export type TestPath =
       readonly isLink?: boolean
       /** Where the path lands; defaults to the path itself. */
       readonly realPath?: string
+      /** The exit status `tail` ends with; defaults to 0. */
+      readonly tailExitCode?: number
     }
   | {
       /** A directory or anything else that is not a regular file. */
@@ -34,6 +36,9 @@ export interface TestHostAnswers {
   /** What a call on a path throws instead of answering, as an engine rejection would. */
   failures?: Readonly<Record<string, unknown>>
 }
+
+/** How many characters of a file the fake `tail` hands out at a time. */
+const TAIL_PIECE = 3
 
 /**
  * Builds a fake `ModHost` for tests.
@@ -62,6 +67,15 @@ export function createTestHost(answers: TestHostAnswers = {}): ModHost {
       if (found.kind !== 'dir')
         throw Object.assign(new Error('not a directory'), { code: 'ENOTDIR' })
       return found.entries ?? []
+    },
+    tail: async function* (path, start): AsyncGenerator<HostTailChunk, HostTailResult> {
+      const found = lookup(path)
+      if (found.kind !== 'file') return { code: 1, signal: null }
+      const text = new TextDecoder().decode((found.bytes ?? new Uint8Array(0)).subarray(start))
+      for (let offset = 0; offset < text.length; offset += TAIL_PIECE) {
+        yield { stream: 'stdout', text: text.slice(offset, offset + TAIL_PIECE) }
+      }
+      return { code: found.tailExitCode ?? 0, signal: null }
     },
     stat: async (path): Promise<HostStat> => {
       const found = lookup(path)

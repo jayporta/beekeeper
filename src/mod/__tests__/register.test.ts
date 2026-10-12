@@ -71,6 +71,29 @@ describe('register', () => {
       expect(calls).toEqual([{ name: 'fs.stat', args: ['/p', { resolve: true }] }])
     })
 
+    it('spawns tail one byte past the offset, because tail counts from 1', async () => {
+      const { $, calls } = createTestEngine()
+
+      await hostOf($).tail('/abs/file', 5).next()
+
+      expect(calls).toEqual([
+        { name: 'process.spawn', args: [{ argv: ['tail', '-c', '+6', '/abs/file'] }] }
+      ])
+    })
+
+    it.each([
+      ['a negative start', '/abs/file', -1],
+      ['a fractional start', '/abs/file', 1.5],
+      ['an unsafe start', '/abs/file', Number.MAX_SAFE_INTEGER + 1],
+      ['a relative path', 'file', 0],
+      ['a path that looks like an option', '-f', 0]
+    ])('refuses %s before any spawn', (_name, path, start) => {
+      const { $, calls } = createTestEngine()
+
+      expect(() => hostOf($).tail(path, start)).toThrow()
+      expect(calls).toEqual([])
+    })
+
     // readBytes is not tested here: Uint8Array.fromBase64 needs Node 25, and CI runs Node 24.
     // The plugin smoke test covers it.
   })
