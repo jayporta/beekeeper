@@ -10,8 +10,9 @@
  * Both schemes meet the same targets on the ground, the surface, the selected ground, and the hover
  * tints over the ground and the surface: APCA Lc 90 for body text, Lc 75 for muted, accent and
  * selected text, and WCAG 2 4.5:1 for text (pills, project buttons and KPI tiles included) and 3:1
- * for a control's edge, the focus ring, and the marks that carry meaning. A hover tint over the
- * selected ground falls short, so nothing selected takes one.
+ * for a control's edge and the focus ring. The marks that carry meaning (token classes, models,
+ * agent kinds) hold 3:1 on the card ground, where charts and bars sit; a mark placed on the surface
+ * needs its own check. A hover tint over the selected ground falls short, so nothing selected takes one.
  */
 :root {
   color-scheme: light dark;

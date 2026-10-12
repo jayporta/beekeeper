@@ -38,6 +38,12 @@
       outline: var(--border-width-strong) solid CanvasText;
       outline-offset: calc(-1 * var(--border-width-strong));
     }
+
+    /* The marking outline would otherwise replace the focus ring on the current row. */
+    &:focus-visible {
+      outline: var(--focus-ring);
+      outline-offset: var(--focus-ring-offset);
+    }
   }
 }
 

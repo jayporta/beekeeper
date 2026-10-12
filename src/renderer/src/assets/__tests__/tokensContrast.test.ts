@@ -107,7 +107,7 @@ const PILL_PAIRS: readonly (readonly [string, string])[] = [
   )
 ]
 
-/** Marks that carry meaning in a chart, a bar, or a graph: 3:1 against the ground (WCAG 1.4.11). */
+/** Marks that carry meaning in a chart, a bar, or a graph: 3:1 against the card ground they sit on (WCAG 1.4.11). */
 const MARK_TOKENS = [
   '--color-token-input',
   '--color-token-output',
