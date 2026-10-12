@@ -1,56 +1,142 @@
 /*
  * The single source of design tokens: color, type, spacing, radius, and focus for every component.
  *
- * Palette: Industry. Text and the divider carry no alpha: each is a solid color, so contrast is the
- * same on every surface and `__tests__/tokensContrast.test.ts` can check it. Declare every color as
- * a hex value or a `var()` reference to one, since that test resolves them.
+ * Palette: redesign v2, an indigo accent on a cool gray ground. Text and the divider carry no alpha:
+ * each is a solid color, so contrast is the same on every surface and
+ * `__tests__/tokensContrast.test.ts` can check it. Declare every color as a hex value or a `var()`
+ * reference to one, since that test resolves them (the hover tint is the one translucent color, and
+ * the test reads its opacity).
  *
  * Both schemes meet the same targets on the ground, the surface, the selected ground, and the hover
- * tints over the ground and the surface: APCA Lc 90 for body text, Lc 75 for muted and accent text,
- * and WCAG 2 4.5:1 for text and 3:1 for a control's edge and the focus ring. A hover tint over the
+ * tints over the ground and the surface: APCA Lc 90 for body text, Lc 75 for muted, accent and
+ * selected text, and WCAG 2 4.5:1 for text (pills, project buttons and KPI tiles included) and 3:1
+ * for a control's edge, the focus ring, and the marks that carry meaning. A hover tint over the
  * selected ground falls short, so nothing selected takes one.
  */
 :root {
   color-scheme: light dark;
 
   /* Ground, surface, and text. */
+  /* The card and sidebar ground, where most text sits. */
   --color-bg: #ffffff;
-  --color-surface: #f4f4f5;
-  --color-text: #1d1f20;
+  /* The page ground, the graph canvas, and inset tables. */
+  --color-surface: #f4f5f9;
+  --color-text: #1c2230;
   /* Secondary text, a solid color. Holds Lc 75 on every ground the test checks. */
-  --color-text-muted: #4e4e4f;
-  /* The ground of the current project row, a selected graph node, and an inspector flag. */
-  --color-selected: var(--color-accent-200);
+  --color-text-muted: #4a5365;
+  /* The ground of the current nav row, a table row on hover, a search match, a selected graph node, and an inspector flag. */
+  --color-selected: var(--color-accent-100);
+  /* Text on the selected ground, and on the info pill. */
+  --color-selected-text: #3730a3;
 
-  /* Divider: text at about 16% on ground. A decorative frame only, at about 1.4:1. */
-  --color-divider: #dbdbdb;
+  /* Divider: a decorative frame only, at about 1.2:1. */
+  --color-divider: #eceef3;
   --color-border: var(--color-divider);
-  /* A control's edge. Passes 3:1 on ground and surface (WCAG 1.4.11). */
-  --color-border-strong: #767879;
+  /* A control's edge: the search field and the zoom control. Passes 3:1 on ground and surface (WCAG 1.4.11). */
+  --color-border-strong: #848d9f;
   --color-surface-header: var(--color-surface);
-  /* The tint a row takes on hover: text at this opacity over transparent, so it works on any surface. The contrast test reads the opacity. */
+  /* A card's edge, a table header's rule, and a chart baseline or link underline. Decorative. */
+  --color-card-border: #e6e8ef;
+  --color-rule: #dde0e8;
+  --color-rule-strong: #c9ceda;
+  --shadow-card: 0 1px 2px rgb(20 24 40 / 4%), 0 4px 14px rgb(20 24 40 / 4%);
+  /* The tint a row takes on hover: the accent at this opacity over transparent, so it works on any surface. The contrast test reads the opacity. */
   --opacity-hover: 0.05;
   --color-hover: color-mix(
     in srgb,
-    var(--color-text) calc(var(--opacity-hover) * 100%),
+    var(--color-accent) calc(var(--opacity-hover) * 100%),
     transparent
   );
   /* The blueprint "+" marks on a card's corners: text at 55%. Decorative. */
   --color-blueprint-mark: color-mix(in srgb, var(--color-text) 55%, transparent);
 
   /* Accent. The ramp inverts in dark mode, so 100 is always the lightest tint against the ground. */
-  --color-accent: #5980a6;
-  --color-accent-100: #eef6ff;
-  --color-accent-200: #d6ebff;
-  --color-accent-300: #b5d9fd;
-  --color-accent-400: #94bce3;
-  --color-accent-500: #749dc4;
-  --color-accent-600: #597ea3;
-  --color-accent-700: #416180;
-  --color-accent-800: #2c455d;
-  --color-accent-900: #1d2d3d;
-  /* The fill for anything that carries text, and the accent used as text. The plain accent is too light for either in light mode. */
-  --color-accent-strong: #36516b;
+  --color-accent: #4f46e5;
+  --color-accent-100: #eef0ff;
+  --color-accent-200: #e0e2ff;
+  --color-accent-400: #a5a8ff;
+  --color-accent-600: #6366f1;
+  --color-accent-700: #4f46e5;
+  --color-accent-800: #4338ca;
+  --color-accent-900: #312e81;
+  /* The kicker and link-hover text, and a fill that carries text. */
+  --color-accent-strong: #4338ca;
+  --color-chevron-hover: var(--color-accent-200);
+
+  /* A token class's color in a bar, a legend, or a figure's mark. */
+  --color-token-input: #2f6fde;
+  --color-token-output: #ec6a3c;
+  --color-token-cache-write: #1fa77a;
+  --color-token-cache-read: #c5871e;
+  /* A model's color. */
+  --color-model-opus: #7c5cff;
+  --color-model-sonnet: #1ca3af;
+  --color-model-haiku: #c5871e;
+  --color-model-other: #848d9f;
+  /* An agent kind's mark and, for a teammate and a workflow, its tinted ground. */
+  --color-kind-lead: #4f46e5;
+  --color-kind-lead-text: #ffffff;
+  --color-kind-teammate: #1a9aa6;
+  --color-kind-teammate-bg: #effafb;
+  --color-kind-workflow: #e09a12;
+  --color-kind-workflow-bg: #fff8eb;
+  --color-kind-subagent: #7c5cff;
+
+  /* A project's color by sidebar slot. The dot is decorative, since the row text names the project. */
+  --color-project-1: #4f46e5;
+  --color-project-2: #1fb3c0;
+  --color-project-3: #ec6a3c;
+  --color-project-4: #7c5cff;
+  --color-project-5: #1fa77a;
+  --color-project-6: #f0a524;
+  --color-project-7: #e0457b;
+  --color-project-8: #2f6fde;
+  --color-project-9: #8a93a6;
+  /* The same colors as a button fill, and the ink that sits on each. */
+  --color-project-button-1: #4f46e5;
+  --color-project-button-2: #1fb3c0;
+  --color-project-button-3: #ec6a3c;
+  --color-project-button-4: #7859f7;
+  --color-project-button-5: #1fa77a;
+  --color-project-button-6: #f0a524;
+  --color-project-button-7: #d04072;
+  --color-project-button-8: #2f6fde;
+  --color-project-button-9: #8a93a6;
+  --color-project-ink-1: #ffffff;
+  --color-project-ink-2: #1c2230;
+  --color-project-ink-3: #1c2230;
+  --color-project-ink-4: #ffffff;
+  --color-project-ink-5: #1c2230;
+  --color-project-ink-6: #1c2230;
+  --color-project-ink-7: #ffffff;
+  --color-project-ink-8: #ffffff;
+  --color-project-ink-9: #1c2230;
+
+  /* Pills, each a background and its text. */
+  --color-pill-error-bg: #fdecea;
+  --color-pill-error-text: #a8241a;
+  --color-pill-warning-bg: #fff3dc;
+  --color-pill-warning-text: #8a5300;
+  --color-pill-neutral-bg: #eceef3;
+  --color-pill-neutral-text: #3f4657;
+  --color-pill-info-bg: var(--color-accent-100);
+  --color-pill-info-text: var(--color-selected-text);
+  /* A file operation's chip. */
+  --color-op-create-bg: #e6f6ef;
+  --color-op-create-text: #11704f;
+  --color-op-update-bg: #e8f0fd;
+  --color-op-update-text: #1f4fa8;
+  /* A KPI tile's ground and dot, and its label and sub text. */
+  --color-kpi-tokens-bg: #e9f0fd;
+  --color-kpi-tokens-dot: #2f6fde;
+  --color-kpi-api-bg: #e6f6ef;
+  --color-kpi-api-dot: #1fa77a;
+  --color-kpi-sessions-bg: #f1edff;
+  --color-kpi-sessions-dot: #7c5cff;
+  --color-kpi-agents-bg: #fff3dc;
+  --color-kpi-agents-dot: #e09a12;
+  --color-kpi-label: #3b4252;
+  --color-kpi-sub: #4a5263;
 
   /* The chart's series, in the order the chart draws them: a navy, a dark teal, a brown, a violet, and a grey. They run from the darkest to the lightest, each at least 1.5:1 from every other, so any two segments that touch (a series with no tokens leaves a gap) differ in lightness for a reader with color blindness, and each holds 3:1 on the ground (WCAG 1.4.11). The grey also carries a hatch. */
   --color-series-1: #0a1623;
@@ -59,19 +145,22 @@
   --color-series-4: #9d54b6;
   --color-series-other: #8f9397;
 
-  --focus-ring-color: var(--color-accent-strong);
+  --focus-ring-color: var(--color-accent);
   --focus-ring-width: 2px;
   --focus-ring-offset: 2px;
   --focus-ring: var(--focus-ring-width) solid var(--focus-ring-color);
 
-  /* Barlow and Barlow Condensed ship with the app. The system stack covers glyphs outside their Latin subset. */
-  --font-body: 'Barlow', system-ui, sans-serif;
-  --font-heading: 'Barlow Condensed', var(--font-body);
+  /* Figtree ships with the app. The system stack covers glyphs outside its Latin subset. */
+  --font-body: 'Figtree', system-ui, sans-serif;
+  --font-heading: var(--font-body);
   --font-mono: ui-monospace, Menlo, monospace;
   --line-height-body: 1.5;
+  --font-weight-regular: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
+  --font-weight-bold: 700;
   --letter-spacing-caps: 0.08em;
+  --letter-spacing-title: -0.01em;
   /* Sizes by pixel at a 16px root: 2xs 11, xs 12, sm 13, body 14, md 15, lg 18, xl 19, 2xl 24, 3xl 25, 4xl 32, 5xl 34. */
   --font-size-2xs: 0.6875rem;
   --font-size-xs: 0.75rem;
@@ -86,6 +175,12 @@
   --font-size-5xl: 2.125rem;
   /* The figure on a session card: 20px. */
   --font-size-figure: 1.25rem;
+  /* The app name 22px, a page title 30px, a card title 17px, a KPI figure 38px, and the inspector's name 28px. */
+  --font-size-brand: 1.375rem;
+  --font-size-page-title: 1.875rem;
+  --font-size-card-title: 1.0625rem;
+  --font-size-kpi: 2.375rem;
+  --font-size-inspector-name: 1.75rem;
 
   /* Spacing is N x 4px. The half steps (1-5 is 6px), 5 (20px), and 5-5 (22px) come from the design. */
   --space-1: 0.25rem;
@@ -105,7 +200,19 @@
   /* Layout sizes. */
   /* Main's padding; the session detail view's fill height subtracts it. */
   --space-main: var(--space-6);
-  --size-sidebar: 13rem;
+  --size-sidebar: 16.25rem;
+  /* The main column's widest content: 1320px, in a padding of 18px above, 24px at the sides and 48px below. */
+  --size-main-max: 82.5rem;
+  --space-main-block: 1.125rem;
+  --space-main-inline: var(--space-6);
+  --space-main-end: 3rem;
+  /* The gap between the cards of a page. */
+  --space-grid: var(--space-4-5);
+  /* A project dot 9px, a worktree chevron's box 26px, a share bar 6px, and a selected node's ring 3px. */
+  --size-dot: 9px;
+  --size-chevron: 1.625rem;
+  --size-share-bar: 6px;
+  --size-selection-ring: 3px;
   --size-readable: 44rem;
   /* A modal dialog that holds a few short paragraphs. */
   --size-dialog-narrow: 30rem;
@@ -158,31 +265,61 @@
   --radius-none: 0;
   --radius-sm: 2px;
   --radius-md: 4px;
+  --radius-card: 16px;
+  --radius-tile: 14px;
+  --radius-node: 10px;
+  --radius-control: 10px;
+  --radius-nav: 8px;
+  --radius-mark: 3px;
+  --radius-pill: 999px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-bg: #17191b;
-    --color-surface: #1f2225;
-    --color-text: #eff0f1;
-    --color-text-muted: #d7d8d9;
-    /* Between accent 100 and 200, so the current project row still stands out from the surface. */
-    --color-selected: #263b50;
+    --color-bg: #181b24;
+    --color-surface: #0f1117;
+    --color-text: #eef0f6;
+    --color-text-muted: #d1d5de;
+    --color-selected: #20244a;
+    --color-selected-text: #cfd1ff;
 
-    --color-divider: #3c3e40;
-    --color-border-strong: #7a7d80;
+    --color-divider: #2a2f3c;
+    --color-border-strong: #7d869b;
+    --color-card-border: #2a2f3c;
+    --color-rule: #343a4a;
+    --color-rule-strong: #4a5163;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 30%);
 
-    --color-accent: #8fb3d9;
-    --color-accent-100: #1d2d3d;
-    --color-accent-200: #2c455d;
-    --color-accent-300: #416180;
-    --color-accent-400: #597ea3;
-    --color-accent-500: #749dc4;
-    --color-accent-600: #94bce3;
-    --color-accent-700: #b5d9fd;
-    --color-accent-800: #d6ebff;
-    --color-accent-900: #eef6ff;
-    --color-accent-strong: #c8daec;
+    --color-accent: #9ea1ff;
+    --color-accent-100: #1d2142;
+    --color-accent-200: #2a2e63;
+    --color-accent-400: #4d50b0;
+    --color-accent-600: #7f83f5;
+    --color-accent-700: #9ea1ff;
+    --color-accent-800: #cfd1ff;
+    --color-accent-900: #e4e5ff;
+    --color-accent-strong: #cfd1ff;
+
+    --color-kind-teammate-bg: #10292c;
+    --color-kind-workflow-bg: #2e2410;
+
+    --color-pill-error-bg: #3d1f1f;
+    --color-pill-error-text: #ffb4ab;
+    --color-pill-warning-bg: #3a2c12;
+    --color-pill-warning-text: #ffcf7a;
+    --color-pill-neutral-bg: #2a2f3c;
+    --color-pill-neutral-text: #d5d9e4;
+    --color-op-create-bg: #123327;
+    --color-op-create-text: #8ee0b8;
+    --color-op-update-bg: #1b2a48;
+    --color-op-update-text: #a9c7ff;
+    --color-kpi-tokens-bg: #17243d;
+    --color-kpi-api-bg: #13302a;
+    --color-kpi-sessions-bg: #241e40;
+    --color-kpi-agents-bg: #33270f;
+    --color-kpi-label: var(--color-text);
+    --color-kpi-sub: var(--color-text-muted);
+
     --color-series-1: #3c699e;
     --color-series-2: #319386;
     --color-series-3: #d49955;
