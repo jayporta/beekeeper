@@ -13,7 +13,7 @@ import { collectBytes } from './collectBytes'
 import { FS_READ_LIMIT } from './fsReadLimit'
 import { joinPath, resolvePath } from './posixPath'
 import { readThroughTail } from './readThroughTail'
-import { portError, withPortError } from './toPortError'
+import { portError, toPortError, withPortError } from './toPortError'
 import { createWholeFileCache } from './wholeFileCache'
 
 const DEFAULT_CHUNK_SIZE = 64 * 1024
@@ -46,28 +46,57 @@ function assertOffset(value: number, name: string): void {
  * no engine text.
  *
  * @param options - The host; the session's working directory, which relative paths resolve
- * against; and the real path of the projects folder, which bounds the files read through `tail`.
+ * against; the projects folder, which bounds the files read through `tail`; and whether that path is
+ * its real path (false when the folder was absent at startup).
  * @returns The adapter to install with `installFileSystem`.
  */
 export function createModFileSystem(options: {
   host: ModHost
   cwd: string
   projectsRoot: string
+  isProjectsRootResolved: boolean
 }): FileSystemPort {
-  const { host, cwd, projectsRoot } = options
+  const { host, cwd } = options
+  let projectsRoot = options.projectsRoot
+  let isRootResolved = options.isProjectsRootResolved
 
   const cache = createWholeFileCache()
 
-  const throughTail = (stat: HostStat, start: number): AsyncGenerator<Uint8Array, void> =>
-    readThroughTail({ host, projectsRoot, realPath: stat.realPath, start })
+  /**
+   * The projects folder's real path. A folder that was absent at startup may sit behind a link, so it
+   * is resolved again on a tail read, and kept once it resolves.
+   */
+  async function resolvedRoot(): Promise<string> {
+    if (!isRootResolved) {
+      try {
+        projectsRoot = (await host.stat(projectsRoot)).realPath ?? projectsRoot
+        isRootResolved = true
+      } catch (error) {
+        const failure = toPortError(error)
+        // Still absent: confine against the path as it stands.
+        if (!isMissingEntryError(failure)) throw failure
+      }
+    }
+    return projectsRoot
+  }
+
+  async function* throughTail(stat: HostStat, start: number): AsyncGenerator<Uint8Array, void> {
+    yield* readThroughTail({
+      host,
+      projectsRoot: await resolvedRoot(),
+      realPath: stat.realPath,
+      start
+    })
+  }
 
   /** The bytes of a file, whole, from the last read when the file hasn't changed since. */
   async function readWhole(path: string, stat: HostStat): Promise<Uint8Array> {
     if (stat.size > FS_READ_LIMIT) return collectBytes(throughTail(stat, 0), Infinity)
-    const cached = cache.get(path, stat)
+    const key = stat.realPath ?? path
+    const cached = cache.get(key, stat)
     if (cached !== undefined) return cached
     const bytes = await withPortError(host.readBytes(path))
-    cache.set({ path, size: stat.size, mtimeMs: stat.mtimeMs, bytes })
+    cache.set({ path: key, size: stat.size, mtimeMs: stat.mtimeMs, bytes })
     return bytes
   }
 

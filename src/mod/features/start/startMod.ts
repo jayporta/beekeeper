@@ -36,16 +36,23 @@ export async function startMod(host: ModHost, session: { cwd: string }): Promise
     if (!meetsMinimumVersion(version, MINIMUM_CLAUDE_CODE)) {
       return { kind: 'too-old', version: version.version }
     }
-    const [projectsRoot, platform, repoVariables] = await Promise.all([
+    const [root, platform, repoVariables] = await Promise.all([
       locateProjectsRoot(host),
       host.osName().then(platformOf, () => platformOf('')),
       host.gitRepoVariablesSet()
     ])
-    if (projectsRoot === undefined) return { kind: 'failed' }
+    if (root === undefined) return { kind: 'failed' }
     const gitDisabled = repoVariables.length > 0
-    installFileSystem(createModFileSystem({ host, cwd: session.cwd, projectsRoot }))
+    installFileSystem(
+      createModFileSystem({
+        host,
+        cwd: session.cwd,
+        projectsRoot: root.path,
+        isProjectsRootResolved: root.isResolved
+      })
+    )
     installProcessPort(createModProcessPort({ host, platform, gitDisabled }))
-    return { kind: 'ready', projectsRoot, gitDisabled }
+    return { kind: 'ready', projectsRoot: root.path, gitDisabled }
   } catch {
     return { kind: 'failed' }
   }

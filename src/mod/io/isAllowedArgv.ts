@@ -5,7 +5,9 @@ const PROBES: readonly (readonly [string, readonly string[]])[] = [
 
 /**
  * Whether the mod may run this program: git by absolute path, or one of the two macOS probes
- * `locateGit` makes to find it. Core checks git's own arguments against `gitAllowlist.ts`.
+ * `locateGit` makes to find it. Git's arguments are not checked here: core checks the commands it
+ * runs in a repository against `gitAllowlist.ts`, but `locateGit` also runs `<candidate> --version`
+ * without that check.
  *
  * @param file - The program's path.
  * @param args - The arguments after it.

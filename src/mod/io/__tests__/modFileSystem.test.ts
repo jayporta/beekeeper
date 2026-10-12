@@ -18,7 +18,12 @@ function filesystemOf(
   failures: Record<string, unknown> = {}
 ): { port: ReturnType<typeof createModFileSystem>; host: ReturnType<typeof createTestHost> } {
   const host = createTestHost({ paths, failures })
-  const port = createModFileSystem({ host, cwd: '/work', projectsRoot: ROOT })
+  const port = createModFileSystem({
+    host,
+    cwd: '/work',
+    projectsRoot: ROOT,
+    isProjectsRootResolved: true
+  })
   installFileSystem(port)
   return { host, port }
 }
@@ -365,7 +370,12 @@ describe('realPath', () => {
   it('rejects ENOENT when the engine reports no real path', async () => {
     const { host } = filesystemOf({})
     vi.spyOn(host, 'stat').mockResolvedValue({ kind: 'file', size: 0, mtimeMs: 0, isLink: false })
-    const port = createModFileSystem({ host, cwd: '/work', projectsRoot: ROOT })
+    const port = createModFileSystem({
+      host,
+      cwd: '/work',
+      projectsRoot: ROOT,
+      isProjectsRootResolved: true
+    })
 
     expect(errorCode(await rejectionOf(port.realPath('/x')))).toBe('ENOENT')
   })
@@ -427,6 +437,78 @@ describe('with core installed on it', () => {
   })
 })
 
+describe('a projects folder that did not exist at startup', () => {
+  const ROOT_LINK = '/home/u/.claude/projects'
+  const REAL_ROOT = '/data/projects'
+  const FILE = `${REAL_ROOT}/p/s.jsonl`
+
+  function setup(isProjectsRootResolved: boolean): {
+    port: ReturnType<typeof createModFileSystem>
+    paths: Record<string, TestPath>
+    stat: MockInstance<ModHost['stat']>
+  } {
+    const paths: Record<string, TestPath> = {
+      [FILE]: { kind: 'file', bytes: encode('abcdefgh'), size: FS_READ_LIMIT + 1 }
+    }
+    const host = createTestHost({ paths })
+    const port = createModFileSystem({
+      host,
+      cwd: '/work',
+      projectsRoot: ROOT_LINK,
+      isProjectsRootResolved
+    })
+    installFileSystem(port)
+    return { port, paths, stat: vi.spyOn(host, 'stat') }
+  }
+
+  const makeRootAppear = (paths: Record<string, TestPath>): void => {
+    paths[ROOT_LINK] = { kind: 'dir', isLink: true, realPath: REAL_ROOT }
+  }
+
+  it('refuses a big file until the folder exists', async () => {
+    const { port } = setup(false)
+    const chunks = port.readChunks(FILE, { start: 0 })[Symbol.asyncIterator]()
+
+    expect(errorCode(await rejectionOf(chunks.next()))).toBe('EACCES')
+  })
+
+  it('resolves the folder through its link on the first tail read after it appears', async () => {
+    const { port, paths } = setup(false)
+    makeRootAppear(paths)
+
+    expect((await collect(port.readChunks(FILE, { start: 0 }))).join('')).toBe('abcdefgh')
+  })
+
+  it('keeps the resolved folder instead of asking again', async () => {
+    const { port, paths, stat } = setup(false)
+    makeRootAppear(paths)
+    await collect(port.readChunks(FILE, { start: 0 }))
+    stat.mockClear()
+
+    await collect(port.readChunks(FILE, { start: 0 }))
+
+    expect(stat.mock.calls.map(([path]) => path)).toEqual([FILE])
+  })
+
+  it('still refuses a file outside the resolved folder', async () => {
+    const { port, paths } = setup(false)
+    makeRootAppear(paths)
+    paths['/data/other/x'] = { kind: 'file', bytes: encode('x'), size: FS_READ_LIMIT + 1 }
+    const chunks = port.readChunks('/data/other/x', { start: 0 })[Symbol.asyncIterator]()
+
+    expect(errorCode(await rejectionOf(chunks.next()))).toBe('EACCES')
+  })
+
+  it('does not ask about a folder that was resolved at startup', async () => {
+    const { port, paths, stat } = setup(true)
+    makeRootAppear(paths)
+
+    await rejectionOf(collect(port.readChunks(FILE, { start: 0 })))
+
+    expect(stat.mock.calls.map(([path]) => path)).toEqual([FILE])
+  })
+})
+
 describe('the last whole-file read', () => {
   const file = (extra: Partial<TestPath> = {}): TestPath => ({
     kind: 'file',
@@ -481,6 +563,17 @@ describe('the last whole-file read', () => {
     paths['/p/f'] = file({ bytes: encode('ABCDEFGH'), mtimeMs: 2000 })
 
     expect(decode(await port.readRange('/p/f', { position: 0, length: 2 }))).toBe('AB')
+    expect(readBytes).toHaveBeenCalledTimes(2)
+  })
+
+  it('misses when a link is re-pointed to another file of the same size and time', async () => {
+    const { port, paths, readBytes } = setup()
+    paths['/p/l'] = file({ isLink: true, realPath: '/p/f', bytes: encode('aaaa') })
+    await port.readRange('/p/l', { position: 0, length: 4 })
+
+    paths['/p/l'] = file({ isLink: true, realPath: '/p/g', bytes: encode('bbbb') })
+
+    expect(decode(await port.readRange('/p/l', { position: 0, length: 4 }))).toBe('bbbb')
     expect(readBytes).toHaveBeenCalledTimes(2)
   })
 

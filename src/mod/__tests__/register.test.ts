@@ -193,7 +193,7 @@ describe('register', () => {
     })
 
     // readBytes is not tested here: Uint8Array.fromBase64 needs Node 25, and CI runs Node 24.
-    // The plugin smoke test covers it.
+    // Nothing covers it until M4 adds a plugin-kit case that reads a file.
   })
 
   describe('session.start', () => {

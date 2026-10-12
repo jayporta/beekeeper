@@ -19,7 +19,9 @@ const bigFile = (extra: Partial<TestPath> = {}): TestPath => ({
 
 function setup(paths: Record<string, TestPath>): ReturnType<typeof createTestHost> {
   const host = createTestHost({ paths })
-  installFileSystem(createModFileSystem({ host, cwd: '/work', projectsRoot: ROOT }))
+  installFileSystem(
+    createModFileSystem({ host, cwd: '/work', projectsRoot: ROOT, isProjectsRootResolved: true })
+  )
   return host
 }
 
@@ -38,7 +40,12 @@ const rejectionOf = async (promise: Promise<unknown>): Promise<unknown> =>
 describe('readThroughTail', () => {
   beforeEach(() => {
     installFileSystem(
-      createModFileSystem({ host: createTestHost(), cwd: '/work', projectsRoot: ROOT })
+      createModFileSystem({
+        host: createTestHost(),
+        cwd: '/work',
+        projectsRoot: ROOT,
+        isProjectsRootResolved: true
+      })
     )
   })
 
@@ -123,6 +130,28 @@ describe('readThroughTail', () => {
     await chunks.return()
 
     expect(returned).toBe(true)
+  })
+
+  it.each([
+    ['fails to start', 'spawn /secret/path ENOENT', 'ENOENT', false],
+    ['fails mid-stream', 'read of /secret/path went wrong', 'EIO', true]
+  ])('rejects with a code and no path when the spawn %s', async (_name, text, code, midStream) => {
+    const host = setup({ [FILE]: bigFile() })
+    vi.spyOn(host, 'tail').mockImplementation(async function* (): AsyncGenerator<
+      HostTailChunk,
+      HostTailResult
+    > {
+      if (midStream) yield { stream: 'stdout', text: 'ok' }
+      throw new Error(text)
+    })
+
+    const error = await rejectionOf(
+      textOf(readThroughTail({ host, projectsRoot: ROOT, realPath: FILE, start: 0 }))
+    )
+
+    expect(errorCode(error)).toBe(code)
+    expect((error as Error).message).toBe(code)
+    expect((error as Error).message).not.toContain('/secret/path')
   })
 
   it('ignores stderr text', async () => {

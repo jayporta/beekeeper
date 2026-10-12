@@ -1,6 +1,6 @@
 import { isInside } from '../../core/git/isInside'
 import type { ModHost } from '../modHost'
-import { portError } from './toPortError'
+import { portError, withPortError } from './toPortError'
 
 /** What {@link readThroughTail} needs to stream a file. */
 export interface ReadThroughTailOptions {
@@ -26,8 +26,9 @@ export interface ReadThroughTailOptions {
  *
  * @param options - The host, the projects folder, the file's real path, and where to start.
  * @returns The file's bytes in order.
- * @throws {Error} With code `EACCES` when the file lands outside the projects folder, or `EIO` when
- * `tail` fails.
+ * @throws {Error} With code `EACCES` when the file lands outside the projects folder, `EIO` when
+ * `tail` exits non-zero, or the code the engine's failure carries when the spawn fails (`EIO`
+ * if it has none). The message is the code alone, never the engine's text.
  */
 export async function* readThroughTail(
   options: ReadThroughTailOptions
@@ -41,7 +42,7 @@ export async function* readThroughTail(
   const tail = host.tail(realPath, start)
   try {
     for (;;) {
-      const step = await tail.next()
+      const step = await withPortError(tail.next())
       if (step.done) {
         if (step.value.code !== 0) throw portError('EIO')
         return
@@ -49,6 +50,6 @@ export async function* readThroughTail(
       if (step.value.stream === 'stdout') yield encoder.encode(step.value.text)
     }
   } finally {
-    await tail.return({ code: null, signal: null })
+    await withPortError(tail.return({ code: null, signal: null }))
   }
 }
