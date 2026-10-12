@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { ProjectDto } from '../../../../../shared/ipc/projectDto'
 import { groupProjects } from '@renderer/features/projects/groupProjects'
 import type { FolderTotalsState } from '../folderTotalsState'
-import { overviewTotals, projectTotalsOf } from '../projectTotalsOf'
+import { folderTotalsOf, overviewTotals, projectTotalsOf } from '../projectTotalsOf'
 import { readyTotals } from '../testTotals'
 
 const folder = (dirName: string, worktreeOf: string | null = null): ProjectDto => ({
@@ -52,6 +52,31 @@ describe('projectTotalsOf', () => {
     expect(projectTotalsOf(orphan!, states([['-b--wt', readyTotals({ tokens: 9 })]])).tokens).toBe(
       9
     )
+  })
+})
+
+describe('folderTotalsOf', () => {
+  it('adds one folder on its own, not the folders grouped with it', () => {
+    const byFolder = states([
+      ['-a', readyTotals({ tokens: 100, sessions: 1 })],
+      ['-a--wt1', readyTotals({ tokens: 20, sessions: 2 })]
+    ])
+
+    expect(folderTotalsOf('-a--wt1', byFolder)).toMatchObject({
+      tokens: 20,
+      sessions: 2,
+      folders: { ready: 1, loading: 0, failed: 0 }
+    })
+  })
+
+  it('counts a folder with no entry yet as loading', () => {
+    expect(folderTotalsOf('-a', states([])).folders).toEqual({ ready: 0, loading: 1, failed: 0 })
+  })
+
+  it('counts a failed folder as failed', () => {
+    const byFolder = states([['-a', { status: 'error', code: 'not-found' }]])
+
+    expect(folderTotalsOf('-a', byFolder).folders).toEqual({ ready: 0, loading: 0, failed: 1 })
   })
 })
 

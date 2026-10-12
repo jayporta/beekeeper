@@ -1,0 +1,6 @@
+/* The worktrees indent beneath their project. No display is set, so `hidden` hides the list. */
+.worktrees {
+  padding: 0;
+  margin-inline-start: var(--space-4-5);
+  list-style: none;
+}

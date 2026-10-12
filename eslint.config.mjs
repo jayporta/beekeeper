@@ -127,6 +127,7 @@ export default defineConfig(
               // Props whose values are identifiers or roles, not text.
               'role',
               'as',
+              'variant',
               'ns',
               'emptyReason'
             ]

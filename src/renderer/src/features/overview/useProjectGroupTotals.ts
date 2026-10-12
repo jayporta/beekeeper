@@ -3,7 +3,7 @@ import type { ProjectDto } from '../../../../shared/ipc/projectDto'
 import type { TotalsWindowDto } from '../../../../shared/ipc/projectTotalsDto'
 import { groupProjects, type ProjectGroup } from '@renderer/features/projects/groupProjects'
 import { useProjects } from '@renderer/features/projects/useProjects'
-import { overviewTotals, projectTotalsOf } from './projectTotalsOf'
+import { folderTotalsOf, overviewTotals, projectTotalsOf } from './projectTotalsOf'
 import type { AggregateTotals } from './sumTotals'
 import { useProjectTotals } from './useProjectTotals'
 
@@ -13,6 +13,8 @@ export interface ProjectGroupItem {
   readonly group: ProjectGroup
   /** What the project and its worktrees add up to. */
   readonly totals: AggregateTotals
+  /** Each worktree's own totals, by folder name, for the worktree rows. */
+  readonly worktreeTotals: ReadonlyMap<string, AggregateTotals>
 }
 
 /** What {@link useProjectGroupTotals} returns. */
@@ -44,7 +46,14 @@ export function useProjectGroupTotals(): ProjectGroupTotals {
   const { window: range, byFolder } = useProjectTotals()
   const groups = useMemo(() => groupProjects(projects ?? []), [projects])
   const items = useMemo(
-    () => groups.map((group) => ({ group, totals: projectTotalsOf(group, byFolder) })),
+    () =>
+      groups.map((group) => ({
+        group,
+        totals: projectTotalsOf(group, byFolder),
+        worktreeTotals: new Map(
+          group.worktrees.map(({ dirName }) => [dirName, folderTotalsOf(dirName, byFolder)])
+        )
+      })),
     [groups, byFolder]
   )
   const overall = useMemo(() => overviewTotals(groups, byFolder), [groups, byFolder])

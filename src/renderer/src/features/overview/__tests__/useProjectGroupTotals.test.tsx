@@ -50,6 +50,31 @@ describe('useProjectGroupTotals', () => {
     expect(result.current.items[0]?.totals.tokens).toBe(15)
   })
 
+  it('gives each worktree its own totals, by folder name, apart from its project', async () => {
+    installBeekeeperApi({
+      listProjects: () =>
+        Promise.resolve({
+          ok: true,
+          value: [
+            testProject('-a'),
+            testProject('-a-wt1', { worktreeOf: '-a', worktreeName: 'wt1' }),
+            testProject('-a-wt2', { worktreeOf: '-a', worktreeName: 'wt2' })
+          ]
+        }),
+      getProjectTotals: tokensByFolder({ '-a': 10, '-a-wt1': 5, '-a-wt2': 2 })
+    })
+
+    const { result } = renderHook(() => useProjectGroupTotals(), { wrapper: createQueryWrapper() })
+
+    await waitFor(() => {
+      expect(result.current.overall.tokens).toBe(17)
+    })
+    const { worktreeTotals } = result.current.items[0] ?? { worktreeTotals: new Map() }
+    expect([...worktreeTotals.keys()]).toEqual(['-a-wt1', '-a-wt2'])
+    expect(worktreeTotals.get('-a-wt1')?.tokens).toBe(5)
+    expect(worktreeTotals.get('-a-wt2')?.tokens).toBe(2)
+  })
+
   it('lists projects in order, with the whole adding up every one', async () => {
     installBeekeeperApi({
       listProjects: listing('-a', '-b'),

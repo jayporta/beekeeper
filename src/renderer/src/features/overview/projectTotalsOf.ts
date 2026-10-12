@@ -25,6 +25,17 @@ export function projectTotalsOf(group: ProjectGroup, byFolder: TotalsByFolder): 
 }
 
 /**
+ * Adds up one folder on its own, such as a worktree row's figure.
+ *
+ * @param dirName - The folder's name.
+ * @param byFolder - Each folder's totals state.
+ * @returns The folder's totals, loading when it has no entry yet.
+ */
+export function folderTotalsOf(dirName: string, byFolder: TotalsByFolder): AggregateTotals {
+  return sumTotals([stateOf(byFolder, dirName)])
+}
+
+/**
  * Adds up every project.
  *
  * @param groups - Every project with its worktrees.
