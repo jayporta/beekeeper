@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { isProjectChange } from '@renderer/features/navigation/isProjectChange'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
-import { sessionKey } from '@renderer/features/sessions/sessionKey'
+import { sessionKey } from '../../../../shared/sessions/sessionKey'
 import { useSelectedProjectDirName } from '@renderer/features/projects/state/useSelectedProjectDirName'
 import { SessionDetailContent } from './SessionDetailContent'
 import styles from './SessionDetailView.module.css'

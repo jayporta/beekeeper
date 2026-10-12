@@ -1,4 +1,4 @@
-import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
+import type { SessionListItemDto } from '../ipc/sessionListDto'
 import type { SessionLabel } from './sessionLabel'
 
 /** One row of the sessions list, with the teammates nested under it. */

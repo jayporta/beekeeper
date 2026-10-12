@@ -1,4 +1,4 @@
-import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
+import type { SessionListItemDto } from '../ipc/sessionListDto'
 
 /**
  * When a session was last active: the newest record timestamp in its

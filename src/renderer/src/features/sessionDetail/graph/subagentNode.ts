@@ -4,7 +4,7 @@ import type {
   AgentReportDto
 } from '../../../../../shared/ipc/agentDto'
 import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
-import { sessionKey } from '@renderer/features/sessions/sessionKey'
+import { sessionKey } from '../../../../../shared/sessions/sessionKey'
 import type { AgentGraphNode, AgentKind, NodeWorkflow } from './agentGraphNode'
 import { agentName } from './agentName'
 import { nodeMarks } from './nodeMarks'

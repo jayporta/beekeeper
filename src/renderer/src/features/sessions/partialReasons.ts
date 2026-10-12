@@ -1,6 +1,6 @@
 import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
 import { cardFigures } from './cardFigures'
-import type { SessionRow } from './sessionRow'
+import type { SessionRow } from '../../../../shared/sessions/sessionRow'
 import { sessionUsage } from './sessionUsage'
 
 /**

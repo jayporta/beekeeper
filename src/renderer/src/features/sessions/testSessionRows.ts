@@ -1,9 +1,9 @@
 import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
-import { groupSessionRows } from './groupSessionRows'
-import { sessionKey } from './sessionKey'
-import type { SessionRow } from './sessionRow'
+import { groupSessionRows } from '../../../../shared/sessions/groupSessionRows'
+import { sessionKey } from '../../../../shared/sessions/sessionKey'
+import type { SessionRow } from '../../../../shared/sessions/sessionRow'
 import { testSession } from '../../../../shared/sessions/testSessionFixtures'
-import { testSessionsT } from './testSessionsT'
+import { testLabelWords } from './testLabelWords'
 
 /**
  * The top-level row for the `n`th test session, grouped with the other
@@ -16,7 +16,7 @@ import { testSessionsT } from './testSessionsT'
  */
 export function testRow(n: number, items: readonly SessionListItemDto[]): SessionRow {
   const target = items.find((item) => item.sessionId === testSession(n).sessionId)
-  const row = groupSessionRows(items, testSessionsT).find(
+  const row = groupSessionRows(items, testLabelWords).find(
     (candidate) => target !== undefined && candidate.key === sessionKey(target)
   )
   if (row === undefined) throw new Error(`no top-level row for test session ${n}`)

@@ -1,5 +1,5 @@
 import type { AgentSearchTermDto } from '../../../../shared/ipc/sessionListDto'
-import type { SessionRow } from './sessionRow'
+import type { SessionRow } from '../../../../shared/sessions/sessionRow'
 
 /**
  * Prepares search text for matching: trimmed and lowercased.

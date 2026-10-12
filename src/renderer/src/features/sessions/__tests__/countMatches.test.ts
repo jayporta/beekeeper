@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { countMatches } from '../countMatches'
-import { groupSessionRows } from '../groupSessionRows'
+import { groupSessionRows } from '../../../../../shared/sessions/groupSessionRows'
 import {
   testAgentRole,
   testLeadTeam,
@@ -8,7 +8,7 @@ import {
   testSession,
   testTeammateTeam
 } from '../../../../../shared/sessions/testSessionFixtures'
-import { testSessionsT } from '../testSessionsT'
+import { testLabelWords } from '../testLabelWords'
 
 const lead = testSession(1, {
   title: 'Refactor parser',
@@ -24,7 +24,7 @@ const mateB = testSession(3, {
   team: testTeammateTeam(testRef(1))
 })
 const other = testSession(4, { title: 'Fix the login bug', latestMs: 1 })
-const rows = groupSessionRows([lead, mateA, mateB, other], testSessionsT)
+const rows = groupSessionRows([lead, mateA, mateB, other], testLabelWords)
 
 describe('countMatches', () => {
   it('counts every session whose label matches, leads and teammates alike', () => {
@@ -47,7 +47,7 @@ describe('countMatches', () => {
       team: testTeammateTeam(testRef(1)),
       agentTerms: [{ name: 'scout', description: null, agentType: 'Explore' }]
     })
-    const all = groupSessionRows([lead, mateWithAgent, mateB, other, withAgent], testSessionsT)
+    const all = groupSessionRows([lead, mateWithAgent, mateB, other, withAgent], testLabelWords)
 
     expect(countMatches(all, 'scout')).toBe(2)
   })

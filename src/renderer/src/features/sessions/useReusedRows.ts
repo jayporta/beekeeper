@@ -1,6 +1,6 @@
 import { replaceEqualDeep } from '@tanstack/react-query'
 import { useState } from 'react'
-import type { SessionRow } from './sessionRow'
+import type { SessionRow } from '../../../../shared/sessions/sessionRow'
 
 function sameRows(a: readonly SessionRow[], b: readonly SessionRow[]): boolean {
   return a.length === b.length && a.every((row, index) => row === b[index])

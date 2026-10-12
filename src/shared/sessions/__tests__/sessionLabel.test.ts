@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
+import type { SessionListItemDto } from '../../ipc/sessionListDto'
 import { sessionLabel, type SessionLabel } from '../sessionLabel'
-import { testAgentRole, testSession } from '../../../../../shared/sessions/testSessionFixtures'
-import { testSessionsT } from '../testSessionsT'
+import { testAgentRole, testSession } from '../testSessionFixtures'
+import { testSessionLabelWords } from '../testSessionLabelWords'
 
-const labelOf = (item: SessionListItemDto): SessionLabel => sessionLabel(item, testSessionsT)
+const labelOf = (item: SessionListItemDto): SessionLabel =>
+  sessionLabel(item, testSessionLabelWords)
 
 describe('sessionLabel', () => {
   it('uses the title for a session that has one', () => {

@@ -1,4 +1,4 @@
-import type { SessionRefDto } from '../../../../shared/ipc/sessionRefDto'
+import type { SessionRefDto } from '../ipc/sessionRefDto'
 
 /**
  * A stable key for a session across project folders, for React keys.

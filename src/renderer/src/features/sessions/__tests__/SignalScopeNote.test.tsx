@@ -1,10 +1,10 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { EMPTY_AGENT_SIGNALS_DTO } from '../../../../../shared/ipc/emptyAgentSignals'
-import { groupSessionRows } from '../groupSessionRows'
+import { groupSessionRows } from '../../../../../shared/sessions/groupSessionRows'
 import { SignalScopeNote } from '../SignalScopeNote'
 import { testSession } from '../../../../../shared/sessions/testSessionFixtures'
-import { testSessionsT } from '../testSessionsT'
+import { testLabelWords } from '../testLabelWords'
 
 const NOTE = 'Card counts cover the lead and its teammates. Open a session to see its subagents.'
 
@@ -13,7 +13,7 @@ const quiet = testSession(2)
 const unreadable = testSession(3, { unreadable: true })
 
 function renderNote(...items: Parameters<typeof groupSessionRows>[0]): void {
-  render(<SignalScopeNote rows={groupSessionRows(items, testSessionsT)} />)
+  render(<SignalScopeNote rows={groupSessionRows(items, testLabelWords)} />)
 }
 
 describe('SignalScopeNote', () => {

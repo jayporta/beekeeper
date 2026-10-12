@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { AgentReportDto } from '../../../../../../shared/ipc/agentDto'
 import type { WorkflowRunDto } from '../../../../../../shared/ipc/workflowRunDto'
-import { sessionKey } from '@renderer/features/sessions/sessionKey'
+import { sessionKey } from '../../../../../../shared/sessions/sessionKey'
 import { testRef } from '../../../../../../shared/sessions/testSessionFixtures'
 import { testDetail, testMeta, testNode, testReport, testTokenGroup } from '../../testSessionDetail'
 import type { AgentGraphNode } from '../agentGraphNode'

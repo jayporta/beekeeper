@@ -1,5 +1,4 @@
-import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
-import type { SessionsT } from './sessionsT'
+import type { SessionListItemDto } from '../ipc/sessionListDto'
 
 /** How a session is named on its card or chip. */
 export interface SessionLabel {
@@ -7,6 +6,16 @@ export interface SessionLabel {
   readonly text: string
   /** A short id to show beside a placeholder name, or `null` when the name needs none. */
   readonly idHint: string | null
+}
+
+/** The words a session label uses, in the caller's language. */
+export interface SessionLabelWords {
+  /** The name of a session whose summary can't be read. */
+  readonly unreadable: string
+  /** The name of a session with no title. */
+  readonly untitled: string
+  /** A teammate's name from its agent name and type. */
+  readonly agentName: (name: string, type: string) => string
 }
 
 /**
@@ -25,22 +34,22 @@ export function shortId(id: string): string {
  * title, with a placeholder and a short id when it has none or can't be read.
  *
  * @param item - A session list item.
- * @param t - The sessions translate function, for the placeholders and the agent name.
+ * @param words - The placeholders and the agent name format, in the caller's language.
  * @returns The label.
  */
-export function sessionLabel(item: SessionListItemDto, t: SessionsT): SessionLabel {
-  if (!item.summary.ok) return { text: t('label.unreadable'), idHint: shortId(item.sessionId) }
+export function sessionLabel(item: SessionListItemDto, words: SessionLabelWords): SessionLabel {
+  if (!item.summary.ok) return { text: words.unreadable, idHint: shortId(item.sessionId) }
 
   const { role, title } = item.summary.value
   if (role.kind === 'agent') {
     const { agentName, agentType } = role
     if (agentName !== null && agentType !== null) {
-      return { text: t('agentName', { name: agentName, type: agentType }), idHint: null }
+      return { text: words.agentName(agentName, agentType), idHint: null }
     }
     return { text: agentName ?? agentType ?? shortId(item.sessionId), idHint: null }
   }
 
   return title === null
-    ? { text: t('label.untitled'), idHint: shortId(item.sessionId) }
+    ? { text: words.untitled, idHint: shortId(item.sessionId) }
     : { text: title, idHint: null }
 }

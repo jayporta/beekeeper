@@ -1,5 +1,5 @@
 import { normalizeQuery, rowMatches } from './sessionMatches'
-import type { SessionRow } from './sessionRow'
+import type { SessionRow } from '../../../../shared/sessions/sessionRow'
 
 /**
  * Keeps the rows that match a search, by a case-insensitive substring of the

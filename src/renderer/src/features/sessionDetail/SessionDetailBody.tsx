@@ -1,6 +1,6 @@
 import type { SessionDetailDto } from '../../../../shared/ipc/sessionDetailDto'
 import type { SessionRefDto } from '../../../../shared/ipc/sessionRefDto'
-import type { SessionRow } from '@renderer/features/sessions/sessionRow'
+import type { SessionRow } from '../../../../shared/sessions/sessionRow'
 import { GraphCanvas } from './graph/GraphCanvas'
 import { useAgentGraph } from './graph/useAgentGraph'
 import { AgentInspector } from './inspector/AgentInspector'

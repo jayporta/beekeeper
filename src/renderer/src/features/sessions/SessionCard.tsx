@@ -12,7 +12,7 @@ import { formatDuration } from './formatDuration'
 import { rowMatches } from './sessionMatches'
 import { SessionCell } from './SessionCell'
 import styles from './SessionCard.module.css'
-import type { SessionRow } from './sessionRow'
+import type { SessionRow } from '../../../../shared/sessions/sessionRow'
 import { TeammateChip } from './TeammateChip'
 
 /** Props for {@link SessionCard}. */
