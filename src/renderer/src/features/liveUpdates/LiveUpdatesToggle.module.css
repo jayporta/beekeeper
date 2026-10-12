@@ -9,8 +9,7 @@
   gap: var(--space-2);
   align-items: center;
   min-height: var(--size-target-min);
-  padding-inline: var(--space-2);
-  font-size: var(--font-size-sm);
+  font-size: inherit;
   cursor: pointer;
 
   &:has([aria-disabled='true']) {
@@ -25,8 +24,4 @@
   margin: 0;
   accent-color: var(--color-accent-strong);
   cursor: inherit;
-}
-
-.note {
-  padding-inline: var(--space-2);
 }

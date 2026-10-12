@@ -8,7 +8,12 @@ const schemes = readTokenSchemes(new URL('../tokens.css', import.meta.url))
 const LC_TEXT = 90
 const LC_SECONDARY = 75
 
-const TEXT_TOKENS = ['--color-text', '--color-text-muted', '--color-accent-strong']
+const TEXT_TOKENS = [
+  '--color-text',
+  '--color-text-muted',
+  '--color-accent-strong',
+  '--color-selected-text'
+]
 /** The WCAG 2 ground tokens text sits on. */
 const WCAG_GROUNDS = ['--color-bg', '--color-surface', '--color-surface-header', '--color-selected']
 const CONTROL_GROUNDS = ['--color-bg', '--color-surface']
@@ -21,12 +26,12 @@ function token(tokens: TokenValues, name: string): string {
 
 /** Every ground text can sit on, as [label, hex]: the plain grounds, hover tints, and two tints stacked. */
 function textGrounds(tokens: TokenValues): readonly (readonly [string, string])[] {
-  const text = token(tokens, '--color-text')
+  const accent = token(tokens, '--color-accent')
   const opacity = Number(token(tokens, '--opacity-hover'))
   if (Number.isNaN(opacity)) throw new Error('--opacity-hover is not a number')
   const bg = token(tokens, '--color-bg')
   const surface = token(tokens, '--color-surface')
-  const hoverOver = (ground: string): string => blendOver(text, ground, opacity)
+  const hoverOver = (ground: string): string => blendOver(accent, ground, opacity)
   return [
     ['--color-bg', bg],
     ['--color-surface', surface],
@@ -42,7 +47,8 @@ function textGrounds(tokens: TokenValues): readonly (readonly [string, string])[
 const APCA_TEXT_TARGETS = [
   ['--color-text', LC_TEXT],
   ['--color-text-muted', LC_SECONDARY],
-  ['--color-accent-strong', LC_SECONDARY]
+  ['--color-accent-strong', LC_SECONDARY],
+  ['--color-selected-text', LC_SECONDARY]
 ] as const
 
 /** Text that sits on a fill instead: the page ground on the accent, and diff lines on the surface. */
@@ -81,6 +87,55 @@ describe.each(Object.entries(schemes))('%s color scheme', (_scheme, tokens) => {
     expect(
       contrastRatio(token(tokens, foreground), token(tokens, background))
     ).toBeGreaterThanOrEqual(minimum)
+  })
+})
+
+const PROJECT_SLOTS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const
+
+/** Text on its own fill at 4.5:1, as [foreground, background]: pills, file ops, project buttons, the lead mark, and KPI tiles. */
+const PILL_PAIRS: readonly (readonly [string, string])[] = [
+  ...['error', 'warning', 'neutral', 'info'].map(
+    (kind) => [`--color-pill-${kind}-text`, `--color-pill-${kind}-bg`] as const
+  ),
+  ...['create', 'update'].map((op) => [`--color-op-${op}-text`, `--color-op-${op}-bg`] as const),
+  ...PROJECT_SLOTS.map(
+    (slot) => [`--color-project-ink-${slot}`, `--color-project-button-${slot}`] as const
+  ),
+  ['--color-kind-lead-text', '--color-kind-lead'],
+  ...['tokens', 'api', 'sessions', 'agents'].flatMap((kpi) =>
+    ['--color-kpi-label', '--color-kpi-sub'].map((text) => [text, `--color-kpi-${kpi}-bg`] as const)
+  )
+]
+
+/** Marks that carry meaning in a chart, a bar, or a graph: 3:1 against the card ground they sit on (WCAG 1.4.11). */
+const MARK_TOKENS = [
+  '--color-token-input',
+  '--color-token-output',
+  '--color-token-cache-write',
+  '--color-token-cache-read',
+  '--color-model-opus',
+  '--color-model-sonnet',
+  '--color-model-haiku',
+  '--color-model-other',
+  '--color-kind-lead',
+  '--color-kind-teammate',
+  '--color-kind-workflow',
+  '--color-kind-subagent'
+]
+
+describe.each(Object.entries(schemes))('%s color scheme pills and fills', (_scheme, tokens) => {
+  it.each(PILL_PAIRS)('%s on %s is at least 4.5:1', (foreground, background) => {
+    expect(
+      contrastRatio(token(tokens, foreground), token(tokens, background))
+    ).toBeGreaterThanOrEqual(4.5)
+  })
+})
+
+describe.each(Object.entries(schemes))('%s color scheme marks', (_scheme, tokens) => {
+  it.each(MARK_TOKENS)('%s is at least 3:1 against the ground', (mark) => {
+    expect(contrastRatio(token(tokens, mark), token(tokens, '--color-bg'))).toBeGreaterThanOrEqual(
+      3
+    )
   })
 })
 
@@ -141,9 +196,9 @@ describe.each(Object.entries(schemes))('%s color scheme chart series', (_scheme,
 })
 
 describe.each(Object.entries(schemes))('%s color scheme hover tint', (_scheme, tokens) => {
-  it('is text at --opacity-hover, the opacity the hover grounds are checked at', () => {
+  it('is the accent at --opacity-hover, the opacity the hover grounds are checked at', () => {
     expect(token(tokens, '--color-hover')).toMatch(
-      /^color-mix\(\s*in srgb,\s*var\(--color-text\) calc\(var\(--opacity-hover\) \* 100%\),\s*transparent\s*\)$/
+      /^color-mix\(\s*in srgb,\s*var\(--color-accent\) calc\(var\(--opacity-hover\) \* 100%\),\s*transparent\s*\)$/
     )
   })
 })
