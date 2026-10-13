@@ -5,6 +5,7 @@ import { figureReasons, type PartialReason } from '@renderer/features/sessions/p
 import type { SessionRow } from '@renderer/features/sessions/sessionRow'
 import { signalTotalsOf } from '@renderer/features/sessions/signalNotes'
 import { readableReports } from './readableReports'
+import { tokenClasses, type TokenClass } from './tokens/tokenClasses'
 
 /** One figure of the stat row, and whether it may leave something out. */
 export interface StatFigure {
@@ -32,18 +33,21 @@ export interface SessionStats {
   readonly reasons: ReadonlySet<PartialReason>
 }
 
+/** The tokens of one class across the reports. */
+function classTokens(reports: Parameters<typeof tokenClasses>[0], tokenClass: TokenClass): number {
+  return tokenClasses(reports).find((total) => total.tokenClass === tokenClass)?.tokens ?? 0
+}
+
 /** The cache hit of the lead and its subagents, or `null` when they read no input. */
 function cacheHitOf(detail: SessionDetailDto): StatFigure | null {
   const { reports, complete } = readableReports(detail)
-  let read = 0
-  let total = 0
-  for (const report of reports) {
-    for (const { tokens } of report.tokenGroups) {
-      read += tokens.cacheRead
-      total += tokens.input + tokens.cacheRead + tokens.cacheWrite5m + tokens.cacheWrite1h
-    }
-  }
-  return total === 0 ? null : { value: read / total, partial: !complete }
+  const total = (['input', 'cacheRead', 'cacheWrite'] as const).reduce(
+    (sum, tokenClass) => sum + classTokens(reports, tokenClass),
+    0
+  )
+  return total === 0
+    ? null
+    : { value: classTokens(reports, 'cacheRead') / total, partial: !complete }
 }
 
 /** How many agents the session and its teammates ran, counted as the folder totals count them. */
@@ -76,13 +80,15 @@ export function sessionStats(row: SessionRow, detail: SessionDetailDto | null): 
 
   if (cacheHit?.partial === true) reasons.add('unreadableLines')
   if (totals?.partial === true) reasons.add('incompleteSignals')
+  const agents = agentsOf(row)
+  if (agents.partial) reasons.add('unknownSubagents')
 
   return {
     tokens: tokens === null ? null : { value: tokens, partial: marked },
     usd: usd === null ? null : { value: usd, partial: marked },
     cacheHit,
     durationMs: activitySpanMs(item.summary.ok ? item.summary.value.activity : null),
-    agents: agentsOf(row),
+    agents,
     toolErrors: totals === null ? null : { value: totals.toolErrors, partial: totals.partial },
     reasons
   }

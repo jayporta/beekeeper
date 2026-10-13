@@ -93,6 +93,23 @@ describe('sessionStats cache hit', () => {
     expect(stats.reasons.has('unreadableLines')).toBe(true)
   })
 
+  it.each([
+    [
+      'the lead',
+      { lead: testReport({ tokenGroups: [testTokenGroup({ input: 1 })], skippedLines: 2 }) }
+    ],
+    [
+      'a subagent',
+      {
+        lead: testReport({ tokenGroups: [testTokenGroup({ input: 1 })] }),
+        children: [testNode('a')],
+        reports: { a: testReport({ skippedLines: 1 }) }
+      }
+    ]
+  ])('is partial when %s skipped transcript lines', (_who, options) => {
+    expect(sessionStats(row, testDetail(options)).cacheHit?.partial).toBe(true)
+  })
+
   it('is partial when the subagents folder could not be read', () => {
     const detail = testDetail({
       lead: testReport({ tokenGroups: [testTokenGroup({ input: 1 })] }),
@@ -131,6 +148,25 @@ describe('sessionStats duration, agents and tool errors', () => {
     const solo = testSession(1, { subagentCount: null })
 
     expect(sessionStats(testRow(1, [solo]), null).agents).toEqual({ value: 1, partial: true })
+  })
+
+  it('says why the agent count is partial when a subagent count is unknown', () => {
+    const stats = sessionStats(testRow(1, [testSession(1, { subagentCount: null })]), null)
+
+    expect(stats.reasons.has('unknownSubagents')).toBe(true)
+  })
+
+  it('gives no unknown-subagents reason when every count is known', () => {
+    const stats = sessionStats(testRow(1, [testSession(1, { subagentCount: 2 })]), null)
+
+    expect(stats.reasons.has('unknownSubagents')).toBe(false)
+  })
+
+  it('also explains a teammate’s unknown subagent count', () => {
+    const lead = testSession(1, { subagentCount: 1, team: testLeadTeam([testRef(2)]) })
+    const mate = testSession(2, { subagentCount: null, team: testTeammateTeam(testRef(1)) })
+
+    expect(sessionStats(testRow(1, [lead, mate]), null).reasons.has('unknownSubagents')).toBe(true)
   })
 
   it('counts tool errors, marked when the signals are partial', () => {

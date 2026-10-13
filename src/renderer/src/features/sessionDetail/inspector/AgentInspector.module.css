@@ -12,15 +12,19 @@
 
   /*
    * Stays in view beside the graph and scrolls on its own, without passing the scroll on to the page
-   * at its ends. Only in a window tall enough: a short or zoomed one scrolls the page as one instead
-   * of trapping the inspector in a small scroller. A literal: custom properties can't be used in a
-   * media query.
+   * at its ends. Only when the two sit side by side: the body is at least as wide as the graph's and
+   * the inspector's basis and the gap (35rem + 21.25rem + 1.125rem), so a wrapped inspector under the
+   * graph is part of the page. Only in a window tall enough: a short or zoomed one scrolls the page as
+   * one instead of trapping the inspector in a small scroller. Literals: custom properties can't be
+   * used in a media or container query.
    */
   @media (min-height: 30rem) {
-    position: sticky;
-    top: var(--space-main-block);
-    max-height: calc(100vh - 2 * var(--space-main-block));
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
+    @container (min-width: 57.375rem) {
+      position: sticky;
+      top: var(--space-main-block);
+      max-height: calc(100vh - 2 * var(--space-main-block));
+      overflow-y: auto;
+      overscroll-behavior-y: contain;
+    }
   }
 }

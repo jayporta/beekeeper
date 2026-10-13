@@ -9,7 +9,8 @@ const REASON_ORDER = [
   'missingTeammates',
   'unrecordedUsage',
   'subagentsExcluded',
-  'incompleteSignals'
+  'incompleteSignals',
+  'unknownSubagents'
 ] as const satisfies readonly PartialReason[]
 
 /** Props for {@link PartialFootnote}. */

@@ -90,6 +90,12 @@ describe('Breakdown card', () => {
     expect(card('Breakdown').getByText('partial, see the note under the header')).toBeTruthy()
   })
 
+  it('marks the caption when a report skipped transcript lines', async () => {
+    await open(testDetail({ lead: testReport({ skippedLines: 3 }) }))
+
+    expect(card('Breakdown').getByText('partial, see the note under the header')).toBeTruthy()
+  })
+
   it('has no partial marker when every report was read', async () => {
     await open()
 
@@ -137,6 +143,37 @@ describe('Most tokens card', () => {
     await open(testDetail())
 
     expect(card('Most tokens').getByText('No agent recorded tokens.')).toBeTruthy()
+  })
+})
+
+describe('Signals card with many agents', () => {
+  const many = (count: number): SessionDetailDto => {
+    const ids = Array.from({ length: count }, (_, i) => `a${i}`)
+    return testDetail({
+      children: ids.map((id) => testNode(id, { meta: testMeta({ name: `agent ${id}` }) })),
+      reports: Object.fromEntries(
+        ids.map((id, i) => [id, testReport({ signals: signals(100 - i, 0) })])
+      )
+    })
+  }
+
+  it('lists the six with the most tool errors and says how many more there are', async () => {
+    await open(many(8))
+
+    expect(card('Signals').getAllByRole('button')).toHaveLength(6)
+    expect(card('Signals').getByText('and 2 more')).toBeTruthy()
+  })
+
+  it('says "and 1 more" for one left out', async () => {
+    await open(many(7))
+
+    expect(card('Signals').getByText('and 1 more')).toBeTruthy()
+  })
+
+  it('says nothing about more when all fit', async () => {
+    await open(many(6))
+
+    expect(card('Signals').queryByText(/and \d+ more/)).toBeNull()
   })
 })
 

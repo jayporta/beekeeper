@@ -112,7 +112,9 @@
       "caption": "Tool errors",
       "empty": "No tool errors",
       "streak_one": "streak {{count, integer}}",
-      "streak_other": "streak {{count, integer}}"
+      "streak_other": "streak {{count, integer}}",
+      "more_one": "and {{count, integer}} more",
+      "more_other": "and {{count, integer}} more"
     }
   },
   "stats": {

@@ -21,10 +21,11 @@ interface SessionDetailContentProps {
 
 /**
  * One session's detail: its header card, which holds the breadcrumb, then
- * its agent graph and inspector once its detail has loaded, otherwise the
- * loading or failure message under the breadcrumb. Loaded data wins over a
- * failed background refresh, so a session on screen stays on screen. A session reported not found waits for the folder's
- * list to settle first, since the folder itself may be gone. Once it has, an
+ * its summary cards, agent graph and inspector once its detail has loaded,
+ * otherwise the loading or failure message under the breadcrumb. Loaded data
+ * wins over a failed background refresh, so a session on screen stays on
+ * screen. A session reported not found waits for the folder's list to settle
+ * first, since the folder itself may be gone. Once it has, an
  * archived row whose detail wasn't archived keeps its header and gets a
  * summary-only note instead of the not-found message, unless the folder is gone.
  * That also covers a project that isn't listed, so a stale archived row can reach it.

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { MutedText } from '@renderer/components/MutedText'
 import { Pill } from '@renderer/components/Pill'
 import type { RootAgentGraphNode } from '../graph/agentGraphNode'
-import { signalRanking } from './signalRanking'
+import { SIGNAL_ROW_LIMIT, signalRanking } from './signalRanking'
 import styles from './SignalsCard.module.css'
 import { SummaryAgentRow } from './SummaryAgentRow'
 import { SummaryCard } from './SummaryCard'
@@ -18,10 +18,10 @@ interface SignalsCardProps {
 }
 
 /**
- * The Signals card: the agents that had tool errors, most first, each with
+ * The Signals card: the six agents with the most tool errors, each with
  * its error count and, when it had a run of them in a row, its longest
  * streak. Pressing a row selects the agent and moves focus to its graph node.
- * A note says the count includes calls a hook blocked or a person denied.
+ * When more had them, a line says how many are left out. A note says the count includes calls a hook blocked or a person denied.
  *
  * @example
  * <SignalsCard graph={graph.base} regionRef={regionRef} />
@@ -37,7 +37,7 @@ export function SignalsCard({ graph, regionRef }: SignalsCardProps): React.JSX.E
         <p className={styles.empty}>{t('summary.signals.empty')}</p>
       ) : (
         <ul className={styles.list}>
-          {agents.map((node) => (
+          {agents.slice(0, SIGNAL_ROW_LIMIT).map((node) => (
             <SummaryAgentRow
               key={node.key}
               name={node.name}
@@ -59,6 +59,11 @@ export function SignalsCard({ graph, regionRef }: SignalsCardProps): React.JSX.E
             </SummaryAgentRow>
           ))}
         </ul>
+      )}
+      {agents.length > SIGNAL_ROW_LIMIT && (
+        <MutedText smaller>
+          {t('summary.signals.more', { count: agents.length - SIGNAL_ROW_LIMIT })}
+        </MutedText>
       )}
       <MutedText smaller>{t('inspector.signals.toolErrorsNote')}</MutedText>
     </SummaryCard>

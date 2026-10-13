@@ -3,6 +3,8 @@
  * the inspector drops under the graph when the two don't fit, and neither is squeezed.
  */
 .body {
+  /* A container, so the inspector can tell whether it sits beside the graph. */
+  container-type: inline-size;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
