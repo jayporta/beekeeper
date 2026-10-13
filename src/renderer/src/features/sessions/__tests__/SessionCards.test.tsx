@@ -9,6 +9,7 @@ import { testDetail } from '@renderer/features/sessionDetail/testSessionDetail'
 import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
 import { hydratePersistedStores, renderAppReady } from '@renderer/testAppReady'
 import { resetPersistedState } from '@renderer/testRenderApp'
+import { PARTIAL_FOOTNOTE_ID } from '../partialFootnoteId'
 import { useSessionsViewStore } from '../state/useSessionsViewStore'
 import {
   testAgentRole,
@@ -249,12 +250,15 @@ describe('session cards: legend', () => {
   })
 })
 
+/** The session list's footnote, not the stat row's. */
+const listFootnote = (): HTMLElement | null => document.getElementById(PARTIAL_FOOTNOTE_ID)
+
 describe('session cards: partial figures', () => {
   it('shows no footnote when no figure is partial', async () => {
     await showSessions([solo])
     cardOf('Plain session')
 
-    expect(screen.queryByText(/Partial:/)).toBeNull()
+    expect(listFootnote()).toBeNull()
   })
 
   it('shows a marker on the partial card and a footnote naming exactly the reasons on screen', async () => {
@@ -283,7 +287,7 @@ describe('session cards: partial figures', () => {
     await showSessions([lead, reviewer, writer, unreadable])
     cardOf('Garbled')
 
-    const note = screen.getByText(/Partial:/).textContent
+    const note = listFootnote()?.textContent
     expect(note).toContain("Some transcript lines couldn't be read")
     expect(note).toContain("Some teammates the lead spawned aren't in this list")
     expect(note).not.toContain('recorded no usage')
@@ -299,7 +303,7 @@ describe('session cards: partial figures', () => {
     await showSessions([lead, reviewer, writer, otherLead])
     cardOf('Also short a teammate')
 
-    const note = screen.getByText(/Partial:/).textContent ?? ''
+    const note = listFootnote()?.textContent ?? ''
     const sentence = "Some teammates the lead spawned aren't in this list"
     expect(note.split(sentence)).toHaveLength(2)
   })
@@ -331,7 +335,7 @@ describe('session cards: partial figures', () => {
       const card = cardOf('Empty lead')
 
       expect(within(card).queryByText('¹')).toBeNull()
-      expect(screen.queryByText(/Partial:/)).toBeNull()
+      expect(listFootnote()).toBeNull()
     })
 
     it("still explains a teammate chip's own marker", async () => {
@@ -339,7 +343,7 @@ describe('session cards: partial figures', () => {
       const card = cardOf('Empty lead')
 
       expect(within(card).getByText('¹')).toBeTruthy()
-      expect(screen.getByText(/Partial:/).textContent).toBe(
+      expect(listFootnote()?.textContent).toBe(
         "¹ Partial: A session still running or stopped early shows its transcript's tokens, which leave out its subagents."
       )
     })
@@ -348,19 +352,21 @@ describe('session cards: partial figures', () => {
   it('drops a reason from the footnote when its card is filtered out', async () => {
     await showSessions()
     cardOf('Refactor parser')
-    expect(screen.getByText(/Partial:/)).toBeTruthy()
+    expect(listFootnote()).not.toBeNull()
 
     await userEvent.type(screen.getByRole('searchbox', { name: 'Search sessions' }), 'plain')
 
     cardOf('Plain session')
-    expect(screen.queryByText(/Partial:/)).toBeNull()
+    expect(listFootnote()).toBeNull()
   })
 
   it('hides the column header row from assistive technology, since each card says what its figures are', async () => {
     await showSessions()
     cardOf('Refactor parser')
 
-    expect(screen.getByText('Tokens').closest('[aria-hidden="true"]')).not.toBeNull()
+    expect(
+      screen.getByText('Tokens', { selector: 'span, div, p' }).closest('[aria-hidden="true"]')
+    ).not.toBeNull()
   })
 
   it('leaves the marker off a card whose figures are complete', async () => {

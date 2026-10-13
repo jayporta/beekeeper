@@ -1,3 +1,4 @@
+import { useProjectColorSlot } from '@renderer/features/projects/useProjectColorSlot'
 import { RefreshButton } from './RefreshButton'
 import { useRefreshLists } from './useRefreshLists'
 
@@ -21,6 +22,7 @@ export function RefreshSessionsButton({
   onRefresh
 }: RefreshSessionsButtonProps): React.JSX.Element {
   const { refresh, status } = useRefreshLists(dirName)
+  const colorSlot = useProjectColorSlot(dirName)
 
   return (
     <RefreshButton
@@ -29,6 +31,7 @@ export function RefreshSessionsButton({
         refresh()
       }}
       status={status}
+      colorSlot={colorSlot}
     />
   )
 }

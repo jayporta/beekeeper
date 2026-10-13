@@ -1,0 +1,28 @@
+.pill {
+  display: inline-block;
+  padding: var(--space-0-5) var(--space-2-25);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  border-radius: var(--radius-pill);
+}
+
+.error {
+  color: var(--color-pill-error-text);
+  background: var(--color-pill-error-bg);
+}
+
+.warning {
+  color: var(--color-pill-warning-text);
+  background: var(--color-pill-warning-bg);
+}
+
+.neutral {
+  color: var(--color-pill-neutral-text);
+  background: var(--color-pill-neutral-bg);
+}
+
+.info {
+  color: var(--color-pill-info-text);
+  background: var(--color-pill-info-bg);
+}

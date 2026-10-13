@@ -3,7 +3,7 @@ import type { ProjectTotalsDto } from '../../shared/ipc/projectTotalsDto'
 import { getProjectTotalsRequestSchema } from '../../shared/ipc/requestSchemas'
 import { archivedTimesOf } from '../overview/archivedTimes'
 import { archivedTotalsSession } from '../overview/archivedTotalsSession'
-import { folderTotals, type TotalsSession } from '../overview/folderTotals'
+import { folderTotals, type TotalsSession } from '../../shared/usage/folderTotals'
 import {
   mayArchivedCountInWindow,
   mayCountInWindow,

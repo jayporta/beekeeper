@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { CardOpenButton } from '@renderer/components/CardOpenButton'
 import { MutedText } from '@renderer/components/MutedText'
 import { PartialMarker } from '@renderer/components/PartialMarker'
+import { ShareBar } from '@renderer/components/ShareBar'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import type { ProjectGroup } from '@renderer/features/projects/groupProjects'
 import { projectTitle } from '@renderer/features/projects/projectTitle'
@@ -145,11 +146,7 @@ export function ProjectTableRow({
         )}
       </td>
       <td className={styles.barCell}>
-        <div className={styles.track} aria-hidden="true">
-          {status === 'ready' && (
-            <div className={styles.fill} style={{ inlineSize: `${barShare * 100}%` }} />
-          )}
-        </div>
+        <ShareBar share={status === 'ready' ? barShare : 0} />
       </td>
       <td className={styles.number}>
         {figure(t('figure.compact', { value: totals.tokens }), partial.tokens)}

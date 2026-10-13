@@ -1,5 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { withClassName } from '@renderer/components/withClassName'
+import { projectColorClass } from '@renderer/features/projects/projectColorClass'
+import type { ProjectColorSlot } from '@renderer/features/projects/projectColorSlot'
 import styles from './RefreshButton.module.css'
 import { STATUS_ANNOUNCE_DELAY_MS } from './statusAnnounceDelay'
 import type { RefreshStatus } from './useRefreshLists'
@@ -17,6 +20,11 @@ interface RefreshButtonProps {
    * shown, each in a polite status.
    */
   readonly status: RefreshStatus
+  /**
+   * The project's color slot, which colors the button. Without one the button takes the first slot's fill and ink.
+   * @defaultValue None.
+   */
+  readonly colorSlot?: ProjectColorSlot | null
 }
 
 /**
@@ -35,9 +43,13 @@ interface RefreshButtonProps {
  * change. Each message is heard once, through the status.
  *
  * @example
- * <RefreshButton onRefresh={refresh} status="idle" />
+ * <RefreshButton onRefresh={refresh} status="idle" colorSlot={2} />
  */
-export function RefreshButton({ onRefresh, status }: RefreshButtonProps): React.JSX.Element {
+export function RefreshButton({
+  onRefresh,
+  status,
+  colorSlot
+}: RefreshButtonProps): React.JSX.Element {
   const { t } = useTranslation('sessions')
   const refreshing = status === 'refreshing'
   const statusRef = useRef<HTMLParagraphElement>(null)
@@ -60,6 +72,10 @@ export function RefreshButton({ onRefresh, status }: RefreshButtonProps): React.
     <>
       <button
         type="button"
+        className={withClassName(
+          styles.button,
+          colorSlot === null || colorSlot === undefined ? undefined : projectColorClass(colorSlot)
+        )}
         aria-disabled={refreshing}
         onClick={() => {
           if (!refreshing) onRefresh()

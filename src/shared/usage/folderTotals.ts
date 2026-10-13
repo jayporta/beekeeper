@@ -1,6 +1,6 @@
-import type { SessionSummary } from '../../core/transcript/summary/sessionSummary'
-import { resolveSessionUsage } from '../../shared/usage/resolveSessionUsage'
-import { isBeforeTotalsWindow } from './totalsWindow'
+import type { SessionSummaryDto } from '../ipc/sessionListDto'
+import { isBeforeTotalsWindow } from './isBeforeTotalsWindow'
+import { resolveSessionUsage } from './resolveSessionUsage'
 
 /** One session of a folder, as its totals are worked out from it. */
 export interface TotalsSession {
@@ -12,7 +12,7 @@ export interface TotalsSession {
   readonly subagentCount: number | null
   /** The session's summary, or `null` when it couldn't be read. */
   readonly summary: Pick<
-    SessionSummary,
+    SessionSummaryDto,
     'title' | 'usage' | 'activity' | 'skippedLines' | 'role' | 'transcriptTokens'
   > | null
 }
@@ -23,7 +23,7 @@ export interface FolderTotalsOptions {
   readonly sessions: readonly TotalsSession[]
   /** The time the window ends at, in milliseconds since the Unix epoch. */
   readonly nowMs: number
-  /** How long the window is, in milliseconds. */
+  /** How long the window is, in milliseconds. `Number.POSITIVE_INFINITY` counts every session. */
   readonly windowMs: number
 }
 

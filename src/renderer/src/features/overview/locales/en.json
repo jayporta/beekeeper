@@ -15,10 +15,21 @@
     "labelUpdating": "Totals, {{range}}, updating"
   },
   "kpi": {
-    "tokens": { "label": "Tokens" },
-    "api": { "label": "At API prices", "sub": "an estimate, not your bill" },
-    "sessions": { "label": "Sessions", "sub": "leads and solo sessions" },
-    "agents": { "label": "Agents", "sub": "incl. teammates and subagents" }
+    "tokens": {
+      "label": "Tokens"
+    },
+    "api": {
+      "label": "At API prices",
+      "sub": "an estimate, not your bill"
+    },
+    "sessions": {
+      "label": "Sessions",
+      "sub": "leads and solo sessions"
+    },
+    "agents": {
+      "label": "Agents",
+      "sub": "incl. teammates and subagents"
+    }
   },
   "figure": {
     "integer": "{{value, integer}}",
@@ -77,14 +88,7 @@
   "footnote": {
     "label": "¹ Partial:",
     "loading": "Some projects are still loading.",
-    "failed": "Some projects couldn't be read.",
-    "unreadable": "Some sessions couldn't be read.",
-    "withoutTokens": "Some sessions recorded no tokens.",
-    "withoutCost": "Some sessions recorded no cost.",
-    "lowTokens": "Some sessions have unreadable lines or leave out their subagents' tokens.",
-    "uncountedSubagents": "Some sessions have a subagents folder that couldn't be read, so their subagents are missing from the agent count.",
-    "undated": "Some sessions have no timestamps, so they count by when their file was last written.",
-    "mayBeLow": "A total may be low."
+    "failed": "Some projects couldn't be read."
   },
   "updating": "Updating",
   "dailyUsage": {
@@ -131,7 +135,11 @@
   "projects": {
     "heading": "Projects",
     "sortBy": "Sort by",
-    "sort": { "tokens": "Tokens", "latest": "Latest", "name": "Name" },
+    "sort": {
+      "tokens": "Tokens",
+      "latest": "Latest",
+      "name": "Name"
+    },
     "col": {
       "project": "Project",
       "latest": "Latest",
