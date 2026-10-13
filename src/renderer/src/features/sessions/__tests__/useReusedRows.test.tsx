@@ -1,8 +1,8 @@
 import { renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
-import { groupSessionRows } from '../groupSessionRows'
-import type { SessionRow } from '../sessionRow'
+import { groupSessionRows } from '../../../../../shared/sessions/groupSessionRows'
+import type { SessionRow } from '../../../../../shared/sessions/sessionRow'
 import {
   testAgentRole,
   testLeadTeam,
@@ -10,11 +10,11 @@ import {
   testSession,
   testTeammateTeam
 } from '../../../../../shared/sessions/testSessionFixtures'
-import { testSessionsT } from '../testSessionsT'
+import { testLabelWords } from '../testLabelWords'
 import { useReusedRows } from '../useReusedRows'
 
 const group = (items: readonly SessionListItemDto[]): readonly SessionRow[] =>
-  groupSessionRows(items, testSessionsT)
+  groupSessionRows(items, testLabelWords)
 
 /** Renders the hook on the grouped `first` items and returns a function that regroups `next` and renders again. */
 function renderRows(first: readonly SessionListItemDto[]): {

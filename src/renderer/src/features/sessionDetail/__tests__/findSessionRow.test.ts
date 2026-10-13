@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { groupSessionRows } from '@renderer/features/sessions/groupSessionRows'
+import { groupSessionRows } from '../../../../../shared/sessions/groupSessionRows'
 import {
   testAgentRole,
   testLeadTeam,
@@ -7,7 +7,7 @@ import {
   testSession,
   testTeammateTeam
 } from '../../../../../shared/sessions/testSessionFixtures'
-import { testSessionsT } from '@renderer/features/sessions/testSessionsT'
+import { testLabelWords } from '@renderer/features/sessions/testLabelWords'
 import { findSessionRow } from '../findSessionRow'
 
 const lead = testSession(1, { title: 'lead', team: testLeadTeam([testRef(2)]) })
@@ -16,7 +16,7 @@ const mate = testSession(2, {
   team: testTeammateTeam(testRef(1))
 })
 const solo = testSession(3, { title: 'solo' })
-const rows = groupSessionRows([lead, mate, solo], testSessionsT)
+const rows = groupSessionRows([lead, mate, solo], testLabelWords)
 
 describe('findSessionRow', () => {
   it('finds a top-level row by folder and session id', () => {

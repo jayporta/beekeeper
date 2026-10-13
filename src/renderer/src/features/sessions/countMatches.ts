@@ -1,5 +1,5 @@
 import { normalizeQuery, rowMatches } from './sessionMatches'
-import type { SessionRow } from './sessionRow'
+import type { SessionRow } from '../../../../shared/sessions/sessionRow'
 
 /**
  * Counts the sessions whose label, or whose own subagents' name, description or

@@ -13,7 +13,7 @@ import {
   testUsage
 } from '../../../../../shared/sessions/testSessionFixtures'
 import { testRow } from '@renderer/features/sessions/testSessionRows'
-import type { SessionRow } from '@renderer/features/sessions/sessionRow'
+import type { SessionRow } from '../../../../../shared/sessions/sessionRow'
 import { installBeekeeperApi, type TestBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { createQueryWrapper } from '@renderer/testQueryWrapper'
 import { testDetail, testMeta, testNode, testReport, testTokenGroup } from '../testSessionDetail'

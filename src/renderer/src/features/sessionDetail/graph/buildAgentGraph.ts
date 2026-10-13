@@ -1,7 +1,7 @@
 import type { SessionDetailDto } from '../../../../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
 import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
-import type { SessionRow } from '@renderer/features/sessions/sessionRow'
+import type { SessionRow } from '../../../../../shared/sessions/sessionRow'
 import type { SessionDetailT } from '../sessionDetailT'
 import type { RootAgentGraphNode } from './agentGraphNode'
 import { nodeMarks } from './nodeMarks'

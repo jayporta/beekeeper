@@ -121,15 +121,22 @@ export default defineConfig(
     }
   },
   {
-    // core, service and the mod run in Claude Code's engine, so they have no Node modules or globals outside
+    // core, service, shared and the mod run in Claude Code's engine, so they have no Node modules or globals outside
     // core's Node adapter. Rules in a later block replace an earlier block's options, so the network bans repeat here.
-    files: ['src/core/**/*.ts', 'src/service/**/*.ts', 'src/mod/**/*.{ts,tsx}'],
+    files: [
+      'src/core/**/*.ts',
+      'src/service/**/*.ts',
+      'src/shared/**/*.ts',
+      'src/mod/**/*.{ts,tsx}'
+    ],
     ignores: [
       'src/core/io/node/**',
       'src/core/**/__tests__/**',
       'src/core/**/test*.ts',
       'src/service/**/__tests__/**',
       'src/service/**/test*.ts',
+      'src/shared/**/__tests__/**',
+      'src/shared/**/test*.ts',
       'src/mod/**/__tests__/**',
       'src/mod/**/test*.ts'
     ],

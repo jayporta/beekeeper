@@ -1,6 +1,6 @@
 import type { SessionDetailDto } from '../../../../../shared/ipc/sessionDetailDto'
 import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
-import { sessionKey } from '@renderer/features/sessions/sessionKey'
+import { sessionKey } from '../../../../../shared/sessions/sessionKey'
 import type { AgentGraphNode, AgentKey, RootAgentGraphNode } from './agentGraphNode'
 import { buildSubagentNodes } from './subagentNodes'
 

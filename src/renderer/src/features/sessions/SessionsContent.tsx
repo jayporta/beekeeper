@@ -4,10 +4,11 @@ import { SelectedProjectHeading } from '@renderer/features/projects/SelectedProj
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import { countMatches } from './countMatches'
 import { filterRows } from './filterRows'
-import { groupSessionRows } from './groupSessionRows'
+import { groupSessionRows } from '../../../../shared/sessions/groupSessionRows'
 import { RefreshSessionsButton } from './RefreshSessionsButton'
 import { SearchResultsStatus } from './SearchResultsStatus'
 import { normalizeQuery } from './sessionMatches'
+import { sessionLabelWords } from './sessionLabelWords'
 import { SessionSearch } from './SessionSearch'
 import { SessionsBody } from './SessionsBody'
 import { SessionCardList } from './SessionCardList'
@@ -55,7 +56,10 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
   // Filtering waits on the deferred text, and the list is memoized, so typing stays responsive.
   const query = useDeferredValue(typed)
   const normalized = normalizeQuery(query)
-  const grouped = useMemo(() => (data === undefined ? [] : groupSessionRows(data, t)), [data, t])
+  const grouped = useMemo(
+    () => (data === undefined ? [] : groupSessionRows(data, sessionLabelWords(t))),
+    [data, t]
+  )
   // Unchanged rows stay the same objects, so their memoized cards skip a background update.
   const sorted = useReusedRows(grouped)
   const { rows, settledResortAt } = useSteadyOrder(sorted, {

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { AgentSearchTermDto } from '../../../../../shared/ipc/sessionListDto'
-import { groupSessionRows } from '../groupSessionRows'
+import { groupSessionRows } from '../../../../../shared/sessions/groupSessionRows'
 import { matchOf, normalizeQuery, rowMatches } from '../sessionMatches'
-import type { SessionRow } from '../sessionRow'
+import type { SessionRow } from '../../../../../shared/sessions/sessionRow'
 import {
   testAgentRole,
   testLeadTeam,
@@ -10,7 +10,7 @@ import {
   testSession,
   testTeammateTeam
 } from '../../../../../shared/sessions/testSessionFixtures'
-import { testSessionsT } from '../testSessionsT'
+import { testLabelWords } from '../testLabelWords'
 
 const term = (overrides: Partial<AgentSearchTermDto>): AgentSearchTermDto => ({
   name: null,
@@ -23,7 +23,7 @@ const term = (overrides: Partial<AgentSearchTermDto>): AgentSearchTermDto => ({
 function rowWith(agentTerms: readonly AgentSearchTermDto[], title = 'Refactor parser'): SessionRow {
   const [row] = groupSessionRows(
     [testSession(1, { title, latestMs: 1, agentTerms })],
-    testSessionsT
+    testLabelWords
   )
   if (row === undefined) throw new Error('No row')
   return row
@@ -72,7 +72,7 @@ function rowWithRuns(
 ): SessionRow {
   const [row] = groupSessionRows(
     [testSession(1, { title: 'Refactor parser', latestMs: 1, agentTerms, workflowRunNames })],
-    testSessionsT
+    testLabelWords
   )
   if (row === undefined) throw new Error('No row')
   return row
@@ -138,7 +138,7 @@ describe('matchOf', () => {
       role: testAgentRole('reviewer', 'code'),
       team: testTeammateTeam(testRef(1))
     })
-    const [row] = groupSessionRows([lead, mate], testSessionsT)
+    const [row] = groupSessionRows([lead, mate], testLabelWords)
 
     expect(matchOf(row as SessionRow, 'review')).toBeNull()
     expect(matchOf(row as SessionRow, 'auth')).toEqual({ kind: 'subagent', name: 'scout' })
@@ -156,7 +156,7 @@ describe('matchOf', () => {
       team: testTeammateTeam(testRef(1)),
       agentTerms: [term({ name: 'auth-checker' })]
     })
-    const [row] = groupSessionRows([lead, mate], testSessionsT)
+    const [row] = groupSessionRows([lead, mate], testLabelWords)
 
     expect(matchOf(row as SessionRow, 'auth')).toBeNull()
   })
@@ -173,7 +173,7 @@ describe('matchOf', () => {
       team: testTeammateTeam(testRef(1)),
       agentTerms: [term({ name: 'checker' })]
     })
-    const [row] = groupSessionRows([lead, mate], testSessionsT)
+    const [row] = groupSessionRows([lead, mate], testLabelWords)
 
     expect(matchOf(row as SessionRow, 'checker')).toBeNull()
   })
@@ -212,7 +212,7 @@ describe('matchOf', () => {
         team: testTeammateTeam(testRef(1)),
         workflowRunNames: ['scan']
       })
-      const [row] = groupSessionRows([lead, mate], testSessionsT)
+      const [row] = groupSessionRows([lead, mate], testLabelWords)
 
       expect(matchOf(row as SessionRow, 'scan')).toBeNull()
     })

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import type { SessionRow } from './sessionRow'
+import type { SessionRow } from '../../../../shared/sessions/sessionRow'
 
 /** What {@link useSteadyOrder} needs to know about a resort request. */
 export interface SteadyOrderOptions {

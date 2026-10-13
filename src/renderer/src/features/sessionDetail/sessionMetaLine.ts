@@ -4,7 +4,7 @@ import { activitySpanMs } from '@renderer/features/sessions/activitySpanMs'
 import { formatDuration } from '@renderer/features/sessions/formatDuration'
 import { formatLastActive } from '@renderer/features/sessions/formatLastActive'
 import { formatTokens } from '@renderer/features/sessions/formatTokens'
-import type { SessionRow } from '@renderer/features/sessions/sessionRow'
+import type { SessionRow } from '../../../../shared/sessions/sessionRow'
 import type { SessionsT } from '@renderer/features/sessions/sessionsT'
 import { formatUsd } from '@renderer/i18n/formatUsd'
 

@@ -1,9 +1,8 @@
-import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
+import type { SessionListItemDto } from '../ipc/sessionListDto'
 import { lastActiveMs } from './lastActiveMs'
 import { sessionKey } from './sessionKey'
-import { sessionLabel } from './sessionLabel'
+import { sessionLabel, type SessionLabelWords } from './sessionLabel'
 import type { SessionRow } from './sessionRow'
-import type { SessionsT } from './sessionsT'
 
 function byLastActiveDescending(a: SessionRow, b: SessionRow): number {
   const aMs = lastActiveMs(a.item)
@@ -24,12 +23,12 @@ function byLastActiveDescending(a: SessionRow, b: SessionRow): number {
  * last active time, newest first, with unknown times last.
  *
  * @param items - The sessions from `listSessions`, each keyed by folder and id.
- * @param t - The sessions translate function, to label each row once.
+ * @param words - The label words, to name each row once.
  * @returns The top-level rows.
  */
 export function groupSessionRows(
   items: readonly SessionListItemDto[],
-  t: SessionsT
+  words: SessionLabelWords
 ): readonly SessionRow[] {
   const byKey = new Map<string, SessionListItemDto>()
   for (const item of items) {
@@ -51,7 +50,7 @@ export function groupSessionRows(
       nested.push({
         key: childKey,
         item: child,
-        label: sessionLabel(child, t),
+        label: sessionLabel(child, words),
         teammates: [],
         leadFolder: null
       })
@@ -65,7 +64,7 @@ export function groupSessionRows(
     rows.push({
       key,
       item,
-      label: sessionLabel(item, t),
+      label: sessionLabel(item, words),
       teammates: teammatesOf.get(key) ?? [],
       leadFolder: item.team?.kind === 'teammate' ? item.team.lead.projectDirName : null
     })

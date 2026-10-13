@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { figureReasons, partialReasons, type PartialReason } from '../partialReasons'
-import type { SessionRow } from '../sessionRow'
+import type { SessionRow } from '../../../../../shared/sessions/sessionRow'
 import {
   testAgentRole,
   testLeadTeam,

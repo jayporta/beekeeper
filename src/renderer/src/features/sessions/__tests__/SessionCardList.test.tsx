@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { groupSessionRows } from '../groupSessionRows'
+import { groupSessionRows } from '../../../../../shared/sessions/groupSessionRows'
 import { SessionCardList } from '../SessionCardList'
 import {
   testAgentRole,
@@ -9,7 +9,7 @@ import {
   testSession,
   testTeammateTeam
 } from '../../../../../shared/sessions/testSessionFixtures'
-import { testSessionsT } from '../testSessionsT'
+import { testLabelWords } from '../testLabelWords'
 
 /** How many times each card's title cell has rendered, by the card's title. */
 const renders = vi.hoisted(() => new Map<string, number>())
@@ -42,7 +42,7 @@ const solo = testSession(3, {
   totalTokens: 5,
   agentTerms: [{ name: 'scout', description: null, agentType: 'Explore' }]
 })
-const rows = groupSessionRows([lead, mate, solo], testSessionsT)
+const rows = groupSessionRows([lead, mate, solo], testLabelWords)
 
 const list = (query: string, shown = rows): React.JSX.Element => (
   <SessionCardList rows={shown} labelledBy="h" selectedDirName="-p" query={query} />
@@ -90,7 +90,7 @@ describe('SessionCardList rendering', () => {
       latestMs: 0,
       workflowRunNames: ['security scan']
     })
-    const withRun = groupSessionRows([running], testSessionsT)
+    const withRun = groupSessionRows([running], testLabelWords)
     const { rerender } = render(list('', withRun))
 
     rerender(list('sec', [...withRun]))
@@ -118,7 +118,7 @@ describe('SessionCardList legend', () => {
       workflows: { runs: 1, agents: 2 }
     })
 
-    render(list('', groupSessionRows([withRun], testSessionsT)))
+    render(list('', groupSessionRows([withRun], testLabelWords)))
 
     expect(screen.getByText('Workflow').parentElement?.textContent?.trim()).toBe(
       'Lead Workflow Subagent'

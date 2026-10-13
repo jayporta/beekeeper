@@ -1,6 +1,6 @@
 import type { SessionRefDto } from '../../../../shared/ipc/sessionRefDto'
-import { shortId, type SessionLabel } from '@renderer/features/sessions/sessionLabel'
-import type { SessionRow } from '@renderer/features/sessions/sessionRow'
+import { shortId, type SessionLabel } from '../../../../shared/sessions/sessionLabel'
+import type { SessionRow } from '../../../../shared/sessions/sessionRow'
 import type { SessionDetailT } from './sessionDetailT'
 
 /**

@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { MutedText } from '@renderer/components/MutedText'
-import type { SessionRow } from './sessionRow'
+import type { SessionRow } from '../../../../shared/sessions/sessionRow'
 import { hasSignalCounts, signalTotalsOf } from './signalNotes'
 
 /** Props for {@link SignalScopeNote}. */

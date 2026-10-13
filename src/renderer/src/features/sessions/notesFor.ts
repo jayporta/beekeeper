@@ -1,6 +1,6 @@
 import { archivedNote, folderNote, stoppedNote } from './itemNotes'
 import { limitHitNote } from './limitHitNote'
-import type { SessionRow } from './sessionRow'
+import type { SessionRow } from '../../../../shared/sessions/sessionRow'
 import { signalNotes, signalTotalsOf } from './signalNotes'
 import type { SessionsT } from './sessionsT'
 

@@ -11,7 +11,7 @@ import { SessionCard } from './SessionCard'
 import { signalsMarked, signalTotalsOf } from './signalNotes'
 import { SignalScopeNote } from './SignalScopeNote'
 import styles from './SessionCardList.module.css'
-import type { SessionRow } from './sessionRow'
+import type { SessionRow } from '../../../../shared/sessions/sessionRow'
 
 const KIND_ORDER = [
   'lead',

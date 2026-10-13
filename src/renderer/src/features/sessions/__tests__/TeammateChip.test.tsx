@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { PARTIAL_FOOTNOTE_ID } from '../partialFootnoteId'
-import type { SessionRow } from '../sessionRow'
+import type { SessionRow } from '../../../../../shared/sessions/sessionRow'
 import { TeammateChip } from '../TeammateChip'
 import {
   testAgentRole,

@@ -1,5 +1,5 @@
 import type { SelectedAgent } from '@renderer/features/navigation/state/useNavigationStore'
-import { sessionKey } from '@renderer/features/sessions/sessionKey'
+import { sessionKey } from '../../../../../shared/sessions/sessionKey'
 import type { AgentGraphNode, AgentKey } from './agentGraphNode'
 
 /** Whether a node's selection picks the same agent as `selected`. */

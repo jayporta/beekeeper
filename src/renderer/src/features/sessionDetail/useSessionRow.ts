@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next'
 import type { SessionRefDto } from '../../../../shared/ipc/sessionRefDto'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import { useProjects } from '@renderer/features/projects/useProjects'
-import { groupSessionRows } from '@renderer/features/sessions/groupSessionRows'
-import type { SessionRow } from '@renderer/features/sessions/sessionRow'
+import { groupSessionRows } from '../../../../shared/sessions/groupSessionRows'
+import type { SessionRow } from '../../../../shared/sessions/sessionRow'
+import { sessionLabelWords } from '@renderer/features/sessions/sessionLabelWords'
 import { useSessions } from '@renderer/features/sessions/useSessions'
 import { findSessionRow } from './findSessionRow'
 
@@ -41,7 +42,8 @@ export function useSessionRow(ref: SessionRefDto, dirName: string): SessionRowSt
   const { data, error, errorUpdatedAt, isFetching, isFetchedAfterMount } = useSessions(dirName)
   const projects = useProjects()
   const row = useMemo(
-    () => (data === undefined ? null : findSessionRow(groupSessionRows(data, t), ref)),
+    () =>
+      data === undefined ? null : findSessionRow(groupSessionRows(data, sessionLabelWords(t)), ref),
     [data, t, ref]
   )
   const firstLoad = isFetching && !isFetchedAfterMount

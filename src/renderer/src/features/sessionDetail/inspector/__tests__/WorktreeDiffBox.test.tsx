@@ -9,7 +9,7 @@ import type {
 } from '../../../../../../shared/ipc/worktreeDiffDto'
 import { LISTS_STALE_TIME_MS } from '@renderer/app/listsStaleTime'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
-import { shortId } from '@renderer/features/sessions/sessionLabel'
+import { shortId } from '../../../../../../shared/sessions/sessionLabel'
 import { testRef } from '../../../../../../shared/sessions/testSessionFixtures'
 import { createTestQueryClient } from '@renderer/testQueryWrapper'
 import { SCENE_OTHER_FOLDER, SCENE_SESSION } from '../../graph/testGraphScene'
