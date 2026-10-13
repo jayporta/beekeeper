@@ -6,9 +6,16 @@
   font: inherit;
   text-align: start;
   overflow-wrap: anywhere;
+  text-decoration: underline;
+  text-decoration-color: var(--color-rule-strong);
+  text-underline-offset: var(--space-1);
   background: none;
   border: 0;
   cursor: pointer;
+
+  &:hover {
+    text-decoration-color: var(--color-accent-strong);
+  }
 
   &::after {
     position: absolute;

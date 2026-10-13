@@ -5,6 +5,7 @@ import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import { countMatches } from './countMatches'
 import { filterRows } from './filterRows'
 import { groupSessionRows } from './groupSessionRows'
+import { largestTokens } from './largestTokens'
 import { ProjectStats } from './ProjectStats'
 import { folderStats } from './folderStats'
 import { RefreshSessionsButton } from './RefreshSessionsButton'
@@ -67,6 +68,8 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
   })
   const matching = useMemo(() => filterRows(rows, query), [rows, query])
   const matchCount = useMemo(() => countMatches(rows, query), [rows, query])
+  // Against every row, not only the matching ones, so a bar doesn't change length while searching.
+  const largest = useMemo(() => largestTokens(rows), [rows])
   // A gone folder's cached list is hidden behind its alert, so it isn't searchable.
   const gone = IpcCallError.codeOf(error) === 'not-found'
   const searchable = !gone && data !== undefined && data.length > 0
@@ -112,6 +115,8 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
           rows={matching}
           labelledBy={headingId}
           selectedDirName={dirName}
+          largestTokens={largest}
+          matchCount={searching ? matchCount : null}
           query={normalized}
         />
       </SessionsBody>

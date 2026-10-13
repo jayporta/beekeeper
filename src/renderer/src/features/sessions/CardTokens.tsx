@@ -1,10 +1,9 @@
 import { useTranslation } from 'react-i18next'
 import { MutedText } from '@renderer/components/MutedText'
 import { PartialMarker } from '@renderer/components/PartialMarker'
-import { formatUsd } from '@renderer/i18n/formatUsd'
 import { EmptyCell } from './EmptyCell'
-import styles from './CardTokens.module.css'
-import { formatTokens } from './formatTokens'
+import styles from './CardCells.module.css'
+import { hasUsage } from './hasUsage'
 import type { UsageFigures } from './sessionUsage'
 
 /** Props for {@link CardTokens}. */
@@ -18,12 +17,12 @@ interface CardTokensProps {
 }
 
 /**
- * The tokens cell of a session card: the token figure large, then a muted
- * "team total" label for a team's total, then the API-priced cost. A missing
- * token figure or cost shows an empty marker that names what is missing, and
- * with no figures at all the cell shows a single empty marker. Partial
- * figures carry a superscript marker, hidden from assistive tech, plus a
- * spoken note that says where the footnote is.
+ * The tokens cell of a session card: the token count large, with a muted
+ * "team total" or "tokens" beneath it. A missing token figure shows an empty
+ * marker that names what is missing, and with no figures at all the cell
+ * says that tokens and cost are both not recorded. A partial figure carries a
+ * superscript marker, hidden from assistive tech, plus a spoken note that says
+ * where the footnote is.
  *
  * @example
  * <CardTokens figures={{ tokens: 12_400_000, usd: 3.2, tokensPartial: false, usdPartial: false }} teamTotal partial={false} />
@@ -31,29 +30,36 @@ interface CardTokensProps {
 export function CardTokens({ figures, teamTotal, partial }: CardTokensProps): React.JSX.Element {
   const { t } = useTranslation('sessions')
 
-  if (figures === null || (figures.tokens === null && figures.usd === null)) {
+  if (!hasUsage(figures)) {
     return (
-      <div className={styles.tokens}>
+      <div className={styles.cell}>
         <EmptyCell spokenText={t('emptyCell.usageNotRecorded')} />
       </div>
     )
   }
 
-  const tokens = formatTokens(figures.tokens, t)
-  const usd = formatUsd(figures.usd, t)
+  if (figures.tokens === null) {
+    return (
+      <div className={styles.cell}>
+        <EmptyCell spokenText={t('emptyCell.tokensNotRecorded')} />
+        {partial && <PartialMarker note={t('partialNote')} />}
+      </div>
+    )
+  }
 
   return (
-    <div className={styles.tokens}>
+    <div className={styles.cell}>
       <p className={styles.figure}>
-        {tokens ?? <EmptyCell spokenText={t('emptyCell.tokensNotRecorded')} />}
+        {t('figure.compact', { value: figures.tokens })}
         {partial && <PartialMarker note={t('partialNote')} />}
       </p>
-      {teamTotal && <MutedText smaller>{t('teamTotal')}</MutedText>}
       <MutedText smaller>
-        {usd === null ? (
-          <EmptyCell spokenText={t('emptyCell.costNotRecorded')} />
+        {teamTotal ? (
+          <>
+            {t('teamTotal')} <span className="visuallyHidden">{t('tokensLabel')}</span>
+          </>
         ) : (
-          t('apiCost', { value: usd })
+          t('tokensLabel')
         )}
       </MutedText>
     </div>

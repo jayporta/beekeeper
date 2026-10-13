@@ -49,7 +49,7 @@ export function ProjectStats({ stats, dirName }: ProjectStatsProps): React.JSX.E
           label={t('stats.tokens')}
           partialNote={stats.partial.tokens ? note : undefined}
         >
-          {t('stats.compact', { value: stats.tokens })}
+          {t('figure.compact', { value: stats.tokens })}
         </ProjectStatsItem>
         <ProjectStatsItem
           label={t('stats.cost')}

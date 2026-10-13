@@ -139,6 +139,9 @@ export default defineConfig(
               'role',
               'as',
               'variant',
+              'tone',
+              'kind',
+              'size',
               'ns',
               'emptyReason'
             ]

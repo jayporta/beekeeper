@@ -11,6 +11,7 @@ import { hydratePersistedStores, renderAppReady } from '@renderer/testAppReady'
 import { resetPersistedState } from '@renderer/testRenderApp'
 import { PARTIAL_FOOTNOTE_ID } from '../partialFootnoteId'
 import { useSessionsViewStore } from '../state/useSessionsViewStore'
+import { expandTeammates } from '../testExpandTeammates'
 import {
   testAgentRole,
   testLeadTeam,
@@ -77,8 +78,14 @@ async function showSessions(sessions: readonly SessionListItemDto[] = SESSIONS):
 
 /** The card whose title is `name`. */
 function cardOf(name: string | RegExp): HTMLElement {
-  const title = screen.getByRole('heading', { level: 2, name })
+  const title = screen.getByRole('heading', { level: 3, name })
   return title.closest('li') as HTMLElement
+}
+
+/** Asserts the card shows 12 tool errors and 2 compactions as pills. */
+function expectSignalPills(card: HTMLElement): void {
+  expect(within(card).getByText('12 tool errors')).toBeTruthy()
+  expect(within(card).getByText('2 compactions')).toBeTruthy()
 }
 
 describe('session cards', () => {
@@ -89,25 +96,31 @@ describe('session cards', () => {
 
     expect(
       within(list)
-        .getAllByRole('heading', { level: 2 })
+        .getAllByRole('heading', { level: 3 })
         .map((title) => title.textContent)
     ).toEqual(['Refactor parser', 'Plain session'])
   })
 
-  it('shows a lead with its agent count, team total, and a chip for each teammate', async () => {
+  it('shows a lead with its agent count, team total, and a row for each teammate once opened', async () => {
     await showSessions()
 
     const card = cardOf('Refactor parser')
+    expect(within(card).queryByRole('list', { name: 'Teammates of Refactor parser' })).toBeNull()
+    await expandTeammates(card)
 
-    expect(within(card).getByText('2 teammates, 1 subagent')).toBeTruthy()
+    expect(within(card).getByRole('button', { name: '2 teammates, 1 subagent' })).toBeTruthy()
     expect(within(card).getByText('team total')).toBeTruthy()
-    expect(within(card).getByText('300 tokens')).toBeTruthy()
+    expect(within(card).getByText('300')).toBeTruthy()
     const chips = within(within(card).getByRole('list', { name: 'Teammates of Refactor parser' }))
     expect(
-      chips.getByRole('button', { name: 'reviewer (code) stopped 2 subagents 1.5K tokens' })
+      chips.getByRole('button', {
+        name: 'reviewer code stopped 2 subagents 1.5K tokens 100% of the session'
+      })
     ).toBeTruthy()
     expect(
-      chips.getByRole('button', { name: 'writer (code) in -Users-a-other 2.5K tokens' })
+      chips.getByRole('button', {
+        name: 'writer code in -Users-a-other 2.5K tokens 100% of the session'
+      })
     ).toBeTruthy()
   })
 
@@ -136,7 +149,7 @@ describe('session cards', () => {
     const card = cardOf('Plain session')
 
     expect(within(card).getByText('2 subagents')).toBeTruthy()
-    expect(within(card).getByText('$0.50 at API prices')).toBeTruthy()
+    expect(within(card).getByText('$0.50')).toBeTruthy()
     expect(within(card).queryByText('team total')).toBeNull()
     expect(within(card).queryByRole('list')).toBeNull()
   })
@@ -147,7 +160,7 @@ describe('session cards', () => {
     const card = cardOf('Cheap')
 
     expect(card.textContent).toContain('-tokens not recorded')
-    expect(within(card).getByText('<$0.01 at API prices')).toBeTruthy()
+    expect(within(card).getByText('<$0.01')).toBeTruthy()
   })
 
   it("shows the transcript's tokens, marked partial, for a session that recorded none", async () => {
@@ -162,7 +175,7 @@ describe('session cards', () => {
 
     const card = cardOf('Still running')
 
-    expect(within(card).getByText('1.2K tokens')).toBeTruthy()
+    expect(within(card).getByText('1.2K')).toBeTruthy()
     expect(card.textContent).not.toContain('tokens not recorded')
     expect(within(card).getByText('¹')).toBeTruthy()
   })
@@ -215,7 +228,7 @@ describe('session cards', () => {
     expect(useNavigationStore.getState().selectedSessionRef).toEqual(testRef(5, DIR))
   })
 
-  it('shows a title that looks like markup literally, in the card and in the chips label', async () => {
+  it('shows a title that looks like markup literally, in the card and in the teammates label', async () => {
     const hostile = '<b>x</b> &amp; {{name}} $t(common:retry)'
     const hostileLead = testSession(1, {
       projectDirName: DIR,
@@ -225,6 +238,7 @@ describe('session cards', () => {
     await showSessions([hostileLead, { ...reviewer, team: testTeammateTeam(testRef(1, DIR)) }])
 
     const card = cardOf(hostile)
+    await expandTeammates(card)
 
     expect(within(card).getByRole('list', { name: `Teammates of ${hostile}` })).toBeTruthy()
   })
@@ -338,9 +352,10 @@ describe('session cards: partial figures', () => {
       expect(listFootnote()).toBeNull()
     })
 
-    it("still explains a teammate chip's own marker", async () => {
+    it("still explains a teammate row's own marker", async () => {
       await showSessions([emptyLead, chipOf({ transcriptTokens: 400, subagentCount: 1 })])
       const card = cardOf('Empty lead')
+      await expandTeammates(card)
 
       expect(within(card).getByText('¹')).toBeTruthy()
       expect(listFootnote()?.textContent).toBe(
@@ -379,21 +394,21 @@ describe('session cards: partial figures', () => {
 })
 
 describe('session cards: search', () => {
-  it('keeps the lead of a matching teammate with all its chips and marks only the match', async () => {
+  it('keeps the lead of a matching teammate opened to all its teammates, marking only the match', async () => {
     await showSessions()
     cardOf('Refactor parser')
 
     await userEvent.type(screen.getByRole('searchbox', { name: 'Search sessions' }), 'review')
 
     const card = cardOf('Refactor parser')
-    expect(screen.queryByRole('heading', { level: 2, name: 'Plain session' })).toBeNull()
-    const reviewerChip = within(card).getByRole('button', { name: /^reviewer \(code\)/ })
-    const writerChip = within(card).getByRole('button', { name: /^writer \(code\)/ })
+    expect(screen.queryByRole('heading', { level: 3, name: 'Plain session' })).toBeNull()
+    const reviewerChip = within(card).getByRole('button', { name: /^reviewer code/ })
+    const writerChip = within(card).getByRole('button', { name: /^writer code/ })
     expect(within(reviewerChip).getByText('matches search')).toBeTruthy()
     expect(within(writerChip).queryByText('matches search')).toBeNull()
   })
 
-  it('highlights a matching chip whatever the case of the search', async () => {
+  it('marks a matching teammate whatever the case of the search', async () => {
     await showSessions()
     cardOf('Refactor parser')
 
@@ -403,14 +418,14 @@ describe('session cards: search', () => {
     expect(within(card).getAllByText('matches search')).toHaveLength(1)
   })
 
-  it('marks no chip when the lead itself matches and no teammate does', async () => {
+  it('leaves the teammates closed when the lead itself matches and no teammate does', async () => {
     await showSessions()
     cardOf('Refactor parser')
 
     await userEvent.type(screen.getByRole('searchbox', { name: 'Search sessions' }), 'parser')
 
     expect(screen.queryByText('matches search')).toBeNull()
-    expect(screen.getAllByRole('button', { name: /\(code\)/ })).toHaveLength(2)
+    expect(screen.queryByRole('button', { name: /^reviewer code/ })).toBeNull()
   })
 })
 
@@ -430,9 +445,10 @@ describe('session cards: opening a session', () => {
     })
   })
 
-  it("opens the lead's session with that teammate selected from a chip with the keyboard", async () => {
+  it("opens the lead's session with that teammate selected from a teammate row with the keyboard", async () => {
     await showSessions()
-    const chip = screen.getByRole('button', { name: /^writer \(code\)/ })
+    await expandTeammates(cardOf('Refactor parser'))
+    const chip = screen.getByRole('button', { name: /^writer code/ })
 
     chip.focus()
     await userEvent.keyboard('{Enter}')
@@ -510,14 +526,14 @@ describe('session cards: signal notes', () => {
   it('notes the tool errors and compactions on a card, and nothing on a quiet one', async () => {
     await showSessions([noisy, solo])
 
-    expect(cardOf('Went off the rails').textContent).toContain('12 tool errors · 2 compactions')
+    expectSignalPills(cardOf('Went off the rails'))
     expect(cardOf('Plain session').textContent).not.toContain('tool error')
   })
 
   it('notes a lead with the team totals rather than its own counts', async () => {
     await showSessions([teamLead, teammate])
 
-    expect(cardOf('Team lead').textContent).toContain('12 tool errors · 2 compactions')
+    expectSignalPills(cardOf('Team lead'))
   })
 
   it('renders a lead and its unreadable teammate, the lead noting its team totals', async () => {
@@ -539,7 +555,7 @@ describe('session cards: signal notes', () => {
     const leadCard = cardOf('Lead of a lost teammate')
     const lostCard = cardOf('Unreadable session')
 
-    expect(leadCard.textContent).toContain('12 tool errors · 2 compactions')
+    expectSignalPills(leadCard)
     expect(lostCard.textContent).not.toContain('tool error')
   })
 
@@ -656,7 +672,7 @@ describe('session cards: archived note', () => {
 
     expect(
       within(list)
-        .getAllByRole('heading', { level: 2 })
+        .getAllByRole('heading', { level: 3 })
         .map((title) => title.textContent)
     ).toEqual(['Removed from disk', 'Plain session'])
   })
@@ -666,7 +682,7 @@ describe('session cards: archived note', () => {
 
     await userEvent.type(screen.getByRole('searchbox', { name: 'Search sessions' }), 'removed')
 
-    expect(screen.getByRole('heading', { level: 2, name: 'Removed from disk' })).toBeTruthy()
-    expect(screen.queryByRole('heading', { level: 2, name: 'Plain session' })).toBeNull()
+    expect(screen.getByRole('heading', { level: 3, name: 'Removed from disk' })).toBeTruthy()
+    expect(screen.queryByRole('heading', { level: 3, name: 'Plain session' })).toBeNull()
   })
 })

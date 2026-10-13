@@ -45,7 +45,14 @@ const solo = testSession(3, {
 const rows = groupSessionRows([lead, mate, solo], testSessionsT)
 
 const list = (query: string, shown = rows): React.JSX.Element => (
-  <SessionCardList rows={shown} labelledBy="h" selectedDirName="-p" query={query} />
+  <SessionCardList
+    rows={shown}
+    labelledBy="h"
+    selectedDirName="-p"
+    largestTokens={5}
+    matchCount={null}
+    query={query}
+  />
 )
 
 beforeEach(() => {

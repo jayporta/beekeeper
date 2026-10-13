@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { CardOpenButton } from '@renderer/components/CardOpenButton'
 import { MutedText } from '@renderer/components/MutedText'
 import { PartialMarker } from '@renderer/components/PartialMarker'
+import { Pill } from '@renderer/components/Pill'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { formatLastActive } from './formatLastActive'
 import { lastActiveMs } from './lastActiveMs'
@@ -9,7 +10,6 @@ import { notesFor } from './notesFor'
 import { SeparatedText } from './SeparatedText'
 import styles from './SessionCell.module.css'
 import type { SessionRow } from './sessionRow'
-import { signalNotes, signalsMarked, signalTotalsOf } from './signalNotes'
 import { useNowUntil } from './useNowUntil'
 
 /** Props for {@link SessionCell}. */
@@ -23,13 +23,14 @@ interface SessionCellProps {
 }
 
 /**
- * The title cell of a session card: the session's name as a button that opens
- * it, a short id beside a placeholder name, and a muted line with when it was
- * last active, its model, and notes such as a plan limit it hit, and a line
- * naming the workflow or subagent the search matched when nothing else on the
- * card did. The signal counts carry a partial marker when a transcript behind
- * them hit the event cap. The button stretches over the whole card, so the
- * card is one target, while the teammate chips sit above it.
+ * The title cell of a session row: the session's name as a button that opens
+ * it, a short id beside a placeholder name, a muted line with when it was last
+ * active, its model, and plain notes such as its team, then pills for its
+ * statuses (archived, stopped, a plan limit it hit, its signal counts), and a
+ * line naming the workflow or subagent the search matched when nothing else on
+ * the row did. The signal counts carry a partial marker after the last pill
+ * when a transcript behind them hit the event cap. The button stretches over
+ * the row's grid, so the row is one target.
  *
  * @example
  * <SessionCell row={row} selectedDirName="-Users-me-repo" matchNote={null} />
@@ -44,36 +45,39 @@ export function SessionCell({
   const { item, label } = row
   const summary = item.summary.ok ? item.summary.value : null
   const nowMs = useNowUntil(summary?.limitHit?.resetsAtMs ?? null)
+  const notes = notesFor(row, { selectedDirName, nowMs, t })
   const meta = [
     formatLastActive(lastActiveMs(item), t),
     summary?.model ?? null,
-    ...notesFor(row, { selectedDirName, nowMs, t })
+    ...notes.meta
   ].filter((part) => part !== null)
-  const signals = signalTotalsOf(item)
-  const lastSignalNote = signalsMarked(signals) ? signalNotes(signals, t).at(-1) : undefined
 
   return (
     <div className={styles.cell}>
-      <h2 className={styles.title}>
+      <h3 className={styles.title}>
         <CardOpenButton
+          className={styles.open}
           onClick={() => {
             showSession({ projectDirName: item.projectDirName, sessionId: item.sessionId })
           }}
         >
           {label.text}
         </CardOpenButton>
-      </h2>
+      </h3>
       {label.idHint !== null && <MutedText wrapAnywhere>{label.idHint}</MutedText>}
       <MutedText wrapAnywhere>
-        <SeparatedText
-          parts={meta}
-          marker={
-            lastSignalNote === undefined
-              ? undefined
-              : { after: lastSignalNote, node: <PartialMarker note={t('signalsPartialNote')} /> }
-          }
-        />
+        <SeparatedText parts={meta} />
       </MutedText>
+      {notes.pills.length > 0 && (
+        <div className={styles.pills}>
+          {notes.pills.map((pill) => (
+            <span key={pill.text} className={styles.pill}>
+              <Pill tone={pill.tone}>{pill.text}</Pill>
+              {pill.signalsMarker && <PartialMarker note={t('signalsPartialNote')} />}
+            </span>
+          ))}
+        </div>
+      )}
       {matchNote !== null && <MutedText wrapAnywhere>{matchNote}</MutedText>}
     </div>
   )

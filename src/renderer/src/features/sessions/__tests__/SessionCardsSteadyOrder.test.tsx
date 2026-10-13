@@ -45,7 +45,7 @@ afterEach(async () => {
 
 const titles = (): (string | null)[] =>
   within(screen.getByRole('list', { name: DIR }))
-    .getAllByRole('heading', { level: 2 })
+    .getAllByRole('heading', { level: 3 })
     .map((heading) => heading.textContent)
 
 /** The live region showing `text`, which stays mounted while each announcement replaces its text. */
@@ -68,7 +68,7 @@ async function refetchAfterChange(calls: number): Promise<void> {
 describe('session cards while the list refreshes in the background', () => {
   it('keeps the visible order when a lower session becomes the newest', async () => {
     renderApp()
-    await screen.findByRole('heading', { level: 2, name: 'Alpha' })
+    await screen.findByRole('heading', { level: 3, name: 'Alpha' })
 
     current = [session(1, 'Alpha', 200), session(2, 'Beta', 300)]
     await refetchAfterChange(2)
@@ -78,7 +78,7 @@ describe('session cards while the list refreshes in the background', () => {
 
   it('shows a new session first', async () => {
     renderApp()
-    await screen.findByRole('heading', { level: 2, name: 'Alpha' })
+    await screen.findByRole('heading', { level: 3, name: 'Alpha' })
 
     current = [session(3, 'Gamma', 50), session(1, 'Alpha', 200), session(2, 'Beta', 100)]
     await refetchAfterChange(2)
@@ -89,7 +89,7 @@ describe('session cards while the list refreshes in the background', () => {
   it('sorts again when Refresh is pressed', async () => {
     const user = userEvent.setup()
     renderApp()
-    await screen.findByRole('heading', { level: 2, name: 'Alpha' })
+    await screen.findByRole('heading', { level: 3, name: 'Alpha' })
     current = [session(1, 'Alpha', 200), session(2, 'Beta', 300)]
     await refetchAfterChange(2)
     expect(titles()).toEqual(['Alpha', 'Beta'])
@@ -104,7 +104,7 @@ describe('session cards while the list refreshes in the background', () => {
   it('sorts the data a Refresh press fetches, not the data already shown', async () => {
     const user = userEvent.setup()
     renderApp()
-    await screen.findByRole('heading', { level: 2, name: 'Alpha' })
+    await screen.findByRole('heading', { level: 3, name: 'Alpha' })
     // No change event arrives, as when live updates are paused: only the press fetches.
     current = [session(1, 'Alpha', 200), session(2, 'Beta', 300)]
 
@@ -118,7 +118,7 @@ describe('session cards while the list refreshes in the background', () => {
   it('keeps the order for a later live update after a Refresh that failed', async () => {
     const user = userEvent.setup()
     renderApp()
-    await screen.findByRole('heading', { level: 2, name: 'Alpha' })
+    await screen.findByRole('heading', { level: 3, name: 'Alpha' })
     listSessions.mockImplementationOnce(() =>
       Promise.resolve({ ok: false, error: { code: 'unreadable' } })
     )
@@ -133,7 +133,7 @@ describe('session cards while the list refreshes in the background', () => {
 
   it('keeps each card’s element in the same place across a reordering refresh', async () => {
     renderApp()
-    await screen.findByRole('heading', { level: 2, name: 'Alpha' })
+    await screen.findByRole('heading', { level: 3, name: 'Alpha' })
     const cards = (): Element[] => [...screen.getByRole('list', { name: DIR }).children]
     const before = cards()
 
@@ -193,7 +193,7 @@ describe('session cards while the list refreshes in the background', () => {
           })
       })
       renderApp(client)
-      await screen.findByRole('heading', { level: 2, name: 'Alpha' })
+      await screen.findByRole('heading', { level: 3, name: 'Alpha' })
 
       act(() => {
         useSelectedProjectStore.getState().select(OTHER)
@@ -202,7 +202,7 @@ describe('session cards while the list refreshes in the background', () => {
       await waitFor(() => {
         expect(
           within(screen.getByRole('list', { name: OTHER }))
-            .getAllByRole('heading', { level: 2 })
+            .getAllByRole('heading', { level: 3 })
             .map((heading) => heading.textContent)
         ).toEqual(['Delta', 'Gamma'])
       })
@@ -231,7 +231,7 @@ describe('session cards while the list refreshes in the background', () => {
           })
       })
       renderApp(client)
-      await screen.findByRole('heading', { level: 2, name: 'Alpha' })
+      await screen.findByRole('heading', { level: 3, name: 'Alpha' })
 
       act(() => {
         useSelectedProjectStore.getState().select(OTHER)
@@ -240,7 +240,7 @@ describe('session cards while the list refreshes in the background', () => {
       await waitFor(() => {
         expect(
           within(screen.getByRole('list', { name: OTHER }))
-            .getAllByRole('heading', { level: 2 })
+            .getAllByRole('heading', { level: 3 })
             .map((heading) => heading.textContent)
         ).toEqual(['Delta', 'Gamma'])
       })
@@ -266,7 +266,7 @@ describe('session cards while the list refreshes in the background', () => {
           })
       })
       renderApp(client)
-      await screen.findByRole('heading', { level: 2, name: 'Alpha' })
+      await screen.findByRole('heading', { level: 3, name: 'Alpha' })
       await user.click(screen.getByRole('button', { name: 'Refresh' }))
       await waitFor(() => {
         expect(
@@ -281,7 +281,7 @@ describe('session cards while the list refreshes in the background', () => {
       await waitFor(() => {
         expect(
           within(screen.getByRole('list', { name: OTHER }))
-            .getAllByRole('heading', { level: 2 })
+            .getAllByRole('heading', { level: 3 })
             .map((heading) => heading.textContent)
         ).toEqual(['Delta', 'Gamma'])
       })

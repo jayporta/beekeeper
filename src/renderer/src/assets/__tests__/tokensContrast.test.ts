@@ -142,6 +142,19 @@ describe.each(Object.entries(schemes))('%s color scheme marks', (_scheme, tokens
   })
 })
 
+/** The agent kinds' marks also sit in the teammate sub-table and on a hovered or matched row. */
+const KIND_MARK_TOKENS = MARK_TOKENS.filter((mark) => mark.startsWith('--color-kind-'))
+
+describe.each(Object.entries(schemes))('%s color scheme agent kind marks', (_scheme, tokens) => {
+  it.each(
+    KIND_MARK_TOKENS.flatMap((mark) =>
+      ['--color-surface', '--color-selected'].map((ground) => [mark, ground] as const)
+    )
+  )('%s is at least 3:1 against %s', (mark, ground) => {
+    expect(contrastRatio(token(tokens, mark), token(tokens, ground))).toBeGreaterThanOrEqual(3)
+  })
+})
+
 describe.each(Object.entries(schemes))('%s color scheme graph edges', (_scheme, tokens) => {
   it('are at least 3:1 against the ground, text at the edge opacity (WCAG 1.4.11)', () => {
     const text = tokens['--color-text']
