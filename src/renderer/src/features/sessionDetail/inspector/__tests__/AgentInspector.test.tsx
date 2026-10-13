@@ -14,6 +14,7 @@ import {
   inspector,
   pricedGroup,
   renderInspectorScene,
+  stat,
   startedFact
 } from '../testInspectorScene'
 
@@ -45,7 +46,7 @@ describe('AgentInspector for the lead', () => {
   it('shows the model, when the agent started, how long it was active, and its message count', () => {
     renderInspectorScene()
 
-    expect(factsText(/claude-opus-5/)).toBe(
+    expect(factsText(/active/)).toBe(
       `claude-opus-5 · ${startedFact(SCENE_START)} · 1h active · 12 messages`
     )
   })
@@ -67,9 +68,9 @@ describe('AgentInspector for the lead', () => {
   it('shows its own tokens, what it adds up to with the agents below, and its cost', () => {
     renderInspectorScene()
 
-    expect(inspector().getByText('1.6K tokens')).toBeTruthy()
-    expect(inspector().getByText('5K tokens incl. 4 below')).toBeTruthy()
-    expect(inspector().getByText('$2.50 at API prices')).toBeTruthy()
+    expect(stat('Tokens').textContent).toBe('1.6K')
+    expect(stat('Incl. agents below').textContent).toMatch(/^5K · 4 below/)
+    expect(stat('At API prices').textContent).toBe('$2.50')
   })
 
   it('says there are no agents below a lone lead', () => {
@@ -91,9 +92,17 @@ describe('AgentInspector for the lead', () => {
     expect(row('Output')).toBe('Output400')
     expect(row('Cache read')).toBe('Cache read100')
     expect(row('Cache write')).toBe('Cache write100')
-    expect(
-      inspector().getByRole('heading', { level: 3, name: 'Tokens · 1.6K tokens' })
-    ).toBeTruthy()
+    expect(inspector().getByRole('heading', { level: 3, name: 'Tokens · 1.6K' })).toBeTruthy()
+  })
+
+  it('names the model beside the tokens heading', () => {
+    renderInspectorScene()
+
+    const section = inspector()
+      .getByRole('heading', { level: 3, name: /^Tokens/ })
+      .closest('section')
+
+    expect(within(section as HTMLElement).getByText('claude-opus-5')).toBeTruthy()
   })
 
   it('hides the bars from assistive technology and keeps the counts as text', () => {
@@ -120,18 +129,19 @@ describe('AgentInspector for the lead', () => {
     expect(inspector().getByText(/12 messages/).tagName).toBe('BDI')
   })
 
-  it('sizes each token bar against the largest class', () => {
+  it('sizes each segment of the token bar by its share of the total', () => {
     renderInspectorScene()
 
-    const fill = (label: string): string | undefined =>
-      inspector().getByText(label).closest('li')?.querySelector('[style]')?.getAttribute('style') ??
-      undefined
+    const bar = inspector()
+      .getByRole('heading', { level: 3, name: /^Tokens/ })
+      .closest('section')
+      ?.querySelector('[aria-hidden="true"]')
+    const widths = [...(bar?.children ?? [])].map(
+      (segment) => (segment as HTMLElement).style.inlineSize
+    )
 
-    expect([fill('Input'), fill('Output'), fill('Cache read')]).toEqual([
-      'width: 100%;',
-      'width: 40%;',
-      'width: 10%;'
-    ])
+    // 1000 input, 400 output, 100 cache read and 100 cache write of 1600.
+    expect(widths).toEqual(['62.5%', '25%', '6.25%', '6.25%'])
   })
 })
 
@@ -173,8 +183,8 @@ describe('AgentInspector partial data', () => {
   it('marks the tokens and the cost when transcript lines could not be read', () => {
     renderInspectorScene({ detail: testDetail({ lead: { ...LEAD_REPORT, skippedLines: 2 } }) })
 
-    expect(inspector().getByText(/^1\.6K tokens/).textContent).toContain('¹')
-    expect(inspector().getByText(/at API prices/).textContent).toContain('¹')
+    expect(stat('Tokens').textContent).toContain('¹')
+    expect(stat('At API prices').textContent).toContain('¹')
   })
 
   it('names the footnote, and gives its reasons in a fixed order', () => {
@@ -210,7 +220,7 @@ describe('AgentInspector partial data', () => {
     }
     renderInspectorScene({ detail: testDetail({ lead }) })
 
-    expect(inspector().getByText(/\$2\.50 at API prices/).textContent).toContain('¹')
+    expect(stat('At API prices').textContent).toBe('$2.50¹ partial, see the note below')
     expect(inspector().getByText(/Some tokens have no known price/)).toBeTruthy()
   })
 
@@ -221,8 +231,7 @@ describe('AgentInspector partial data', () => {
     }
     renderInspectorScene({ detail: testDetail({ lead }) })
 
-    expect(inspector().getByText('cost not recorded')).toBeTruthy()
-    expect(inspector().queryByText(/at API prices/)).toBeNull()
+    expect(stat('At API prices').textContent).toMatch(/^-cost not recorded/)
   })
 
   it('marks the rollup when an agent below has no tokens recorded', async () => {
@@ -233,7 +242,7 @@ describe('AgentInspector partial data', () => {
     })
     renderInspectorScene({ detail, items: [testSession(1)] })
 
-    expect(inspector().getByText(/incl\. 1 below/).textContent).toContain('¹')
+    expect(stat('Incl. agents below').textContent).toContain('¹')
     expect(
       inspector().getByText(/Some agents below have partial or unrecorded totals/)
     ).toBeTruthy()
@@ -257,14 +266,13 @@ describe('AgentInspector for an agent with no tokens recorded', () => {
   it('says the cost was not recorded instead of showing $0.00', () => {
     renderInspectorScene({ detail: noTokens, items: [testSession(1)] })
 
-    expect(inspector().getByText('cost not recorded')).toBeTruthy()
-    expect(inspector().queryByText(/at API prices/)).toBeNull()
+    expect(stat('At API prices').textContent).toMatch(/^-cost not recorded/)
   })
 
   it('marks the total with the agents below and explains why it may be low', () => {
     renderInspectorScene({ detail: noTokens, items: [testSession(1)] })
 
-    expect(inspector().getByText(/40 tokens incl\. 1 below/).textContent).toContain('¹')
+    expect(stat('Incl. agents below').textContent).toContain('¹')
     expect(inspector().getByText(/This agent's own tokens weren't recorded/)).toBeTruthy()
   })
 })
@@ -318,7 +326,7 @@ describe('AgentInspector for a subagent', () => {
     expect(inspector().getByRole('heading', { level: 2, name: 'scout' })).toBeTruthy()
     expect(inspector().getByText('Subagent · Explore')).toBeTruthy()
     expect(inspector().getByText('3 messages')).toBeTruthy()
-    expect(inspector().getByText('40 tokens')).toBeTruthy()
+    expect(stat('Tokens').textContent).toBe('40')
     expect(inspector().getByText('No agents below')).toBeTruthy()
   })
 
@@ -419,8 +427,8 @@ describe('AgentInspector for a teammate', () => {
     await select(/^writer/)
 
     expect(await inspector().findByText('Teammate · own session')).toBeTruthy()
-    expect(inspector().getByText('400 tokens')).toBeTruthy()
-    expect(inspector().getByText('470 tokens incl. 1 below')).toBeTruthy()
+    expect(stat('Tokens').textContent).toBe('400')
+    expect(stat('Incl. agents below').textContent).toBe('470 · 1 below')
     expect(inspector().getByText(/7 messages/)).toBeTruthy()
     expect(inspector().getByText('/repo/w.ts')).toBeTruthy()
     expect(inspector().getByText('Stopped')).toBeTruthy()
@@ -456,19 +464,19 @@ describe('AgentInspector for a teammate', () => {
 
   it('adds an open teammate’s subagents to the lead’s rollup', async () => {
     renderInspectorScene(sceneWithWriterSubagent)
-    expect(inspector().getByText(/tokens incl\. 3 below/)).toBeTruthy()
+    expect(stat('Incl. agents below').textContent).toMatch(/ · 3 below/)
 
     await select(/^writer/)
     await inspector().findByText('Teammate · own session')
     await select(/^Lead/)
 
-    expect(inspector().getByText('5.1K tokens incl. 4 below')).toBeTruthy()
+    expect(stat('Incl. agents below').textContent).toBe('5.1K · 4 below')
   })
 
   it('marks the lead’s total and explains it while a teammate’s subagents are not loaded', () => {
     renderInspectorScene(sceneWithWriterSubagent)
 
-    expect(inspector().getByText(/tokens incl\. 3 below/).textContent).toContain('¹')
+    expect(stat('Incl. agents below').textContent).toContain('¹')
     expect(inspector().getByText(/subagents aren.t loaded/)).toBeTruthy()
   })
 
@@ -479,7 +487,7 @@ describe('AgentInspector for a teammate', () => {
     await inspector().findByText('Teammate · own session')
     await select(/^Lead/)
 
-    expect(inspector().getByText(/tokens incl\. 4 below/).textContent).not.toContain('¹')
+    expect(stat('Incl. agents below').textContent).not.toContain('¹')
     expect(inspector().queryByText(/subagents aren.t loaded/)).toBeNull()
   })
 

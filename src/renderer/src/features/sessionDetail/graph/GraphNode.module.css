@@ -1,19 +1,21 @@
+/* A kind's border and ground are below. The shadow lifts the node off the canvas. */
 .node {
   position: absolute;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: var(--space-2) var(--space-2-5);
+  padding: var(--space-1-75) var(--space-2-75);
   color: var(--color-text);
   font: inherit;
   text-align: left;
   /* Opaque, so the grid's dots don't show through the text. */
   background-color: var(--color-bg);
   border: var(--border-width-mark) solid var(--color-text);
-  border-radius: var(--radius-none);
+  border-radius: var(--radius-node);
+  box-shadow: var(--shadow-node);
   cursor: pointer;
 
-  /* The selected node's fill is already a tint, and the overlay on it would take the muted text below the contrast targets. */
+  /* The selected node's ground is already a tint, and the overlay on it would take the muted text below the contrast targets. */
   &:not(.lead, .selected):hover {
     background-image: linear-gradient(var(--color-hover), var(--color-hover));
   }
@@ -25,13 +27,16 @@
   }
 }
 
-/* A subagent is a sidechain inside a transcript: a dashed border. A teammate, a session of its own, is solid. */
+/* A teammate is a session of its own: a solid border on a tinted ground. */
 .teammate {
-  border-style: solid;
+  background-color: var(--color-kind-teammate-bg);
+  border: var(--border-width-strong) solid var(--color-kind-teammate);
 }
 
+/* A subagent is a sidechain inside a transcript: a dashed border on the card ground. */
 .subagent {
-  border-style: dashed;
+  background-color: var(--color-bg);
+  border: var(--border-width-mark) dashed var(--color-kind-subagent);
 }
 
 /*
@@ -46,17 +51,17 @@
   );
   --run-border-extra: calc(var(--run-border-width) - var(--border-width-mark));
 
-  padding: max(0px, calc(var(--space-2) - var(--run-border-extra)))
-    max(0px, calc(var(--space-2-5) - var(--run-border-extra)));
-  border-style: double;
-  border-width: var(--run-border-width);
+  padding: max(0px, calc(var(--space-1-75) - var(--run-border-extra)))
+    max(0px, calc(var(--space-2-75) - var(--run-border-extra)));
+  background-color: var(--color-kind-workflow-bg);
+  border: var(--run-border-width) double var(--color-kind-workflow);
 }
 
-/* The lead is always filled: --color-bg on --color-accent-strong, a pair the contrast test holds to 4.5:1 and Lc 75. */
+/* The lead is always filled: its text on its fill is a pair the contrast test holds to 4.5:1. */
 .lead {
-  color: var(--color-bg);
-  background-color: var(--color-accent-strong);
-  border-color: var(--color-accent-strong);
+  color: var(--color-kind-lead-text);
+  background-color: var(--color-kind-lead);
+  border-color: var(--color-kind-lead);
 
   & .detail {
     color: inherit;
@@ -79,20 +84,38 @@
 }
 
 /*
- * The selected node has a heavier border and a ring of text color outside it, which is 3:1 or more
- * against the ground (see the contrast test), so the choice shows without hue. The ring sits against
- * the border, and the focus ring starts past it, so the two never overlap.
+ * The selected node takes the selected ground, and a ring outside it, set off from the node by a gap
+ * of the canvas. The ring is 3:1 or more against the canvas (see the contrast test), so the choice
+ * shows without hue. The lead keeps its fill. The focus ring starts past the selection ring.
  */
 .selected {
   background-color: var(--color-selected);
-  border-color: var(--color-accent-strong);
-  border-width: var(--border-width-strong);
-  box-shadow: 0 0 0 calc(var(--border-width-strong) / var(--graph-scale, 1)) var(--color-text);
+  box-shadow:
+    var(--shadow-node),
+    0 0 0 calc(var(--size-selection-offset) / var(--graph-scale, 1)) var(--color-surface),
+    0 0 0 calc((var(--size-selection-offset) + var(--size-selection-ring)) / var(--graph-scale, 1))
+      var(--color-selection-ring);
+
+  &:focus-visible {
+    outline-offset: calc(
+      (var(--size-selection-offset) + var(--size-selection-ring) + var(--focus-ring-offset)) /
+        var(--graph-scale, 1)
+    );
+  }
 
   /* Forced colors drop shadows, so the border doubles instead. */
   @media (forced-colors: active) {
     border-color: Highlight;
     border-width: calc(var(--border-width-strong) * 2);
+  }
+}
+
+.lead.selected {
+  background-color: var(--color-kind-lead);
+
+  @media (forced-colors: active) {
+    background-color: Highlight;
+    border-color: CanvasText;
   }
 }
 
@@ -103,17 +126,6 @@
 
   @media (forced-colors: active) {
     border-width: calc(var(--run-border-width) * 1.5);
-  }
-}
-
-/* A filled lead keeps its fill when selected, so its edge turns to the text color too. */
-.lead.selected {
-  background-color: var(--color-accent-strong);
-  border-color: var(--color-text);
-
-  @media (forced-colors: active) {
-    background-color: Highlight;
-    border-color: CanvasText;
   }
 }
 
@@ -135,7 +147,7 @@
 
 .name {
   font-family: var(--font-heading);
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
 }
 

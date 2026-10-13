@@ -17,19 +17,3 @@
   min-inline-size: var(--size-token-segment-min);
   block-size: 100%;
 }
-
-.input {
-  background: var(--color-token-input);
-}
-
-.output {
-  background: var(--color-token-output);
-}
-
-.cacheRead {
-  background: var(--color-token-cache-read);
-}
-
-.cacheWrite {
-  background: var(--color-token-cache-write);
-}

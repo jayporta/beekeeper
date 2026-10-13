@@ -79,6 +79,11 @@ const PAIRS: readonly (readonly [string, string, number])[] = [
   ['--color-bg', '--color-accent-strong', 4.5],
   ...['--color-diff-add', '--color-diff-remove'].map((fg) => [fg, '--color-surface', 4.5] as const),
   ...CONTROL_GROUNDS.map((bg) => ['--color-border-strong', bg, 3] as const),
+  ...CONTROL_GROUNDS.map((bg) => ['--color-selection-ring', bg, 3] as const),
+  // A graph node's text on its kind's tinted ground.
+  ...['--color-text', '--color-text-muted'].flatMap((fg) =>
+    ['--color-kind-teammate-bg', '--color-kind-workflow-bg'].map((bg) => [fg, bg, 4.5] as const)
+  ),
   ...[...CONTROL_GROUNDS, '--color-selected'].map((bg) => ['--focus-ring-color', bg, 3] as const)
 ]
 

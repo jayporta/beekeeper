@@ -2,31 +2,28 @@ import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { GraphFootnote } from '../GraphFootnote'
 
-const renderFootnote = (marks: boolean, partial = false): void => {
+const renderFootnote = (partial = false): void => {
   render(
     <GraphFootnote
       partial={partial}
       partialWorkflow={false}
-      marks={marks}
       missingTeammates={0}
       teamListsTruncated={false}
     />
   )
 }
 
-describe('GraphFootnote legend', () => {
-  it('explains the marks when a node has them', () => {
-    renderFootnote(true)
+describe('GraphFootnote', () => {
+  it('leaves the legend to the card’s header', () => {
+    renderFootnote()
 
-    expect(screen.getByText('× tool errors')).toBeTruthy()
-    expect(screen.getByText('▲ compactions')).toBeTruthy()
-    expect(screen.getByText('■ stopped')).toBeTruthy()
+    expect(screen.queryByText('× tool errors')).toBeNull()
   })
 })
 
 describe('GraphFootnote partial note', () => {
   it('names signal counts among what a partial node may be missing', () => {
-    renderFootnote(false, true)
+    renderFootnote(true)
 
     expect(screen.getByText(/signal counts may be incomplete/)).toBeTruthy()
   })

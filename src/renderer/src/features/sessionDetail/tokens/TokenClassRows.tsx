@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import styles from './TokenClassRows.module.css'
+import colors from './tokenClassColor.module.css'
 import type { TokenClassTotal } from './tokenClasses'
 
 /** Props for {@link TokenClassRows}. */
@@ -23,7 +24,7 @@ export function TokenClassRows({ classes }: TokenClassRowsProps): React.JSX.Elem
     <ul className={styles.rows}>
       {classes.map(({ tokenClass, tokens }) => (
         <li key={tokenClass} className={styles.row}>
-          <span className={`${styles.swatch} ${styles[tokenClass]}`} aria-hidden="true" />
+          <span className={`${styles.swatch} ${colors[tokenClass]}`} aria-hidden="true" />
           <span>{t(`inspector.tokenClass.${tokenClass}`)}</span>
           <span className={styles.value}>{t('inspector.tokenValue', { count: tokens })}</span>
         </li>

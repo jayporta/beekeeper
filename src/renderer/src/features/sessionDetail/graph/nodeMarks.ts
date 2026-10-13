@@ -17,16 +17,6 @@ export function nodeMarks(signals: AgentSignalsDto): NodeMarks {
 }
 
 /**
- * Whether a node shows any mark.
- *
- * @param marks - The node's marks, or `null` when they aren't known.
- * @returns `true` when a count is above zero.
- */
-export function hasMarks(marks: NodeMarks | null): boolean {
-  return marks !== null && (marks.toolErrors > 0 || marks.compactions > 0)
-}
-
-/**
  * The marks as the short strings drawn on a node: `×12` for tool errors, then
  * `▲2` for compactions. A count of zero is left out.
  *

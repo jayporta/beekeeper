@@ -1,5 +1,6 @@
 import { withClassName } from '@renderer/components/withClassName'
 import styles from './TokenClassBar.module.css'
+import colors from './tokenClassColor.module.css'
 import type { TokenClassTotal } from './tokenClasses'
 
 /** Props for {@link TokenClassBar}. */
@@ -36,7 +37,7 @@ export function TokenClassBar({
         .map(({ tokenClass, tokens }) => (
           <div
             key={tokenClass}
-            className={`${styles.segment} ${styles[tokenClass]}`}
+            className={`${styles.segment} ${colors[tokenClass]}`}
             style={{ inlineSize: `${(tokens / total) * 100}%` }}
           />
         ))}

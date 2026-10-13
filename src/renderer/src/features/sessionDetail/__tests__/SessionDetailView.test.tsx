@@ -96,8 +96,11 @@ describe('SessionDetailView header', () => {
     openSession(testRef(1, DIR))
     await screen.findByRole('heading', { level: 1, name: 'Refactor parser' })
 
+    const header = within(
+      screen.getByRole('heading', { level: 1 }).closest('header') as HTMLElement
+    )
     const value = (label: string): string | null | undefined =>
-      screen.getByText(label, { selector: 'dt' }).nextElementSibling?.textContent
+      header.getByText(label, { selector: 'dt' }).nextElementSibling?.textContent
 
     expect(value('Tokens')).toBe('3.1M')
     expect(value('At API prices')).toBe('$13.23')
@@ -116,7 +119,11 @@ describe('SessionDetailView header', () => {
     openSession(testRef(9, DIR))
     await screen.findByRole('heading', { level: 1, name: 'Session' })
 
-    expect(screen.queryByText('Tokens', { selector: 'dt' })).toBeNull()
+    const header = within(
+      screen.getByRole('heading', { level: 1 }).closest('header') as HTMLElement
+    )
+
+    expect(header.queryByText('Tokens', { selector: 'dt' })).toBeNull()
   })
 
   it('shows the short id beside the placeholder title of an untitled session', async () => {

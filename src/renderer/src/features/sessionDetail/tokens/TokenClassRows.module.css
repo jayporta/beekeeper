@@ -19,22 +19,6 @@
   block-size: var(--size-token-swatch);
 }
 
-.input {
-  background: var(--color-token-input);
-}
-
-.output {
-  background: var(--color-token-output);
-}
-
-.cacheRead {
-  background: var(--color-token-cache-read);
-}
-
-.cacheWrite {
-  background: var(--color-token-cache-write);
-}
-
 .value {
   font-variant-numeric: tabular-nums;
 }

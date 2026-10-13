@@ -6,3 +6,7 @@
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
 }
+
+.flush {
+  padding: 0;
+}

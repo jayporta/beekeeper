@@ -5,8 +5,6 @@
   min-width: 0;
   max-width: var(--size-inspector-max);
   gap: var(--space-4-5);
-  padding: var(--space-6) var(--space-5-5);
-  border-left: 1px solid var(--color-divider);
   /* Positioned, so visually hidden text inside it is clipped to the pane instead of lengthening the page. */
   position: relative;
 
