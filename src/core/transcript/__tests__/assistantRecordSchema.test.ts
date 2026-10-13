@@ -60,6 +60,13 @@ describe('assistantRecordSchema', () => {
     expect(assistantRecordSchema.safeParse(record).success).toBe(false)
   })
 
+  it('rejects a message.id under the code-point cap but over the code-unit cap', () => {
+    // 200 non-BMP characters: 200 code points, but 400 UTF-16 code units.
+    const record = buildAssistantRecord({ messageId: '😀'.repeat(200) })
+
+    expect(assistantRecordSchema.safeParse(record).success).toBe(false)
+  })
+
   it('rejects an unprintable message.model', () => {
     const record = buildAssistantRecord({ model: 'claude\u202Eopus' })
 
