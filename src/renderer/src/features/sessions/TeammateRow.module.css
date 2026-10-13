@@ -1,4 +1,4 @@
-/* On the same columns as the session rows above it. */
+/* On the same columns as the session rows above it, since the list spans their full width. */
 .row {
   composes: columns from './CardColumns.module.css';
   align-items: center;
