@@ -288,6 +288,20 @@ ruleTester.run('importDirection', importDirection, {
       errors: forbidden
     },
     {
+      name: 'shared imports react',
+      filename: at('src/shared/sessions/sessionLabel.ts'),
+      code: "import { useState } from 'react'",
+      options,
+      errors: [{ messageId: 'forbiddenPackage' }]
+    },
+    {
+      name: 'shared imports electron',
+      filename: at('src/shared/sessions/sessionLabel.ts'),
+      code: "import { app } from 'electron'",
+      options,
+      errors: [{ messageId: 'forbiddenPackage' }]
+    },
+    {
       name: 'service imports main',
       filename: at('src/service/sessions/listSessions.ts'),
       code: "import { x } from '../../main/archive/createArchiveStore'",
