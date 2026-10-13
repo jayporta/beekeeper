@@ -96,6 +96,13 @@
     0 0 0 calc((var(--size-selection-offset) + var(--size-selection-ring)) / var(--graph-scale, 1))
       var(--color-selection-ring);
 
+  &:focus-visible {
+    outline-offset: calc(
+      (var(--size-selection-offset) + var(--size-selection-ring) + var(--focus-ring-offset)) /
+        var(--graph-scale, 1)
+    );
+  }
+
   /* Forced colors drop shadows, so the border doubles instead. */
   @media (forced-colors: active) {
     border-color: Highlight;
