@@ -127,5 +127,14 @@
       "mayBeLow": "A day's total may be low."
     },
     "tableToggle": "Tokens per day as a table"
+  },
+  "byModel": {
+    "heading": "By model",
+    "label": "Tokens by model",
+    "unit": "tokens",
+    "percent": "{{value, integer}}%",
+    "underOne": "<1%",
+    "loading": "Loading models",
+    "error": "Couldn't load models."
   }
 }

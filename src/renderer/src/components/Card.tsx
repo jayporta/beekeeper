@@ -13,6 +13,11 @@ interface CardProps {
   /** The id of the heading that names a `section`, so it is a labelled region. */
   readonly labelledBy?: string
   /**
+   * Marks the card busy while its content loads or refreshes.
+   * @defaultValue Not set.
+   */
+  readonly busy?: boolean
+  /**
    * A class that adds to the card's own rules, such as its layout.
    * @defaultValue No extra class.
    */
@@ -31,10 +36,15 @@ export function Card({
   children,
   as: Element = 'div',
   labelledBy,
+  busy,
   className
 }: CardProps): React.JSX.Element {
   return (
-    <Element aria-labelledby={labelledBy} className={withClassName(styles.card, className)}>
+    <Element
+      aria-labelledby={labelledBy}
+      aria-busy={busy}
+      className={withClassName(styles.card, className)}
+    >
       {children}
     </Element>
   )

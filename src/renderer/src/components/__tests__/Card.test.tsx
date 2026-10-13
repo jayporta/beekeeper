@@ -41,4 +41,16 @@ describe('Card', () => {
 
     expect(screen.getByRole('region', { name: 'Projects' })).toBeDefined()
   })
+
+  it('reports whether it is busy', () => {
+    const { container } = render(<Card busy>Body</Card>)
+
+    expect(container.firstElementChild?.getAttribute('aria-busy')).toBe('true')
+  })
+
+  it('sets no busy state when it is not told', () => {
+    const { container } = render(<Card>Body</Card>)
+
+    expect(container.firstElementChild?.hasAttribute('aria-busy')).toBe(false)
+  })
 })

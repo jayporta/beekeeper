@@ -1,0 +1,74 @@
+.ring {
+  position: relative;
+  align-self: center;
+  inline-size: var(--size-ring);
+  block-size: var(--size-ring);
+}
+
+.svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.track {
+  fill: none;
+  stroke: var(--color-divider);
+}
+
+.segment {
+  fill: none;
+}
+
+.fable {
+  stroke: var(--color-model-fable);
+}
+
+.opus {
+  stroke: var(--color-model-opus);
+}
+
+.sonnet {
+  stroke: var(--color-model-sonnet);
+}
+
+.haikuGround {
+  fill: var(--color-model-haiku);
+}
+
+.haikuDot {
+  fill: var(--color-bg);
+}
+
+.otherStripe {
+  fill: var(--color-model-other);
+}
+
+/* Forced colors replace the fills with system colors, so each arc keeps its own and edges in the text color. */
+@media (forced-colors: active) {
+  .segment {
+    forced-color-adjust: none;
+  }
+}
+
+.center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.total {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.unit {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
