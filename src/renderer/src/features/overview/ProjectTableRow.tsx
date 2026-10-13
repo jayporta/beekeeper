@@ -164,7 +164,7 @@ export function ProjectTableRow({
         {sharePercent === null ? (
           <FigurePlaceholder loading />
         ) : (
-          figure(t('projects.percent', { value: sharePercent }), false)
+          figure(t('percent', { value: sharePercent }), false)
         )}
       </td>
     </tr>

@@ -29,7 +29,7 @@ export function ModelBreakdown({ rows }: ModelBreakdownProps): React.JSX.Element
           <span className={styles.name}>{seriesLabel(row, t)}</span>
           <span className={styles.figure}>{t('dailyUsage.figure', { value: row.tokens })}</span>
           <span className={styles.figure}>
-            {row.underOne ? t('byModel.underOne') : t('byModel.percent', { value: row.percent })}
+            {row.underOne ? t('byModel.underOne') : t('percent', { value: row.percent })}
           </span>
         </li>
       ))}

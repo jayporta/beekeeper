@@ -1346,9 +1346,18 @@ describe('OverviewView projects table sorting', () => {
     expect(rowNames()).toEqual(['beta-app', 'acme-web'])
   })
 
-  it('keeps a project whose totals are loading last when sorting by tokens', async () => {
-    renderOverview({ totals: (dirName) => (dirName === ALPHA ? never() : normal(dirName)) })
+  it('keeps a project whose totals are loading after the rest, though its name sorts first', async () => {
+    // Neither project has a latest session, so only the loading rule can put acme-web last.
+    renderOverview({
+      projects: [ALPHA_PROJECT, BETA_PROJECT],
+      totals: (dirName) => (dirName === ALPHA ? never() : normal(dirName))
+    })
     await within(main()).findByText('500K tokens')
+
+    await userEvent.selectOptions(
+      within(main()).getByRole('combobox', { name: 'Sort by' }),
+      'latest'
+    )
 
     expect(rowNames()).toEqual(['beta-app', 'acme-web'])
   })

@@ -19,7 +19,7 @@
 }
 
 .project {
-  min-inline-size: 12rem;
+  min-inline-size: var(--size-project-col);
   text-align: start;
 }
 
@@ -51,13 +51,13 @@
 }
 
 .latest {
-  min-inline-size: 11rem;
+  min-inline-size: var(--size-latest-col);
   font-size: var(--font-size-sm);
 }
 
 .barCell {
-  inline-size: 7rem;
-  min-inline-size: 5rem;
+  inline-size: var(--size-bar-col);
+  min-inline-size: var(--size-bar-col-min);
 }
 
 .track {

@@ -127,6 +127,7 @@
     },
     "tableToggle": "Tokens per day as a table"
   },
+  "percent": "{{value, integer}}%",
   "projects": {
     "heading": "Projects",
     "sortBy": "Sort by",
@@ -140,14 +141,12 @@
       "agents": "Agents",
       "share": "Share"
     },
-    "percent": "{{value, integer}}%",
     "shareOfTotal": "{{value, integer}}% of all tokens"
   },
   "byModel": {
     "heading": "By model",
     "label": "Tokens by model",
     "unit": "tokens",
-    "percent": "{{value, integer}}%",
     "underOne": "<1%",
     "loading": "Loading models",
     "error": "Couldn't load models."

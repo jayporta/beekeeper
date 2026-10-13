@@ -44,7 +44,7 @@
   fill: var(--color-model-other);
 }
 
-/* Forced colors replace the fills with system colors, so each arc keeps its own and edges in the text color. */
+/* The ring is decorative and hidden from assistive technology, since the rows beside it carry the figures. Forced colors would swap the arcs for system colors, so each keeps its own. */
 @media (forced-colors: active) {
   .segment {
     forced-color-adjust: none;

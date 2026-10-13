@@ -262,6 +262,13 @@
   --size-chart-card-basis: 40rem;
   /* The By model card's least comfortable width. */
   --size-model-card-basis: 16.25rem;
+  /* The projects table's least widths, in rem: the project column 192px, latest 176px, and the share bar 112px but never under 80px. */
+  --size-project-col: 12rem;
+  --size-latest-col: 11rem;
+  --size-bar-col: 7rem;
+  --size-bar-col-min: 5rem;
+  /* The narrowest a KPI tile gets before the row wraps: 200px. */
+  --size-kpi-tile-min: 12.5rem;
   /* The hairline of ground between a bar's segments, so each meets the ground. */
   --size-hairline: 1px;
   /* The stripes of the hatch that marks the other series, and half the tile of the dots that mark haiku: 3px of color, then 3px of ground. */
