@@ -26,8 +26,8 @@ export default defineConfig({
         test: {
           name: 'jsdom',
           environment: 'jsdom',
-          // One jsdom per worker, with each file still in its own VM context: building jsdom
-          // for every file in a fresh fork cost a third of the suite's time.
+          // Each file still builds its own jsdom in its own VM context. The gain is reusing the
+          // worker and its module and code caches instead of forking afresh for every file.
           pool: 'vmThreads',
           include: ['src/**/*.test.tsx'],
           exclude,

@@ -54,4 +54,11 @@ describe('teammateSpawnResultSchema', () => {
         .success
     ).toBe(false)
   })
+
+  it('rejects a name under the code-point cap but over the code-unit cap', () => {
+    // 200 non-BMP characters: 200 code points, but 400 UTF-16 code units.
+    const name = '😀'.repeat(200)
+
+    expect(teammateSpawnResultSchema.safeParse({ ...valid, name }).success).toBe(false)
+  })
 })

@@ -159,6 +159,13 @@ describe('createLatestModelObserver', () => {
     expect(observer.model()).toBe('model-b')
   })
 
+  it('ignores a record given no timestamp', () => {
+    const observer = createLatestModelObserver()
+    observer.observe(at('2026-01-01T00:00:00.000Z', 'model-a'), null)
+
+    expect(observer.model()).toBeNull()
+  })
+
   it('ignores a non-assistant record that carries a model', () => {
     const record = buildUserRecord({ extra: { message: { model: 'model-user' } } })
 
