@@ -16,6 +16,11 @@
   &:hover {
     background: var(--color-selected);
   }
+
+  /* Drawn inside the edge, since the inset list clips anything outside it. */
+  &:focus-visible {
+    outline-offset: calc(-1 * var(--focus-ring-width));
+  }
 }
 
 /* A match shows by its pill and its ground, not by color alone. */

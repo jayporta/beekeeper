@@ -83,6 +83,13 @@ describe('CardTokens', () => {
     expect(container.textContent).toBe('-tokens not recorded')
   })
 
+  it('keeps the partial marker when the tokens are missing but the cost is known', () => {
+    renderTokens({ figures: { ...FIGURES, tokens: null }, partial: true })
+
+    expect(screen.getByText('¹')).toBeTruthy()
+    expect(screen.getByText('partial, see the note below the list')).toBeTruthy()
+  })
+
   it('shows a single tokens and cost not recorded when there are no figures', () => {
     const container = renderTokens({ figures: null })
 

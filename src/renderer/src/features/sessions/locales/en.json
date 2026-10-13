@@ -118,7 +118,6 @@
     "latest": "Latest",
     "none": "None",
     "integer": "{{value, integer}}",
-    "compact": "{{value, compactInteger}}",
     "partialNote": "partial, see the note under these totals",
     "footnoteLabel": "¹ Partial totals:"
   },

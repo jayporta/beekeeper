@@ -1,6 +1,11 @@
 .track {
   overflow: hidden;
   border-radius: var(--radius-pill);
+
+  /* Forced colors drop the track's fill, so an edge keeps the bar's full length visible. */
+  @media (forced-colors: active) {
+    border: 1px solid CanvasText;
+  }
 }
 
 .regular {

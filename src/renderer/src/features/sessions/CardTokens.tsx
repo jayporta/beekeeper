@@ -42,6 +42,7 @@ export function CardTokens({ figures, teamTotal, partial }: CardTokensProps): Re
     return (
       <div className={styles.cell}>
         <EmptyCell spokenText={t('emptyCell.tokensNotRecorded')} />
+        {partial && <PartialMarker note={t('partialNote')} />}
       </div>
     )
   }

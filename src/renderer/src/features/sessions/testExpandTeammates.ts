@@ -9,6 +9,7 @@ import userEvent from '@testing-library/user-event'
  * @returns Resolves once the toggle is pressed. Does nothing when the rows are already open.
  */
 export async function expandTeammates(row: HTMLElement): Promise<void> {
-  const toggle = within(row).getByRole('button', { expanded: false, name: /teammate/ })
+  const toggle = within(row).queryByRole('button', { expanded: false, name: /teammate/ })
+  if (toggle === null) return
   await userEvent.click(toggle)
 }
