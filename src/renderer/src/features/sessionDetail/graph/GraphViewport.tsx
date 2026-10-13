@@ -1,4 +1,4 @@
-import { useRef, type CSSProperties } from 'react'
+import { useRef, type CSSProperties, type RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { GRAPH_NOTES_ID } from './graphFootnoteId'
 import styles from './GraphViewport.module.css'
@@ -14,6 +14,11 @@ interface GraphViewportProps {
   readonly height: number
   /** The graph's edges and nodes, placed in a `width` by `height` box. */
   readonly children: React.ReactNode
+  /**
+   * A ref that holds the graph's region element, for code outside the graph that moves focus to a node.
+   * @defaultValue The viewport keeps its own.
+   */
+  readonly regionRef?: RefObject<HTMLDivElement | null>
 }
 
 /**
@@ -30,9 +35,15 @@ interface GraphViewportProps {
  * @example
  * <GraphViewport width={476} height={346}>{nodes}</GraphViewport>
  */
-export function GraphViewport({ width, height, children }: GraphViewportProps): React.JSX.Element {
+export function GraphViewport({
+  width,
+  height,
+  children,
+  regionRef
+}: GraphViewportProps): React.JSX.Element {
   const { t } = useTranslation('sessionDetail')
-  const viewportRef = useRef<HTMLDivElement>(null)
+  const ownRef = useRef<HTMLDivElement>(null)
+  const viewportRef = regionRef ?? ownRef
   const { scale, slack, zoomOut, zoomIn, fit } = useGraphZoom(viewportRef, { width, height })
   const pan = useGraphPan(viewportRef)
   // React types no custom properties, so the full-size height the view's styles read takes an assertion.

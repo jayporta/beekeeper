@@ -1,0 +1,40 @@
+.rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: var(--size-token-swatch) minmax(0, 1fr) auto;
+  gap: var(--space-2-5);
+  align-items: center;
+  padding-block: var(--space-2);
+  border-block-start: 1px solid var(--color-divider);
+  font-size: var(--font-size-body);
+}
+
+.swatch {
+  inline-size: var(--size-token-swatch);
+  block-size: var(--size-token-swatch);
+}
+
+.input {
+  background: var(--color-token-input);
+}
+
+.output {
+  background: var(--color-token-output);
+}
+
+.cacheRead {
+  background: var(--color-token-cache-read);
+}
+
+.cacheWrite {
+  background: var(--color-token-cache-write);
+}
+
+.value {
+  font-variant-numeric: tabular-nums;
+}

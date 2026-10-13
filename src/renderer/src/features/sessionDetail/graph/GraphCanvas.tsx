@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, type RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { GraphEdges } from './GraphEdges'
 import styles from './GraphCanvas.module.css'
@@ -16,6 +16,11 @@ import { useGraphKeyboard } from './useGraphKeyboard'
 interface GraphCanvasProps {
   /** The graph to show, from `useAgentGraph`. */
   readonly graph: AgentGraph
+  /**
+   * A ref that holds the graph's region element, so code outside the graph can move focus to a node.
+   * @defaultValue The graph keeps its own.
+   */
+  readonly regionRef?: RefObject<HTMLDivElement | null>
 }
 
 /**
@@ -34,7 +39,7 @@ interface GraphCanvasProps {
  * @example
  * <GraphCanvas graph={graph} />
  */
-export function GraphCanvas({ graph }: GraphCanvasProps): React.JSX.Element {
+export function GraphCanvas({ graph, regionRef }: GraphCanvasProps): React.JSX.Element {
   const { root, layout, loading, expansions, selectedKey } = graph
 
   const { t } = useTranslation(['sessionDetail', 'sessions'])
@@ -51,7 +56,7 @@ export function GraphCanvas({ graph }: GraphCanvasProps): React.JSX.Element {
 
   return (
     <div className={styles.canvas}>
-      <GraphViewport width={layout.width} height={layout.height}>
+      <GraphViewport width={layout.width} height={layout.height} regionRef={regionRef}>
         <GraphEdges edges={layout.edges} width={layout.width} height={layout.height} />
         {layout.nodes.map(({ node, x, y }) => (
           <GraphNode

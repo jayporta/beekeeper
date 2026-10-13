@@ -1,10 +1,10 @@
-import type { AgentReportDto } from '../../../../shared/ipc/agentDto'
 import type { SessionDetailDto } from '../../../../shared/ipc/sessionDetailDto'
 import { activitySpanMs } from '@renderer/features/sessions/activitySpanMs'
 import { cardFigures } from '@renderer/features/sessions/cardFigures'
 import { figureReasons, type PartialReason } from '@renderer/features/sessions/partialReasons'
 import type { SessionRow } from '@renderer/features/sessions/sessionRow'
 import { signalTotalsOf } from '@renderer/features/sessions/signalNotes'
+import { readableReports } from './readableReports'
 
 /** One figure of the stat row, and whether it may leave something out. */
 export interface StatFigure {
@@ -30,21 +30,6 @@ export interface SessionStats {
   readonly toolErrors: StatFigure | null
   /** Why a figure is partial, for the footnote that explains the marker. */
   readonly reasons: ReadonlySet<PartialReason>
-}
-
-/** The reports of the lead and every subagent that could be read, and whether one could not. */
-function readableReports(detail: SessionDetailDto): {
-  readonly reports: readonly AgentReportDto[]
-  readonly complete: boolean
-} {
-  if (!detail.subagents.ok) return { reports: [detail.lead], complete: false }
-  const reports = [detail.lead]
-  let complete = true
-  for (const { report } of detail.subagents.value) {
-    if (report.ok) reports.push(report.value)
-    else complete = false
-  }
-  return { reports, complete }
 }
 
 /** The cache hit of the lead and its subagents, or `null` when they read no input. */

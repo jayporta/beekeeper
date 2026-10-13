@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
@@ -24,7 +24,8 @@ afterEach(() => {
 
 const WRITER = testRef(2)
 const select = async (name: RegExp): Promise<void> => {
-  await userEvent.click(screen.getByRole('button', { name }))
+  const graph = within(screen.getByRole('region', { name: 'Agent graph' }))
+  await userEvent.click(graph.getByRole('button', { name }))
 }
 
 describe('AgentInspector for the lead', () => {

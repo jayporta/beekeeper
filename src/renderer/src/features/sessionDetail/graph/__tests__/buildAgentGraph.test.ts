@@ -436,7 +436,7 @@ describe('buildAgentGraph signal marks', () => {
   it("takes the lead's marks from its report's signals", () => {
     const graph = graphOf(testDetail({ lead: testReport({ signals }) }))
 
-    expect(graph.marks).toEqual({ toolErrors: 12, compactions: 2 })
+    expect(graph.marks).toEqual({ toolErrors: 12, compactions: 2, longestErrorStreak: 0 })
   })
 
   it("takes a subagent's marks from its report's signals", () => {
@@ -444,7 +444,11 @@ describe('buildAgentGraph signal marks', () => {
       testDetail({ children: [testNode('a1')], reports: { a1: testReport({ signals }) } })
     )
 
-    expect(graph.children[0]?.marks).toEqual({ toolErrors: 12, compactions: 2 })
+    expect(graph.children[0]?.marks).toEqual({
+      toolErrors: 12,
+      compactions: 2,
+      longestErrorStreak: 0
+    })
   })
 
   it('has no marks for a subagent whose report could not be read', () => {
@@ -473,6 +477,10 @@ describe('buildAgentGraph signal marks', () => {
       testDetail()
     )
 
-    expect(graph.children[0]?.marks).toEqual({ toolErrors: 5, compactions: 2 })
+    expect(graph.children[0]?.marks).toEqual({
+      toolErrors: 5,
+      compactions: 2,
+      longestErrorStreak: 0
+    })
   })
 })

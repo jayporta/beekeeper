@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card } from '@renderer/components/Card'
 import { MutedText } from '@renderer/components/MutedText'
+import { PageTitle } from '@renderer/components/PageTitle'
 import { TitleRow } from '@renderer/components/TitleRow'
 import { Breadcrumb, type BreadcrumbSegment } from '@renderer/features/navigation/Breadcrumb'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
@@ -72,9 +73,7 @@ export function SelectedProjectHeading({
       {project !== null && <Breadcrumb segments={segments} />}
       <TitleRow>
         <div className={styles.heading}>
-          <h1 id={headingId} className={styles.title}>
-            {title}
-          </h1>
+          <PageTitle id={headingId}>{title}</PageTitle>
           {project !== null && <MutedText wrapAnywhere>{project.dirName}</MutedText>}
         </div>
         <div className={styles.actions}>{actions}</div>

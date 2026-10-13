@@ -33,6 +33,8 @@ export interface NodeMarks {
   readonly toolErrors: number
   /** How many times the agent's context was compacted. */
   readonly compactions: number
+  /** The longest run of consecutive errored tool results. */
+  readonly longestErrorStreak: number
 }
 
 /** One node in the spawn graph: an agent, or a workflow run that holds its agents. */

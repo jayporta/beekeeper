@@ -23,6 +23,8 @@ interface UseAgentGraphInput {
 
 /** The graph model of a session and where each node sits. */
 export interface AgentGraph {
+  /** The model before any teammate is opened: the viewed agent and its subagents, and the teammates with their own figures. */
+  readonly base: RootAgentGraphNode
   /** The model, rooted at the viewed agent, with the subagents of each opened teammate under it. */
   readonly root: RootAgentGraphNode
   /** The model placed on a canvas. */
@@ -69,5 +71,5 @@ export function useAgentGraph(input: UseAgentGraphInput): AgentGraph {
       ),
     [layout, selectedAgent]
   )
-  return { root, layout, loading, expansions, selectedKey }
+  return { base, root, layout, loading, expansions, selectedKey }
 }

@@ -267,6 +267,17 @@
   --size-inspector-label: 5rem;
   --size-inspector-value: 3rem;
   --size-bar: 0.375rem;
+  /* The token class bar: 10px tall, or 8px small, with a segment at least 3px wide, and a 10px swatch beside each class. */
+  --size-token-bar: 0.625rem;
+  --size-token-bar-small: 0.5rem;
+  --size-token-segment-min: 3px;
+  --size-token-swatch: 0.625rem;
+  /* The summary cards: at least 280px wide. A row's columns are a bar of 64px, tokens of 56px, a share of 40px, and an error count of 28px. */
+  --size-summary-card-min: 17.5rem;
+  --size-summary-bar: 4rem;
+  --size-summary-tokens: 3.5rem;
+  --size-summary-share: 2.5rem;
+  --size-summary-count: 1.75rem;
   /* The tokens-per-day chart: the plot is 200px tall under a 44px axis column, and a bar is at most 40px wide. */
   --size-chart-height: 12.5rem;
   --size-chart-axis: 2.75rem;

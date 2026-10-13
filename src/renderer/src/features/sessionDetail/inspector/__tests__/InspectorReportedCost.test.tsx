@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { OtelReceiverDto } from '../../../../../../shared/ipc/otelReceiverDto'
@@ -10,6 +10,10 @@ import { inspector, renderInspectorScene } from '../testInspectorScene'
 afterEach(() => {
   useNavigationStore.getState().reset()
 })
+
+/** An agent's button in the graph, not the summary cards' rows for the same agent. */
+const graphNode = (name: RegExp): HTMLElement =>
+  within(screen.getByRole('region', { name: 'Agent graph' })).getByRole('button', { name })
 
 const LISTENING: OtelReceiverDto = {
   enabled: true,
@@ -52,14 +56,14 @@ describe('the inspector with the telemetry receiver listening', () => {
 
   it('gives a subagent its own reported share', async () => {
     renderWithTelemetry()
-    await userEvent.click(screen.getByRole('button', { name: /scout/ }))
+    await userEvent.click(graphNode(/scout/))
 
     expect(await inspector().findByText("Claude Code's estimate: $0.30")).toBeTruthy()
   })
 
   it('gives a subagent with no reported share no estimate', async () => {
     renderWithTelemetry()
-    await userEvent.click(screen.getByRole('button', { name: /reader/ }))
+    await userEvent.click(graphNode(/reader/))
     await inspector().findByRole('heading', { level: 2, name: /reader/ })
 
     expect(inspector().queryByText(/Claude Code's estimate/)).toBeNull()

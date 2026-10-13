@@ -96,6 +96,25 @@
     "missingTeammates": "Some teammates the lead spawned weren't found, so a team total may be low.",
     "incompleteSignals": "Some transcripts have more events than beekeeper counts, so the tool error count may be low."
   },
+  "summary": {
+    "partialNote": "partial, see the note under the header",
+    "breakdown": {
+      "title": "Breakdown",
+      "caption": "Lead and subagents"
+    },
+    "topAgents": {
+      "title": "Most tokens",
+      "caption": "Share",
+      "empty": "No agent recorded tokens."
+    },
+    "signals": {
+      "title": "Signals",
+      "caption": "Tool errors",
+      "empty": "No tool errors",
+      "streak_one": "streak {{count, integer}}",
+      "streak_other": "streak {{count, integer}}"
+    }
+  },
   "stats": {
     "cacheHit": "Cache hit",
     "duration": "Duration",
