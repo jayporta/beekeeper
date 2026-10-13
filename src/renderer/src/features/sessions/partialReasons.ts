@@ -7,8 +7,8 @@ import { sessionUsage } from './sessionUsage'
  * Why a card's figures may be lower than the true usage, or its signal counts
  * lower than the true counts. `incompleteSignals` explains the marker on the
  * signal counts, and `unknownSubagents` the marker on an agent count. The session
- * detail adds them to its footnote. The list adds it to the footnote, and {@link partialReasons}
- * never returns it, since it doesn't mark the token figures.
+ * detail adds both to its footnote, and the list adds `incompleteSignals` to its
+ * own. {@link partialReasons} never returns either, since neither marks the token figures.
  */
 export type PartialReason =
   | 'unreadableLines'

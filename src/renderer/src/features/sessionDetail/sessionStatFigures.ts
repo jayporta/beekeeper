@@ -33,21 +33,14 @@ export interface SessionStats {
   readonly reasons: ReadonlySet<PartialReason>
 }
 
-/** The tokens of one class across the reports. */
-function classTokens(reports: Parameters<typeof tokenClasses>[0], tokenClass: TokenClass): number {
-  return tokenClasses(reports).find((total) => total.tokenClass === tokenClass)?.tokens ?? 0
-}
-
-/** The cache hit of the lead and its subagents, or `null` when they read no input. */
-function cacheHitOf(detail: SessionDetailDto): StatFigure | null {
-  const { reports, complete } = readableReports(detail)
-  const total = (['input', 'cacheRead', 'cacheWrite'] as const).reduce(
-    (sum, tokenClass) => sum + classTokens(reports, tokenClass),
-    0
+/** The cache hit of the lead and its readable subagents, or `null` when they read no input. */
+function cacheHitOf(readable: ReturnType<typeof readableReports>): StatFigure | null {
+  const totals = new Map<TokenClass, number>(
+    tokenClasses(readable.reports).map(({ tokenClass, tokens }) => [tokenClass, tokens])
   )
-  return total === 0
-    ? null
-    : { value: classTokens(reports, 'cacheRead') / total, partial: !complete }
+  const cacheRead = totals.get('cacheRead') ?? 0
+  const total = (totals.get('input') ?? 0) + cacheRead + (totals.get('cacheWrite') ?? 0)
+  return total === 0 ? null : { value: cacheRead / total, partial: !readable.complete }
 }
 
 /** How many agents the session and its teammates ran, counted as the folder totals count them. */
@@ -74,11 +67,13 @@ export function sessionStats(row: SessionRow, detail: SessionDetailDto | null): 
   const reasons = new Set(figureReasons(row))
   const marked = reasons.size > 0
   const totals = signalTotalsOf(item)
-  const cacheHit = detail === null ? null : cacheHitOf(detail)
+  const readable = detail === null ? null : readableReports(detail)
+  const cacheHit = readable === null ? null : cacheHitOf(readable)
   const tokens = figures?.tokens ?? null
   const usd = figures?.usd ?? null
 
-  if (cacheHit?.partial === true) reasons.add('unreadableLines')
+  // Breakdown marks the same incomplete reports, so the reason holds even when Cache hit is left out.
+  if (readable !== null && !readable.complete) reasons.add('unreadableLines')
   if (totals?.partial === true) reasons.add('incompleteSignals')
   const agents = agentsOf(row)
   if (agents.partial) reasons.add('unknownSubagents')

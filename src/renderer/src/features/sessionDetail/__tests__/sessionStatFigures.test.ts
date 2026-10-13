@@ -60,6 +60,12 @@ describe('sessionStats cache hit', () => {
     expect(sessionStats(row, testDetail()).cacheHit).toBeNull()
   })
 
+  it('still explains skipped lines when no input was read, for the Breakdown marker', () => {
+    const stats = sessionStats(row, testDetail({ lead: testReport({ skippedLines: 2 }) }))
+    expect(stats.cacheHit).toBeNull()
+    expect(stats.reasons.has('unreadableLines')).toBe(true)
+  })
+
   it('divides cache reads by input, reads and both cache write windows', () => {
     const lead = testReport({
       tokenGroups: [

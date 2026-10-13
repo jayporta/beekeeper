@@ -17,8 +17,8 @@ interface BreakdownCardProps {
 /**
  * The Breakdown card: the session's tokens by class, over its lead and the
  * subagents whose reports could be read, as a segmented bar and a list. When
- * the subagents folder or one of its reports couldn't be read, the caption
- * carries a partial marker.
+ * the subagents folder or one of its reports couldn't be read, or a report
+ * skipped transcript lines, the caption carries a partial marker.
  *
  * @example
  * <BreakdownCard detail={detail} />
