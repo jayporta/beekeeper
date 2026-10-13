@@ -1,15 +1,29 @@
-import type { Engine, Register } from 'claude-code'
+import type { Engine, PaneRenderInput, Register } from 'claude-code'
 import {
-  EmptyPane,
+  Pane,
   MINIMUM_CLAUDE_CODE,
+  createPaneRefresher,
+  createPaneScheduler,
   isAllowedArgv,
-  startMod,
   t,
   type ModHost,
+  type PaneRefresher,
+  type PaneSelection,
+  type PaneScheduler,
+  type PaneView,
   type StartOutcome
 } from './lib.js'
 
 const PANE_ID = 'beekeeper'
+
+/** How long a turn or a spawn waits before the pane refreshes, so a burst of them costs one refresh. */
+const DEBOUNCE_MS = 1000
+
+/** The `$.state` value the pane draws from. */
+const VIEW = { plugin: 'beekeeper', key: 'view' } as const
+
+/** The `$.state` value holding the node the person selected. */
+const SELECTED = { plugin: 'beekeeper', key: 'selected' } as const
 
 /** The names among the git repository variables that Claude Code's environment sets, even to empty. */
 async function gitRepoVariablesSet($: Engine): Promise<string[]> {
@@ -64,12 +78,106 @@ async function announce($: Engine, outcome: StartOutcome): Promise<void> {
   }
 }
 
+/** What a loaded copy of the mod keeps between hooks: the refresh and the timers that drive it. */
+interface PaneWiring {
+  readonly refresher: PaneRefresher
+  readonly scheduler: PaneScheduler
+}
+
+/** Whether the pane is open. */
+async function isPaneOpen($: Engine): Promise<boolean> {
+  return (await $.ui.panes()).some((pane) => pane.id === PANE_ID)
+}
+
+/** Writes a code-only line to the engine's log; never text from a transcript or an error. */
+function logCode(code: string): void {
+  console.error(`beekeeper: ${code}`)
+}
+
+/** Whether a render that finds no view may ask for a refresh: true until it has, and again once a view is stored. */
+let wantsFirstView = true
+
+/** Builds the refresh and scheduler over this `$`. Its timers belong to this loaded copy of the mod. */
+function wire($: Engine): PaneWiring {
+  const refresher = createPaneRefresher({
+    host: hostOf($),
+    pane: {
+      sessionId: () => $.session.id(),
+      sessionRoot: () => $.session.root(),
+      now: () => $.clock.now(),
+      writeView: async (view) => {
+        const { isSet } = await $.state.set(VIEW, view)
+        wantsFirstView = true
+        return isSet
+      }
+    },
+    log: logCode
+  })
+  const scheduler = createPaneScheduler({
+    after: (ms, fn) => $.clock.after(ms, fn),
+    every: (ms, fn) => $.clock.every(ms, fn),
+    isPaneOpen: () => isPaneOpen($),
+    wantsListTick: refresher.wantsListTick,
+    refresh: refresher.refresh,
+    log: logCode
+  })
+  return { refresher, scheduler }
+}
+
+/** The wiring of this loaded copy of the mod, built by the first hook that needs it. Module state, because `$` may only be passed to top-level functions. */
+let wiring: PaneWiring | undefined
+
+/** The wiring of this loaded copy, built over `$` on first use. */
+function wired($: Engine): PaneWiring {
+  wiring ??= wire($)
+  return wiring
+}
+
+/** Schedules a debounced refresh, and restarts lost ticks, when the pane is open. */
+async function refreshIfOpen($: Engine, withList: boolean): Promise<void> {
+  if (!(await isPaneOpen($))) return
+  const { scheduler } = wired($)
+  scheduler.ensureTicks()
+  scheduler.schedule({ withList, delayMs: DEBOUNCE_MS })
+}
+
+/**
+ * Draws the pane from `$.state`. A pane drawn before any refresh asks for one,
+ * once, through the timers a non-render hook set up; a render never builds them,
+ * so none holds the render's `$`. With none yet, the next hook that does refreshes.
+ */
+async function drawPane($: Engine, e: PaneRenderInput): Promise<object> {
+  const view = (await $.state.get<PaneView>(VIEW)).value
+  const selected = (await $.state.get<PaneSelection | null>(SELECTED)).value ?? null
+  if (view === undefined && wantsFirstView && wiring !== undefined) {
+    wantsFirstView = false
+    wiring.refresher.forgetStored()
+    wiring.scheduler.schedule({ withList: true, delayMs: 0 })
+  }
+  return Pane({
+    elements: $.ui.resolve(e),
+    view,
+    selected,
+    onSelect: async (key) => {
+      if (view !== undefined) await $.state.set(SELECTED, { sessionId: view.sessionId, key })
+    }
+  })
+}
+
 /** Registers the mod's hooks with the engine. */
 export const register: Register = (on) => {
+  wiring = undefined
+  wantsFirstView = true
+
   on('session.start', async ($, e, next) => {
     const started = await next(e)
-    const outcome = await startMod(hostOf($), { cwd: e.cwd })
+    const { refresher, scheduler } = wired($)
+    const outcome = await refresher.start(e.cwd)
     if (e.isInteractive) await announce($, outcome)
+    if (outcome.kind === 'ready' && (await isPaneOpen($))) {
+      scheduler.ensureTicks()
+      scheduler.schedule({ withList: true, delayMs: 0 })
+    }
     return started
   }).catch(($, e, next) => next(e))
   on('command.run', { command: 'beekeeper' }, async ($) => {
@@ -79,9 +187,28 @@ export const register: Register = (on) => {
       focus: true,
       closeOnEscape: true
     })
+    const { scheduler } = wired($)
+    scheduler.ensureTicks()
+    scheduler.schedule({ withList: true, delayMs: 0 })
     return { text: t(isPlaced ? 'command.opened' : 'command.waiting') }
   })
-  on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) =>
-    EmptyPane($.ui.resolve(e))
-  )
+  on('turn.complete', async ($, e, next) => {
+    const result = await next(e)
+    await refreshIfOpen($, false)
+    return result
+  }).catch(($, e, next) => next(e))
+  on('agent.spawn', async ($, e, next) => {
+    const result = await next(e)
+    await refreshIfOpen($, true)
+    return result
+  }).catch(($, e, next) => next(e))
+  on('session.end', async ($, e, next) => {
+    const result = await next(e)
+    if (e.reason === 'clear') {
+      wired($).refresher.forgetStored()
+      await refreshIfOpen($, true)
+    }
+    return result
+  }).catch(($, e, next) => next(e))
+  on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) => drawPane($, e))
 }

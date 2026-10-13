@@ -1,7 +1,7 @@
 import i18next from 'i18next'
 import { initReactI18next } from 'react-i18next'
-import { registerFormats } from './formats'
-import { pickLanguage, SUPPORTED_LANGUAGES } from './pickLanguage'
+import { registerFormats } from '../../../shared/i18n/formats'
+import { pickLanguage, SUPPORTED_LANGUAGES } from '../../../shared/i18n/pickLanguage'
 import { resources } from './resources'
 
 /**

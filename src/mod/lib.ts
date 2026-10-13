@@ -1,4 +1,7 @@
-export { EmptyPane, type PaneElements } from './features/pane/EmptyPane'
+export { Pane, type PaneElements, type PaneSelection } from './features/pane/Pane'
+export type { PaneView } from './features/pane/paneView'
+export { createPaneRefresher, type PaneRefresher } from './features/pane/paneRefresher'
+export { createPaneScheduler, type PaneScheduler } from './features/pane/paneScheduler'
 export { MINIMUM_CLAUDE_CODE } from './features/start/minimumVersion'
 export { startMod, type StartOutcome } from './features/start/startMod'
 export { t } from './i18n/modI18n'

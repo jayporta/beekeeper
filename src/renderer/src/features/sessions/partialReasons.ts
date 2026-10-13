@@ -1,7 +1,7 @@
 import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
-import { cardFigures } from './cardFigures'
+import { cardFigures } from '../../../../shared/sessions/cardFigures'
 import type { SessionRow } from '../../../../shared/sessions/sessionRow'
-import { sessionUsage } from './sessionUsage'
+import { sessionUsage } from '../../../../shared/sessions/sessionUsage'
 
 /**
  * Why a card's figures may be lower than the true usage, or its signal counts

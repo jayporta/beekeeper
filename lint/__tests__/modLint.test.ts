@@ -3,6 +3,7 @@ import { reportedRules, WARM_UP_TIMEOUT_MS } from '../testLint'
 
 const MOD_FILE = 'src/mod/features/start/probe.ts'
 const ENGINE_IMPORT = "import type { Engine } from 'claude-code'\nexport type E = Engine\n"
+const ENGINE_VALUE_IMPORT = "import { atom } from 'claude-code'\nexport const a = atom\n"
 
 describe('mod lint rules', () => {
   // The first lint pays ESLint's start-up cost, which can pass a test's 5s timeout under full-suite load.
@@ -39,8 +40,12 @@ describe('mod lint rules', () => {
     }
   )
 
-  it('bans the claude-code import outside register.ts', async () => {
-    expect(await reportedRules(MOD_FILE, ENGINE_IMPORT)).toContain('no-restricted-imports')
+  it('bans a claude-code value import outside register.ts', async () => {
+    expect(await reportedRules(MOD_FILE, ENGINE_VALUE_IMPORT)).toContain('no-restricted-imports')
+  })
+
+  it('allows a claude-code type-only import anywhere in the mod, since it is erased', async () => {
+    expect(await reportedRules(MOD_FILE, ENGINE_IMPORT)).not.toContain('no-restricted-imports')
   })
 
   it('allows the claude-code import in register.ts', async () => {

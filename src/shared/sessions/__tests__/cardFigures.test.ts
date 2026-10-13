@@ -6,7 +6,7 @@ import {
   testSession,
   testTeammateTeam,
   testUsage
-} from '../../../../../shared/sessions/testSessionFixtures'
+} from '../testSessionFixtures'
 
 const NOTHING_RECORDED = {
   leadTokens: null,

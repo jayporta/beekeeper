@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { FORMAT_NAMES } from '../formats'
+import { FORMAT_NAMES } from '../../../../shared/i18n/formats'
 import { i18n } from '../i18n'
 import { resources } from '../resources'
 

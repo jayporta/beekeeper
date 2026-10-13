@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { CardTokens } from '../CardTokens'
-import type { UsageFigures } from '../sessionUsage'
+import type { UsageFigures } from '../../../../../shared/sessions/sessionUsage'
 
 const FIGURES: UsageFigures = {
   tokens: 12_400_000,
