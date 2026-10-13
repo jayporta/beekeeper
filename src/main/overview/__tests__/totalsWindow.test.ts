@@ -6,7 +6,6 @@ import { toAgentId } from '../../../core/transcript/ids'
 import {
   SKIP_UNREAD_SLACK_MS,
   TOTALS_WINDOW_MS,
-  isBeforeTotalsWindow,
   mayArchivedCountInWindow,
   mayArchivedHaveDailyUsage,
   mayCountInWindow,
@@ -148,19 +147,5 @@ describe('mayArchivedCountInWindow', () => {
 
   it('keeps a session with no file time, since the totals count it as unreadable', () => {
     expect(mayArchivedCountInWindow({ latestMs: cutoff - 1, modifiedMs: null }, window)).toBe(true)
-  })
-})
-
-describe('isBeforeTotalsWindow', () => {
-  const cutoff = NOW - 7 * DAY
-
-  it('is false at the cutoff and true a millisecond before, by the last message', () => {
-    expect(isBeforeTotalsWindow({ latestMs: cutoff, mtimeMs: 0 }, cutoff)).toBe(false)
-    expect(isBeforeTotalsWindow({ latestMs: cutoff - 1, mtimeMs: NOW }, cutoff)).toBe(true)
-  })
-
-  it('goes by the file time when there is no last message', () => {
-    expect(isBeforeTotalsWindow({ latestMs: null, mtimeMs: cutoff }, cutoff)).toBe(false)
-    expect(isBeforeTotalsWindow({ latestMs: null, mtimeMs: cutoff - 1 }, cutoff)).toBe(true)
   })
 })

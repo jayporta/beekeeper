@@ -181,10 +181,12 @@
   --font-size-kpi: 2.375rem;
   --font-size-inspector-name: 1.75rem;
 
-  /* Spacing is N x 4px. The half steps (1-5 is 6px), 5 (20px), and 5-5 (22px) come from the design. */
+  /* Spacing is N x 4px. The half steps (1-5 is 6px), 2-25 (9px), 5 (20px), and 5-5 (22px) come from the design. */
+  --space-0-5: 0.125rem;
   --space-1: 0.25rem;
   --space-1-5: 0.375rem;
   --space-2: 0.5rem;
+  --space-2-25: 0.5625rem;
   --space-2-5: 0.625rem;
   --space-3: 0.75rem;
   --space-3-5: 0.875rem;
