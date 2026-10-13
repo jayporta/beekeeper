@@ -53,8 +53,6 @@
     var(--color-accent) calc(var(--opacity-hover) * 100%),
     transparent
   );
-  /* The blueprint "+" marks on a card's corners: text at 55%. Decorative. */
-  --color-blueprint-mark: color-mix(in srgb, var(--color-text) 55%, transparent);
 
   /* Accent. The ramp inverts in dark mode, so 100 is always the lightest tint against the ground. */
   --color-accent: #4f46e5;
@@ -223,8 +221,6 @@
   --size-dialog-narrow: 30rem;
   --size-search-field: 16.25rem;
   --size-target-min: 44px;
-  /* A blueprint corner mark's width and height. */
-  --size-corner-mark: 0.6875rem;
   /* A session card's columns after the title: agents 220px, duration 90px, tokens 110px. */
   --size-card-agents: 13.75rem;
   --size-card-duration: 5.625rem;

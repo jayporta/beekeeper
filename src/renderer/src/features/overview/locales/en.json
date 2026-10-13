@@ -58,7 +58,6 @@
     "sessions_other": "{{count, integer}} sessions",
     "agents_one": "{{count, integer}} agent",
     "agents_other": "{{count, integer}} agents",
-    "share": "{{value, integer}}% of the busiest project's tokens",
     "latest": "Latest: {{title}} · {{when, shortDateTime}}",
     "latestUntitled": "Latest: untitled session · {{when, shortDateTime}}",
     "noLatest": "No sessions in this window",
@@ -127,6 +126,22 @@
       "mayBeLow": "A day's total may be low."
     },
     "tableToggle": "Tokens per day as a table"
+  },
+  "projects": {
+    "heading": "Projects",
+    "sortBy": "Sort by",
+    "sort": { "tokens": "Tokens", "latest": "Latest", "name": "Name" },
+    "col": {
+      "project": "Project",
+      "latest": "Latest",
+      "bar": "Tokens compared with the busiest project",
+      "tokens": "Tokens",
+      "sessions": "Sessions",
+      "agents": "Agents",
+      "share": "Share"
+    },
+    "percent": "{{value, integer}}%",
+    "shareOfTotal": "{{value, integer}}% of all tokens"
   },
   "byModel": {
     "heading": "By model",
