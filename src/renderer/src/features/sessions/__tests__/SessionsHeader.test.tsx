@@ -201,3 +201,36 @@ describe('SessionsView search box', () => {
     expect(await screen.findByRole('searchbox', { name: 'Search sessions' })).toBeTruthy()
   })
 })
+
+describe('SessionsView stat row', () => {
+  it('adds up the folder under the title once the sessions have loaded', async () => {
+    showProjects([acme], () =>
+      ok([
+        testSession(1, { projectDirName: DIR, totalTokens: 100, costUSD: 1, modifiedMs: 5 }),
+        testSession(2, { projectDirName: DIR, totalTokens: 50, costUSD: 1, modifiedMs: 5 })
+      ])
+    )
+
+    const sessions = await screen.findByText('Sessions', { selector: 'dt' })
+    expect(sessions.nextElementSibling?.textContent).toBe('2')
+    expect(screen.getByText('Tokens', { selector: 'dt' }).nextElementSibling?.textContent).toBe(
+      '150'
+    )
+  })
+
+  it('is not on screen for a project with no sessions', async () => {
+    showProjects([acme], () => ok([]))
+
+    await screen.findByRole('heading', { name: 'No sessions in this project' })
+
+    expect(screen.queryByText('Sessions', { selector: 'dt' })).toBeNull()
+  })
+
+  it('is not on screen while the sessions load', async () => {
+    showProjects([acme], () => new Promise(() => undefined))
+
+    await screen.findByRole('heading', { name: 'Loading sessions' })
+
+    expect(screen.queryByText('Sessions', { selector: 'dt' })).toBeNull()
+  })
+})

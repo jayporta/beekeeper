@@ -111,5 +111,17 @@
     "unrecordedUsage": "Some sessions recorded no usage, so a team total leaves them out.",
     "subagentsExcluded": "A session still running or stopped early shows its transcript's tokens, which leave out its subagents.",
     "incompleteSignals": "Some transcripts have more events than beekeeper counts, so a card's tool error, compaction, or agent kill count may be low."
+  },
+  "stats": {
+    "sessions": "Sessions",
+    "tokens": "Tokens",
+    "cost": "At API prices",
+    "agents": "Agents",
+    "worktrees": "Worktrees",
+    "latest": "Latest",
+    "none": "None",
+    "integer": "{{value, integer}}",
+    "compact": "{{value, compactInteger}}",
+    "partialNote": "partial, see the note below"
   }
 }

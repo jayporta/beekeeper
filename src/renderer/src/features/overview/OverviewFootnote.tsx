@@ -18,9 +18,17 @@ interface OverviewFootnoteProps {
  */
 export function OverviewFootnote({ reasons }: OverviewFootnoteProps): React.JSX.Element | null {
   const { t } = useTranslation('overview')
+  const { t: tCommon } = useTranslation('common')
   if (reasons.length === 0) return null
 
-  const sentences = [...reasons.map((reason) => t(`footnote.${reason}`)), t('footnote.mayBeLow')]
+  const sentences = [
+    ...reasons.map((reason) =>
+      reason === 'loading' || reason === 'failed'
+        ? t(`footnote.${reason}`)
+        : tCommon(`partialReason.${reason}`)
+    ),
+    tCommon('partialReason.mayBeLow')
+  ]
 
   return <Footnote id={OVERVIEW_FOOTNOTE_ID} label={t('footnote.label')} sentences={sentences} />
 }

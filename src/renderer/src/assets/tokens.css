@@ -222,6 +222,8 @@
   /* A modal dialog that holds a few short paragraphs. */
   --size-dialog-narrow: 30rem;
   --size-search-field: 16.25rem;
+  /* The least width of one figure in the sessions header's stat row: 220px. */
+  --size-stat-min: 13.75rem;
   --size-target-min: 44px;
   /* A session card's columns after the title: agents 220px, duration 90px, tokens 110px. */
   --size-card-agents: 13.75rem;

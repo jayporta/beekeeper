@@ -1,10 +1,25 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { projectColorClass } from '@renderer/features/projects/projectColorClass'
 import { RefreshButton } from '../RefreshButton'
 import { STATUS_ANNOUNCE_DELAY_MS } from '../statusAnnounceDelay'
 
 describe('RefreshButton', () => {
+  it("takes the project's color when given a slot", () => {
+    render(<RefreshButton onRefresh={vi.fn()} status="idle" colorSlot={3} />)
+
+    const button = screen.getByRole('button', { name: 'Refresh' })
+    expect(button.classList.contains(projectColorClass(3))).toBe(true)
+  })
+
+  it('has no project color without a slot', () => {
+    render(<RefreshButton onRefresh={vi.fn()} status="idle" />)
+
+    const button = screen.getByRole('button', { name: 'Refresh' })
+    expect(button.classList.contains(projectColorClass(3))).toBe(false)
+  })
+
   it('calls onRefresh when clicked', async () => {
     const onRefresh = vi.fn()
     render(<RefreshButton onRefresh={onRefresh} status="idle" />)
