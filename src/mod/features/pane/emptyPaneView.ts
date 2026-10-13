@@ -1,5 +1,4 @@
-import type { IpcErrorCode } from '../../../shared/ipc/ipcResult'
-import type { PaneStatus, PaneView } from './paneView'
+import type { PaneErrorCode, PaneStatus, PaneView } from './paneView'
 
 /** What {@link emptyPaneView} needs. */
 interface EmptyPaneViewInput {
@@ -8,7 +7,7 @@ interface EmptyPaneViewInput {
   /** Why there is no tree. */
   readonly status: Exclude<PaneStatus, 'ready'>
   /** The failure's code for an `error` view, otherwise `null`. */
-  readonly errorCode: IpcErrorCode | null
+  readonly errorCode: PaneErrorCode | null
   /** When the view is built, in milliseconds since the epoch. */
   readonly nowMs: number
 }

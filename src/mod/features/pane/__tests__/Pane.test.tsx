@@ -71,7 +71,7 @@ describe('Pane', () => {
   it('says the total may be incomplete when it is partial', () => {
     const text = textOf(draw(testPaneView(team, { totalTokens: 5, totalTokensPartial: true })))
 
-    expect(text).toContain('May be incomplete.')
+    expect(text).toContain('5 tokens in this session. May be incomplete.')
   })
 
   it('draws one button per node, keyed by node key, in tree order', () => {
@@ -83,7 +83,7 @@ describe('Pane', () => {
   it('indents two spaces per depth', () => {
     const lines = rowText(draw(testPaneView(team)))
 
-    expect(lines.map((line) => /^(?:> |\s\s)(\s*)/.exec(line)?.[1]?.length)).toEqual([0, 2, 4, 2])
+    expect(lines.map((line) => line.length - line.trimStart().length)).toEqual([0, 2, 4, 2])
   })
 
   it('caps the indent so names keep their room', () => {
@@ -93,21 +93,36 @@ describe('Pane', () => {
     }
     const lines = rowText(draw(testPaneView(chain)))
 
-    expect(lines.at(-1)).toBe('  ' + ' '.repeat(12) + 'n9')
+    expect(lines.at(-1)).toBe(`${' '.repeat(12)}n9`)
   })
 
-  it('writes tokens and marks as words after the name and type', () => {
+  it('puts the important facts before the tokens and the type, which are cut first', () => {
     const line = rowText(draw(testPaneView(team)))[1]
 
-    expect(line).toContain('finder')
-    expect(line).toContain('Explore')
-    expect(line).toContain('1 token, 3 tool errors, 1 compaction, stopped, partial')
+    expect(line).toBe(
+      '  finder  stopped, may be incomplete, 3 tool errors, 1 compaction, 1 token Explore'
+    )
   })
 
   it('leaves out marks the agent does not have', () => {
     const line = rowText(draw(testPaneView(team)))[2]
 
     expect(line?.trim()).toBe('deep')
+  })
+
+  it('says a teammate row is a teammate and a workflow row is a workflow', () => {
+    const root = testPaneNode('lead', {
+      kind: 'lead',
+      name: 'Lead',
+      children: [
+        testPaneNode('mate:x', { kind: 'teammate', name: 'writer', files: null }),
+        testPaneNode('run:1', { kind: 'workflow', name: 'flow', files: null }),
+        testPaneNode('sub:a', { name: 'finder' })
+      ]
+    })
+    const lines = rowText(draw(testPaneView(root))).map((line) => line.trim())
+
+    expect(lines).toEqual(['Selected: Lead', 'Teammate: writer', 'Workflow: flow', 'finder'])
   })
 
   it('cuts each row at the edge with an ellipsis', () => {
@@ -120,13 +135,23 @@ describe('Pane', () => {
   it('marks the lead as selected when nothing is', () => {
     const lines = rowText(draw(testPaneView(team)))
 
-    expect(lines.map((line) => line.startsWith('> '))).toEqual([true, false, false, false])
+    expect(lines.map((line) => line.trimStart().startsWith('Selected: '))).toEqual([
+      true,
+      false,
+      false,
+      false
+    ])
   })
 
   it('marks the node the person selected', () => {
     const lines = rowText(draw(testPaneView(team), { selected: { sessionId: 's1', key: 'sub:b' } }))
 
-    expect(lines.map((line) => line.startsWith('> '))).toEqual([false, false, true, false])
+    expect(lines.map((line) => line.trimStart().startsWith('Selected: '))).toEqual([
+      false,
+      false,
+      true,
+      false
+    ])
   })
 
   it('falls back to the lead when the selected node is gone', () => {
@@ -134,7 +159,7 @@ describe('Pane', () => {
       draw(testPaneView(team), { selected: { sessionId: 's1', key: 'sub:zzz' } })
     )
 
-    expect(lines[0]?.startsWith('> ')).toBe(true)
+    expect(lines[0]?.trimStart().startsWith('Selected: ')).toBe(true)
   })
 
   it('ignores a selection made in another session', () => {
@@ -142,7 +167,7 @@ describe('Pane', () => {
       draw(testPaneView(team), { selected: { sessionId: 'old', key: 'sub:b' } })
     )
 
-    expect(lines[0]?.startsWith('> ')).toBe(true)
+    expect(lines[0]?.trimStart().startsWith('Selected: ')).toBe(true)
   })
 
   it('selects a node when its row is pressed', () => {
@@ -187,13 +212,20 @@ describe('Pane', () => {
     it('shows at most 200 files and says how many more there are', () => {
       const many = testPaneNode('lead', {
         kind: 'lead',
-        files: Array.from({ length: 205 }, (_, i) => ({ path: `/f${i}.ts`, operation: 'edit' }))
+        files: Array.from({ length: 200 }, (_, i) => ({ path: `/f${i}.ts`, operation: 'edit' })),
+        fileCount: 205
       })
       const text = textOf(draw(testPaneView(many)))
 
       expect(text).toContain('/f199.ts')
-      expect(text).not.toContain('/f200.ts')
       expect(text).toContain('and 5 more')
+    })
+
+    it('cuts a long path from its start so the file name survives', () => {
+      const tree = draw(testPaneView(withFiles))
+      const paths = findAll(tree, Text).filter((node) => textOf(node) === '/a.ts')
+
+      expect(paths[0]?.props['wrap']).toBe('truncate-start')
     })
 
     it('says so when no files changed', () => {

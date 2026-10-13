@@ -1,4 +1,5 @@
 import { t } from '../../i18n/modI18n'
+import { MINIMUM_CLAUDE_CODE } from '../start/minimumVersion'
 import type { PaneElements } from './paneElements'
 import { PaneFiles } from './PaneFiles'
 import { PaneRow } from './PaneRow'
@@ -30,7 +31,9 @@ interface PaneProps {
 /** The fixed line for a pane that has no tree, by why it has none. */
 function statusLine(view: PaneView | undefined): string {
   if (view?.status === 'waiting') return t('pane.waiting')
-  if (view?.status === 'error') return t(`pane.error.${view.errorCode ?? 'internal'}`)
+  if (view?.status === 'error') {
+    return t(`pane.error.${view.errorCode ?? 'internal'}`, { minimum: MINIMUM_CLAUDE_CODE })
+  }
   return t('pane.loading')
 }
 
@@ -38,7 +41,7 @@ function statusLine(view: PaneView | undefined): string {
 function totalsLine(view: PaneView): string {
   if (view.totalTokens === null) return t('pane.totals.none')
   const total = t('pane.totals.tokens', { count: view.totalTokens })
-  return view.totalTokensPartial ? `${total} ${t('pane.totals.partial')}` : total
+  return view.totalTokensPartial ? `${total}. ${t('pane.totals.partial')}` : total
 }
 
 /**

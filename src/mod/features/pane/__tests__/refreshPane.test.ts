@@ -220,6 +220,29 @@ describe('refreshPane', () => {
     expect(child?.files).toEqual([{ path: '/a b .ts', operation: 'create' }])
   })
 
+  it('keeps at most 200 files per agent and the count of all of them', async () => {
+    const touches = Array.from({ length: 205 }, (_, i) => ({
+      filePath: `/f${i}.ts`,
+      operation: 'edit' as const,
+      source: 'edit-write' as const
+    }))
+    const services = testPaneServices({
+      list: { ok: true, value: [lead] },
+      get: { ok: true, value: testDetail({ lead: testReport({ fileTouches: touches }) }) }
+    })
+
+    const { view } = await refreshPane(services, {
+      ref: REF,
+      withList: true,
+      lastItems: null,
+      nowMs: NOW
+    })
+
+    expect(view.root?.files).toHaveLength(200)
+    expect(view.root?.files?.at(-1)?.path).toBe('/f199.ts')
+    expect(view.root?.fileCount).toBe(205)
+  })
+
   it('cleans the session label', async () => {
     const dirty = testSession(1, { title: 'Fix\nit' })
     const services = testPaneServices({

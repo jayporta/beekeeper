@@ -52,64 +52,78 @@ function childrenOf(dir: string): string[] | undefined {
 
 const missing = (): Error => Object.assign(new Error('no such file'), { code: 'ENOENT' })
 
+/** Answers everything a refresh asks of the engine from the fake file system above; returns the clock. */
+function mockSession(on: Parameters<typeof mock.env>[0]): {
+  clock: ReturnType<typeof mock.clock>
+  isPaneOpen: { value: boolean }
+} {
+  const isPaneOpen = { value: true }
+  const clock = mock.clock(on)
+  mock.env(on, { HOME: '/home/u' })
+  on('session.start', async (_$, e) => ({ cwd: e.cwd }))
+  on('session.version', async () => ({ value: { version: '2.1.296', base: '2.1.296' } }))
+  on('session.id', async () => ({ value: SESSION }))
+  on('session.root', async () => ({ value: '/work' }))
+  on('process.run', async () => ({
+    value: {
+      exitCode: 0,
+      stdout: 'Darwin\n',
+      stderr: '',
+      isStdoutTruncated: false,
+      isStderrTruncated: false
+    }
+  }))
+  on('command.register', async (_$, e) => ({ value: { command: e.name } }))
+  on('ui.open', async () => ({ value: { isPlaced: true } }))
+  on('ui.panes', async () => ({
+    value: isPaneOpen.value
+      ? [{ id: 'beekeeper', title: 'beekeeper', isFocused: true, isPlaced: true }]
+      : []
+  }))
+  on('fs.stat', async (_$, e) => {
+    const content = FILES[e.path]
+    if (content !== undefined) {
+      return {
+        value: {
+          kind: 'file' as const,
+          size: content.length,
+          mtimeMs: 1000,
+          isLink: false,
+          realPath: e.path
+        }
+      }
+    }
+    if (e.path === '/home/u/.claude' || childrenOf(e.path) !== undefined) {
+      return {
+        value: { kind: 'dir' as const, size: 0, mtimeMs: 1000, isLink: false, realPath: e.path }
+      }
+    }
+    throw missing()
+  })
+  on('fs.list', async (_$, e) => {
+    const names = childrenOf(e.path)
+    if (names === undefined) throw missing()
+    return {
+      value: names.map((name) => ({
+        name,
+        kind: name.endsWith('.jsonl') ? ('file' as const) : ('dir' as const),
+        size: 0,
+        mtimeMs: 1000,
+        isLink: false
+      }))
+    }
+  })
+  on('fs.read', async (_$, e) => {
+    const content = FILES[e.path]
+    if (content === undefined) throw missing()
+    return { value: { base64: btoa(content) } }
+  })
+  return { clock, isPaneOpen }
+}
+
 for (const surface of ['terminal', 'desktop'] as const) {
   test(`/beekeeper shows the session's agents as rows on ${surface}`, async ($, on) => {
-    const clock = mock.clock(on)
-    mock.env(on, { HOME: '/home/u' })
-    on('session.start', async (_$, e) => ({ cwd: e.cwd }))
-    on('session.version', async () => ({ value: { version: '2.1.296', base: '2.1.296' } }))
-    on('session.id', async () => ({ value: SESSION }))
-    on('session.root', async () => ({ value: '/work' }))
-    on('process.run', async () => ({
-      value: {
-        exitCode: 0,
-        stdout: 'Darwin\n',
-        stderr: '',
-        isStdoutTruncated: false,
-        isStderrTruncated: false
-      }
-    }))
-    on('command.register', async (_$, e) => ({ value: { command: e.name } }))
-    on('ui.open', async () => ({ value: { isPlaced: true } }))
-    on('ui.panes', async () => ({ value: [] }))
-    on('fs.stat', async (_$, e) => {
-      const content = FILES[e.path]
-      if (content !== undefined) {
-        return {
-          value: {
-            kind: 'file' as const,
-            size: content.length,
-            mtimeMs: 1000,
-            isLink: false,
-            realPath: e.path
-          }
-        }
-      }
-      if (e.path === '/home/u/.claude' || childrenOf(e.path) !== undefined) {
-        return {
-          value: { kind: 'dir' as const, size: 0, mtimeMs: 1000, isLink: false, realPath: e.path }
-        }
-      }
-      throw missing()
-    })
-    on('fs.list', async (_$, e) => {
-      const names = childrenOf(e.path)
-      if (names === undefined) throw missing()
-      return {
-        value: names.map((name) => ({
-          name,
-          kind: name.endsWith('.jsonl') ? ('file' as const) : ('dir' as const),
-          size: 0,
-          mtimeMs: 1000,
-          isLink: false
-        }))
-      }
-    })
-    on('fs.read', async (_$, e) => {
-      const content = FILES[e.path]
-      if (content === undefined) throw missing()
-      return { value: { base64: btoa(content) } }
-    })
+    const { clock } = mockSession(on)
 
     await $.session.start({ cwd: '/work', surface, isInteractive: true })
     await $.command.run({ command: 'beekeeper', args: '' })
@@ -124,6 +138,25 @@ for (const surface of ['terminal', 'desktop'] as const) {
 
     expect(await pane.find({ type: 'Button', key: 'lead' })).toBeDefined()
     expect(await pane.find({ type: 'Text', text: 'Smoke title' })).toBeDefined()
+  })
+
+  test(`a pane mounted with nothing stored refreshes itself on ${surface}`, async ($, on) => {
+    const { clock, isPaneOpen } = mockSession(on)
+    isPaneOpen.value = false
+    await $.session.start({ cwd: '/work', surface, isInteractive: true })
+    isPaneOpen.value = true
+
+    const pane = await $.ui.mount({
+      plugin: 'beekeeper',
+      surface,
+      component: 'Pane',
+      requestId: 'beekeeper',
+      props: PANE_PROPS
+    })
+    expect(await pane.find({ type: 'Text', text: 'Loading the session.' })).toBeDefined()
+    await clock.advance(1)
+
+    expect(await pane.find({ type: 'Button', key: 'lead' })).toBeDefined()
   })
 }
 

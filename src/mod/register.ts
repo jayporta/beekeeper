@@ -89,6 +89,14 @@ async function isPaneOpen($: Engine): Promise<boolean> {
   return (await $.ui.panes()).some((pane) => pane.id === PANE_ID)
 }
 
+/** Writes a code-only line to the engine's log; never text from a transcript or an error. */
+function logCode(code: string): void {
+  console.error(`beekeeper: ${code}`)
+}
+
+/** Whether a render that finds no view may ask for a refresh: true until it has, and again once a view is stored. */
+let wantsFirstView = true
+
 /** Builds the refresh and scheduler over this `$`. Its timers belong to this loaded copy of the mod. */
 function wire($: Engine): PaneWiring {
   const refresher = createPaneRefresher({
@@ -98,16 +106,20 @@ function wire($: Engine): PaneWiring {
       sessionRoot: () => $.session.root(),
       now: () => $.clock.now(),
       writeView: async (view) => {
-        await $.state.set(VIEW, view)
+        const { isSet } = await $.state.set(VIEW, view)
+        wantsFirstView = true
+        return isSet
       }
-    }
+    },
+    log: logCode
   })
   const scheduler = createPaneScheduler({
     after: (ms, fn) => $.clock.after(ms, fn),
     every: (ms, fn) => $.clock.every(ms, fn),
     isPaneOpen: () => isPaneOpen($),
     wantsListTick: refresher.wantsListTick,
-    refresh: refresher.refresh
+    refresh: refresher.refresh,
+    log: logCode
   })
   return { refresher, scheduler }
 }
@@ -130,13 +142,17 @@ async function refreshIfOpen($: Engine, withList: boolean): Promise<void> {
 }
 
 /**
- * Draws the pane from `$.state`. A pane drawn before any refresh asks for one
- * (the state is empty after a `/clear` or a reload), since a render never writes state.
+ * Draws the pane from `$.state`. A pane drawn before any refresh asks for one,
+ * once, through the timers a non-render hook set up; a render never builds them,
+ * so none holds the render's `$`. With none yet, the next hook that does refreshes.
  */
 async function drawPane($: Engine, e: PaneRenderInput): Promise<object> {
   const view = (await $.state.get<PaneView>(VIEW)).value
   const selected = (await $.state.get<PaneSelection | null>(SELECTED)).value ?? null
-  if (view === undefined) wired($).scheduler.schedule({ withList: true, delayMs: 0 })
+  if (view === undefined && wantsFirstView && wiring !== undefined) {
+    wantsFirstView = false
+    wiring.scheduler.schedule({ withList: true, delayMs: 0 })
+  }
   return Pane({
     elements: $.ui.resolve(e),
     view,
@@ -150,6 +166,7 @@ async function drawPane($: Engine, e: PaneRenderInput): Promise<object> {
 /** Registers the mod's hooks with the engine. */
 export const register: Register = (on) => {
   wiring = undefined
+  wantsFirstView = true
 
   on('session.start', async ($, e, next) => {
     const started = await next(e)

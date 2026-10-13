@@ -21,6 +21,7 @@ export type BeekeeperPaneNode = {
   stopped: boolean
   partial: boolean
   files: readonly BeekeeperPaneFile[] | null
+  fileCount: number | null
   filesIncomplete: boolean
   children: readonly BeekeeperPaneNode[]
 }
@@ -29,7 +30,15 @@ export type BeekeeperPaneNode = {
 export type BeekeeperPaneView = {
   sessionId: string
   status: 'loading' | 'ready' | 'waiting' | 'error'
-  errorCode: 'invalid-request' | 'untrusted-sender' | 'not-found' | 'unreadable' | 'internal' | null
+  errorCode:
+    | 'invalid-request'
+    | 'untrusted-sender'
+    | 'not-found'
+    | 'unreadable'
+    | 'internal'
+    | 'too-old'
+    | 'start-failed'
+    | null
   label: string | null
   totalTokens: number | null
   totalTokensPartial: boolean

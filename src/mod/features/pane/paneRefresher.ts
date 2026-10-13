@@ -16,8 +16,8 @@ export interface PaneHost {
   sessionRoot(): Promise<string>
   /** The time in milliseconds since the epoch: `$.clock.now()`. */
   now(): Promise<number>
-  /** Stores the view for the pane to draw: `$.state.set`. */
-  writeView(view: PaneView): Promise<void>
+  /** Stores the view for the pane to draw: `$.state.set`. Resolves whether the engine stored it. */
+  writeView(view: PaneView): Promise<boolean>
 }
 
 /** What {@link createPaneRefresher} works through. */
@@ -30,11 +30,13 @@ export interface PaneRefresherDeps {
   readonly start?: (host: ModHost, session: { cwd: string }) => Promise<StartOutcome>
   /** Builds the services for a projects folder; defaults to {@link createPaneServices}. */
   readonly createServices?: (projectsRoot: string) => PaneServices
+  /** Receives a code-only line for a failure the refresher survives; defaults to `console.error`. */
+  readonly log?: (line: string) => void
 }
 
 /** Refreshes the pane's view. */
 export interface PaneRefresher {
-  /** Starts the mod once it is ready, remembering the outcome, and returns it. */
+  /** Starts the mod unless it is already ready, remembering the outcome, and returns it. A later refresh reuses a failed outcome rather than probing again; this call retries. */
   start(cwd: string): Promise<StartOutcome>
   /** Builds the current session's view and stores it. Never rejects. */
   refresh(request: { readonly withList: boolean }): Promise<void>
@@ -52,19 +54,25 @@ export interface PaneRefresher {
  * @returns The refresher.
  */
 export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
-  const { host, pane, start = startMod, createServices = createPaneServices } = deps
-  let ready: Extract<StartOutcome, { kind: 'ready' }> | null = null
+  const {
+    host,
+    pane,
+    start = startMod,
+    createServices = createPaneServices,
+    log = console.error
+  } = deps
+  let started: StartOutcome | null = null
   let services: { readonly projectsRoot: string; readonly value: PaneServices } | null = null
   const folders = new Map<string, string>()
   let lastList: { readonly folder: string; readonly items: readonly SessionListItemDto[] } | null =
     null
   let lastView: PaneView | null = null
+  let lastKey: string | null = null
 
-  async function startOnce(cwd: string): Promise<StartOutcome> {
-    if (ready !== null) return ready
-    const outcome = await start(host, { cwd })
-    if (outcome.kind === 'ready') ready = outcome
-    return outcome
+  async function startNow(cwd: string): Promise<StartOutcome> {
+    if (started?.kind === 'ready') return started
+    started = await start(host, { cwd })
+    return started
   }
 
   function servicesFor(projectsRoot: string): PaneServices {
@@ -74,14 +82,17 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
     return services.value
   }
 
-  async function build(withList: boolean): Promise<PaneView | null> {
+  async function build(withList: boolean): Promise<PaneView> {
     const [sessionId, sessionRoot, nowMs] = await Promise.all([
       pane.sessionId(),
       pane.sessionRoot(),
       pane.now()
     ])
-    const outcome = await startOnce(sessionRoot)
-    if (outcome.kind !== 'ready') return null
+    const outcome = started ?? (await startNow(sessionRoot))
+    if (outcome.kind !== 'ready') {
+      const errorCode = outcome.kind === 'too-old' ? 'too-old' : 'start-failed'
+      return emptyPaneView({ sessionId, status: 'error', errorCode, nowMs })
+    }
     const folder =
       folders.get(sessionId) ??
       (await findSessionFolder(host, {
@@ -95,7 +106,7 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
     const known = lastList?.folder === folder ? lastList.items : null
     const { view, items } = await refreshPane(servicesFor(outcome.projectsRoot), {
       ref: { projectDirName: folder, sessionId },
-      withList: withList || known === null,
+      withList: withList || known === null || !hasTeam(lastView),
       lastItems: known,
       nowMs
     })
@@ -104,17 +115,27 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
     return view
   }
 
+  /** The view without its time, so a refresh that found nothing new can be told from one that did. */
+  const contentKey = (view: PaneView): string => JSON.stringify({ ...view, refreshedAtMs: 0 })
+
   async function refresh(request: { readonly withList: boolean }): Promise<void> {
-    let view: PaneView | null
+    let view: PaneView
     try {
       view = await build(request.withList)
     } catch {
       view = emptyPaneView({ sessionId: '', status: 'error', errorCode: 'internal', nowMs: 0 })
     }
-    if (view === null) return
+    const key = contentKey(view)
+    if (key === lastKey) return
+    try {
+      if (!(await pane.writeView(view))) return
+    } catch {
+      log('pane-write-failed')
+      return
+    }
     lastView = view
-    await pane.writeView(view)
+    lastKey = key
   }
 
-  return { start: startOnce, refresh, wantsListTick: () => hasTeam(lastView) }
+  return { start: startNow, refresh, wantsListTick: () => hasTeam(lastView) }
 }

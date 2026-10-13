@@ -1,4 +1,4 @@
-// Checks the built mod against the call allowlist. Run from the repo root after `npm run build:mod`.
+// Checks the built mod against the call allowlist. Run it through `npm run check:mod`, which builds the mod first.
 // Needs the `claude` CLI on PATH (CI installs it globally; it is too large to be a devDependency).
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'

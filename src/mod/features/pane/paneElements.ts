@@ -13,7 +13,7 @@ export interface PaneElements {
   Text: (props: {
     dimColor?: boolean
     bold?: boolean
-    wrap?: 'wrap' | 'truncate-end'
+    wrap?: 'wrap' | 'truncate-start' | 'truncate-end'
     children?: DrawnNode | DrawnNode[]
   }) => object
   /** A pressable row. `key` is its address. */

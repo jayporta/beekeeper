@@ -386,21 +386,37 @@ describe('register', () => {
       { sessionId: 'sid' }
     )
 
-    /** Runs the registered render hook against an engine holding `state`. */
-    async function render(state: Record<string, unknown>): Promise<{
+    /**
+     * Runs the registered render hook against an engine holding `state`. With
+     * `startedFirst`, a non-render hook (`session.start`, pane closed) runs first and sets up the timers.
+     */
+    async function render(
+      state: Record<string, unknown>,
+      options: { startedFirst?: boolean; times?: number } = {}
+    ): Promise<{
       tree: unknown
       engine: ReturnType<typeof createTestEngine>
     }> {
       const { on, registered } = recordingOn()
       register(on, {})
-      const engine = createTestEngine({ state })
+      const engine = createTestEngine({ state, panes: [] })
+      if (options.startedFirst) {
+        const start = registered.find((entry) => entry.event === 'session.start')
+        await start?.hook(
+          engine.$,
+          { cwd: '/work', surface: 'terminal', isInteractive: false },
+          createNext({ cwd: '/work' }).next
+        )
+      }
       const hook = registered.find((entry) => entry.event === 'ui.render')
-      const { next } = createNext({})
-      const tree = await hook?.hook(
-        engine.$,
-        { surface: 'terminal', component: 'Pane', requestId: 'beekeeper', props: {} },
-        next
-      )
+      let tree: unknown
+      for (let i = 0; i < (options.times ?? 1); i += 1) {
+        tree = await hook?.hook(
+          engine.$,
+          { surface: 'terminal', component: 'Pane', requestId: 'beekeeper', props: {} },
+          createNext({}).next
+        )
+      }
       return { tree, engine }
     }
 
@@ -410,15 +426,22 @@ describe('register', () => {
       expect(textOf(tree)).toContain('Fix the bug')
     })
 
-    it('asks for a refresh, with the list, when nothing is stored yet', async () => {
-      const { tree, engine } = await render({})
+    it('asks for one refresh, with the list, through timers an earlier hook set up', async () => {
+      const { tree, engine } = await render({}, { startedFirst: true, times: 3 })
 
       expect(textOf(tree)).toContain(t('pane.loading'))
       expect(engine.timers.map((timer) => [timer.kind, timer.ms])).toEqual([['after', 0]])
     })
 
+    it('sets up no timers itself when no other hook has run, so none holds its engine', async () => {
+      const { tree, engine } = await render({})
+
+      expect(textOf(tree)).toContain(t('pane.loading'))
+      expect(engine.timers).toEqual([])
+    })
+
     it('does not ask for a refresh when a view is stored', async () => {
-      const { engine } = await render({ 'beekeeper.view': view })
+      const { engine } = await render({ 'beekeeper.view': view }, { startedFirst: true })
 
       expect(engine.timers).toEqual([])
     })

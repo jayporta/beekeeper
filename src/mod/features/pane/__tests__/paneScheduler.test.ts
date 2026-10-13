@@ -25,12 +25,14 @@ interface Harness {
   readonly finish: (error?: Error) => Promise<void>
   open: boolean | Error
   wantsList: boolean
+  readonly logs: string[]
 }
 
 function harness(): Harness {
   const afters: FakeTimer[] = []
   const everys: FakeTimer[] = []
   const started: boolean[] = []
+  const logs: string[] = []
   const settlers: Array<{ resolve: () => void; reject: (error: Error) => void }> = []
   const state = { open: true as boolean | Error, wantsList: true }
   const timer =
@@ -52,6 +54,7 @@ function harness(): Harness {
       return state.open
     },
     wantsListTick: () => state.wantsList,
+    log: (code) => logs.push(code),
     refresh: ({ withList }) => {
       started.push(withList)
       return new Promise<void>((resolve, reject) => settlers.push({ resolve, reject }))
@@ -62,6 +65,7 @@ function harness(): Harness {
     afters,
     everys,
     started,
+    logs,
     running: () => settlers.length,
     finish: async (error) => {
       const next = settlers.shift()
@@ -178,6 +182,56 @@ describe('debounce', () => {
     h.afters[1]?.fn()
     await flush()
     expect(h.started).toEqual([true])
+  })
+})
+
+describe('a debounced refresh', () => {
+  it('does not run when the pane has closed meanwhile, and stops the ticks', async () => {
+    const h = harness()
+    h.scheduler.ensureTicks()
+    h.scheduler.schedule({ withList: true, delayMs: 1000 })
+    h.open = false
+
+    h.afters[0]?.fn()
+    await flush()
+
+    expect(h.started).toEqual([])
+    expect(h.everys.map((timer) => timer.cancelled)).toEqual([true, true])
+  })
+
+  it('logs a code, and skips the refresh, when the pane list cannot be read', async () => {
+    const h = harness()
+    h.scheduler.schedule({ withList: true, delayMs: 1000 })
+    h.open = new Error('engine down')
+
+    h.afters[0]?.fn()
+    await flush()
+
+    expect(h.started).toEqual([])
+    expect(h.logs).toEqual(['pane-list-failed'])
+  })
+})
+
+describe('failures', () => {
+  it('logs a code when a tick cannot read the pane list', async () => {
+    const h = harness()
+    h.scheduler.ensureTicks()
+    h.open = new Error('engine down')
+
+    h.everys[0]?.fn()
+    await flush()
+
+    expect(h.logs).toEqual(['pane-list-failed'])
+  })
+
+  it('logs a code when a refresh rejects', async () => {
+    const h = harness()
+
+    void h.scheduler.refreshNow(false)
+    await flush()
+    await h.finish(new Error('boom'))
+
+    expect(h.logs).toEqual(['pane-refresh-failed'])
   })
 })
 

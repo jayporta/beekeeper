@@ -36,6 +36,7 @@ interface Setup {
   readonly refresher: ReturnType<typeof createPaneRefresher>
   readonly starts: string[]
   readonly built: string[]
+  readonly logs: string[]
 }
 
 function setup(options: {
@@ -43,11 +44,13 @@ function setup(options: {
   start?: StartOutcome
   sessionId?: () => Promise<string>
   list?: ReturnType<typeof testSession>[]
+  writeView?: (view: PaneView) => Promise<boolean>
 }): Setup {
   const { folder = '-p', start = READY, list = [testSession(1, { title: 'Hi' })] } = options
   const written: PaneView[] = []
   const starts: string[] = []
   const built: string[] = []
+  const logs: string[] = []
   const services = testPaneServices({
     list: { ok: true, value: list },
     get: { ok: true, value: testDetail() }
@@ -56,9 +59,12 @@ function setup(options: {
     sessionId: options.sessionId ?? (async () => ID),
     sessionRoot: async () => '/work/app',
     now: async () => 42,
-    writeView: async (view) => {
-      written.push(view)
-    }
+    writeView:
+      options.writeView ??
+      (async (view) => {
+        written.push(view)
+        return true
+      })
   }
   const refresher = createPaneRefresher({
     host: createTestHost({ paths: projects(folder) }),
@@ -67,12 +73,13 @@ function setup(options: {
       starts.push(session.cwd)
       return start
     },
+    log: (line) => logs.push(line),
     createServices: (root) => {
       built.push(root)
       return services
     }
   })
-  return { written, services, refresher, starts, built }
+  return { written, services, refresher, starts, built, logs }
 }
 
 describe('createPaneRefresher', () => {
@@ -94,12 +101,38 @@ describe('createPaneRefresher', () => {
     expect(services.getCalls).toBe(0)
   })
 
-  it('writes nothing when the mod could not start', async () => {
+  it('writes an error view with a code when Claude Code is too old', async () => {
+    const { written, refresher } = setup({ start: { kind: 'too-old', version: '2.1.200' } })
+
+    await refresher.refresh({ withList: true })
+
+    expect(written[0]).toMatchObject({ status: 'error', errorCode: 'too-old', sessionId: ID })
+  })
+
+  it('writes an error view with a code when the mod could not start', async () => {
     const { written, refresher } = setup({ start: { kind: 'failed' } })
 
     await refresher.refresh({ withList: true })
 
-    expect(written).toEqual([])
+    expect(written[0]).toMatchObject({ status: 'error', errorCode: 'start-failed' })
+  })
+
+  it('does not start again on later refreshes after a failed start', async () => {
+    const { refresher, starts } = setup({ start: { kind: 'failed' } })
+
+    await refresher.refresh({ withList: true })
+    await refresher.refresh({ withList: true })
+
+    expect(starts).toHaveLength(1)
+  })
+
+  it('starts again when session.start asks after a failed start', async () => {
+    const { refresher, starts } = setup({ start: { kind: 'failed' } })
+
+    await refresher.refresh({ withList: true })
+    await refresher.start('/again')
+
+    expect(starts).toEqual(['/work/app', '/again'])
   })
 
   it('starts the mod itself, in the session root, when no session.start ran here', async () => {
@@ -129,14 +162,80 @@ describe('createPaneRefresher', () => {
     expect(built).toEqual([ROOT])
   })
 
-  it('lists on a first plain refresh, then reuses the list', async () => {
+  it('lists on every refresh of a session without a team, so its total and title stay current', async () => {
     const { refresher, services } = setup({})
 
     await refresher.refresh({ withList: false })
     await refresher.refresh({ withList: false })
 
+    expect(services.listCalls).toBe(2)
+  })
+
+  it('reuses the list on a plain refresh of a session with a team', async () => {
+    const lead = testSession(1, { title: 'Lead', team: testLeadTeam([testRef(2)]) })
+    const mate = testSession(2, {
+      role: testAgentRole('writer', 'code'),
+      team: testTeammateTeam(testRef(1))
+    })
+    const { refresher, services } = setup({ list: [lead, mate] })
+
+    await refresher.refresh({ withList: true })
+    await refresher.refresh({ withList: false })
+    await refresher.refresh({ withList: false })
+
     expect(services.listCalls).toBe(1)
-    expect(services.getCalls).toBe(2)
+    expect(services.getCalls).toBe(3)
+  })
+
+  it('does not write a view that is the same as the last one apart from its time', async () => {
+    const { written, refresher } = setup({})
+
+    await refresher.refresh({ withList: true })
+    await refresher.refresh({ withList: true })
+
+    expect(written).toHaveLength(1)
+  })
+
+  it('keeps the last view when the engine refuses a write, and writes the same view again', async () => {
+    let accept = false
+    const written: PaneView[] = []
+    const { refresher } = setup({
+      writeView: async (view) => {
+        written.push(view)
+        return accept
+      }
+    })
+
+    await refresher.refresh({ withList: true })
+    accept = true
+    await refresher.refresh({ withList: true })
+
+    expect(written).toHaveLength(2)
+  })
+
+  it('does not take a refused view for the last one when deciding on the list tick', async () => {
+    const lead = testSession(1, { title: 'Lead', team: testLeadTeam([testRef(2)]) })
+    const mate = testSession(2, {
+      role: testAgentRole('writer', 'code'),
+      team: testTeammateTeam(testRef(1))
+    })
+    const { refresher } = setup({ list: [lead, mate], writeView: async () => false })
+
+    await refresher.refresh({ withList: true })
+
+    expect(refresher.wantsListTick()).toBe(false)
+  })
+
+  it('logs a code, and does not reject, when writing the view throws', async () => {
+    const { refresher, logs } = setup({
+      writeView: async () => {
+        throw new Error('secret /home/u/x')
+      }
+    })
+
+    await expect(refresher.refresh({ withList: true })).resolves.toBeUndefined()
+
+    expect(logs).toEqual(['pane-write-failed'])
   })
 
   it('writes an internal error view, without a message, when something rejects', async () => {

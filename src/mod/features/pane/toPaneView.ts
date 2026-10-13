@@ -1,44 +1,56 @@
 import type { AgentGraphNode, RootAgentGraphNode } from '../../../shared/agentGraph/agentGraphNode'
-import type { AgentReportDto } from '../../../shared/ipc/agentDto'
+import type { AgentReportDto, SubagentReportDto } from '../../../shared/ipc/agentDto'
 import type { SessionDetailDto } from '../../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
 import { cardFigures } from '../../../shared/sessions/cardFigures'
 import { replaceUnprintable } from '../../../core/transcript/replaceUnprintable'
 import type { PaneFile, PaneNode, PaneView } from './paneView'
 
-/** A node's files and whether the list may be short, or `null` files when they show elsewhere. */
+/** How many files a node keeps; the count of all of them is kept beside. */
+export const MAX_FILES_PER_NODE = 200
+
+/** A node's files, their count and whether the list may be short; `files` is `null` when they show elsewhere. */
 interface NodeFiles {
   readonly files: readonly PaneFile[] | null
+  readonly count: number | null
   readonly incomplete: boolean
 }
 
-/** The files an agent changed, from its report. */
+/** The files an agent changed, from its report, cleaned and cut to the first {@link MAX_FILES_PER_NODE}. */
 function filesOfReport(report: AgentReportDto): NodeFiles {
   return {
-    files: report.fileTouches.map(({ filePath, operation }) => ({
-      path: replaceUnprintable(filePath),
-      operation
-    })),
+    files: report.fileTouches
+      .slice(0, MAX_FILES_PER_NODE)
+      .map(({ filePath, operation }) => ({ path: replaceUnprintable(filePath), operation })),
+    count: report.fileTouches.length,
     incomplete: report.fileListIncomplete
   }
 }
 
+/** What a detail holds, looked up by subagent id. */
+interface DetailIndex {
+  readonly detail: SessionDetailDto
+  readonly reports: ReadonlyMap<string, SubagentReportDto>
+}
+
+function indexDetail(detail: SessionDetailDto): DetailIndex {
+  const entries = detail.subagents.ok ? detail.subagents.value : []
+  return { detail, reports: new Map(entries.map((entry) => [entry.agentId, entry])) }
+}
+
 /** The files of a node: the lead's and each subagent's from their reports, none for a teammate session or a workflow run. */
-function filesOfNode(node: AgentGraphNode, detail: SessionDetailDto): NodeFiles {
-  if (node.key === 'lead') return filesOfReport(detail.lead)
-  if (node.selection?.kind !== 'subagent') return { files: null, incomplete: false }
-  const { agentId } = node.selection
-  const found = detail.subagents.ok
-    ? detail.subagents.value.find((entry) => entry.agentId === agentId)
-    : undefined
+function filesOfNode(node: AgentGraphNode, index: DetailIndex): NodeFiles {
+  if (node.key === 'lead') return filesOfReport(index.detail.lead)
+  if (node.selection?.kind !== 'subagent') return { files: null, count: null, incomplete: false }
+  const found = index.reports.get(node.selection.agentId)
   return found?.report.ok === true
     ? filesOfReport(found.report.value)
-    : { files: [], incomplete: true }
+    : { files: [], count: 0, incomplete: true }
 }
 
 /** Maps a graph node and everything below it to plain, cleaned pane nodes. */
-function toPaneNode(node: AgentGraphNode, detail: SessionDetailDto): PaneNode {
-  const { files, incomplete } = filesOfNode(node, detail)
+function toPaneNode(node: AgentGraphNode, index: DetailIndex): PaneNode {
+  const { files, count, incomplete } = filesOfNode(node, index)
   return {
     key: node.key,
     kind: node.kind,
@@ -50,8 +62,9 @@ function toPaneNode(node: AgentGraphNode, detail: SessionDetailDto): PaneNode {
     stopped: node.stopped,
     partial: node.partial,
     files,
+    fileCount: count,
     filesIncomplete: incomplete,
-    children: node.children.map((child) => toPaneNode(child, detail))
+    children: node.children.map((child) => toPaneNode(child, index))
   }
 }
 
@@ -107,7 +120,7 @@ export function toPaneView(input: ToPaneViewInput): PaneView {
     label: replaceUnprintable(label),
     totalTokens: totals.tokens,
     totalTokensPartial: totals.partial,
-    root: toPaneNode(root, detail),
+    root: toPaneNode(root, indexDetail(detail)),
     refreshedAtMs: nowMs
   }
 }

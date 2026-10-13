@@ -1,5 +1,8 @@
 import type { IpcErrorCode } from '../../../shared/ipc/ipcResult'
 
+/** Why a view has no tree: a service failure's code, or the mod's own when it can't start. */
+export type PaneErrorCode = IpcErrorCode | 'too-old' | 'start-failed'
+
 /** One changed file of an agent. */
 export interface PaneFile {
   /** The path as the tool reported it, cleaned of unprintable characters. */
@@ -28,8 +31,10 @@ export interface PaneNode {
   readonly stopped: boolean
   /** Whether the tokens or the file list may be missing something. */
   readonly partial: boolean
-  /** The files the agent changed, or `null` when they show elsewhere (a teammate, a workflow run). */
+  /** The first files the agent changed, at most 200, or `null` when they show elsewhere (a teammate, a workflow run). */
   readonly files: readonly PaneFile[] | null
+  /** How many files the agent changed in all, or `null` when `files` is. */
+  readonly fileCount: number | null
   /** Whether `files` may be missing some. */
   readonly filesIncomplete: boolean
   /** The agents under this one. */
@@ -46,7 +51,7 @@ export interface PaneView {
   /** How the data stands. */
   readonly status: PaneStatus
   /** The failure's code when `status` is `error`, otherwise `null`. Never a message. */
-  readonly errorCode: IpcErrorCode | null
+  readonly errorCode: PaneErrorCode | null
   /** The session's name, on one line, or `null` when there is no tree. */
   readonly label: string | null
   /** The session's tokens as its card on the desktop shows them: the team's roll-up for a lead with a team. `null` when there is no figure. */

@@ -27,7 +27,7 @@ declare module 'claude-code' {
     /** Draws the text bold. */
     bold?: boolean
     /** What a line wider than the room does. */
-    wrap?: 'wrap' | 'truncate-end'
+    wrap?: 'wrap' | 'truncate-start' | 'truncate-end'
     /** The text. */
     children?: RenderChildren
   }

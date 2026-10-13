@@ -20,8 +20,10 @@ export interface PaneSchedulerDeps {
   readonly isPaneOpen: () => Promise<boolean>
   /** Whether the session has teammates or is one, so the list tick has work to do. */
   readonly wantsListTick: () => boolean
-  /** Runs one refresh. Its rejection is dropped: the caller records failures itself. */
+  /** Runs one refresh. It records its own failures, so a rejection here is a bug and is logged. */
   readonly refresh: (request: { readonly withList: boolean }) => Promise<void>
+  /** Receives a code-only line for a failure the scheduler survives. Never receives text from a transcript or an error. */
+  readonly log: (code: string) => void
 }
 
 /** What decides when the pane refreshes. */
@@ -66,7 +68,7 @@ export function createPaneScheduler(deps: PaneSchedulerDeps): PaneScheduler {
     try {
       await deps.refresh({ withList })
     } catch {
-      // The refresh records its own failure; the scheduler only has to keep going.
+      deps.log('pane-refresh-failed')
     } finally {
       inFlight = false
     }
@@ -89,7 +91,7 @@ export function createPaneScheduler(deps: PaneSchedulerDeps): PaneScheduler {
       withList: withList || (pending?.withList ?? false),
       timer: deps.after(delayMs, () => {
         if (pending === fresh) pending = null
-        void refreshNow(fresh.withList)
+        void refreshIfOpen(fresh.withList)
       })
     }
     pending = fresh
@@ -100,18 +102,25 @@ export function createPaneScheduler(deps: PaneSchedulerDeps): PaneScheduler {
     ticks = []
   }
 
+  /** Whether the pane is open; a pane that is gone stops the ticks, and a list that can't be read is logged. */
+  async function checkOpen(): Promise<boolean> {
+    try {
+      const isOpen = await deps.isPaneOpen()
+      if (!isOpen) stopTicks()
+      return isOpen
+    } catch {
+      deps.log('pane-list-failed')
+      return false
+    }
+  }
+
+  async function refreshIfOpen(withList: boolean): Promise<void> {
+    if (await checkOpen()) await refreshNow(withList)
+  }
+
   function onTick(withList: boolean): void {
     void (async () => {
-      let isOpen: boolean
-      try {
-        isOpen = await deps.isPaneOpen()
-      } catch {
-        return
-      }
-      if (!isOpen) {
-        stopTicks()
-        return
-      }
+      if (!(await checkOpen())) return
       if (withList && !deps.wantsListTick()) return
       await refreshNow(withList)
     })()
