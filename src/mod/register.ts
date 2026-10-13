@@ -2,14 +2,23 @@ import type { Engine, Register } from 'claude-code'
 import {
   EmptyPane,
   MINIMUM_CLAUDE_CODE,
+  createPaneRefresher,
+  createPaneScheduler,
   isAllowedArgv,
-  startMod,
   t,
   type ModHost,
+  type PaneRefresher,
+  type PaneScheduler,
   type StartOutcome
 } from './lib.js'
 
 const PANE_ID = 'beekeeper'
+
+/** How long a turn or a spawn waits before the pane refreshes, so a burst of them costs one refresh. */
+const DEBOUNCE_MS = 1000
+
+/** The `$.state` value the pane draws from. */
+const VIEW = { plugin: 'beekeeper', key: 'view' } as const
 
 /** The names among the git repository variables that Claude Code's environment sets, even to empty. */
 async function gitRepoVariablesSet($: Engine): Promise<string[]> {
@@ -64,12 +73,70 @@ async function announce($: Engine, outcome: StartOutcome): Promise<void> {
   }
 }
 
+/** What a loaded copy of the mod keeps between hooks: the refresh and the timers that drive it. */
+interface PaneWiring {
+  readonly refresher: PaneRefresher
+  readonly scheduler: PaneScheduler
+}
+
+/** Whether the pane is open. */
+async function isPaneOpen($: Engine): Promise<boolean> {
+  return (await $.ui.panes()).some((pane) => pane.id === PANE_ID)
+}
+
+/** Builds the refresh and scheduler over this `$`. Its timers belong to this loaded copy of the mod. */
+function wire($: Engine): PaneWiring {
+  const refresher = createPaneRefresher({
+    host: hostOf($),
+    pane: {
+      sessionId: () => $.session.id(),
+      sessionRoot: () => $.session.root(),
+      now: () => $.clock.now(),
+      writeView: async (view) => {
+        await $.state.set(VIEW, view)
+      }
+    }
+  })
+  const scheduler = createPaneScheduler({
+    after: (ms, fn) => $.clock.after(ms, fn),
+    every: (ms, fn) => $.clock.every(ms, fn),
+    isPaneOpen: () => isPaneOpen($),
+    wantsListTick: refresher.wantsListTick,
+    refresh: refresher.refresh
+  })
+  return { refresher, scheduler }
+}
+
+/** The wiring of this loaded copy of the mod, built by the first hook that needs it. Module state, because `$` may only be passed to top-level functions. */
+let wiring: PaneWiring | undefined
+
+/** The wiring of this loaded copy, built over `$` on first use. */
+function wired($: Engine): PaneWiring {
+  wiring ??= wire($)
+  return wiring
+}
+
+/** Schedules a debounced refresh, and restarts lost ticks, when the pane is open. */
+async function refreshIfOpen($: Engine, withList: boolean): Promise<void> {
+  if (!(await isPaneOpen($))) return
+  const { scheduler } = wired($)
+  scheduler.ensureTicks()
+  scheduler.schedule({ withList, delayMs: DEBOUNCE_MS })
+}
+
 /** Registers the mod's hooks with the engine. */
 export const register: Register = (on) => {
+  wiring = undefined
+
   on('session.start', async ($, e, next) => {
     const started = await next(e)
-    const outcome = await startMod(hostOf($), { cwd: e.cwd })
+    const { refresher, scheduler } = wired($)
+    const outcome = await refresher.start(e.cwd)
     if (e.isInteractive) await announce($, outcome)
+    if (outcome.kind === 'ready' && (await isPaneOpen($))) {
+      scheduler.ensureTicks()
+      scheduler.schedule({ withList: true, delayMs: 0 })
+    }
     return started
   }).catch(($, e, next) => next(e))
   on('command.run', { command: 'beekeeper' }, async ($) => {
@@ -79,8 +146,26 @@ export const register: Register = (on) => {
       focus: true,
       closeOnEscape: true
     })
+    const { scheduler } = wired($)
+    scheduler.ensureTicks()
+    scheduler.schedule({ withList: true, delayMs: 0 })
     return { text: t(isPlaced ? 'command.opened' : 'command.waiting') }
   })
+  on('turn.complete', async ($, e, next) => {
+    const result = await next(e)
+    await refreshIfOpen($, false)
+    return result
+  }).catch(($, e, next) => next(e))
+  on('agent.spawn', async ($, e, next) => {
+    const result = await next(e)
+    await refreshIfOpen($, true)
+    return result
+  }).catch(($, e, next) => next(e))
+  on('session.end', async ($, e, next) => {
+    const result = await next(e)
+    if (e.reason === 'clear') await refreshIfOpen($, true)
+    return result
+  }).catch(($, e, next) => next(e))
   on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) =>
     EmptyPane($.ui.resolve(e))
   )

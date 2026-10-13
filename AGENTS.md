@@ -68,7 +68,7 @@ npm run typecheck     # tsc for main/preload/core, the renderer, and the mod
 npm test              # vitest
 npm run build         # typecheck, then electron-vite build
 npm run build:mod     # build the Claude Code mod into mod/hooks/
-npm run check:mod     # check the mod's $ calls against its allowlist (needs the claude CLI)
+npm run check:mod     # build the mod, then check its $ calls against its allowlist (needs the claude CLI)
 claude plugin test mod  # run the mod's smoke tests in Claude Code's test kit
 ```
 

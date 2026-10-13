@@ -12,6 +12,7 @@ import type { SessionRefDto } from '../../../shared/ipc/sessionRefDto'
 import { findSessionRow } from '../../../shared/sessions/findSessionRow'
 import { groupSessionRows } from '../../../shared/sessions/groupSessionRows'
 import { shortId } from '../../../shared/sessions/sessionLabel'
+import { emptyPaneView } from './emptyPaneView'
 import { PANE_WORDS } from './paneWords'
 import type { PaneView } from './paneView'
 import { toPaneView } from './toPaneView'
@@ -45,15 +46,12 @@ export interface RefreshedPane {
 }
 
 function errorView(input: RefreshPaneInput, code: IpcErrorCode): PaneView {
-  return {
+  return emptyPaneView({
     sessionId: input.ref.sessionId,
     status: 'error',
     errorCode: code,
-    label: null,
-    totalTokens: null,
-    root: null,
-    refreshedAtMs: input.nowMs
-  }
+    nowMs: input.nowMs
+  })
 }
 
 async function build(services: PaneServices, input: RefreshPaneInput): Promise<RefreshedPane> {
@@ -88,6 +86,7 @@ async function build(services: PaneServices, input: RefreshPaneInput): Promise<R
   const view = toPaneView({
     sessionId: ref.sessionId,
     root,
+    rootItem: rootRow?.item ?? null,
     detail: detail.value,
     label: rootRow?.label.text ?? shortId(ref.sessionId),
     nowMs: input.nowMs

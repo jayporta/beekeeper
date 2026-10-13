@@ -12,6 +12,20 @@ export interface TestEngine {
   readonly $: Engine
   /** Every call made on `$`, in order. */
   readonly calls: RecordedCall[]
+  /** The timers `$.clock.after` and `$.clock.every` started, in order. */
+  readonly timers: FakeTimer[]
+}
+
+/** A timer the fake clock holds until a test fires it. */
+export interface FakeTimer {
+  /** `after` or `every`. */
+  readonly kind: 'after' | 'every'
+  /** The wait in milliseconds. */
+  readonly ms: number
+  /** What the timer calls. */
+  readonly fn: () => void
+  /** Whether it was cancelled. */
+  cancelled: boolean
 }
 
 /** What the fake `$` answers; each field has a default. */
@@ -22,6 +36,12 @@ export interface TestEngineAnswers {
   env?: Record<string, string>
   /** Whether `$.ui.open` places the pane; true by default. */
   isPlaced?: boolean
+  /** The ids of the panes `$.ui.panes()` lists; none by default. */
+  panes?: readonly string[]
+  /** What `$.session.id()` answers. */
+  sessionId?: string
+  /** What `$.session.root()` answers. */
+  sessionRoot?: string
   /** Makes `$.session.version()` reject, as an engine that can't report its version would. */
   versionFails?: boolean
 }
@@ -44,6 +64,21 @@ const EMPTY_STAT: FsStat = { kind: 'file', size: 0, mtimeMs: 0, isLink: false }
  */
 export function createTestEngine(answers: TestEngineAnswers = {}): TestEngine {
   const calls: RecordedCall[] = []
+  const timers: FakeTimer[] = []
+  const startTimer = (
+    kind: FakeTimer['kind'],
+    ms: number,
+    fn: () => void
+  ): { cancel: () => void } => {
+    record(`clock.${kind}`, ms)
+    const timer: FakeTimer = { kind, ms, fn, cancelled: false }
+    timers.push(timer)
+    return {
+      cancel: () => {
+        timer.cancelled = true
+      }
+    }
+  }
   const record = (name: string, ...args: unknown[]): void => {
     calls.push({ name, args })
   }
@@ -53,6 +88,28 @@ export function createTestEngine(answers: TestEngineAnswers = {}): TestEngine {
         record('session.version')
         if (answers.versionFails) throw new Error('version unavailable')
         return answers.version ?? { version: '2.1.296', base: '2.1.296' }
+      },
+      id: async () => {
+        record('session.id')
+        return answers.sessionId ?? '11111111-1111-4111-8111-111111111111'
+      },
+      root: async () => {
+        record('session.root')
+        return answers.sessionRoot ?? '/work'
+      }
+    },
+    clock: {
+      now: async () => {
+        record('clock.now')
+        return 1000
+      },
+      after: (ms, fn) => startTimer('after', ms, fn),
+      every: (ms, fn) => startTimer('every', ms, fn)
+    },
+    state: {
+      set: async (ref, value) => {
+        record('state.set', ref, value)
+        return { isSet: true }
       }
     },
     command: {
@@ -72,6 +129,10 @@ export function createTestEngine(answers: TestEngineAnswers = {}): TestEngine {
           Box: () => ({}),
           Text: () => ({})
         }
+      },
+      panes: async () => {
+        record('ui.panes')
+        return (answers.panes ?? []).map((id) => ({ id }))
       },
       status: (text) => {
         record('ui.status', text)
@@ -109,7 +170,7 @@ export function createTestEngine(answers: TestEngineAnswers = {}): TestEngine {
       }
     }
   }
-  return { $, calls }
+  return { $, calls, timers }
 }
 
 /**

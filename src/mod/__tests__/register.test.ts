@@ -19,6 +19,16 @@ async function startSession(
   return calls.filter((call) => call.name === 'command.register' || call.name === 'ui.status')
 }
 
+/** The registered hooks run against a fake engine whose panes and timers a test can inspect. */
+type PaneHarness = ReturnType<typeof createTestEngine> & {
+  /** Runs the hook registered for an event, with an input. */
+  run: (event: string, input?: object) => Promise<unknown>
+  /** The waits of the `after` timers started so far. */
+  afters: () => number[]
+  /** The waits of the `every` timers started so far. */
+  everys: () => number[]
+}
+
 describe('register', () => {
   it('registers session.start, the beekeeper command and the Pane render', () => {
     const { on, registered } = recordingOn()
@@ -28,6 +38,9 @@ describe('register', () => {
     expect(registered.map(({ event, matcher }) => ({ event, matcher }))).toEqual([
       { event: 'session.start', matcher: undefined },
       { event: 'command.run', matcher: { command: 'beekeeper' } },
+      { event: 'turn.complete', matcher: undefined },
+      { event: 'agent.spawn', matcher: undefined },
+      { event: 'session.end', matcher: undefined },
       { event: 'ui.render', matcher: { component: 'Pane', requestId: 'beekeeper' } }
     ])
   })
@@ -40,7 +53,7 @@ describe('register', () => {
 
     const reply = await (command?.hook as unknown as (engine: typeof $) => Promise<unknown>)($)
 
-    expect(calls).toEqual([
+    expect(calls.filter((call) => call.name === 'ui.open')).toEqual([
       {
         name: 'ui.open',
         args: [{ id: 'beekeeper', title: 'beekeeper', focus: true, closeOnEscape: true }]
@@ -241,6 +254,124 @@ describe('register', () => {
       )
 
       expect(calls).toEqual([])
+    })
+  })
+
+  describe('refreshing the pane', () => {
+    /** The registered hooks by event, a fake engine and a way to run one. */
+    function pane(answers: TestEngineAnswers = {}): PaneHarness {
+      const { on, registered } = recordingOn()
+      register(on, {})
+      const engine = createTestEngine({ panes: ['beekeeper'], ...answers })
+      const run = async (event: string, input: object = {}): Promise<unknown> => {
+        const hook = registered.find((entry) => entry.event === event)
+        const { next } = createNext({ ok: true })
+        return hook?.hook(engine.$, input, next)
+      }
+      const afters = (): number[] =>
+        engine.timers.filter((timer) => timer.kind === 'after').map((timer) => timer.ms)
+      const everys = (): number[] =>
+        engine.timers.filter((timer) => timer.kind === 'every').map((timer) => timer.ms)
+      return { ...engine, run, afters, everys }
+    }
+
+    it('refreshes at once with the list and starts the ticks when /beekeeper opens the pane', async () => {
+      const { run, afters, everys } = pane()
+
+      await run('command.run')
+
+      expect(afters()).toEqual([0])
+      expect(everys()).toEqual([10_000, 30_000])
+    })
+
+    it('does not start a second pair of ticks when /beekeeper runs twice', async () => {
+      const { run, everys } = pane()
+
+      await run('command.run')
+      await run('command.run')
+
+      expect(everys()).toEqual([10_000, 30_000])
+    })
+
+    it('debounces a refresh by one second after a turn completes while the pane is open', async () => {
+      const { run, afters } = pane()
+
+      await run('turn.complete')
+      await run('turn.complete')
+
+      expect(afters()).toEqual([1000])
+    })
+
+    it('restarts the ticks on a turn that completes in a copy that has none', async () => {
+      const { run, everys } = pane()
+
+      await run('turn.complete')
+
+      expect(everys()).toEqual([10_000, 30_000])
+    })
+
+    it('does nothing for a turn that completes while the pane is closed', async () => {
+      const { run, timers } = pane({ panes: [] })
+
+      await run('turn.complete')
+
+      expect(timers).toEqual([])
+    })
+
+    it('debounces a refresh after an agent spawns while the pane is open', async () => {
+      const { run, afters } = pane()
+
+      await run('agent.spawn')
+
+      expect(afters()).toEqual([1000])
+    })
+
+    it('refreshes after a /clear, once the session has its new id', async () => {
+      const { run, afters } = pane()
+
+      await run('session.end', { reason: 'clear' })
+
+      expect(afters()).toEqual([1000])
+    })
+
+    it.each(['logout', 'other', 'resume'])(
+      'does not refresh when the session ends for %s',
+      async (reason) => {
+        const { run, timers } = pane()
+
+        await run('session.end', { reason })
+
+        expect(timers).toEqual([])
+      }
+    )
+
+    it('passes each of those events on and answers what the engine answered', async () => {
+      const { run } = pane()
+
+      expect(await run('turn.complete')).toEqual({ ok: true })
+      expect(await run('agent.spawn')).toEqual({ ok: true })
+      expect(await run('session.end', { reason: 'clear' })).toEqual({ ok: true })
+    })
+
+    it('writes a waiting view to $.state when the debounce fires before a transcript exists', async () => {
+      const { run, timers, calls } = pane()
+      await run('agent.spawn')
+
+      timers.find((timer) => timer.kind === 'after')?.fn()
+      await new Promise((resolve) => setTimeout(resolve, 20))
+
+      const writes = calls.filter((call) => call.name === 'state.set')
+      expect(writes).toHaveLength(1)
+      expect(writes[0]?.args[0]).toEqual({ plugin: 'beekeeper', key: 'view' })
+      expect(writes[0]?.args[1]).toMatchObject({ status: 'waiting' })
+    })
+
+    it('starts the ticks when a session starts with the pane already open', async () => {
+      const { run, everys } = pane()
+
+      await run('session.start', { cwd: '/work', surface: 'terminal', isInteractive: true })
+
+      expect(everys()).toEqual([10_000, 30_000])
     })
   })
 })

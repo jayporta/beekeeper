@@ -49,8 +49,10 @@ export interface PaneView {
   readonly errorCode: IpcErrorCode | null
   /** The session's name, on one line, or `null` when there is no tree. */
   readonly label: string | null
-  /** The session's tokens across its lead and subagents, or `null` when none has readable usage. */
+  /** The session's tokens as its card on the desktop shows them: the team's roll-up for a lead with a team. `null` when there is no figure. */
   readonly totalTokens: number | null
+  /** Whether `totalTokens` leaves something out. */
+  readonly totalTokensPartial: boolean
   /** The tree, or `null` when `status` isn't `ready`. */
   readonly root: PaneNode | null
   /** When the view was built, in milliseconds since the epoch. */

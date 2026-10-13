@@ -1,5 +1,5 @@
-import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
-import { resolveSessionUsage } from '../../../../shared/usage/resolveSessionUsage'
+import type { SessionListItemDto } from '../ipc/sessionListDto'
+import { resolveSessionUsage } from '../usage/resolveSessionUsage'
 
 /** One usage figure pair a card shows. */
 export interface UsageFigures {

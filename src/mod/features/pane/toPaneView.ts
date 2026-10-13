@@ -1,6 +1,8 @@
 import type { AgentGraphNode, RootAgentGraphNode } from '../../../shared/agentGraph/agentGraphNode'
 import type { AgentReportDto } from '../../../shared/ipc/agentDto'
 import type { SessionDetailDto } from '../../../shared/ipc/sessionDetailDto'
+import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
+import { cardFigures } from '../../../shared/sessions/cardFigures'
 import { replaceUnprintable } from '../../../core/transcript/replaceUnprintable'
 import type { PaneFile, PaneNode, PaneView } from './paneView'
 
@@ -53,7 +55,7 @@ function toPaneNode(node: AgentGraphNode, detail: SessionDetailDto): PaneNode {
   }
 }
 
-/** The tokens of the lead and every subagent below it, which leaves out a workflow run's roll-up and each teammate's own session. */
+/** The tokens of the lead and every subagent below it, for a session the list doesn't hold, which leaves out a workflow run's roll-up and each teammate's own session. */
 function totalTokensOf(node: AgentGraphNode): number | null {
   const own = node.key === 'lead' || node.key.startsWith('sub:') ? node.tokens : null
   return node.children.reduce<number | null>((total, child) => {
@@ -62,12 +64,24 @@ function totalTokensOf(node: AgentGraphNode): number | null {
   }, own)
 }
 
+/** The session's tokens as the desktop's session card shows them, else the lead's and subagents' from the detail. */
+function totalsOf(
+  item: SessionListItemDto | null,
+  root: RootAgentGraphNode
+): { readonly tokens: number | null; readonly partial: boolean } {
+  if (item === null) return { tokens: totalTokensOf(root), partial: false }
+  const figures = cardFigures(item).figures
+  return { tokens: figures?.tokens ?? null, partial: figures?.tokensPartial ?? false }
+}
+
 /** What {@link toPaneView} needs. */
 interface ToPaneViewInput {
   /** The session the graph is of. */
   readonly sessionId: string
   /** The session's graph. */
   readonly root: RootAgentGraphNode
+  /** The session's entry in the sessions list, or `null` when the list doesn't hold it. */
+  readonly rootItem: SessionListItemDto | null
   /** The session's detail, which holds the files. */
   readonly detail: SessionDetailDto
   /** The session's name. */
@@ -80,17 +94,19 @@ interface ToPaneViewInput {
  * Maps a session's agent graph to the pane's view: plain data with every
  * transcript-derived string cleaned, so it is safe to keep in state and draw.
  *
- * @param input - The session's id, graph, detail and name, and the time.
+ * @param input - The session's id, graph, list entry, detail and name, and the time.
  * @returns A `ready` view.
  */
 export function toPaneView(input: ToPaneViewInput): PaneView {
-  const { sessionId, root, detail, label, nowMs } = input
+  const { sessionId, root, rootItem, detail, label, nowMs } = input
+  const totals = totalsOf(rootItem, root)
   return {
     sessionId,
     status: 'ready',
     errorCode: null,
     label: replaceUnprintable(label),
-    totalTokens: totalTokensOf(root),
+    totalTokens: totals.tokens,
+    totalTokensPartial: totals.partial,
     root: toPaneNode(root, detail),
     refreshedAtMs: nowMs
   }

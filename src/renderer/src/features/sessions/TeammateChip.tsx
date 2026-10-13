@@ -11,7 +11,7 @@ import { folderNote, stoppedNote } from './itemNotes'
 import { PARTIAL_FOOTNOTE_ID } from './partialFootnoteId'
 import { SeparatedText } from './SeparatedText'
 import type { SessionRow } from '../../../../shared/sessions/sessionRow'
-import { sessionUsage } from './sessionUsage'
+import { sessionUsage } from '../../../../shared/sessions/sessionUsage'
 import styles from './TeammateChip.module.css'
 
 /** Props for {@link TeammateChip}. */

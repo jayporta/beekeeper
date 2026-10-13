@@ -169,12 +169,71 @@ declare module 'claude-code' {
     signal: string | null
   }
 
+  /** The input of `turn.complete`; the mod reads none of it. */
+  export type TurnCompleteInput = object
+
+  /** What `turn.complete` answers; the mod passes the engine's answer on. */
+  export type TurnCompleteResult = object
+
+  /** The input of `agent.spawn`; the mod reads none of it. */
+  export type AgentSpawnInput = object
+
+  /** What `agent.spawn` answers; the mod passes the engine's answer on. */
+  export type AgentSpawnResult = object
+
+  /** The input of `session.end`. */
+  export interface SessionEndInput {
+    /** Why the session ends; `clear` is a `/clear`, which continues under a new session id. */
+    reason: string
+  }
+
+  /** What `session.end` answers; the mod passes the engine's answer on. */
+  export type SessionEndResult = object
+
+  /** A running timer. */
+  export interface Timer {
+    /** Stops it; a stopped timer never fires again. */
+    cancel: () => void
+  }
+
+  /** One of the plugin's open panes. */
+  export interface UiPane {
+    /** The id the pane was opened under. */
+    id: string
+  }
+
+  /** A typed reference to one of the plugin's `$.state` values. */
+  export interface StateRef {
+    /** The plugin that owns the value. */
+    plugin: string
+    /** The value's key in the plugin's contract. */
+    key: string
+  }
+
   /** The `$` of a hook: the engine calls the mod uses. */
   export interface Engine {
     /** The session. */
     session: {
       /** The engine's version. */
       version: () => Promise<SessionVersion>
+      /** The current session's id. */
+      id: () => Promise<string>
+      /** The current session's working directory, absolute. */
+      root: () => Promise<string>
+    }
+    /** The time and timers. */
+    clock: {
+      /** Milliseconds since the epoch, now. */
+      now: () => Promise<number>
+      /** Calls `fn` once after `ms` milliseconds. */
+      after: (ms: number, fn: () => void) => Timer
+      /** Calls `fn` every `ms` milliseconds until cancelled. */
+      every: (ms: number, fn: () => void) => Timer
+    }
+    /** The plugin's values the host keeps for the session. */
+    state: {
+      /** Writes the plugin's own value; refused while a render draws. */
+      set: (ref: StateRef, value: object) => Promise<{ isSet: boolean }>
     }
     /** Slash commands. */
     command: {
@@ -192,6 +251,8 @@ declare module 'claude-code' {
       }) => Promise<{ isPlaced: boolean }>
       /** The elements of the surface a render input names. */
       resolve: (e: { surface: RenderSurface }) => Elements
+      /** Lists the plugin's open panes. */
+      panes: () => Promise<readonly UiPane[]>
       /** Sets the status line, which stays until replaced; undefined clears it. */
       status: (text: string | undefined) => void
     }
@@ -244,6 +305,18 @@ declare module 'claude-code' {
       matcher: { command: string },
       hook: Hook<CommandRunInput, CommandRunResult>
     ): Registration<CommandRunInput, CommandRunResult>
+    (
+      event: 'turn.complete',
+      hook: Hook<TurnCompleteInput, TurnCompleteResult>
+    ): Registration<TurnCompleteInput, TurnCompleteResult>
+    (
+      event: 'agent.spawn',
+      hook: Hook<AgentSpawnInput, AgentSpawnResult>
+    ): Registration<AgentSpawnInput, AgentSpawnResult>
+    (
+      event: 'session.end',
+      hook: Hook<SessionEndInput, SessionEndResult>
+    ): Registration<SessionEndInput, SessionEndResult>
     (
       event: 'ui.render',
       matcher: { component: 'Pane'; requestId: string },

@@ -3,8 +3,9 @@
  * What the Claude Code mod (`mod/`, built from `src/mod`) may do on the engine's `$`,
  * checked against `claude plugin validate --json` by `npm run check:mod`.
  *
- * Anything not listed is a violation. The mod never writes the environment, `$.store` or `$.state`,
- * and never reaches the network, a model, an MCP server, a prompt, a tool or another agent.
+ * Anything not listed is a violation. The mod never writes the environment or `$.store`, writes
+ * `$.state` only under its own `beekeeper` keys, and never reaches the network, a model, an MCP
+ * server, a prompt, a tool or another agent.
  * AGENTS.md, "What beekeeper is, and the promises it keeps", states the same limits.
  */
 export const MOD_ALLOWLIST = Object.freeze({
@@ -25,6 +26,20 @@ export const MOD_ALLOWLIST = Object.freeze({
     '$.fs.read',
     // Lists a directory.
     '$.fs.list',
+    // Reads this session's id, to find its transcript.
+    '$.session.id',
+    // Reads this session's working directory, to prefer its project folder.
+    '$.session.root',
+    // The time, to stamp a refresh.
+    '$.clock.now',
+    // Runs one refresh later: the open, and the debounce after a turn, a spawn or a /clear.
+    '$.clock.after',
+    // Drives the 10 s and 30 s refresh ticks while the pane is open.
+    '$.clock.every',
+    // Tells whether the pane is open, so ticks and refreshes stop when it closes.
+    '$.ui.panes',
+    // Stores the pane's view under the mod's own `beekeeper.view` key; the mod never reads another plugin's value.
+    '$.state.set',
     // Describes a path and resolves symlinks, so reads stay inside the projects folder.
     '$.fs.stat',
     // Runs git (checked against gitAllowlist.ts), the macOS git probes, and `uname -s`.
@@ -32,6 +47,9 @@ export const MOD_ALLOWLIST = Object.freeze({
     // Streams `tail -c` over a transcript larger than 4 MiB, confined to the projects folder.
     '$.process.spawn'
   ]),
+  // The mod's own `$.state` values, declared in mod/types/index.d.ts; never another plugin's.
+  stateReads: Object.freeze(['beekeeper.view', 'beekeeper.selected']),
+  stateWrites: Object.freeze(['beekeeper.view', 'beekeeper.selected']),
   envReads: Object.freeze([
     // The home folder, for ~/.claude.
     'HOME',

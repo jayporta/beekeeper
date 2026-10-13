@@ -12,7 +12,8 @@ import {
   testLeadTeam,
   testRef,
   testSession,
-  testTeammateTeam
+  testTeammateTeam,
+  testUsage
 } from '../../../../shared/sessions/testSessionFixtures'
 import type { PaneNode } from '../paneView'
 import { refreshPane } from '../refreshPane'
@@ -57,14 +58,55 @@ describe('refreshPane', () => {
     expect(view.root && names(view.root)).toEqual(['Lead', 'finder', 'writer'])
   })
 
-  it('totals the tokens of the lead and its subagents once', async () => {
+  it("totals the tokens as the desktop's session card does: the team's roll-up for a lead with a team", async () => {
+    const withTeam = testSession(1, {
+      title: 'Lead',
+      team: testLeadTeam([testRef(2)], testUsage({ teamTokens: 300, sessionsWithoutTokens: 1 }))
+    })
+    const mate = testSession(2, {
+      role: testAgentRole('writer', 'code'),
+      team: testTeammateTeam(REF)
+    })
+    const services = testPaneServices({
+      list: { ok: true, value: [withTeam, mate] },
+      get: { ok: true, value: testDetail({ lead: spent(100) }) }
+    })
+
+    const { view } = await refreshPane(services, {
+      ref: REF,
+      withList: true,
+      lastItems: null,
+      nowMs: NOW
+    })
+
+    expect(view).toMatchObject({ totalTokens: 300, totalTokensPartial: true })
+  })
+
+  it("totals a session without a team by the session's own recorded tokens", async () => {
+    const solo = testSession(1, { title: 'Solo', totalTokens: 90 })
+    const services = testPaneServices({
+      list: { ok: true, value: [solo] },
+      get: { ok: true, value: testDetail({ lead: spent(100) }) }
+    })
+
+    const { view } = await refreshPane(services, {
+      ref: REF,
+      withList: true,
+      lastItems: null,
+      nowMs: NOW
+    })
+
+    expect(view).toMatchObject({ totalTokens: 90, totalTokensPartial: false })
+  })
+
+  it('totals the lead and subagents from the detail when the list does not hold the session', async () => {
     const detail = testDetail({
       children: [testNode('a1')],
       lead: spent(100),
       reports: { a1: spent(40) }
     })
     const services = testPaneServices({
-      list: { ok: true, value: [lead] },
+      list: { ok: true, value: [] },
       get: { ok: true, value: detail }
     })
 
@@ -75,7 +117,7 @@ describe('refreshPane', () => {
       nowMs: NOW
     })
 
-    expect(view.totalTokens).toBe(140)
+    expect(view).toMatchObject({ totalTokens: 140, totalTokensPartial: false })
   })
 
   it('gives the lead and each subagent the files its report lists', async () => {
