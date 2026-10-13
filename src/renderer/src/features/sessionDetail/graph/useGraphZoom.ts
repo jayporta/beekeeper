@@ -21,20 +21,17 @@ interface GraphZoom {
   readonly zoomOut: () => void
   /** Magnifies by one step around the viewport's center. */
   readonly zoomIn: () => void
-  /** Scales the whole graph to fit the room above the zoom controls, never magnifying it, and centers it there. Does nothing while the viewport has no size. */
+  /** Scales the whole graph to fit the viewport, never magnifying it, and centers it there. Does nothing while the viewport has no size. */
   readonly fit: () => void
 }
 
 /**
- * The size Fit aims for: the viewport's client size less the space at the
- * bottom that the zoom controls cover (its bottom scroll padding). The
- * viewport's client size is the area it shows, with its scrollbars' room left
- * out. Its scrollbars are always present and its height doesn't follow the
- * graph, so it is stable as the graph is scaled.
+ * The size Fit aims for: the viewport's client size, the area it shows with its
+ * scrollbars' room left out. Its scrollbars are always present and its height
+ * is fixed, so it is stable as the graph is scaled.
  */
 function fitTarget(viewport: HTMLElement): Size {
-  const covered = Number.parseFloat(getComputedStyle(viewport).scrollPaddingBottom) || 0
-  return { width: viewport.clientWidth, height: viewport.clientHeight - covered }
+  return { width: viewport.clientWidth, height: viewport.clientHeight }
 }
 
 /**

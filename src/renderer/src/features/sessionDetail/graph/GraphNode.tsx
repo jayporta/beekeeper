@@ -92,7 +92,7 @@ export const GraphNode = memo(function GraphNode({
         </span>
       </span>
       <span className={styles.line}>
-        <MutedText as="span" smaller className={styles.detail}>
+        <MutedText as="span" className={styles.detail}>
           {detail !== '' && <bdi>{detail}</bdi>}
         </MutedText>
         <GraphNodeFlags marks={node.marks} stopped={node.stopped} loading={loading} />
