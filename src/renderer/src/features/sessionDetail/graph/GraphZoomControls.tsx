@@ -12,7 +12,7 @@ interface GraphZoomControlsProps {
 }
 
 /**
- * The graph's zoom controls, in a group at the bottom right of the canvas:
+ * The graph's zoom controls, in a segmented group in the card's header:
  * zoom out, fit, and zoom in. Each is at least 44px square.
  *
  * @example

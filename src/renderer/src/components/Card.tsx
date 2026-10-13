@@ -18,6 +18,11 @@ interface CardProps {
    */
   readonly busy?: boolean
   /**
+   * Removes the card's padding, for a card whose parts pad themselves, such as a header over a full-width canvas.
+   * @defaultValue false
+   */
+  readonly flush?: boolean
+  /**
    * A class that adds to the card's own rules, such as its layout.
    * @defaultValue No extra class.
    */
@@ -37,13 +42,14 @@ export function Card({
   as: Element = 'div',
   labelledBy,
   busy,
+  flush = false,
   className
 }: CardProps): React.JSX.Element {
   return (
     <Element
       aria-labelledby={labelledBy}
       aria-busy={busy}
-      className={withClassName(styles.card, className)}
+      className={withClassName(flush ? `${styles.card} ${styles.flush}` : styles.card, className)}
     >
       {children}
     </Element>

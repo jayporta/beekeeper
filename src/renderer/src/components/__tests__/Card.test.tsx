@@ -25,6 +25,13 @@ describe('Card', () => {
     expect(container.firstElementChild?.tagName).toBe(as.toUpperCase())
   })
 
+  it('drops its padding when flush', () => {
+    const plain = render(<Card>Body</Card>).container.firstElementChild
+    const flush = render(<Card flush>Body</Card>).container.firstElementChild
+
+    expect(flush?.classList.length).toBe((plain?.classList.length ?? 0) + 1)
+  })
+
   it('adds the caller’s class to its own', () => {
     const { container } = render(<Card className="extra">Body</Card>)
 

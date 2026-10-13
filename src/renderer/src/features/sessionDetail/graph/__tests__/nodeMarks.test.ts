@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { EMPTY_AGENT_SIGNALS_DTO } from '../../../../../../shared/ipc/emptyAgentSignals'
-import { hasMarks, markLabels, nodeMarks } from '../nodeMarks'
+import { markLabels, nodeMarks } from '../nodeMarks'
 import { testGraphT } from '../testGraphT'
 
 describe('nodeMarks', () => {
@@ -41,17 +41,5 @@ describe('markLabels', () => {
       markLabels({ toolErrors: 0, compactions: 0, longestErrorStreak: 0 }, testGraphT)
     ).toEqual([])
     expect(markLabels(null, testGraphT)).toEqual([])
-  })
-})
-
-describe('hasMarks', () => {
-  it('is true when either count is above zero', () => {
-    expect(hasMarks({ toolErrors: 1, compactions: 0, longestErrorStreak: 0 })).toBe(true)
-    expect(hasMarks({ toolErrors: 0, compactions: 1, longestErrorStreak: 0 })).toBe(true)
-  })
-
-  it('is false for zero counts and for no marks', () => {
-    expect(hasMarks({ toolErrors: 0, compactions: 0, longestErrorStreak: 0 })).toBe(false)
-    expect(hasMarks(null)).toBe(false)
   })
 })
