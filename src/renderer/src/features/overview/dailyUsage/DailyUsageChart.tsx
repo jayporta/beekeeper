@@ -57,7 +57,6 @@ export const DailyUsageChart = memo(function DailyUsageChart({
           busiestDay: dayLabels(t, busiest.day).full,
           busiestTotal: busiest.total
         })
-  const otherModels = t('dailyUsage.otherModels')
   const weekly = days.length <= 7
   const labelled = days.map((day) => ({ day, labels: dayLabels(t, day.day) }))
 
@@ -85,15 +84,15 @@ export const DailyUsageChart = memo(function DailyUsageChart({
                   style={{ blockSize: `${(day.total / scale.top) * 100}%` }}
                 >
                   {series.map((entry) => {
-                    const tokens = seriesTokens({ day, series: entry, all: series })
+                    const tokens = seriesTokens({ day, series: entry })
                     return tokens > 0 ? (
                       <SeriesFill
-                        key={entry.index}
-                        index={entry.index}
+                        key={entry.key}
+                        family={entry.key}
                         grow={tokens}
                         title={t('dailyUsage.segmentTitle', {
                           day: labels.full,
-                          series: seriesLabel(entry, otherModels),
+                          series: seriesLabel(entry, t),
                           value: tokens
                         })}
                       />

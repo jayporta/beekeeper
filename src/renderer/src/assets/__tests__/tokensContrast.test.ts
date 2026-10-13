@@ -113,6 +113,7 @@ const MARK_TOKENS = [
   '--color-token-output',
   '--color-token-cache-write',
   '--color-token-cache-read',
+  '--color-model-fable',
   '--color-model-opus',
   '--color-model-sonnet',
   '--color-model-haiku',
@@ -151,47 +152,29 @@ describe.each(Object.entries(schemes))('%s color scheme graph edges', (_scheme, 
   })
 })
 
-/** The chart's series colors, in the order the chart draws them. */
-const SERIES_TOKENS = [
-  '--color-series-1',
-  '--color-series-2',
-  '--color-series-3',
-  '--color-series-4',
-  '--color-series-other'
+/** The model colors, in the order the chart stacks them. */
+const MODEL_TOKENS = [
+  '--color-model-fable',
+  '--color-model-opus',
+  '--color-model-sonnet',
+  '--color-model-haiku',
+  '--color-model-other'
 ]
 
-describe.each(Object.entries(schemes))('%s color scheme chart series', (_scheme, tokens) => {
-  it.each(SERIES_TOKENS)('%s is at least 3:1 against the ground (WCAG 1.4.11)', (series) => {
-    expect(
-      contrastRatio(token(tokens, series), token(tokens, '--color-bg'))
-    ).toBeGreaterThanOrEqual(3)
+describe.each(Object.entries(schemes))('%s color scheme model colors', (_scheme, tokens) => {
+  // The card is on the page ground (--color-bg); the surface is the other ground a chart can sit on.
+  it.each(
+    MODEL_TOKENS.flatMap((model) =>
+      ['--color-bg', '--color-surface'].map((ground) => [model, ground] as const)
+    )
+  )('%s is at least 3:1 against %s (WCAG 1.4.11)', (model, ground) => {
+    expect(contrastRatio(token(tokens, model), token(tokens, ground))).toBeGreaterThanOrEqual(3)
   })
 
-  // Any two segments can touch, since a series with no tokens that day leaves a gap in the stack, so
-  // every pair differs in lightness, which stays visible to a reader who can't tell their hues apart.
-  const PAIRS = SERIES_TOKENS.flatMap((first, i) =>
-    SERIES_TOKENS.slice(i + 1).map((second) => [first, second] as const)
-  )
+  it('gives every model its own color', () => {
+    const colors = MODEL_TOKENS.map((model) => token(tokens, model).toLowerCase())
 
-  it.each(PAIRS)('%s and %s are at least 1.5:1 apart', (first, second) => {
-    expect(contrastRatio(token(tokens, first), token(tokens, second))).toBeGreaterThanOrEqual(1.5)
-  })
-
-  it('orders the series from darkest to lightest', () => {
-    const ratios = SERIES_TOKENS.slice(1).map((series, i) => {
-      const earlier = token(tokens, SERIES_TOKENS[i] ?? '')
-      const later = token(tokens, series)
-      // Against black, the lighter color has the larger ratio.
-      return contrastRatio(later, '#000000') - contrastRatio(earlier, '#000000')
-    })
-
-    for (const difference of ratios) expect(difference).toBeGreaterThan(0)
-  })
-
-  it('gives every series its own color', () => {
-    const colors = SERIES_TOKENS.map((series) => token(tokens, series).toLowerCase())
-
-    expect(new Set(colors).size).toBe(SERIES_TOKENS.length)
+    expect(new Set(colors).size).toBe(MODEL_TOKENS.length)
   })
 })
 

@@ -12,8 +12,7 @@ interface DailyUsageLegendProps {
 }
 
 /**
- * The chart's key: each series' color beside its model id, or "Other models".
- * A long model id wraps.
+ * The chart's key: each model family's color beside its name.
  *
  * @example
  * <DailyUsageLegend series={seriesOf(days)} />
@@ -27,9 +26,9 @@ export const DailyUsageLegend = memo(function DailyUsageLegend({
   return (
     <ul className={styles.legend} aria-label={t('dailyUsage.legendLabel')}>
       {series.map((entry) => (
-        <li key={entry.index} className={styles.item}>
-          <SeriesFill index={entry.index} className={styles.swatch} />
-          <span>{seriesLabel(entry, t('dailyUsage.otherModels'))}</span>
+        <li key={entry.key} className={styles.item}>
+          <SeriesFill family={entry.key} className={styles.swatch} />
+          <span>{seriesLabel(entry, t)}</span>
         </li>
       ))}
     </ul>

@@ -69,10 +69,11 @@
   --color-token-output: #ec6a3c;
   --color-token-cache-write: #1fa77a;
   --color-token-cache-read: #c5871e;
-  /* A model's color. */
+  /* A model family's color. Each holds 3:1 on the page and surface grounds in both schemes. Haiku also carries a dot pattern and other a hatch, so neither relies on color alone. */
+  --color-model-fable: #e0457b;
   --color-model-opus: #7c5cff;
-  --color-model-sonnet: #1ca3af;
-  --color-model-haiku: #c5871e;
+  --color-model-sonnet: #1a9ba7;
+  --color-model-haiku: #bb7f18;
   --color-model-other: #848d9f;
   /* An agent kind's mark and, for a teammate and a workflow, its tinted ground. */
   --color-kind-lead: #4f46e5;
@@ -139,13 +140,6 @@
   --color-kpi-agents-dot: #e09a12;
   --color-kpi-label: #3b4252;
   --color-kpi-sub: #4a5263;
-
-  /* The chart's series, in the order the chart draws them: a navy, a dark teal, a brown, a violet, and a grey. They run from the darkest to the lightest, each at least 1.5:1 from every other, so any two segments that touch (a series with no tokens leaves a gap) differ in lightness for a reader with color blindness, and each holds 3:1 on the ground (WCAG 1.4.11). The grey also carries a hatch. */
-  --color-series-1: #0a1623;
-  --color-series-2: #0d3f39;
-  --color-series-3: #7a4911;
-  --color-series-4: #9d54b6;
-  --color-series-other: #8f9397;
 
   --focus-ring-color: var(--color-accent);
   --focus-ring-width: 2px;
@@ -262,7 +256,7 @@
   --size-chart-bar-min: 0.125rem;
   /* The hairline of ground between a bar's segments, so each meets the ground. */
   --size-hairline: 1px;
-  /* The stripes of the hatch that marks the other series: 3px of color, then 3px of ground. */
+  /* The stripes of the hatch that marks the other series, and half the tile of the dots that mark haiku: 3px of color, then 3px of ground. */
   --size-hatch: 0.1875rem;
   /* The inspector's headline figure: 34px. */
   --font-size-inspector-figure: 2.125rem;
@@ -328,11 +322,6 @@
     --color-kpi-label: var(--color-text);
     --color-kpi-sub: var(--color-text-muted);
 
-    --color-series-1: #3c699e;
-    --color-series-2: #319386;
-    --color-series-3: #d49955;
-    --color-series-4: #e1bfec;
-    --color-series-other: #f5f6f6;
     --color-diff-add: #9cdeaa;
     --color-diff-remove: #f6c3c3;
   }

@@ -6,15 +6,14 @@ export interface ChartScale {
   readonly ticks: readonly number[]
 }
 
-/** The most ticks above zero. */
-const MAX_TICKS = 5
-
-const NICE_FACTORS = [1, 2, 5] as const
+/** The mantissas a top can take, in tenths: 1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, and 10. */
+const NICE_TENTHS = [10, 12, 15, 20, 25, 30, 40, 50, 60, 80, 100] as const
 
 /**
- * Picks an axis for a data maximum: the smallest step of 1, 2, or 5 times a
- * power of ten, and at least one token, that reaches the maximum in at most
- * five steps.
+ * Picks an axis for a data maximum with three ticks: zero, a middle tick, and
+ * the top. The top is the smallest of 1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, or 10
+ * times a power of ten that reaches the maximum and whose half is a whole
+ * number of tokens, so the middle tick is never fractional.
  *
  * @param max - The largest value to show.
  * @returns The axis. Zero alone for a maximum that is not above zero, or not finite.
@@ -22,15 +21,22 @@ const NICE_FACTORS = [1, 2, 5] as const
 export function chartScale(max: number): ChartScale {
   if (!Number.isFinite(max) || max <= 0) return { top: 0, ticks: [0] }
 
-  let exponent = Math.floor(Math.log10(max))
-  if (10 ** (exponent + 1) <= max) exponent += 1
-  else if (10 ** exponent > max) exponent -= 1
-
-  const candidates = [exponent - 1, exponent].flatMap((power) =>
-    NICE_FACTORS.map((factor) => factor * 10 ** power)
-  )
-  const step =
-    candidates.find((s) => s >= 1 && Math.ceil(max / s) <= MAX_TICKS) ?? 10 ** (exponent + 1)
-  const count = Math.ceil(max / step)
-  return { top: count * step, ticks: Array.from({ length: count + 1 }, (_, i) => i * step) }
+  const exponent = Math.floor(Math.log10(max))
+  let top = Number.POSITIVE_INFINITY
+  for (
+    let power = Math.max(0, exponent - 1);
+    power <= exponent + 1 && !Number.isFinite(top);
+    power++
+  ) {
+    for (const tenths of NICE_TENTHS) {
+      // Whole-number arithmetic from the power of ten up, so a top never picks up float error.
+      const candidate = power === 0 ? tenths / 10 : tenths * 10 ** (power - 1)
+      if (candidate >= max && Number.isInteger(candidate / 2)) {
+        top = candidate
+        break
+      }
+    }
+  }
+  if (!Number.isFinite(top)) top = 10 ** (exponent + 1)
+  return { top, ticks: [0, top / 2, top] }
 }

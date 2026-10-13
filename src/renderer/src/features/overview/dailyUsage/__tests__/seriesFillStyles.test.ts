@@ -14,16 +14,22 @@ describe('the series fills’ stylesheet', () => {
   })
 
   it('hatches the other series, so it is told apart without color', () => {
-    expect(rule('series4')).toContain('repeating-linear-gradient')
+    expect(rule('other')).toContain('repeating-linear-gradient')
+    expect(rule('other')).toContain('var(--color-model-other)')
   })
 
-  it.each(['series0', 'series1', 'series2', 'series3'])('fills %s with its flat color', (name) => {
+  it('dots the haiku series over its color, so it is told apart without color', () => {
+    expect(rule('haiku')).toContain('radial-gradient')
+    expect(rule('haiku')).toContain('var(--color-model-haiku)')
+  })
+
+  it.each(['fable', 'opus', 'sonnet'])('fills %s with its flat model color', (name) => {
     expect(rule(name)).not.toContain('gradient')
-    expect(rule(name)).toMatch(/background:\s*var\(--color-series-\d\)/)
+    expect(rule(name)).toMatch(new RegExp(`background:\\s*var\\(--color-model-${name}\\)`))
   })
 
   it('keeps every series’ own colors in forced-colors mode, which would otherwise drop them', () => {
-    const selectors = ['series0', 'series1', 'series2', 'series3', 'series4']
+    const selectors = ['fable', 'opus', 'sonnet', 'haiku', 'other']
       .map((name) => `\\.${name}`)
       .join(',\\s*')
     const group = new RegExp(

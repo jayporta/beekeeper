@@ -89,7 +89,13 @@
     "heading": "Tokens per day, by model",
     "note": "Tokens count on the day each message ran, so this can differ from the totals above.",
     "legendLabel": "Models",
-    "otherModels": "Other models",
+    "family": {
+      "fable": "Fable",
+      "opus": "Opus",
+      "sonnet": "Sonnet",
+      "haiku": "Haiku",
+      "other": "Other models"
+    },
     "chartLabel": "Tokens per day, {{range}}: {{total, compactInteger}} in all, most on {{busiestDay}} with {{busiestTotal, compactInteger}}",
     "chartLabelEmpty": "No tokens in the {{range}}",
     "segmentTitle": "{{day}}: {{series}}, {{value, integer}} tokens",

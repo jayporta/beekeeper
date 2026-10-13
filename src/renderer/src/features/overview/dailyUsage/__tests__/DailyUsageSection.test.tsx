@@ -66,8 +66,8 @@ describe('DailyUsageSection', () => {
     ).toBeTruthy()
   })
 
-  it('shows "Other models" in the legend when more than four models ran', async () => {
-    const many = testDailyUsage({ '2026-10-07': { a: 6, b: 5, c: 4, d: 3, e: 2 } })
+  it('shows "Other models" in the legend for a model that fits no family', async () => {
+    const many = testDailyUsage({ '2026-10-07': { 'claude-opus-5': 6, mystery: 2 } })
     renderSection(() => Promise.resolve({ ok: true, value: many }))
 
     const legend = await screen.findByRole('list', { name: 'Models' })
