@@ -100,8 +100,14 @@ describe('Pane', () => {
     const line = rowText(draw(testPaneView(team)))[1]
 
     expect(line).toBe(
-      '  finder  stopped, may be incomplete, 3 tool errors, 1 compaction, 1 token Explore'
+      '  finder  stopped, may be incomplete, 3 tool errors, 1 compaction, 1 token, Explore'
     )
+  })
+
+  it('puts two spaces before a type that has no facts to follow', () => {
+    const root = testPaneNode('lead', { name: 'Lead', agentType: 'general-purpose' })
+
+    expect(rowText(draw(testPaneView(root)))[0]?.trim()).toBe('Selected: Lead  general-purpose')
   })
 
   it('leaves out marks the agent does not have', () => {

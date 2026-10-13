@@ -60,6 +60,6 @@ export interface PaneView {
   readonly totalTokensPartial: boolean
   /** The tree, or `null` when `status` isn't `ready`. */
   readonly root: PaneNode | null
-  /** When the view was built, in milliseconds since the epoch. */
+  /** When the view's content last changed, in milliseconds since the epoch: a refresh that finds nothing new stores nothing. */
   readonly refreshedAtMs: number
 }

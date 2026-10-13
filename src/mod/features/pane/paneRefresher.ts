@@ -8,6 +8,12 @@ import { hasTeam } from './hasTeam'
 import type { PaneView } from './paneView'
 import { refreshPane, type PaneServices } from './refreshPane'
 
+/**
+ * How long a session without a team goes between lists. The list is where its total and
+ * title come from, and listing sweeps the project's folders, so it is not repeated every refresh.
+ */
+const SOLO_LIST_INTERVAL_MS = 10_000
+
 /** The engine calls the pane's refresh makes, as closures so lib never sees `$`. */
 export interface PaneHost {
   /** The current session's id: `$.session.id()`. */
@@ -38,6 +44,8 @@ export interface PaneRefresherDeps {
 export interface PaneRefresher {
   /** Starts the mod unless it is already ready, remembering the outcome, and returns it. A later refresh reuses a failed outcome rather than probing again; this call retries. */
   start(cwd: string): Promise<StartOutcome>
+  /** Forgets what was last stored, so the next refresh writes its view even if it matches: call it when the stored view may be gone (after a `/clear`, or a render that found none). */
+  forgetStored(): void
   /** Builds the current session's view and stores it. Never rejects. */
   refresh(request: { readonly withList: boolean }): Promise<void>
   /** Whether the last view shows a team, so the slow list tick is worth running. */
@@ -68,11 +76,22 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
     null
   let lastView: PaneView | null = null
   let lastKey: string | null = null
+  let lastListedAtMs = Number.NEGATIVE_INFINITY
 
-  async function startNow(cwd: string): Promise<StartOutcome> {
-    if (started?.kind === 'ready') return started
-    started = await start(host, { cwd })
-    return started
+  let probing: Promise<StartOutcome> | null = null
+
+  /** Starts the mod. Overlapping calls share one probe, and a ready outcome is never replaced. */
+  function startNow(cwd: string): Promise<StartOutcome> {
+    if (started?.kind === 'ready') return Promise.resolve(started)
+    probing ??= start(host, { cwd })
+      .then((outcome) => {
+        if (started?.kind !== 'ready') started = outcome
+        return started ?? outcome
+      })
+      .finally(() => {
+        probing = null
+      })
+    return probing
   }
 
   function servicesFor(projectsRoot: string): PaneServices {
@@ -104,12 +123,15 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
       return emptyPaneView({ sessionId, status: 'waiting', errorCode: null, nowMs })
     folders.set(sessionId, folder)
     const known = lastList?.folder === folder ? lastList.items : null
+    const isSoloListDue = !hasTeam(lastView) && nowMs - lastListedAtMs >= SOLO_LIST_INTERVAL_MS
+    const listing = withList || known === null || isSoloListDue
     const { view, items } = await refreshPane(servicesFor(outcome.projectsRoot), {
       ref: { projectDirName: folder, sessionId },
-      withList: withList || known === null || !hasTeam(lastView),
+      withList: listing,
       lastItems: known,
       nowMs
     })
+    if (listing) lastListedAtMs = nowMs
     if (items !== null) lastList = { folder, items }
     if (view.errorCode === 'not-found') folders.delete(sessionId)
     return view
@@ -137,5 +159,9 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
     lastKey = key
   }
 
-  return { start: startNow, refresh, wantsListTick: () => hasTeam(lastView) }
+  const forgetStored = (): void => {
+    lastKey = null
+  }
+
+  return { start: startNow, refresh, forgetStored, wantsListTick: () => hasTeam(lastView) }
 }

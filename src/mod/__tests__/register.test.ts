@@ -347,6 +347,25 @@ describe('register', () => {
       }
     )
 
+    it('writes the same view again after a /clear emptied the state', async () => {
+      const { run, timers, calls } = pane()
+      const writes = (): number => calls.filter((call) => call.name === 'state.set').length
+      const fire = async (): Promise<void> => {
+        timers
+          .filter((timer) => timer.kind === 'after' && !timer.cancelled)
+          .at(-1)
+          ?.fn()
+        await new Promise((resolve) => setTimeout(resolve, 20))
+      }
+
+      await run('agent.spawn')
+      await fire()
+      await run('session.end', { reason: 'clear' })
+      await fire()
+
+      expect(writes()).toBe(2)
+    })
+
     it('passes each of those events on and answers what the engine answered', async () => {
       const { run } = pane()
 

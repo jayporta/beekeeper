@@ -151,6 +151,7 @@ async function drawPane($: Engine, e: PaneRenderInput): Promise<object> {
   const selected = (await $.state.get<PaneSelection | null>(SELECTED)).value ?? null
   if (view === undefined && wantsFirstView && wiring !== undefined) {
     wantsFirstView = false
+    wiring.refresher.forgetStored()
     wiring.scheduler.schedule({ withList: true, delayMs: 0 })
   }
   return Pane({
@@ -203,7 +204,10 @@ export const register: Register = (on) => {
   }).catch(($, e, next) => next(e))
   on('session.end', async ($, e, next) => {
     const result = await next(e)
-    if (e.reason === 'clear') await refreshIfOpen($, true)
+    if (e.reason === 'clear') {
+      wired($).refresher.forgetStored()
+      await refreshIfOpen($, true)
+    }
     return result
   }).catch(($, e, next) => next(e))
   on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) => drawPane($, e))

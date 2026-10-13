@@ -60,7 +60,14 @@ export function PaneRow(props: PaneRowProps): object {
         {kindWord(node.kind)}
         {node.name}
         {summary === '' ? '' : `  ${summary}`}
-        {node.agentType === null ? '' : <Text dimColor> {node.agentType}</Text>}
+        {node.agentType === null ? (
+          ''
+        ) : (
+          <Text dimColor>
+            {summary === '' ? '  ' : t('row.join')}
+            {node.agentType}
+          </Text>
+        )}
       </Text>
     </Button>
   )

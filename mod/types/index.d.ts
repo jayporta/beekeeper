@@ -43,6 +43,7 @@ export type BeekeeperPaneView = {
   totalTokens: number | null
   totalTokensPartial: boolean
   root: BeekeeperPaneNode | null
+  /** When the view's content last changed, in milliseconds since the epoch: a refresh that finds nothing new stores nothing. */
   refreshedAtMs: number
 }
 

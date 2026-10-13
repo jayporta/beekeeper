@@ -37,6 +37,8 @@ interface Setup {
   readonly starts: string[]
   readonly built: string[]
   readonly logs: string[]
+  readonly clock: { now: number }
+  readonly startCalls: () => number
 }
 
 function setup(options: {
@@ -45,12 +47,15 @@ function setup(options: {
   sessionId?: () => Promise<string>
   list?: ReturnType<typeof testSession>[]
   writeView?: (view: PaneView) => Promise<boolean>
+  probe?: () => Promise<StartOutcome>
 }): Setup {
   const { folder = '-p', start = READY, list = [testSession(1, { title: 'Hi' })] } = options
   const written: PaneView[] = []
   const starts: string[] = []
   const built: string[] = []
   const logs: string[] = []
+  const clock = { now: 42 }
+  let startCalls = 0
   const services = testPaneServices({
     list: { ok: true, value: list },
     get: { ok: true, value: testDetail() }
@@ -58,7 +63,7 @@ function setup(options: {
   const pane: PaneHost = {
     sessionId: options.sessionId ?? (async () => ID),
     sessionRoot: async () => '/work/app',
-    now: async () => 42,
+    now: async () => clock.now,
     writeView:
       options.writeView ??
       (async (view) => {
@@ -71,7 +76,8 @@ function setup(options: {
     pane,
     start: async (_host, session) => {
       starts.push(session.cwd)
-      return start
+      startCalls += 1
+      return options.probe ? options.probe() : start
     },
     log: (line) => logs.push(line),
     createServices: (root) => {
@@ -79,7 +85,7 @@ function setup(options: {
       return services
     }
   })
-  return { written, services, refresher, starts, built, logs }
+  return { written, services, refresher, starts, built, logs, clock, startCalls: () => startCalls }
 }
 
 describe('createPaneRefresher', () => {
@@ -162,11 +168,24 @@ describe('createPaneRefresher', () => {
     expect(built).toEqual([ROOT])
   })
 
-  it('lists on every refresh of a session without a team, so its total and title stay current', async () => {
-    const { refresher, services } = setup({})
+  it('lists a session without a team at most every 10 seconds, to keep its total and title current', async () => {
+    const { refresher, services, clock } = setup({})
 
     await refresher.refresh({ withList: false })
+    clock.now += 9_000
     await refresher.refresh({ withList: false })
+    clock.now += 1_000
+    await refresher.refresh({ withList: false })
+
+    expect(services.listCalls).toBe(2)
+    expect(services.getCalls).toBe(3)
+  })
+
+  it('lists when asked to, even inside the 10 seconds', async () => {
+    const { refresher, services } = setup({})
+
+    await refresher.refresh({ withList: true })
+    await refresher.refresh({ withList: true })
 
     expect(services.listCalls).toBe(2)
   })
@@ -185,6 +204,41 @@ describe('createPaneRefresher', () => {
 
     expect(services.listCalls).toBe(1)
     expect(services.getCalls).toBe(3)
+  })
+
+  it('writes the same view again after it is told the stored view is gone', async () => {
+    const { written, refresher } = setup({})
+
+    await refresher.refresh({ withList: true })
+    refresher.forgetStored()
+    await refresher.refresh({ withList: true })
+
+    expect(written).toHaveLength(2)
+  })
+
+  it('runs one start probe when two overlap, and gives both the same outcome', async () => {
+    let release: (outcome: StartOutcome) => void = () => {}
+    const pending = new Promise<StartOutcome>((resolve) => {
+      release = resolve
+    })
+    const { refresher, startCalls } = setup({ probe: () => pending })
+
+    const first = refresher.start('/a')
+    const second = refresher.start('/b')
+    release(READY)
+
+    expect(await first).toBe(await second)
+    expect(startCalls()).toBe(1)
+  })
+
+  it('does not replace a ready start with a later failure', async () => {
+    const outcomes: StartOutcome[] = [READY, { kind: 'failed' }]
+    const { refresher } = setup({ probe: async () => outcomes.shift() ?? READY })
+
+    await refresher.start('/a')
+    const again = await refresher.start('/b')
+
+    expect(again.kind).toBe('ready')
   })
 
   it('does not write a view that is the same as the last one apart from its time', async () => {
