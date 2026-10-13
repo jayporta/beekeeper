@@ -1,8 +1,7 @@
-import { PartialMarker } from '@renderer/components/PartialMarker'
-import styles from './ProjectStats.module.css'
+import { PartialMarker } from './PartialMarker'
 
-/** Props for {@link ProjectStatsItem}. */
-interface ProjectStatsItemProps {
+/** Props for {@link StatRowItem}. */
+interface StatRowItemProps {
   /** What the figure is. */
   readonly label: string
   /** The figure, as text. */
@@ -19,17 +18,13 @@ interface ProjectStatsItemProps {
  * that points at the row's footnote.
  *
  * @example
- * <dl><ProjectStatsItem label="Sessions">12</ProjectStatsItem></dl>
+ * <StatRow><StatRowItem label="Sessions">12</StatRowItem></StatRow>
  */
-export function ProjectStatsItem({
-  label,
-  children,
-  partialNote
-}: ProjectStatsItemProps): React.JSX.Element {
+export function StatRowItem({ label, children, partialNote }: StatRowItemProps): React.JSX.Element {
   return (
-    <div className={styles.item}>
-      <dt className={styles.label}>{label}</dt>
-      <dd className={styles.value}>
+    <div>
+      <dt>{label}</dt>
+      <dd>
         {children}
         {partialNote !== undefined && <PartialMarker note={partialNote} />}
       </dd>

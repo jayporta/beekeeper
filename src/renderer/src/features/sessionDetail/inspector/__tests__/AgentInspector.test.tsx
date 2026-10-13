@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
@@ -7,7 +7,6 @@ import { testDetail, testMeta, testNode, testReport } from '../../testSessionDet
 import { LISTS_STALE_TIME_MS } from '@renderer/app/listsStaleTime'
 import { createTestQueryClient } from '@renderer/testQueryWrapper'
 import { SCENE_ITEMS, SCENE_SESSION } from '../../graph/testGraphScene'
-import { stubFillLayout } from '../../testFillLayout'
 import {
   LEAD_REPORT,
   SCENE_START,
@@ -25,7 +24,8 @@ afterEach(() => {
 
 const WRITER = testRef(2)
 const select = async (name: RegExp): Promise<void> => {
-  await userEvent.click(screen.getByRole('button', { name }))
+  const graph = within(screen.getByRole('region', { name: 'Agent graph' }))
+  await userEvent.click(graph.getByRole('button', { name }))
 }
 
 describe('AgentInspector for the lead', () => {
@@ -136,39 +136,15 @@ describe('AgentInspector for the lead', () => {
 })
 
 describe('AgentInspector scrolling by keyboard', () => {
-  const region = (): HTMLElement => screen.getByRole('region', { name: 'Agent inspector' })
-
-  it('is a named stop in the tab order where the layout gives it its own scroll area', async () => {
-    stubFillLayout(true)
+  it('is a named stop in the tab order, since it can scroll on its own', async () => {
     renderInspectorScene()
+    const region = screen.getByRole('region', { name: 'Agent inspector' })
 
-    for (let i = 0; i < 40 && document.activeElement !== region(); i += 1) {
+    for (let i = 0; i < 40 && document.activeElement !== region; i += 1) {
       await userEvent.tab()
     }
 
-    expect(document.activeElement).toBe(region())
-  })
-
-  it('is not a tab stop where it has nothing to scroll', () => {
-    stubFillLayout(false)
-    renderInspectorScene()
-
-    expect(region().hasAttribute('tabindex')).toBe(false)
-  })
-
-  it('becomes a tab stop when the window grows into the fill layout, and stops being one when it leaves', () => {
-    const layout = stubFillLayout(false)
-    renderInspectorScene()
-
-    act(() => {
-      layout.set(true)
-    })
-    expect(region().getAttribute('tabindex')).toBe('0')
-
-    act(() => {
-      layout.set(false)
-    })
-    expect(region().hasAttribute('tabindex')).toBe(false)
+    expect(document.activeElement).toBe(region)
   })
 })
 

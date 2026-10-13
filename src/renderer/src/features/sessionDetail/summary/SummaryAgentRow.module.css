@@ -1,0 +1,29 @@
+.item {
+  border-block-start: 1px solid var(--color-divider);
+}
+
+.row {
+  display: grid;
+  align-items: center;
+  gap: var(--space-2-5);
+  inline-size: 100%;
+  min-block-size: var(--size-target-min);
+  padding-block: var(--space-1-5);
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: var(--font-size-body);
+  text-align: start;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--color-hover);
+  }
+}
+
+.name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

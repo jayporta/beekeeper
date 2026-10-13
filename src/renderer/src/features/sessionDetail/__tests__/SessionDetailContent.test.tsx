@@ -384,7 +384,9 @@ describe('SessionDetailContent for an archived session whose detail was not arch
 
     expect(note.querySelector('h2')?.textContent).toBe(NOTE)
     expect(screen.getByRole('heading', { level: 1, name: 'Kept' })).toBeTruthy()
-    expect(screen.getAllByText(/1\.5K tokens/).length).toBeGreaterThan(0)
+    expect(screen.getByText('Tokens', { selector: 'dt' }).nextElementSibling?.textContent).toBe(
+      '1.5K'
+    )
     expect(screen.getAllByText(SUMMARY_ONLY_SENTENCE).length).toBeGreaterThan(0)
     expect(screen.queryByRole('group', { name: 'Session not found' })).toBeNull()
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)

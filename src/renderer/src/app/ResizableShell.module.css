@@ -1,8 +1,8 @@
 /*
- * The page scrolls main, and a view may fill the window to scroll its panes on
- * their own instead. At desktop widths the sidebar card stays in view and its
- * project list scrolls inside it. The stacked layout scrolls as one page, so
- * zoomed content is never trapped in a short scroller.
+ * The page scrolls main. At desktop widths the sidebar card stays in view and
+ * its project list scrolls inside it, and a view may keep a pane in view while
+ * the page scrolls. The stacked layout scrolls as one page, so zoomed content
+ * is never trapped in a short scroller.
  */
 .shell {
   display: grid;

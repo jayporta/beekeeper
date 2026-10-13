@@ -3,6 +3,7 @@ import { Card } from '@renderer/components/Card'
 import { CapsText } from '@renderer/components/CapsText'
 import { MAIN_HEADING_ID } from '@renderer/components/mainHeading'
 import { MutedText } from '@renderer/components/MutedText'
+import { PageTitle } from '@renderer/components/PageTitle'
 import { SegmentedControl } from '@renderer/components/SegmentedControl'
 import { TitleRow } from '@renderer/components/TitleRow'
 import styles from './OverviewHeader.module.css'
@@ -30,9 +31,7 @@ export function OverviewHeader(): React.JSX.Element {
       <TitleRow>
         <div className={styles.heading}>
           <CapsText accent>{t('kicker', { range: t(`range.${range}`) })}</CapsText>
-          <h1 id={MAIN_HEADING_ID} className={styles.title}>
-            {t('heading')}
-          </h1>
+          <PageTitle id={MAIN_HEADING_ID}>{t('heading')}</PageTitle>
         </div>
         <div className={styles.window}>
           <MutedText as="span" decorative>

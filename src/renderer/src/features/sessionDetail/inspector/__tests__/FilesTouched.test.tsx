@@ -104,6 +104,6 @@ describe('FilesTouched', () => {
   it('has no region of its own in the page’s landmarks', () => {
     renderInspectorScene()
 
-    expect(screen.getAllByRole('region')).toHaveLength(2)
+    expect(screen.queryByRole('region', { name: /Files touched/ })).toBeNull()
   })
 })

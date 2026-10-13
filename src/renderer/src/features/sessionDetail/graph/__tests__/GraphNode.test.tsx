@@ -20,14 +20,14 @@ const renderNode = (overrides: Partial<AgentGraphNode>, loading = false): void =
 
 describe('GraphNode marks', () => {
   it('shows the tool error count and no compaction mark when there are no compactions', () => {
-    renderNode({ marks: { toolErrors: 12, compactions: 0 } })
+    renderNode({ marks: { toolErrors: 12, compactions: 0, longestErrorStreak: 0 } })
 
     expect(screen.getByText('×12')).toBeTruthy()
     expect(screen.queryByText(/▲/)).toBeNull()
   })
 
   it('shows the compaction count and no tool error mark when there are no errors', () => {
-    renderNode({ marks: { toolErrors: 0, compactions: 2 } })
+    renderNode({ marks: { toolErrors: 0, compactions: 2, longestErrorStreak: 0 } })
 
     expect(screen.getByText('▲2')).toBeTruthy()
     expect(screen.queryByText(/×/)).toBeNull()
@@ -40,7 +40,7 @@ describe('GraphNode marks', () => {
   })
 
   it('shows the marks before the stopped flag, which keeps only its glyph beside them', () => {
-    renderNode({ marks: { toolErrors: 3, compactions: 0 }, stopped: true })
+    renderNode({ marks: { toolErrors: 3, compactions: 0, longestErrorStreak: 0 }, stopped: true })
 
     expect(screen.getByText('×3').compareDocumentPosition(screen.getByText('■'))).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING
@@ -49,13 +49,16 @@ describe('GraphNode marks', () => {
   })
 
   it('shows the stopped flag with its word when the node has no marks', () => {
-    renderNode({ marks: { toolErrors: 0, compactions: 0 }, stopped: true })
+    renderNode({ marks: { toolErrors: 0, compactions: 0, longestErrorStreak: 0 }, stopped: true })
 
     expect(screen.getByText('■ stopped')).toBeTruthy()
   })
 
   it('shows only the loading flag while the node loads', () => {
-    renderNode({ marks: { toolErrors: 3, compactions: 1 }, stopped: true }, true)
+    renderNode(
+      { marks: { toolErrors: 3, compactions: 1, longestErrorStreak: 0 }, stopped: true },
+      true
+    )
 
     expect(screen.getByText('loading…')).toBeTruthy()
     expect(screen.queryByText('×3')).toBeNull()

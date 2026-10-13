@@ -92,7 +92,36 @@
   "error": "beekeeper couldn't load this session.",
   "partial": {
     "note": "partial, see the note below",
-    "missingTeammates": "Some teammates the lead spawned weren't found, so a team total may be low."
+    "unreadableLines": "Some transcript lines couldn't be read, or a subagent's transcript is missing, so a figure may be low.",
+    "missingTeammates": "Some teammates the lead spawned weren't found, so a team total may be low.",
+    "incompleteSignals": "Some transcripts have more events than beekeeper counts, so the tool error count may be low."
+  },
+  "summary": {
+    "partialNote": "partial, see the note under the header",
+    "breakdown": {
+      "title": "Breakdown",
+      "caption": "Lead and subagents"
+    },
+    "topAgents": {
+      "title": "Most tokens",
+      "caption": "Share",
+      "empty": "No agent recorded tokens."
+    },
+    "signals": {
+      "title": "Signals",
+      "caption": "Tool errors",
+      "empty": "No tool errors",
+      "streak_one": "streak {{count, integer}}",
+      "streak_other": "streak {{count, integer}}",
+      "more_one": "and {{count, integer}} more",
+      "more_other": "and {{count, integer}} more"
+    }
+  },
+  "stats": {
+    "cacheHit": "Cache hit",
+    "duration": "Duration",
+    "toolErrors": "Tool errors",
+    "scope": "Cache hit and the breakdown below count the lead and its subagents, not its teammates."
   },
   "inspector": {
     "label": "Agent inspector",

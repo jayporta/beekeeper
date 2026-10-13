@@ -1,10 +1,7 @@
 .canvas {
   display: flex;
   flex-direction: column;
+  flex: 1 1 var(--size-graph-pane-basis);
+  min-width: 0;
   border-top: 1px solid var(--color-divider);
-
-  /* Fills its grid cell, so the viewport can take the height the footnote leaves. */
-  @media (width > 60rem) and (min-height: 30rem) {
-    min-height: 0;
-  }
 }

@@ -21,7 +21,7 @@ function lineOf(...items: SessionListItemDto[]): readonly string[] {
 }
 
 describe('sessionMetaLine', () => {
-  it('gives start, duration, team, agents, tokens and cost in that order for a lead with a team', () => {
+  it('gives start, team and agents in that order for a lead with a team', () => {
     const lead = testSession(1, {
       earliestMs: EARLIEST,
       latestMs: EARLIEST + 85 * MIN,
@@ -35,11 +35,8 @@ describe('sessionMetaLine', () => {
 
     expect(lineOf(lead, mate)).toEqual([
       testSessionsT('lastActive', { value: EARLIEST }),
-      '1h 25m',
       'team team',
-      '1 teammate, 3 subagents',
-      '3.1M tokens',
-      '$13.23 at API prices'
+      '1 teammate, 3 subagents'
     ])
   })
 
@@ -49,7 +46,7 @@ describe('sessionMetaLine', () => {
     expect(lineOf(lead)[0]).toBe(testSessionsT('lastActive', { value: EARLIEST }))
   })
 
-  it('gives a solo session its own figures and no team', () => {
+  it('leaves out the duration, tokens and cost, which the stat row shows', () => {
     const solo = testSession(1, {
       earliestMs: EARLIEST,
       latestMs: EARLIEST + 5 * MIN,
@@ -57,23 +54,11 @@ describe('sessionMetaLine', () => {
       costUSD: 0.5
     })
 
-    expect(lineOf(solo).slice(1)).toEqual(['5m', '1.5K tokens', '$0.50 at API prices'])
+    expect(lineOf(solo)).toEqual([testSessionsT('lastActive', { value: EARLIEST })])
   })
 
-  it('leaves out the cost when it is not recorded', () => {
-    const solo = testSession(1, { totalTokens: 1500 })
-
-    expect(lineOf(solo)).toEqual(['1.5K tokens'])
-  })
-
-  it('leaves out the tokens when only the cost is recorded', () => {
-    const solo = testSession(1, { costUSD: 2 })
-
-    expect(lineOf(solo)).toEqual(['$2.00 at API prices'])
-  })
-
-  it('leaves out start and duration when the session has no timestamps', () => {
-    expect(lineOf(testSession(1, { totalTokens: 10 }))).toEqual(['10 tokens'])
+  it('leaves out the start when the session has no timestamps', () => {
+    expect(lineOf(testSession(1, { totalTokens: 10, subagentCount: 2 }))).toEqual(['2 subagents'])
   })
 
   it('leaves out the agents when the session used none', () => {
@@ -81,20 +66,11 @@ describe('sessionMetaLine', () => {
   })
 
   it('leaves out the agents when the subagent count is unknown', () => {
-    expect(lineOf(testSession(1, { subagentCount: null, totalTokens: 10 }))).toEqual(['10 tokens'])
+    expect(lineOf(testSession(1, { subagentCount: null, totalTokens: 10 }))).toEqual([])
   })
 
   it('is empty for a session whose summary could not be read', () => {
     expect(lineOf(testSession(1, { unreadable: true }))).toEqual([])
-  })
-
-  it('uses the team total, not the lead’s own figures, for a lead with a team', () => {
-    const lead = testSession(1, {
-      totalTokens: 5,
-      team: testLeadTeam([], testUsage({ leadTokens: 5, teamTokens: 900, teamUSD: null }))
-    })
-
-    expect(lineOf(lead)).toContain('900 tokens')
   })
 
   it('names the team of an agent session from its role', () => {

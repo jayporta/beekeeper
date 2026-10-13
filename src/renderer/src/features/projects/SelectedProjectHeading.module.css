@@ -11,15 +11,6 @@
   min-width: 0;
 }
 
-.title {
-  font-family: var(--font-heading);
-  font-size: var(--font-size-page-title);
-  font-weight: var(--font-weight-bold);
-  line-height: 1.1;
-  letter-spacing: var(--letter-spacing-title);
-  overflow-wrap: anywhere;
-}
-
 .actions {
   display: flex;
   flex-wrap: wrap;

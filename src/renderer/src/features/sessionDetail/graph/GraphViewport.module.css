@@ -1,22 +1,11 @@
 .stage {
   position: relative;
-
-  /*
-   * A flex column that fills the pane, so the zoom controls stay at the pane's bottom corner.
-   * Its minimum is the graph's, not the whole graph's height, which would lengthen the page.
-   */
-  @media (width > 60rem) and (min-height: 30rem) {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: var(--size-graph-min-height);
-  }
 }
 
 /*
  * The graph scrolls natively over a scroll area with room around it, so it pans past its edges and a
  * keyboard user's focus still brings a node into view by itself. The dots are a local background: they
- * scroll with the graph. Outside the fill layout the view is the full-size graph's height plus the room
+ * scroll with the graph. The view is the full-size graph's height plus the room
  * the zoom controls cover, within these limits, and doesn't follow the zoom. The limits also hold it if
  * the graph's height is missing.
  */
@@ -48,13 +37,6 @@
 
   &:active {
     cursor: grabbing;
-  }
-
-  /* Fills the pane instead of following the graph's height. */
-  @media (width > 60rem) and (min-height: 30rem) {
-    flex: 1;
-    height: auto;
-    max-height: none;
   }
 }
 
