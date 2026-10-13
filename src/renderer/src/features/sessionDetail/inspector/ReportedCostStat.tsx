@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { StatRowItem } from '@renderer/components/StatRowItem'
+import { EmptyCell } from '@renderer/features/sessions/EmptyCell'
 import { useOtelReceiver } from '@renderer/features/telemetry/useOtelReceiver'
 import { useReportedCost } from '@renderer/features/telemetry/useReportedCost'
 import { formatUsd } from '@renderer/i18n/formatUsd'
@@ -17,7 +18,7 @@ interface ReportedCostStatProps {
  * agent, from the telemetry it reports, as a cross-check beside beekeeper's.
  * The session's own agent gets the whole session's reported cost, which is
  * authoritative, and a subagent gets its share only when Claude Code reported
- * one under exactly its id. It says the estimate is not available while the
+ * one under exactly its id. While the first read is pending it shows an empty cell. It says the estimate is not available while the
  * receiver is off or has stopped, when nothing was reported, or when the agent
  * has no share, and says so differently when the figures can't be read. A
  * read that fails after one succeeded leaves the last figure showing. The
@@ -42,14 +43,20 @@ export function ReportedCostStat({ sessionId, agentId }: ReportedCostStatProps):
   const listening = receiver?.status === 'listening'
   const figure = listening && costUsd !== null ? formatUsd(costUsd, tSessions) : null
   const unreadable = listening && data === undefined && isError
+  // The first read, including the wait before a retry, hasn't answered yet.
+  const pending = listening && data === undefined && !isError
   const label =
     agentId === null ? t('inspector.reportedCost.labelSession') : t('inspector.reportedCost.label')
 
   return (
     <StatRowItem label={label}>
-      {unreadable
-        ? t('inspector.reportedCost.unavailable')
-        : (figure ?? t('inspector.reportedCost.notAvailable'))}
+      {pending ? (
+        <EmptyCell />
+      ) : unreadable ? (
+        t('inspector.reportedCost.unavailable')
+      ) : (
+        (figure ?? t('inspector.reportedCost.notAvailable'))
+      )}
     </StatRowItem>
   )
 }

@@ -177,6 +177,18 @@ describe('ReportedCostStat', () => {
     await expectValue(SESSION_LABEL, '$1.50')
   })
 
+  it('shows an empty cell, not "Not available", while the first read is pending', async () => {
+    installBeekeeperApi({
+      getOtelReceiver: () => Promise.resolve({ ok: true, value: LISTENING }),
+      getReportedCost: () => new Promise(() => undefined)
+    })
+    renderNote(null)
+
+    await waitFor(() => {
+      expect(valueOf(SESSION_LABEL)).toBe('-not recorded')
+    })
+  })
+
   it('says the estimate is not available when the call fails', async () => {
     installBeekeeperApi({
       getOtelReceiver: () => Promise.resolve({ ok: true, value: LISTENING }),

@@ -1,3 +1,4 @@
+import { createElement } from 'react'
 import styles from './Card.module.css'
 import { withClassName } from './withClassName'
 
@@ -47,7 +48,7 @@ interface CardProps {
  */
 export function Card({
   children,
-  as: Element = 'div',
+  as = 'div',
   labelledBy,
   busy,
   flush = false,
@@ -57,17 +58,18 @@ export function Card({
   ref,
   className
 }: CardProps): React.JSX.Element {
-  return (
-    <Element
-      ref={ref as React.Ref<HTMLDivElement>}
-      role={role}
-      aria-label={label}
-      tabIndex={tabIndex}
-      aria-labelledby={labelledBy}
-      aria-busy={busy}
-      className={withClassName(flush ? `${styles.card} ${styles.flush}` : styles.card, className)}
-    >
-      {children}
-    </Element>
+  // createElement takes a union of tags with one element type for the ref, which JSX can't infer.
+  return createElement(
+    as,
+    {
+      ref,
+      role,
+      'aria-label': label,
+      tabIndex,
+      'aria-labelledby': labelledBy,
+      'aria-busy': busy,
+      className: withClassName(flush ? `${styles.card} ${styles.flush}` : styles.card, className)
+    },
+    children
   )
 }
