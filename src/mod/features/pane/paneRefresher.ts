@@ -6,13 +6,15 @@ import { emptyPaneView } from './emptyPaneView'
 import { findSessionFolder } from './findSessionFolder'
 import { hasTeam } from './hasTeam'
 import type { PaneView } from './paneView'
+import { PLAIN_TICK_MS } from './paneScheduler'
 import { refreshPane, type PaneServices } from './refreshPane'
 
 /**
- * How long a session without a team goes between lists. The list is where its total and
+ * How long a session without a team goes between lists, a second under the plain tick so a tick
+ * that lands a little early still lists. The list is where its total and
  * title come from, and listing sweeps the project's folders, so it is not repeated every refresh.
  */
-const SOLO_LIST_INTERVAL_MS = 10_000
+const SOLO_LIST_INTERVAL_MS = PLAIN_TICK_MS - 1_000
 
 /** The engine calls the pane's refresh makes, as closures so lib never sees `$`. */
 export interface PaneHost {
@@ -42,7 +44,7 @@ export interface PaneRefresherDeps {
 
 /** Refreshes the pane's view. */
 export interface PaneRefresher {
-  /** Starts the mod unless it is already ready, remembering the outcome, and returns it. A later refresh reuses a failed outcome rather than probing again; this call retries. */
+  /** Starts the mod unless it is already ready, remembering the outcome, and returns it. A later refresh reuses a failed outcome rather than probing again; this call retries a failed one, and joins a probe already in flight. */
   start(cwd: string): Promise<StartOutcome>
   /** Forgets what was last stored, so the next refresh writes its view even if it matches: call it when the stored view may be gone (after a `/clear`, or a render that found none). */
   forgetStored(): void

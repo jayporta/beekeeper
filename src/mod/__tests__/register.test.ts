@@ -5,7 +5,7 @@ import { createTestEngine, TEST_ELEMENTS, type TestEngineAnswers } from '../test
 import { installTestH, removeTestH, textOf, findAll } from '../features/pane/testElements'
 import { testPaneNode, testPaneView } from '../features/pane/testPaneView'
 import { createNext } from '../testNext'
-import { recordingOn } from '../testOn'
+import { recordingOn, type Registered } from '../testOn'
 
 /** Runs the registered session.start hook against a fake `$` and returns the calls it made. */
 async function startSession(
@@ -362,6 +362,39 @@ describe('register', () => {
       await fire()
       await run('session.end', { reason: 'clear' })
       await fire()
+
+      expect(writes()).toBe(2)
+    })
+
+    it('writes the same view again when a render finds the state emptied without a /clear', async () => {
+      const { on, registered } = recordingOn()
+      register(on, {})
+      const engine = createTestEngine({ panes: ['beekeeper'] })
+      const hookOf = (event: string): Registered['hook'] | undefined =>
+        registered.find((entry) => entry.event === event)?.hook
+      const writes = (): number => engine.calls.filter((call) => call.name === 'state.set').length
+      const fireLatestAfter = async (): Promise<void> => {
+        engine.timers
+          .filter((timer) => timer.kind === 'after' && !timer.cancelled)
+          .at(-1)
+          ?.fn()
+        await new Promise((resolve) => setTimeout(resolve, 20))
+      }
+
+      await hookOf('agent.spawn')?.(engine.$, {}, createNext({}).next)
+      await fireLatestAfter()
+      engine.clearState()
+      installTestH()
+      try {
+        await hookOf('ui.render')?.(
+          engine.$,
+          { surface: 'terminal', component: 'Pane', requestId: 'beekeeper', props: {} },
+          createNext({}).next
+        )
+      } finally {
+        removeTestH()
+      }
+      await fireLatestAfter()
 
       expect(writes()).toBe(2)
     })

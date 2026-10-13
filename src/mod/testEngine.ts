@@ -14,6 +14,8 @@ export interface TestEngine {
   readonly calls: RecordedCall[]
   /** The timers `$.clock.after` and `$.clock.every` started, in order. */
   readonly timers: FakeTimer[]
+  /** Empties the `$.state` values, as a `/clear` does. */
+  readonly clearState: () => void
 }
 
 /** A timer the fake clock holds until a test fires it. */
@@ -182,7 +184,14 @@ export function createTestEngine(answers: TestEngineAnswers = {}): TestEngine {
       }
     }
   }
-  return { $, calls, timers }
+  return {
+    $,
+    calls,
+    timers,
+    clearState: () => {
+      for (const key of Object.keys(stored)) delete stored[key]
+    }
+  }
 }
 
 /**

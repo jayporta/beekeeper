@@ -10,6 +10,7 @@ import {
 } from '../../../../shared/sessions/testSessionFixtures'
 import { createTestHost, type TestPath } from '../../../testHost'
 import type { StartOutcome } from '../../start/startMod'
+import { PLAIN_TICK_MS } from '../paneScheduler'
 import { createPaneRefresher, type PaneHost } from '../paneRefresher'
 import type { PaneView } from '../paneView'
 import { testPaneServices, type TestPaneServices } from '../testPaneServices'
@@ -168,17 +169,27 @@ describe('createPaneRefresher', () => {
     expect(built).toEqual([ROOT])
   })
 
-  it('lists a session without a team at most every 10 seconds, to keep its total and title current', async () => {
+  it('lists a session without a team about every 10 seconds, to keep its total and title current', async () => {
     const { refresher, services, clock } = setup({})
 
     await refresher.refresh({ withList: false })
-    clock.now += 9_000
+    clock.now += 8_000
     await refresher.refresh({ withList: false })
     clock.now += 1_000
     await refresher.refresh({ withList: false })
 
     expect(services.listCalls).toBe(2)
     expect(services.getCalls).toBe(3)
+  })
+
+  it('still lists when a tick lands a little under 10 seconds after the last list', async () => {
+    const { refresher, services, clock } = setup({})
+
+    await refresher.refresh({ withList: false })
+    clock.now += PLAIN_TICK_MS - 400
+    await refresher.refresh({ withList: false })
+
+    expect(services.listCalls).toBe(2)
   })
 
   it('lists when asked to, even inside the 10 seconds', async () => {
