@@ -22,6 +22,14 @@ interface CardProps {
    * @defaultValue false
    */
   readonly flush?: boolean
+  /** An ARIA role for a card that is a landmark, such as `region`. */
+  readonly role?: 'region'
+  /** The accessible name of a card that has no heading to name it. */
+  readonly label?: string
+  /** Puts the card in the tab order with `0`, for one that scrolls on its own. */
+  readonly tabIndex?: 0
+  /** A ref to the card's element. */
+  readonly ref?: React.Ref<HTMLElement>
   /**
    * A class that adds to the card's own rules, such as its layout.
    * @defaultValue No extra class.
@@ -43,10 +51,18 @@ export function Card({
   labelledBy,
   busy,
   flush = false,
+  role,
+  label,
+  tabIndex,
+  ref,
   className
 }: CardProps): React.JSX.Element {
   return (
     <Element
+      ref={ref as React.Ref<HTMLDivElement>}
+      role={role}
+      aria-label={label}
+      tabIndex={tabIndex}
       aria-labelledby={labelledBy}
       aria-busy={busy}
       className={withClassName(flush ? `${styles.card} ${styles.flush}` : styles.card, className)}

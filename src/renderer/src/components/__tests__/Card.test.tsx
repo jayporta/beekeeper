@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import { createRef } from 'react'
 import { describe, expect, it } from 'vitest'
 import { Card } from '../Card'
 
@@ -30,6 +31,20 @@ describe('Card', () => {
     const flush = render(<Card flush>Body</Card>).container.firstElementChild
 
     expect(flush?.classList.length).toBe((plain?.classList.length ?? 0) + 1)
+  })
+
+  it('passes a role, a name, a tab stop and a ref through to its element', () => {
+    const ref = createRef<HTMLElement>()
+    render(
+      <Card role="region" label="Inspector" tabIndex={0} ref={ref}>
+        Body
+      </Card>
+    )
+
+    const region = screen.getByRole('region', { name: 'Inspector' })
+
+    expect(region.getAttribute('tabindex')).toBe('0')
+    expect(ref.current).toBe(region)
   })
 
   it('adds the caller’s class to its own', () => {

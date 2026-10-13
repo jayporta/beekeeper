@@ -1,11 +1,11 @@
 import styles from './Pill.module.css'
 
 /** The color a {@link Pill} takes: what kind of thing it flags. */
-type PillTone = 'error' | 'warning' | 'neutral' | 'info'
+export type PillTone = 'error' | 'warning' | 'neutral' | 'info' | 'success' | 'edit'
 
 /** Props for {@link Pill}. */
 interface PillProps {
-  /** Which kind of note it is: `error` and `warning` for trouble, `neutral` for a state, `info` for a match. */
+  /** Which kind of note it is: `error` and `warning` for trouble, `neutral` for a state, `info` for a match, `success` for something created, `edit` for something changed. */
   readonly tone: PillTone
   /** The pill's text. */
   readonly children: React.ReactNode

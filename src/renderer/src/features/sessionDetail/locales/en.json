@@ -150,11 +150,17 @@
     "loading": "Loading this agent",
     "unreadable": "beekeeper couldn't read this agent's transcript.",
     "reportedCost": {
-      "session": "Claude Code's estimate for this session: {{value}}",
-      "agent": "Claude Code's estimate: {{value}}",
+      "labelSession": "Claude Code's estimate for this session",
+      "label": "Claude Code's estimate",
+      "notAvailable": "Not available",
       "unavailable": "Claude Code's estimate isn't available."
     },
-    "rollup": "{{tokens}} incl. {{count, integer}} below",
+    "stats": {
+      "below": "Incl. agents below",
+      "tokensAllAgents": "Tokens, all agents"
+    },
+    "allAgents": "All agents",
+    "rollup": "{{tokens}} · {{count, integer}} below",
     "noneBelow": "No agents below",
     "belowUnreadable": "Agents below couldn't be read",
     "tokensHeading": "Tokens · {{total}}",

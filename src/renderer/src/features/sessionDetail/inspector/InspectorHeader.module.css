@@ -6,7 +6,7 @@
 
 .name {
   font-family: var(--font-heading);
-  font-size: var(--font-size-3xl);
+  font-size: var(--font-size-inspector-name);
   font-weight: var(--font-weight-semibold);
   overflow-wrap: anywhere;
 }

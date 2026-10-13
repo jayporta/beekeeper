@@ -17,7 +17,8 @@ import {
   inspector,
   pricedGroup,
   renderInspectorScene,
-  startedFact
+  startedFact,
+  stat
 } from '../testInspectorScene'
 
 afterEach(() => {
@@ -89,9 +90,27 @@ describe('AgentInspector for a workflow run', () => {
   it('shows the run’s tokens, its agent count and its cost', async () => {
     await openRun()
 
-    expect(inspector().getByText('30 tokens')).toBeTruthy()
+    expect(stat('Tokens, all agents').textContent).toMatch(/^30/)
     expect(inspector().getByText('2 agents')).toBeTruthy()
-    expect(inspector().getByText('$5.00 at API prices')).toBeTruthy()
+    expect(stat('At API prices').textContent).toBe('$5.00')
+  })
+
+  it('counts the run’s phases in its stat grid', async () => {
+    await openRun()
+
+    expect(stat('Phases').textContent).toBe('3')
+  })
+
+  it('has no Claude Code estimate, which a run does not have', async () => {
+    await openRun()
+
+    expect(inspector().queryByText(/Claude Code's estimate/)).toBeNull()
+  })
+
+  it('says its tokens cover all agents rather than naming a model', async () => {
+    await openRun()
+
+    expect(inspector().getByText('All agents')).toBeTruthy()
   })
 
   it('does not add the agents’ tokens to the run’s again', async () => {
@@ -150,7 +169,7 @@ describe('AgentInspector for a workflow run', () => {
   it('names only the skipped lines when they alone leave the total low', async () => {
     await openRun({ reports: { ...reports, w1: { ...reports.w1, skippedLines: 2 } } })
 
-    expect(inspector().getByText(/^30 tokens/).textContent).toContain('¹')
+    expect(stat('Tokens, all agents').textContent).toContain('¹')
     expect(inspector().getByText(/Some transcript lines couldn't be read/)).toBeTruthy()
     expect(inspector().queryByText(/Some of this workflow's agents/)).toBeNull()
     expect(inspector().queryByText(/agents below/)).toBeNull()
@@ -182,7 +201,7 @@ describe('AgentInspector for a workflow run', () => {
       }
     })
 
-    expect(inspector().getByText(/at API prices/).textContent).toContain('¹')
+    expect(stat('At API prices').textContent).toContain('¹')
     expect(inspector().getByText(/Some tokens have no known price/)).toBeTruthy()
   })
 
@@ -195,7 +214,7 @@ describe('AgentInspector for a workflow run', () => {
     renderInspectorScene({ detail })
     await userEvent.click(screen.getByRole('button', { name: /^scan, workflow/ }))
 
-    expect(inspector().getByText(/^10 tokens/).textContent).toContain('¹')
+    expect(stat('Tokens, all agents').textContent).toContain('¹')
     expect(inspector().getByText(/^¹ Partial:/)).toBeTruthy()
   })
 
@@ -205,13 +224,13 @@ describe('AgentInspector for a workflow run', () => {
     })
 
     expect(inspector().queryByText(/Partial/)).toBeNull()
-    expect(inspector().getByText(/^30 tokens/).textContent).not.toContain('¹')
+    expect(stat('Tokens, all agents').textContent).not.toContain('¹')
   })
 
   it('is partial when an agent recorded no tokens', async () => {
     await openRun({ reports: { ...reports, w2: testReport() } })
 
-    expect(inspector().getByText(/^10 tokens/).textContent).toContain('¹')
+    expect(stat('Tokens, all agents').textContent).toContain('¹')
     expect(inspector().queryByText('Partial transcript')).toBeNull()
   })
 })
@@ -251,14 +270,14 @@ describe('AgentInspector for a workflow run with a member nested under another',
     await openNestedRun(nestedReports)
 
     expect(inspector().getByText('3 agents')).toBeTruthy()
-    expect(inspector().getByText('35 tokens')).toBeTruthy()
+    expect(stat('Tokens, all agents').textContent).toMatch(/^35/)
     expect(inspector().getByText(/9 messages/)).toBeTruthy()
   })
 
   it('is partial when only the nested member’s report is unreadable', async () => {
     await openNestedRun({ ...nestedReports, w2: 'error' })
 
-    expect(inspector().getByText(/^15 tokens/).textContent).toContain('¹')
+    expect(stat('Tokens, all agents').textContent).toContain('¹')
     expect(inspector().getByText(/Some of this workflow's agents/)).toBeTruthy()
   })
 })

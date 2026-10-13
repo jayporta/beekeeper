@@ -40,6 +40,28 @@ describe('FilesTouched', () => {
     expect(inspector().getByText(filePath).tagName).toBe('BDI')
   })
 
+  it('keeps the full path in the row’s tooltip and reads it left to right inside the clipped line', () => {
+    const filePath = `/repo/${'very-long-folder-name/'.repeat(12)}file.ts`
+    withFiles([{ filePath, operation: 'edit', source: 'edit-write' }])
+
+    const path = inspector().getByText(filePath)
+
+    expect(path.parentElement?.getAttribute('title')).toBe(filePath)
+    expect(path.getAttribute('dir')).toBe('ltr')
+  })
+
+  it('tones each operation’s pill differently for create, edit and delete', () => {
+    withFiles([
+      { filePath: '/repo/c.ts', operation: 'create', source: 'edit-write' },
+      { filePath: '/repo/e.ts', operation: 'edit', source: 'edit-write' },
+      { filePath: '/repo/d.ts', operation: 'delete', source: 'edit-write' }
+    ])
+
+    const pill = (name: string): string => inspector().getByText(name).className
+
+    expect(new Set([pill('create'), pill('edit'), pill('delete')]).size).toBe(3)
+  })
+
   it('does not parse a path as markup', () => {
     const filePath = '/repo/<img src=x onerror=alert(1)>.ts'
     const { container } = withFiles([{ filePath, operation: 'edit', source: 'edit-write' }])
