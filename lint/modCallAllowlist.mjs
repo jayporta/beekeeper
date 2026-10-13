@@ -38,6 +38,8 @@ export const MOD_ALLOWLIST = Object.freeze({
     '$.clock.every',
     // Tells whether the pane is open, so ticks and refreshes stop when it closes.
     '$.ui.panes',
+    // Reads the mod's own state while drawing, which redraws the pane when it changes.
+    '$.state.get',
     // Stores the pane's view under the mod's own `beekeeper.view` key; the mod never reads another plugin's value.
     '$.state.set',
     // Describes a path and resolves symlinks, so reads stay inside the projects folder.

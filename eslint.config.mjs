@@ -28,7 +28,14 @@ const modEngineImport = {
 }
 
 /** The engine elements' props whose string values are layout or style names, not text. */
-const MOD_LAYOUT_PROPS = ['flexDirection', 'justifyContent', 'alignItems', 'borderStyle', 'color']
+const MOD_LAYOUT_PROPS = [
+  'flexDirection',
+  'justifyContent',
+  'alignItems',
+  'borderStyle',
+  'color',
+  'wrap'
+]
 
 /**
  * The options for `i18next/no-literal-string`, shared by the renderer and the mod.

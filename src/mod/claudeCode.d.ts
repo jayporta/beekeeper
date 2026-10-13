@@ -12,6 +12,8 @@ declare module 'claude-code' {
 
   /** Props of the layout box. */
   export interface BoxProps {
+    /** The element's address. */
+    key?: string
     /** Which way the box lays its children out. */
     flexDirection?: 'row' | 'column' | 'row-reverse' | 'column-reverse'
     /** The box's children. */
@@ -22,12 +24,28 @@ declare module 'claude-code' {
   export interface TextProps {
     /** Draws the text dimmed. */
     dimColor?: boolean
+    /** Draws the text bold. */
+    bold?: boolean
+    /** What a line wider than the room does. */
+    wrap?: 'wrap' | 'truncate-end'
     /** The text. */
+    children?: RenderChildren
+  }
+
+  /** Props of a pressable row. */
+  export interface ButtonProps {
+    /** The element's address. */
+    key: string
+    /** Runs when the button is pressed. */
+    onPress: () => void | Promise<void>
+    /** Strings and `Text`. */
     children?: RenderChildren
   }
 
   /** The elements a surface draws with. */
   export interface Elements {
+    /** A pressable row. */
+    Button: (props: ButtonProps) => object
     /** A layout box. */
     Box: (props: BoxProps) => object
     /** A run of text. */
@@ -232,6 +250,8 @@ declare module 'claude-code' {
     }
     /** The plugin's values the host keeps for the session. */
     state: {
+      /** Reads the plugin's own value, `undefined` before any write; while a render draws it subscribes that render. */
+      get: <T>(ref: StateRef) => Promise<{ value: T | undefined; version: number }>
       /** Writes the plugin's own value; refused while a render draws. */
       set: (ref: StateRef, value: object) => Promise<{ isSet: boolean }>
     }

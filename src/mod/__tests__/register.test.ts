@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { t } from '../i18n/modI18n'
 import { hostOf, register } from '../register'
-import { createTestEngine, type TestEngineAnswers } from '../testEngine'
+import { createTestEngine, TEST_ELEMENTS, type TestEngineAnswers } from '../testEngine'
+import { installTestH, removeTestH, textOf, findAll } from '../features/pane/testElements'
+import { testPaneNode, testPaneView } from '../features/pane/testPaneView'
 import { createNext } from '../testNext'
 import { recordingOn } from '../testOn'
 
@@ -372,6 +374,76 @@ describe('register', () => {
       await run('session.start', { cwd: '/work', surface: 'terminal', isInteractive: true })
 
       expect(everys()).toEqual([10_000, 30_000])
+    })
+  })
+
+  describe('drawing the pane', () => {
+    beforeAll(installTestH)
+    afterAll(removeTestH)
+
+    const view = testPaneView(
+      testPaneNode('lead', { kind: 'lead', name: 'Lead', children: [testPaneNode('sub:a')] }),
+      { sessionId: 'sid' }
+    )
+
+    /** Runs the registered render hook against an engine holding `state`. */
+    async function render(state: Record<string, unknown>): Promise<{
+      tree: unknown
+      engine: ReturnType<typeof createTestEngine>
+    }> {
+      const { on, registered } = recordingOn()
+      register(on, {})
+      const engine = createTestEngine({ state })
+      const hook = registered.find((entry) => entry.event === 'ui.render')
+      const { next } = createNext({})
+      const tree = await hook?.hook(
+        engine.$,
+        { surface: 'terminal', component: 'Pane', requestId: 'beekeeper', props: {} },
+        next
+      )
+      return { tree, engine }
+    }
+
+    it('draws the stored view', async () => {
+      const { tree } = await render({ 'beekeeper.view': view })
+
+      expect(textOf(tree)).toContain('Fix the bug')
+    })
+
+    it('asks for a refresh, with the list, when nothing is stored yet', async () => {
+      const { tree, engine } = await render({})
+
+      expect(textOf(tree)).toContain(t('pane.loading'))
+      expect(engine.timers.map((timer) => [timer.kind, timer.ms])).toEqual([['after', 0]])
+    })
+
+    it('does not ask for a refresh when a view is stored', async () => {
+      const { engine } = await render({ 'beekeeper.view': view })
+
+      expect(engine.timers).toEqual([])
+    })
+
+    it('never writes state while it draws', async () => {
+      const { engine } = await render({})
+
+      expect(engine.calls.filter((call) => call.name === 'state.set')).toEqual([])
+    })
+
+    it('stores the selection, with the session, when a row is pressed', async () => {
+      const { tree, engine } = await render({ 'beekeeper.view': view })
+      const row = findAll(tree, TEST_ELEMENTS.Button).find((node) => node.props['key'] === 'sub:a')
+
+      await (row?.props['onPress'] as () => Promise<void>)()
+
+      expect(engine.calls.filter((call) => call.name === 'state.set')).toEqual([
+        {
+          name: 'state.set',
+          args: [
+            { plugin: 'beekeeper', key: 'selected' },
+            { sessionId: 'sid', key: 'sub:a' }
+          ]
+        }
+      ])
     })
   })
 })

@@ -6,7 +6,21 @@
   },
   "pane": {
     "title": "beekeeper",
-    "empty": "Nothing here yet."
+    "loading": "Loading the session.",
+    "waiting": "Waiting for the session's first turn.",
+    "error": {
+      "invalid-request": "beekeeper couldn't tell which session this is.",
+      "untrusted-sender": "beekeeper refused the request.",
+      "not-found": "beekeeper can't find this session's transcript.",
+      "unreadable": "beekeeper couldn't read this session's transcript.",
+      "internal": "Something went wrong while reading the session."
+    },
+    "totals": {
+      "tokens_one": "{{count, compactInteger}} token in this session",
+      "tokens_other": "{{count, compactInteger}} tokens in this session",
+      "none": "No token usage yet.",
+      "partial": "May be incomplete."
+    }
   },
   "start": {
     "tooOld": "beekeeper needs Claude Code {{minimum}} or later. This is {{version}}.",
@@ -18,5 +32,34 @@
     "unreadable": "Unreadable session",
     "untitled": "Untitled session",
     "agentName": "{{name}} ({{type}})"
+  },
+  "row": {
+    "selected": "> ",
+    "unselected": "  ",
+    "tokens_one": "{{count, compactInteger}} token",
+    "tokens_other": "{{count, compactInteger}} tokens",
+    "toolErrors_one": "{{count, integer}} tool error",
+    "toolErrors_other": "{{count, integer}} tool errors",
+    "compactions_one": "{{count, integer}} compaction",
+    "compactions_other": "{{count, integer}} compactions",
+    "stopped": "stopped",
+    "partial": "partial",
+    "join": ", "
+  },
+  "files": {
+    "heading": "Files changed by {{name}}",
+    "none": "No files changed.",
+    "incomplete": "This list may be missing files.",
+    "more_one": "and {{count, integer}} more",
+    "more_other": "and {{count, integer}} more",
+    "teammate": "This teammate's files show in its own session.",
+    "workflow": "A workflow run lists no files. Select one of its agents.",
+    "operation": {
+      "edit": "edited",
+      "create": "created",
+      "update": "updated",
+      "delete": "deleted",
+      "change": "changed"
+    }
   }
 }

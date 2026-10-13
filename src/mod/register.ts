@@ -1,6 +1,6 @@
-import type { Engine, Register } from 'claude-code'
+import type { Engine, PaneRenderInput, Register } from 'claude-code'
 import {
-  EmptyPane,
+  Pane,
   MINIMUM_CLAUDE_CODE,
   createPaneRefresher,
   createPaneScheduler,
@@ -8,7 +8,9 @@ import {
   t,
   type ModHost,
   type PaneRefresher,
+  type PaneSelection,
   type PaneScheduler,
+  type PaneView,
   type StartOutcome
 } from './lib.js'
 
@@ -19,6 +21,9 @@ const DEBOUNCE_MS = 1000
 
 /** The `$.state` value the pane draws from. */
 const VIEW = { plugin: 'beekeeper', key: 'view' } as const
+
+/** The `$.state` value holding the node the person selected. */
+const SELECTED = { plugin: 'beekeeper', key: 'selected' } as const
 
 /** The names among the git repository variables that Claude Code's environment sets, even to empty. */
 async function gitRepoVariablesSet($: Engine): Promise<string[]> {
@@ -124,6 +129,24 @@ async function refreshIfOpen($: Engine, withList: boolean): Promise<void> {
   scheduler.schedule({ withList, delayMs: DEBOUNCE_MS })
 }
 
+/**
+ * Draws the pane from `$.state`. A pane drawn before any refresh asks for one
+ * (the state is empty after a `/clear` or a reload), since a render never writes state.
+ */
+async function drawPane($: Engine, e: PaneRenderInput): Promise<object> {
+  const view = (await $.state.get<PaneView>(VIEW)).value
+  const selected = (await $.state.get<PaneSelection | null>(SELECTED)).value ?? null
+  if (view === undefined) wired($).scheduler.schedule({ withList: true, delayMs: 0 })
+  return Pane({
+    elements: $.ui.resolve(e),
+    view,
+    selected,
+    onSelect: async (key) => {
+      if (view !== undefined) await $.state.set(SELECTED, { sessionId: view.sessionId, key })
+    }
+  })
+}
+
 /** Registers the mod's hooks with the engine. */
 export const register: Register = (on) => {
   wiring = undefined
@@ -166,7 +189,5 @@ export const register: Register = (on) => {
     if (e.reason === 'clear') await refreshIfOpen($, true)
     return result
   }).catch(($, e, next) => next(e))
-  on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) =>
-    EmptyPane($.ui.resolve(e))
-  )
+  on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) => drawPane($, e))
 }

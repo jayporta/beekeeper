@@ -1,4 +1,4 @@
-import type { Engine, FsStat, ProcessRunResult, SessionVersion } from 'claude-code'
+import type { Elements, Engine, FsStat, ProcessRunResult, SessionVersion } from 'claude-code'
 
 /** One call the test engine recorded: the dotted name (`ui.open`) and its arguments. */
 export interface RecordedCall {
@@ -38,6 +38,8 @@ export interface TestEngineAnswers {
   isPlaced?: boolean
   /** The ids of the panes `$.ui.panes()` lists; none by default. */
   panes?: readonly string[]
+  /** The `$.state` values to start with, by `plugin.key`. */
+  state?: Record<string, unknown>
   /** What `$.session.id()` answers. */
   sessionId?: string
   /** What `$.session.root()` answers. */
@@ -54,6 +56,13 @@ const EMPTY_RUN: ProcessRunResult = {
   isStderrTruncated: false
 }
 
+/** The elements the fake `$.ui.resolve` hands out: the same functions on every call, so a test can find them in a tree. */
+export const TEST_ELEMENTS: Elements = {
+  Box: () => ({}),
+  Text: () => ({}),
+  Button: () => ({})
+}
+
 const EMPTY_STAT: FsStat = { kind: 'file', size: 0, mtimeMs: 0, isLink: false }
 
 /**
@@ -65,6 +74,7 @@ const EMPTY_STAT: FsStat = { kind: 'file', size: 0, mtimeMs: 0, isLink: false }
 export function createTestEngine(answers: TestEngineAnswers = {}): TestEngine {
   const calls: RecordedCall[] = []
   const timers: FakeTimer[] = []
+  const stored: Record<string, unknown> = { ...answers.state }
   const startTimer = (
     kind: FakeTimer['kind'],
     ms: number,
@@ -107,8 +117,13 @@ export function createTestEngine(answers: TestEngineAnswers = {}): TestEngine {
       every: (ms, fn) => startTimer('every', ms, fn)
     },
     state: {
+      get: async <T>(ref: { plugin: string; key: string }) => {
+        record('state.get', ref)
+        return { value: stored[`${ref.plugin}.${ref.key}`] as T | undefined, version: 1 }
+      },
       set: async (ref, value) => {
         record('state.set', ref, value)
+        stored[`${ref.plugin}.${ref.key}`] = value
         return { isSet: true }
       }
     },
@@ -125,10 +140,7 @@ export function createTestEngine(answers: TestEngineAnswers = {}): TestEngine {
       },
       resolve: (e) => {
         record('ui.resolve', e)
-        return {
-          Box: () => ({}),
-          Text: () => ({})
-        }
+        return TEST_ELEMENTS
       },
       panes: async () => {
         record('ui.panes')
