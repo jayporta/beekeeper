@@ -1,7 +1,7 @@
-import type { AgentGraphNode, NodeWorkflow } from './agentGraphNode'
+import type { AgentGraphNode, NodeWorkflow } from '../../../../../shared/agentGraph/agentGraphNode'
 import type { GraphT } from './graphT'
-import { markFacts } from './nodeMarks'
-import { runMembers } from './runMembers'
+import { markFacts } from './nodeMarkText'
+import { runMembers } from '../../../../../shared/agentGraph/runMembers'
 
 /** The run's phase count as text, or `null` when it has no phases or isn't a run. */
 function phasesText(workflow: NodeWorkflow | null, t: GraphT): string | null {

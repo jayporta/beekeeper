@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { EMPTY_AGENT_SIGNALS_DTO } from '../../../../../../shared/ipc/emptyAgentSignals'
+import { EMPTY_AGENT_SIGNALS_DTO } from '../../ipc/emptyAgentSignals'
 import {
   testLeadTeam,
   testRef,
   testSession,
   testTeammateTeam,
   testUsage
-} from '../../../../../../shared/sessions/testSessionFixtures'
-import { testRow } from '@renderer/features/sessions/testSessionRows'
+} from '../../sessions/testSessionFixtures'
+import { testRow } from '../../sessions/testSessionRows'
 import { teammateNode } from '../teammateNode'
 
 function nodeWith(

@@ -13,7 +13,12 @@ import type {
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { SCENE_SESSION } from '../../graph/testGraphScene'
 import { LEAD_REPORT, renderInspectorScene } from '../../inspector/testInspectorScene'
-import { testDetail, testMeta, testNode, testReport } from '../../testSessionDetail'
+import {
+  testDetail,
+  testMeta,
+  testNode,
+  testReport
+} from '../../../../../../shared/agentGraph/testSessionDetail'
 
 afterEach(() => {
   vi.restoreAllMocks()

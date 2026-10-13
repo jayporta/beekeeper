@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import type { AgentGraphNode } from '../agentGraphNode'
+import type { AgentGraphNode } from '../../../../../../shared/agentGraph/agentGraphNode'
 import { GraphNode } from '../GraphNode'
-import { testGraphNode } from '../testGraphNode'
+import { testGraphNode } from '../../../../../../shared/agentGraph/testGraphNode'
 
 const renderNode = (overrides: Partial<AgentGraphNode>, loading = false): void => {
   render(

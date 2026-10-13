@@ -1,5 +1,5 @@
-import type { AgentGraphNode, AgentKey } from './agentGraphNode'
-import { flattenPreorder } from './flattenPreorder'
+import type { AgentGraphNode, AgentKey } from '../../../../../shared/agentGraph/agentGraphNode'
+import { flattenPreorder } from '../../../../../shared/agentGraph/flattenPreorder'
 
 /** Where a key press moves focus: along the spawn tree, or to its ends. */
 export type GraphDirection = 'parent' | 'child' | 'previous' | 'next' | 'first' | 'last'

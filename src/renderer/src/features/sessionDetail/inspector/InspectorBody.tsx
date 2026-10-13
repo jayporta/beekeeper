@@ -1,5 +1,5 @@
-import type { AgentGraphNode } from '../graph/agentGraphNode'
-import { reportTokens } from '../graph/reportFacts'
+import type { AgentGraphNode } from '../../../../../shared/agentGraph/agentGraphNode'
+import { reportTokens } from '../../../../../shared/agentGraph/reportFacts'
 import { FilesTouched } from './FilesTouched'
 import type { Inspection } from './inspectionOf'
 import type { InspectionTarget } from './inspectionTarget'

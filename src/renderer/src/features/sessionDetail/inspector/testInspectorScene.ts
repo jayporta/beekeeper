@@ -7,13 +7,19 @@ import type { SessionDetailDto } from '../../../../../shared/ipc/sessionDetailDt
 import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
 import type { WorktreeDiffsDto } from '../../../../../shared/ipc/worktreeDiffDto'
 import type { WorktreePatchDto } from '../../../../../shared/ipc/worktreePatchDto'
-import { testRow } from '@renderer/features/sessions/testSessionRows'
+import { testRow } from '../../../../../shared/sessions/testSessionRows'
 import type { BeekeeperApi } from '../../../../../shared/ipc/beekeeperApi'
 import { installBeekeeperApi, type TestBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { createQueryWrapper, createTestQueryClient } from '@renderer/testQueryWrapper'
 import { SCENE_ITEMS, SCENE_SESSION } from '../graph/testGraphScene'
 import { SessionDetailBody } from '../SessionDetailBody'
-import { testDetail, testMeta, testNode, testReport, testTokenGroup } from '../testSessionDetail'
+import {
+  testDetail,
+  testMeta,
+  testNode,
+  testReport,
+  testTokenGroup
+} from '../../../../../shared/agentGraph/testSessionDetail'
 
 const MIN = 60_000
 /** When the scene lead's activity starts. */

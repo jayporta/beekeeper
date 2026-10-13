@@ -79,7 +79,7 @@ src/core/              pure TypeScript, no Electron imports; reusable outside th
 src/service/           host-agnostic services behind the IPC contract; no Electron, no Node
 src/main/              Electron main process: windows, IPC handlers, security
 src/preload/           the single typed bridge exposed to the renderer
-src/shared/            the IPC contract, and pure session models the renderer and the mod both use; no Electron, no Node
+src/shared/            the IPC contract, and pure session and agent graph models the renderer and the mod both use; no Electron, no Node
 src/mod/               the Claude Code mod: register.ts holds every `$` call; the rest is bundled into lib.js and never sees `$`
 mod/                   the plugin folder Claude Code loads; hooks/*.js are built by `npm run build:mod`, never hand-edited
 src/renderer/src/features/<feature>/   UI, co-located by feature; its strings live in locales/

@@ -9,7 +9,7 @@ import {
   testTeammateTeam,
   testUsage
 } from '../../../../../shared/sessions/testSessionFixtures'
-import { testRow } from '../testSessionRows'
+import { testRow } from '../../../../../shared/sessions/testSessionRows'
 
 const reasons = (row: SessionRow): PartialReason[] => [...partialReasons(row)].sort()
 

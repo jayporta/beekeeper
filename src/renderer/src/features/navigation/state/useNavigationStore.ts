@@ -1,21 +1,9 @@
 import { create } from 'zustand'
+import type { SelectedAgent } from '../../../../../shared/agentGraph/agentGraphNode'
 import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
 
 /** The main area's views: the all-projects overview, a project's sessions list, or one session. */
 export type NavigationView = 'overview' | 'sessions' | 'session'
-
-/**
- * The agent selected within a session: a subagent inside a transcript, by the
- * ref of the session whose transcript holds it and its agent id (a teammate's
- * own subagents are selectable too), or a teammate, by the ref of its own
- * session, which may live in another folder than the lead's, or a workflow
- * run, by the ref of the session whose transcripts hold its agents and its
- * run id.
- */
-export type SelectedAgent =
-  | { readonly kind: 'subagent'; readonly ownerRef: SessionRefDto; readonly agentId: string }
-  | { readonly kind: 'teammate'; readonly ref: SessionRefDto }
-  | { readonly kind: 'workflow'; readonly ownerRef: SessionRefDto; readonly runId: string }
 
 /** Which view the main area shows and what it is showing. */
 interface NavigationState {

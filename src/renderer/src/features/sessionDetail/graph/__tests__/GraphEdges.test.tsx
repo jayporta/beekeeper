@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import type { AgentKey } from '../agentGraphNode'
+import type { AgentKey } from '../../../../../../shared/agentGraph/agentGraphNode'
 import { GraphEdges } from '../GraphEdges'
 import type { GraphEdge } from '../layoutGraph'
 

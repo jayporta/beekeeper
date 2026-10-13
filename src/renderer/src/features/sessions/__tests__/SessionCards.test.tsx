@@ -5,7 +5,7 @@ import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDt
 import { EMPTY_AGENT_SIGNALS_DTO } from '../../../../../shared/ipc/emptyAgentSignals'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
-import { testDetail } from '@renderer/features/sessionDetail/testSessionDetail'
+import { testDetail } from '../../../../../shared/agentGraph/testSessionDetail'
 import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
 import { hydratePersistedStores, renderAppReady } from '@renderer/testAppReady'
 import { resetPersistedState } from '@renderer/testRenderApp'

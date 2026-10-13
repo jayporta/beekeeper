@@ -1,8 +1,12 @@
 import type { SessionDetailDto } from '../../../../../shared/ipc/sessionDetailDto'
 import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
 import { sessionKey } from '../../../../../shared/sessions/sessionKey'
-import type { AgentGraphNode, AgentKey, RootAgentGraphNode } from './agentGraphNode'
-import { buildSubagentNodes } from './subagentNodes'
+import type {
+  AgentGraphNode,
+  AgentKey,
+  RootAgentGraphNode
+} from '../../../../../shared/agentGraph/agentGraphNode'
+import { buildSubagentNodes } from '../../../../../shared/agentGraph/subagentNodes'
 
 /** How loading a teammate's own session is going. */
 export type TeammateExpansion =

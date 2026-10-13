@@ -1,6 +1,6 @@
-import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
-import { sessionKey } from '../../../../../shared/sessions/sessionKey'
-import type { SessionRow } from '../../../../../shared/sessions/sessionRow'
+import type { SessionRefDto } from '../ipc/sessionRefDto'
+import { sessionKey } from '../sessions/sessionKey'
+import type { SessionRow } from '../sessions/sessionRow'
 import type { AgentGraphNode } from './agentGraphNode'
 import { sessionFacts } from './sessionFacts'
 

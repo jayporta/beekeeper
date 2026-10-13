@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
-import { testDetail } from '@renderer/features/sessionDetail/testSessionDetail'
+import { testDetail } from '../../../shared/agentGraph/testSessionDetail'
 import { testSession } from '../../../shared/sessions/testSessionFixtures'
 import { hydratePersistedStores, renderAppReady } from '@renderer/testAppReady'
 import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'

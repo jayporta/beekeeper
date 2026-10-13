@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { testDetail, testNode, testReport, testTokenGroup } from '../../testSessionDetail'
+import {
+  testDetail,
+  testNode,
+  testReport,
+  testTokenGroup
+} from '../../../../../../shared/agentGraph/testSessionDetail'
 import { readableReports, runAgentsIncomplete, runReport } from '../runReport'
 
 type Reports = NonNullable<NonNullable<Parameters<typeof testDetail>[0]>['reports']>

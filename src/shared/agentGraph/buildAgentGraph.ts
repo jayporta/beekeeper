@@ -1,14 +1,21 @@
-import type { SessionDetailDto } from '../../../../../shared/ipc/sessionDetailDto'
-import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
-import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
-import type { SessionRow } from '../../../../../shared/sessions/sessionRow'
-import type { SessionDetailT } from '../sessionDetailT'
+import type { SessionDetailDto } from '../ipc/sessionDetailDto'
+import type { SessionListItemDto } from '../ipc/sessionListDto'
+import type { SessionRefDto } from '../ipc/sessionRefDto'
+import type { SessionRow } from '../sessions/sessionRow'
 import type { RootAgentGraphNode } from './agentGraphNode'
 import { nodeMarks } from './nodeMarks'
 import { isPartialReport, reportTokens } from './reportFacts'
 import { sessionFacts } from './sessionFacts'
 import { buildSubagentNodes } from './subagentNodes'
 import { teammateNode } from './teammateNode'
+
+/** The names the graph gives its root agent, in the viewer's language. */
+export interface AgentGraphWords {
+  /** The root's name when the viewed session is a lead or a solo agent. */
+  readonly lead: string
+  /** The root's name when the viewed session is a teammate's own and has no label. */
+  readonly teammate: string
+}
 
 /** Input for {@link buildAgentGraph}. */
 export interface BuildAgentGraphInput {
@@ -20,8 +27,8 @@ export interface BuildAgentGraphInput {
   readonly rootItem: SessionListItemDto | null
   /** The viewed session's row in the grouped sessions list, which holds its teammates, or `null`. */
   readonly rootRow: SessionRow | null
-  /** The session detail translate function. */
-  readonly t: SessionDetailT
+  /** The names of the root agent. */
+  readonly words: AgentGraphWords
 }
 
 /**
@@ -30,11 +37,11 @@ export interface BuildAgentGraphInput {
  * root's last children. The root is a teammate when the viewed session is a
  * teammate's own. A teammate's own subagents join the graph once its session is loaded (see `graftTeammates`).
  *
- * @param input - The session's detail, ref, list entry and row, and the translate function.
+ * @param input - The session's detail, ref, list entry and row, and the root agent's names.
  * @returns The root node.
  */
 export function buildAgentGraph(input: BuildAgentGraphInput): RootAgentGraphNode {
-  const { detail, ref, rootItem, rootRow, t } = input
+  const { detail, ref, rootItem, rootRow, words } = input
   const facts = sessionFacts(rootItem)
   const team = rootItem?.team ?? null
   const isTeammate = team !== null && team.kind !== 'lead'
@@ -44,7 +51,7 @@ export function buildAgentGraph(input: BuildAgentGraphInput): RootAgentGraphNode
   return {
     key: 'lead',
     kind: isTeammate ? 'teammate' : 'lead',
-    name: isTeammate ? (rootRow?.label.text ?? t('graph.teammate')) : t('graph.lead'),
+    name: isTeammate ? (rootRow?.label.text ?? words.teammate) : words.lead,
     agentType: facts.agentType,
     model: facts.model,
     tokens: reportTokens(detail.lead),

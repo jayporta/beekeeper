@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { testRef } from '../../../../../../shared/sessions/testSessionFixtures'
-import { testDetail, testMeta, testNode } from '../../testSessionDetail'
-import type { AgentGraphNode, RootAgentGraphNode } from '../agentGraphNode'
+import {
+  testDetail,
+  testMeta,
+  testNode
+} from '../../../../../../shared/agentGraph/testSessionDetail'
+import type {
+  AgentGraphNode,
+  RootAgentGraphNode
+} from '../../../../../../shared/agentGraph/agentGraphNode'
 import { expansionOf, graftTeammates, type TeammateExpansion } from '../teammateExpansion'
-import { testGraphNode } from '../testGraphNode'
+import { testGraphNode } from '../../../../../../shared/agentGraph/testGraphNode'
 
 const MATE = testRef(2, '-other')
 

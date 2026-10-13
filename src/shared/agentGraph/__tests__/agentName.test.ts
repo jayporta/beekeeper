@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { testMeta } from '../../testSessionDetail'
+import { testMeta } from '../testSessionDetail'
 import { agentName } from '../agentName'
 
 const AGENT_ID = 'a1b2c3d4e5f6a7b8c'

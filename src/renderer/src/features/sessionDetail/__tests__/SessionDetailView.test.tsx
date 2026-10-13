@@ -20,7 +20,11 @@ import { installBeekeeperApi, type TestBeekeeperApi } from '@renderer/testBeekee
 import { createQueryWrapper } from '@renderer/testQueryWrapper'
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
 import { SessionDetailView } from '../SessionDetailView'
-import { testDetail, testReport, testTokenGroup } from '../testSessionDetail'
+import {
+  testDetail,
+  testReport,
+  testTokenGroup
+} from '../../../../../shared/agentGraph/testSessionDetail'
 
 const DIR = '-Users-a-repo'
 const OTHER = '-Users-a-other'

@@ -8,9 +8,14 @@ import { useNavigationStore } from '@renderer/features/navigation/state/useNavig
 import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { createQueryWrapper } from '@renderer/testQueryWrapper'
 import { SCENE_SESSION } from '../../graph/testGraphScene'
-import { testGraphNode } from '../../graph/testGraphNode'
+import { testGraphNode } from '../../../../../../shared/agentGraph/testGraphNode'
 import { InspectedWorkflow } from '../InspectedWorkflow'
-import { testDetail, testMeta, testNode, testReport } from '../../testSessionDetail'
+import {
+  testDetail,
+  testMeta,
+  testNode,
+  testReport
+} from '../../../../../../shared/agentGraph/testSessionDetail'
 import {
   SCENE_START,
   factsText,

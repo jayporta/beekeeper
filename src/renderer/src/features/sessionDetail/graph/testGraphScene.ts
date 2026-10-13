@@ -12,11 +12,17 @@ import {
   testTeammateTeam,
   testUsage
 } from '../../../../../shared/sessions/testSessionFixtures'
-import { testRow } from '@renderer/features/sessions/testSessionRows'
+import { testRow } from '../../../../../shared/sessions/testSessionRows'
 import type { SessionRow } from '../../../../../shared/sessions/sessionRow'
 import { installBeekeeperApi, type TestBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { createQueryWrapper } from '@renderer/testQueryWrapper'
-import { testDetail, testMeta, testNode, testReport, testTokenGroup } from '../testSessionDetail'
+import {
+  testDetail,
+  testMeta,
+  testNode,
+  testReport,
+  testTokenGroup
+} from '../../../../../shared/agentGraph/testSessionDetail'
 import { GraphCanvas } from './GraphCanvas'
 import { useAgentGraph } from './useAgentGraph'
 

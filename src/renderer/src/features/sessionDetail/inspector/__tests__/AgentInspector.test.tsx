@@ -3,7 +3,12 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { testRef, testSession } from '../../../../../../shared/sessions/testSessionFixtures'
-import { testDetail, testMeta, testNode, testReport } from '../../testSessionDetail'
+import {
+  testDetail,
+  testMeta,
+  testNode,
+  testReport
+} from '../../../../../../shared/agentGraph/testSessionDetail'
 import { LISTS_STALE_TIME_MS } from '@renderer/app/listsStaleTime'
 import { createTestQueryClient } from '@renderer/testQueryWrapper'
 import { SCENE_ITEMS, SCENE_SESSION } from '../../graph/testGraphScene'

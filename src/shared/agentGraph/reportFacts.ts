@@ -1,4 +1,4 @@
-import type { AgentReportDto } from '../../../../../shared/ipc/agentDto'
+import type { AgentReportDto } from '../ipc/agentDto'
 
 /**
  * Sums an agent's own tokens across every model, speed and billing class. The

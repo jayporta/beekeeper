@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { layoutGraph } from '../layoutGraph'
 import { parentNames } from '../parentNames'
-import { testGraphNode } from '../testGraphNode'
+import { testGraphNode } from '../../../../../../shared/agentGraph/testGraphNode'
 import { testGraphT } from '../testGraphT'
 
 describe('parentNames', () => {

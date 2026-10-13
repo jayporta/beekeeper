@@ -5,7 +5,7 @@ import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { sessionKey } from '../../../../../shared/sessions/sessionKey'
 import { sessionDetailQueryOptions } from '../sessionDetailQuery'
-import type { AgentKey, RootAgentGraphNode } from './agentGraphNode'
+import type { AgentKey, RootAgentGraphNode } from '../../../../../shared/agentGraph/agentGraphNode'
 import { expansionOf, type TeammateExpansion } from './teammateExpansion'
 
 /** A teammate node and the session it stands for. */

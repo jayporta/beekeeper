@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { testRef } from '../../../../../../shared/sessions/testSessionFixtures'
-import { testGraphNode } from '../../graph/testGraphNode'
+import { testGraphNode } from '../../../../../../shared/agentGraph/testGraphNode'
 import { rollupBelow } from '../rollupBelow'
 
 type GraphNode = ReturnType<typeof testGraphNode>

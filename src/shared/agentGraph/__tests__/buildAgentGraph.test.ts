@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import type { AgentNodeDto } from '../../../../../../shared/ipc/agentDto'
-import type { SessionListItemDto } from '../../../../../../shared/ipc/sessionListDto'
-import { EMPTY_AGENT_SIGNALS_DTO } from '../../../../../../shared/ipc/emptyAgentSignals'
-import { testRow } from '@renderer/features/sessions/testSessionRows'
+import type { AgentNodeDto } from '../../ipc/agentDto'
+import type { SessionListItemDto } from '../../ipc/sessionListDto'
+import { EMPTY_AGENT_SIGNALS_DTO } from '../../ipc/emptyAgentSignals'
+import { testRow } from '../../sessions/testSessionRows'
 import {
   testAgentRole,
   testLeadTeam,
@@ -10,9 +10,9 @@ import {
   testSession,
   testTeammateTeam,
   testUsage
-} from '../../../../../../shared/sessions/testSessionFixtures'
-import { testDetail, testMeta, testNode, testReport, testTokenGroup } from '../../testSessionDetail'
-import { testSessionDetailT } from '../../testSessionDetailT'
+} from '../../sessions/testSessionFixtures'
+import { testDetail, testMeta, testNode, testReport, testTokenGroup } from '../testSessionDetail'
+import { testAgentGraphWords } from '../testAgentGraphWords'
 import { buildAgentGraph } from '../buildAgentGraph'
 
 const REF = testRef(1)
@@ -24,7 +24,7 @@ function graphOf(detail = testDetail()): ReturnType<typeof buildAgentGraph> {
     ref: REF,
     rootItem: null,
     rootRow: null,
-    t: testSessionDetailT
+    words: testAgentGraphWords
   })
 }
 
@@ -39,7 +39,7 @@ function graphAmong(
     ref: REF,
     rootItem,
     rootRow: testRow(1, items),
-    t: testSessionDetailT
+    words: testAgentGraphWords
   })
 }
 
@@ -135,7 +135,7 @@ describe('buildAgentGraph the root', () => {
       ref: REF,
       rootItem,
       rootRow: null,
-      t: testSessionDetailT
+      words: testAgentGraphWords
     })
 
     expect(graph).toMatchObject({ kind: 'teammate', name: 'Teammate' })

@@ -2,7 +2,7 @@ import { renderHook, type RenderHookResult } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { SessionRow } from '../../../../../shared/sessions/sessionRow'
 import { testSession } from '../../../../../shared/sessions/testSessionFixtures'
-import { testRow } from '../testSessionRows'
+import { testRow } from '../../../../../shared/sessions/testSessionRows'
 import { useSteadyOrder, type SteadyOrderOptions } from '../useSteadyOrder'
 
 const NOW = 1_000_000

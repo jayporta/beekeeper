@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { directionOfKey, graphNeighbor } from '../graphNavigation'
-import { testGraphNode } from '../testGraphNode'
+import { testGraphNode } from '../../../../../../shared/agentGraph/testGraphNode'
 
 const a1 = testGraphNode('a1')
 const a2 = testGraphNode('a2')

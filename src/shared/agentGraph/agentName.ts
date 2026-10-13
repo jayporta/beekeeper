@@ -1,5 +1,5 @@
-import type { AgentMetaStatusDto } from '../../../../../shared/ipc/agentDto'
-import { shortId } from '../../../../../shared/sessions/sessionLabel'
+import type { AgentMetaStatusDto } from '../ipc/agentDto'
+import { shortId } from '../sessions/sessionLabel'
 
 function nonBlank(text: string | undefined): string | undefined {
   return text !== undefined && text.trim() !== '' ? text : undefined

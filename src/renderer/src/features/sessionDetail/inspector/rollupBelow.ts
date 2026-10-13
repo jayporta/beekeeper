@@ -1,5 +1,5 @@
-import type { AgentGraphNode } from '../graph/agentGraphNode'
-import { flattenPreorder } from '../graph/flattenPreorder'
+import type { AgentGraphNode } from '../../../../../shared/agentGraph/agentGraphNode'
+import { flattenPreorder } from '../../../../../shared/agentGraph/flattenPreorder'
 
 /** What the agents below a node add up to. */
 export interface Rollup {

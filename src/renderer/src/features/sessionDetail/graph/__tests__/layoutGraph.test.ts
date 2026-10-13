@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { AgentGraphNode } from '../agentGraphNode'
+import type { AgentGraphNode } from '../../../../../../shared/agentGraph/agentGraphNode'
 import {
   COLUMN_WIDTH,
   LEAF_PITCH,
@@ -9,7 +9,7 @@ import {
   ORIGIN_Y
 } from '../graphMetrics'
 import { layoutGraph } from '../layoutGraph'
-import { testGraphNode } from '../testGraphNode'
+import { testGraphNode } from '../../../../../../shared/agentGraph/testGraphNode'
 
 /** Where each node sits, by key. */
 function positions(root: AgentGraphNode): Record<string, { x: number; y: number; depth: number }> {
