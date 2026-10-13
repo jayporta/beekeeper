@@ -17,7 +17,7 @@
     background: var(--color-selected);
   }
 
-  /* Drawn inside the edge, since the inset list clips anything outside it. */
+  /* Drawn inside the edge, since the list clips anything outside it (overflow: hidden). */
   &:focus-visible {
     outline-offset: calc(-1 * var(--focus-ring-width));
   }
