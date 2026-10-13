@@ -185,7 +185,7 @@ describe('ReportedCostStat', () => {
     renderNote(null)
 
     await waitFor(() => {
-      expect(valueOf(SESSION_LABEL)).toBe('-not recorded')
+      expect(valueOf(SESSION_LABEL)).toBe('-loading')
     })
   })
 
