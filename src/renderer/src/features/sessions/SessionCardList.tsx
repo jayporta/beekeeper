@@ -1,6 +1,7 @@
-import { memo, useMemo } from 'react'
+import { memo, useId, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CapsText } from '@renderer/components/CapsText'
+import { Card } from '@renderer/components/Card'
+import { MutedText } from '@renderer/components/MutedText'
 import { AgentLegend } from './AgentLegend'
 import { agentMarks, type AgentMarkKind } from './agentMarks'
 import { CardColumns } from './CardColumns'
@@ -34,28 +35,36 @@ interface SessionCardListProps {
   readonly labelledBy: string
   /** The folder the list is for. */
   readonly selectedDirName: string
+  /** The most tokens any session in the whole list shows, which every row's bar is drawn against. */
+  readonly largestTokens: number
+  /** How many sessions match the search, shown beside the title, or `null` when no search is active. */
+  readonly matchCount: number | null
   /** The search text from `normalizeQuery`, or `''` when no search is active. It highlights the chips that match and names the workflow or subagent a card matches only through. */
   readonly query: string
 }
 
 /**
- * The sessions as a list of cards under a column header row, then a legend
- * for the agent marks on screen, a footnote for any partial figure or any
- * signal count marked partial, and a note on what the signal counts cover.
- * The header row is visual only: each card says what its figures are in
- * words. It is memoized so a keystroke in the search box skips it until the
+ * The Sessions card: a title with the match count while searching and a
+ * legend for the agent marks on screen, then the rows under a column header
+ * row, then a footnote for any partial figure or any signal count marked
+ * partial, and a note on what the signal counts cover. The rows keep a least
+ * width and scroll sideways inside the card. The header row is visual only:
+ * each row says what its figures are in words. It is memoized so a keystroke in the search box skips it until the
  * deferred filter catches up.
  *
  * @example
- * <SessionCardList rows={rows} labelledBy={headingId} selectedDirName="-Users-me-repo" query="" />
+ * <SessionCardList rows={rows} labelledBy={headingId} selectedDirName="-Users-me-repo" largestTokens={5_000} matchCount={null} query="" />
  */
 export const SessionCardList = memo(function SessionCardList({
   rows,
   labelledBy,
   selectedDirName,
+  largestTokens,
+  matchCount,
   query
 }: SessionCardListProps): React.JSX.Element {
   const { t } = useTranslation('sessions')
+  const titleId = useId()
   const cards = useMemo(() => rows.map((row) => ({ row, reasons: partialReasons(row) })), [rows])
   const allReasons = useMemo(() => {
     const reasons = new Set<PartialReason>(cards.flatMap(({ reasons }) => [...reasons]))
@@ -79,32 +88,47 @@ export const SessionCardList = memo(function SessionCardList({
   )
 
   return (
-    <div className={styles.list}>
-      <CardColumns className={styles.header} decorative>
-        <CapsText as="span">{t('columns.session')}</CapsText>
-        <CapsText as="span">{t('columns.agents')}</CapsText>
-        <CapsText as="span">{t('columns.duration')}</CapsText>
-        <CapsText as="span" className={styles.right}>
-          {t('columns.tokens')}
-        </CapsText>
-      </CardColumns>
-      <ol className={styles.cards} aria-labelledby={labelledBy}>
-        {cards.map(({ row, reasons }, index) => (
-          <SessionCard
-            key={row.key}
-            row={row}
-            selectedDirName={selectedDirName}
-            needle={row.teammates.length > 0 ? query : ''}
-            partial={reasons.size > 0}
-            matchNote={matchNotes[index] ?? null}
-          />
-        ))}
-      </ol>
-      <div className={styles.notes}>
+    <Card as="section" labelledBy={titleId} className={styles.list}>
+      <div className={styles.titleRow}>
+        <h2 id={titleId} className={styles.title}>
+          {t('listTitle')}
+        </h2>
+        {matchCount !== null && (
+          <MutedText as="span" decorative>
+            {t('search.count', { count: matchCount })}
+          </MutedText>
+        )}
         <AgentLegend kinds={kinds} />
+      </div>
+      <div className={styles.scroller}>
+        <div className={styles.table}>
+          <CardColumns className={styles.header} decorative>
+            <span>{t('columns.session')}</span>
+            <span>{t('columns.agents')}</span>
+            <span>{t('columns.duration')}</span>
+            <span />
+            <span className={styles.right}>{t('columns.tokens')}</span>
+            <span className={styles.right}>{t('columns.price')}</span>
+          </CardColumns>
+          <ol className={styles.cards} aria-labelledby={labelledBy}>
+            {cards.map(({ row, reasons }, index) => (
+              <SessionCard
+                key={row.key}
+                row={row}
+                selectedDirName={selectedDirName}
+                needle={row.teammates.length > 0 ? query : ''}
+                largestTokens={largestTokens}
+                partial={reasons.size > 0}
+                matchNote={matchNotes[index] ?? null}
+              />
+            ))}
+          </ol>
+        </div>
+      </div>
+      <div className={styles.notes}>
         <PartialFootnote reasons={allReasons} />
         <SignalScopeNote rows={rows} />
       </div>
-    </div>
+    </Card>
   )
 })

@@ -1,9 +1,12 @@
 import { memo, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MutedText } from '@renderer/components/MutedText'
+import { ShareBar } from '@renderer/components/ShareBar'
+import { shareOfLargest } from '@renderer/components/shareOfLargest'
 import { agentCountLabel } from './agentCountLabel'
 import { AgentStrip } from './AgentStrip'
 import { CardColumns } from './CardColumns'
+import { CardPrice } from './CardPrice'
 import { CardTokens } from './CardTokens'
 import { cardFigures } from './cardFigures'
 import { EmptyCell } from './EmptyCell'
@@ -26,6 +29,8 @@ interface SessionCardProps {
    * has no chips to highlight. Passing `''` to a card without chips keeps it from re-rendering as the search changes.
    */
   readonly needle: string
+  /** The most tokens any card in the whole list shows, which the row's bar is drawn against. */
+  readonly largestTokens: number
   /** Whether the card's figures are partial, which adds a marker that the footnote explains. */
   readonly partial: boolean
   /**
@@ -37,18 +42,20 @@ interface SessionCardProps {
 }
 
 /**
- * One session as a card: its title cell, an agent strip with the agent count,
- * the duration, and the tokens, then a chip for each teammate of a lead.
+ * One session as a row of the sessions table: its title cell, an agent strip
+ * with the agent count, the duration, a bar of its tokens against the largest
+ * row's, its tokens, and its API price, then a chip for each teammate of a lead.
  * A session whose summary couldn't be read shows a placeholder name and
  * empty markers that say what is missing.
  *
  * @example
- * <SessionCard row={row} selectedDirName="-Users-me-repo" needle="" partial={false} matchNote={null} />
+ * <SessionCard row={row} selectedDirName="-Users-me-repo" needle="" largestTokens={0} partial={false} matchNote={null} />
  */
 export const SessionCard = memo(function SessionCard({
   row,
   selectedDirName,
   needle,
+  largestTokens,
   partial,
   matchNote
 }: SessionCardProps): React.JSX.Element {
@@ -64,7 +71,7 @@ export const SessionCard = memo(function SessionCard({
   const leadRef = useMemo(() => ({ projectDirName, sessionId }), [projectDirName, sessionId])
 
   return (
-    <li className={styles.card}>
+    <li className={styles.row}>
       <CardColumns className={styles.grid}>
         <SessionCell row={row} selectedDirName={selectedDirName} matchNote={matchNote} />
         <div>
@@ -74,11 +81,15 @@ export const SessionCard = memo(function SessionCard({
             {agents ?? <EmptyCell />}
           </MutedText>
         </div>
-        <p>
+        <p className={styles.duration}>
           <span className="visuallyHidden">{t('columns.duration')} </span>
           {duration ?? <EmptyCell />}
         </p>
+        <div className={styles.bar}>
+          <ShareBar share={shareOfLargest(figures?.tokens ?? 0, largestTokens)} />
+        </div>
         <CardTokens figures={figures} teamTotal={teamTotal} partial={partial} />
+        <CardPrice figures={figures} />
       </CardColumns>
       {teammates.length > 0 && (
         <ul className={styles.chips} aria-label={t('chips.label', { name: label.text })}>

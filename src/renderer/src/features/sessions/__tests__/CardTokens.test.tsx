@@ -28,18 +28,17 @@ function renderTokens({
 }
 
 describe('CardTokens', () => {
-  it('shows the tokens and the API-priced cost', () => {
+  it('shows the token count with a tokens label beneath', () => {
     renderTokens()
 
-    expect(screen.getByText('12.4M tokens')).toBeTruthy()
-    expect(screen.getByText('$3.20 at API prices')).toBeTruthy()
+    expect(screen.getByText(/^12\.4M/)).toBeTruthy()
+    expect(screen.getByText('tokens')).toBeTruthy()
   })
 
   it('shows zero tokens as a known value', () => {
     renderTokens({ figures: { ...FIGURES, tokens: 0, usd: 0 } })
 
-    expect(screen.getByText('0 tokens')).toBeTruthy()
-    expect(screen.getByText('$0.00 at API prices')).toBeTruthy()
+    expect(screen.getByText('0')).toBeTruthy()
   })
 
   it('labels a team total, and leaves the label off a single session', () => {
@@ -49,6 +48,12 @@ describe('CardTokens', () => {
 
     renderTokens()
     expect(screen.queryByText('team total')).toBeNull()
+  })
+
+  it('still says tokens to assistive technology for a team total', () => {
+    const container = renderTokens({ teamTotal: true })
+
+    expect(container.textContent).toContain('team total tokens')
   })
 
   it('marks partial figures with a superscript hidden from assistive tech and a spoken note', () => {
@@ -61,6 +66,7 @@ describe('CardTokens', () => {
   it('does not describe the figure by the footnote, which a plain paragraph is not reliably read with', () => {
     const container = renderTokens({ partial: true })
 
+    expect(container.querySelector('[aria-hidden="true"]')?.textContent).toBe('¹')
     expect(container.querySelector('[aria-describedby]')).toBeNull()
   })
 
@@ -71,18 +77,10 @@ describe('CardTokens', () => {
     expect(screen.queryByText('partial, see the note below the list')).toBeNull()
   })
 
-  it('names the missing tokens for assistive technology while the cost still shows', () => {
+  it('names the missing tokens for assistive technology', () => {
     const container = renderTokens({ figures: { ...FIGURES, tokens: null } })
 
-    expect(container.textContent).toContain('-tokens not recorded')
-    expect(screen.getByText('$3.20 at API prices')).toBeTruthy()
-  })
-
-  it('names the missing cost for assistive technology while the tokens still show', () => {
-    const container = renderTokens({ figures: { ...FIGURES, usd: null } })
-
-    expect(screen.getByText('12.4M tokens')).toBeTruthy()
-    expect(container.textContent).toContain('-cost not recorded')
+    expect(container.textContent).toBe('-tokens not recorded')
   })
 
   it('shows a single tokens and cost not recorded when there are no figures', () => {
@@ -95,6 +93,5 @@ describe('CardTokens', () => {
     const container = renderTokens({ figures: { ...FIGURES, tokens: null, usd: null } })
 
     expect(container.textContent).toBe('-tokens and cost not recorded')
-    expect(container.textContent).not.toContain('at API prices')
   })
 })

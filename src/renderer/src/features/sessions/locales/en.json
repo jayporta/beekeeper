@@ -1,9 +1,10 @@
 {
   "columns": {
     "session": "Session",
-    "duration": "Duration",
     "agents": "Agents",
-    "tokens": "Tokens"
+    "duration": "Duration",
+    "tokens": "Tokens",
+    "price": "API price"
   },
   "label": {
     "untitled": "Untitled session",
@@ -69,7 +70,9 @@
     "noMatches": "No matching sessions",
     "noMatchesBody": "Try a different search.",
     "matches_one": "{{count, integer}} session matches",
-    "matches_other": "{{count, integer}} sessions match"
+    "matches_other": "{{count, integer}} sessions match",
+    "count_one": "{{count, integer}} match",
+    "count_other": "{{count, integer}} matches"
   },
   "loading": "Loading sessions",
   "unreadable": {
@@ -124,5 +127,10 @@
     "compact": "{{value, compactInteger}}",
     "partialNote": "partial, see the note under these totals",
     "footnoteLabel": "¹ Partial totals:"
-  }
+  },
+  "figure": {
+    "compact": "{{value, compactInteger}}"
+  },
+  "tokensLabel": "tokens",
+  "listTitle": "Sessions"
 }

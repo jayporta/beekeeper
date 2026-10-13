@@ -87,7 +87,7 @@ async function showSessions(
     listSessions
   })
   render(<App />, { wrapper: createQueryWrapper() })
-  await screen.findByRole('heading', { level: 2, name: 'Refactor parser' })
+  await screen.findByRole('heading', { level: 3, name: 'Refactor parser' })
   return api
 }
 
@@ -125,8 +125,8 @@ describe('refreshing the lists on window focus', () => {
 
     await focusAfterStaleTime()
 
-    expect(await screen.findByRole('heading', { level: 2, name: 'Brand new session' })).toBeTruthy()
-    expect(screen.getByRole('heading', { level: 2, name: 'Refactor parser' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 3, name: 'Brand new session' })).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 3, name: 'Refactor parser' })).toBeTruthy()
     expect(screen.getByRole('button', { name: /^reviewer \(code\)/ })).toBeTruthy()
   })
 
@@ -150,7 +150,7 @@ describe('refreshing the lists on window focus', () => {
     current = [lead, testSession(3, { projectDirName: DIR, title: 'Refactor tests' })]
 
     await focusAfterStaleTime()
-    await screen.findByRole('heading', { level: 2, name: 'Refactor tests' })
+    await screen.findByRole('heading', { level: 3, name: 'Refactor tests' })
 
     expect(api.listSessions).toHaveBeenCalledTimes(2)
     expect(document.activeElement).toBe(screen.getByRole('searchbox', { name: 'Search sessions' }))

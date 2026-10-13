@@ -225,10 +225,21 @@
   /* The least width of one figure in the sessions header's stat row: 220px. */
   --size-stat-min: 13.75rem;
   --size-target-min: 44px;
-  /* A session card's columns after the title: agents 220px, duration 90px, tokens 110px. */
-  --size-card-agents: 13.75rem;
-  --size-card-duration: 5.625rem;
-  --size-card-tokens: 6.875rem;
+  /* The session list's columns: session at least 200px, agents 150px to 230px, duration 64px, bar 50px to 130px, tokens 80px, API price 70px. */
+  --size-card-session-min: 12.5rem;
+  --size-card-agents-min: 9.375rem;
+  --size-card-agents-max: 14.375rem;
+  --size-card-duration: 4rem;
+  --size-card-bar-min: 3.125rem;
+  --size-card-bar-max: 8.125rem;
+  --size-card-tokens: 5rem;
+  --size-card-price: 4.375rem;
+  /* The narrowest the session list gets before it scrolls sideways: every column at its least, the gaps, and the row's padding. */
+  --size-card-table-min: calc(
+    var(--size-card-session-min) + var(--size-card-agents-min) + var(--size-card-duration) +
+      var(--size-card-bar-min) + var(--size-card-tokens) + var(--size-card-price) + 5 *
+      var(--space-4) + 2 * var(--space-4-5)
+  );
   /* The agent strip's marks: a lead, teammate or subagent mark is 12px, 12px or 9px. */
   --size-mark: 0.75rem;
   --size-mark-subagent: 0.5625rem;

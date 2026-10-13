@@ -1,34 +1,41 @@
-.card {
-  position: relative;
-  border: 1px solid var(--color-divider);
-
-  /* The accent border follows hover and the title button's keyboard focus, not a chip's. */
-  &:hover,
-  &:has([data-card-open]:focus-visible) {
-    background: var(--color-hover);
-    border-color: var(--color-accent);
-  }
-}
-
-.grid {
-  padding-block: var(--space-3);
+.row {
+  border-block-start: 1px solid var(--color-divider);
 }
 
 /*
- * Above the title button's overlay, so each chip is its own target. The row
- * itself lets clicks through, so the gaps between chips still open the card.
+ * The grid is the open button's positioned ancestor, so the button's overlay
+ * covers this row and not the chips beneath it. Hover and focus show on the grid for the same reason.
  */
-.chips {
+.grid {
   position: relative;
-  z-index: 1;
-  pointer-events: none;
+  padding-block: var(--space-3-5);
+
+  &:hover,
+  &:has([data-card-open]:focus-visible) {
+    background: var(--color-selected);
+  }
+
+  &:has([data-card-open]:focus-visible) {
+    outline: var(--focus-ring);
+    outline-offset: calc(-1 * var(--focus-ring-width));
+  }
+}
+
+.duration,
+.bar {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Centered on the first line of the title, which the rows' other cells start from. */
+.bar {
+  align-self: center;
+}
+
+/* The chips sit beneath the grid, not under the open button's overlay, so each is its own target. */
+.chips {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2-5);
-  padding: 0 var(--space-4-5) var(--space-3);
+  padding: 0 var(--space-4-5) var(--space-3-5);
   list-style: none;
-
-  & > li {
-    pointer-events: auto;
-  }
 }

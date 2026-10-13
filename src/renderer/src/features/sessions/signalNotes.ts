@@ -39,19 +39,36 @@ export function signalsMarked(totals: SignalTotalsDto | null): boolean {
   return totals !== null && totals.partial && hasSignalCounts(totals)
 }
 
+/** A pill's tone, as the shared pill takes it. */
+export type PillTone = 'error' | 'warning' | 'neutral' | 'info'
+
+/** One signal count as a pill: its text and the tone that says how bad it is. */
+export interface SignalPill {
+  /** The text, such as `12 tool errors`. */
+  readonly text: string
+  /** `error` for tool errors and agent kills, `warning` for compactions. */
+  readonly tone: PillTone
+}
+
 /**
- * The muted notes for a card's signal counts.
+ * The pills for a card's signal counts.
  *
  * @param totals - The counts from {@link signalTotalsOf}, or `null` for none.
  * @param t - The sessions translate function.
- * @returns A note for each nonzero count, in the order tool errors,
+ * @returns A pill for each nonzero count, in the order tool errors,
  * compactions, agent kills. For example `12 tool errors`.
  */
-export function signalNotes(totals: SignalTotalsDto | null, t: SessionsT): string[] {
+export function signalPills(totals: SignalTotalsDto | null, t: SessionsT): SignalPill[] {
   if (totals === null) return []
-  const notes: string[] = []
-  if (totals.toolErrors > 0) notes.push(t('notes.toolErrors', { count: totals.toolErrors }))
-  if (totals.compactions > 0) notes.push(t('notes.compactions', { count: totals.compactions }))
-  if (totals.agentsKilled > 0) notes.push(t('notes.agentKills', { count: totals.agentsKilled }))
-  return notes
+  const pills: SignalPill[] = []
+  if (totals.toolErrors > 0) {
+    pills.push({ text: t('notes.toolErrors', { count: totals.toolErrors }), tone: 'error' })
+  }
+  if (totals.compactions > 0) {
+    pills.push({ text: t('notes.compactions', { count: totals.compactions }), tone: 'warning' })
+  }
+  if (totals.agentsKilled > 0) {
+    pills.push({ text: t('notes.agentKills', { count: totals.agentsKilled }), tone: 'error' })
+  }
+  return pills
 }
