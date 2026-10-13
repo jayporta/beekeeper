@@ -1,6 +1,6 @@
 .controls {
+  /* No clipping, so a button's focus ring shows whole; the end buttons round their own corners instead. */
   display: flex;
-  overflow: hidden;
   background: var(--color-bg);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-nav);
@@ -19,6 +19,14 @@
     &:hover {
       background: var(--color-hover);
     }
+  }
+
+  & button:first-child {
+    border-radius: var(--radius-nav) 0 0 var(--radius-nav);
+  }
+
+  & button:last-child {
+    border-radius: 0 var(--radius-nav) var(--radius-nav) 0;
   }
 
   & button + button {
