@@ -35,7 +35,8 @@ export interface BuildAgentGraphInput {
  * Builds the spawn graph of a session: the viewed agent at the root, its
  * subagents nested by spawn parent, then its teammates' own sessions as the
  * root's last children. The root is a teammate when the viewed session is a
- * teammate's own. A teammate's own subagents join the graph once its session is loaded (see `graftTeammates`).
+ * teammate's own. Teammate nodes have no children: a caller that loads a
+ * teammate's session adds its subagents under it.
  *
  * @param input - The session's detail, ref, list entry and row, and the root agent's names.
  * @returns The root node.
