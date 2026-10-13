@@ -5,6 +5,7 @@ import { SessionDetailBody } from './SessionDetailBody'
 import { SessionDetailBreadcrumb } from './SessionDetailBreadcrumb'
 import { sessionDetailLabel } from './sessionDetailLabel'
 import { SessionDetailHeader } from './SessionDetailHeader'
+import { SessionDetailHeaderCard } from './SessionDetailHeaderCard'
 import { SessionDetailStatus } from './SessionDetailStatus'
 import { useAnnounceLoaded } from './useAnnounceLoaded'
 import { useSessionDetail } from './useSessionDetail'
@@ -19,10 +20,10 @@ interface SessionDetailContentProps {
 }
 
 /**
- * One session's detail: the breadcrumb, then its header, agent graph, and
- * inspector once its detail has loaded, otherwise the loading or failure
- * message. Loaded data wins over a failed background refresh, so a session on
- * screen stays on screen. A session reported not found waits for the folder's
+ * One session's detail: its header card, which holds the breadcrumb, then
+ * its agent graph and inspector once its detail has loaded, otherwise the
+ * loading or failure message under the breadcrumb. Loaded data wins over a
+ * failed background refresh, so a session on screen stays on screen. A session reported not found waits for the folder's
  * list to settle first, since the folder itself may be gone. Once it has, an
  * archived row whose detail wasn't archived keeps its header and gets a
  * summary-only note instead of the not-found message, unless the folder is gone.
@@ -52,27 +53,35 @@ export function SessionDetailContent({
   const label = sessionDetailLabel(row, sessionRef, t)
   const lead = row?.item.team?.kind === 'teammate' ? row.item.team.lead : null
 
+  const showHeader = data !== undefined || summaryOnly
+
   return (
     <>
-      <SessionDetailBreadcrumb title={label.text} lead={lead} />
-      {data === undefined ? (
-        <>
-          {summaryOnly && <SessionDetailHeader label={label} row={row} archived summaryOnly />}
-          <SessionDetailStatus
-            error={error}
-            errorUpdatedAt={errorUpdatedAt}
-            holdNotFound={listPending}
-            summaryOnly={summaryOnly}
-            onRetry={() => {
-              void refetch()
-            }}
+      <SessionDetailHeaderCard
+        breadcrumb={<SessionDetailBreadcrumb title={label.text} lead={lead} />}
+      >
+        {showHeader && (
+          <SessionDetailHeader
+            label={label}
+            row={row}
+            archived={data === undefined || data.archived}
+            summaryOnly={data === undefined}
+            detail={data ?? null}
           />
-        </>
+        )}
+      </SessionDetailHeaderCard>
+      {data === undefined ? (
+        <SessionDetailStatus
+          error={error}
+          errorUpdatedAt={errorUpdatedAt}
+          holdNotFound={listPending}
+          summaryOnly={summaryOnly}
+          onRetry={() => {
+            void refetch()
+          }}
+        />
       ) : (
-        <>
-          <SessionDetailHeader label={label} row={row} archived={data.archived} />
-          <SessionDetailBody detail={data} sessionRef={sessionRef} row={row} />
-        </>
+        <SessionDetailBody detail={data} sessionRef={sessionRef} row={row} />
       )}
       <p role="status" className="visuallyHidden">
         {announceLoaded ? t('loaded', { title: label.text }) : ''}

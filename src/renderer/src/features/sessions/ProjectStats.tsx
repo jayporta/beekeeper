@@ -1,12 +1,12 @@
 import { useTranslation } from 'react-i18next'
 import { Footnote } from '@renderer/components/Footnote'
+import { StatRow } from '@renderer/components/StatRow'
+import { StatRowItem } from '@renderer/components/StatRowItem'
 import { groupProjects } from '@renderer/features/projects/groupProjects'
 import { useProjects } from '@renderer/features/projects/useProjects'
 import { formatUsd } from '@renderer/i18n/formatUsd'
-import styles from './ProjectStats.module.css'
 import { PROJECT_STATS_FOOTNOTE_ID } from './projectStatsFootnoteId'
 import type { FolderStats } from './folderStats'
-import { ProjectStatsItem } from './ProjectStatsItem'
 
 /** Props for {@link ProjectStats}. */
 interface ProjectStatsProps {
@@ -38,40 +38,37 @@ export function ProjectStats({ stats, dirName }: ProjectStatsProps): React.JSX.E
 
   return (
     <>
-      <dl className={styles.stats}>
-        <ProjectStatsItem
+      <StatRow>
+        <StatRowItem
           label={t('stats.sessions')}
           partialNote={stats.partial.sessions ? note : undefined}
         >
           {t('stats.integer', { value: stats.sessions })}
-        </ProjectStatsItem>
-        <ProjectStatsItem
+        </StatRowItem>
+        <StatRowItem
           label={t('stats.tokens')}
           partialNote={stats.partial.tokens ? note : undefined}
         >
           {t('figure.compact', { value: stats.tokens })}
-        </ProjectStatsItem>
-        <ProjectStatsItem
-          label={t('stats.cost')}
-          partialNote={stats.partial.cost ? note : undefined}
-        >
+        </StatRowItem>
+        <StatRowItem label={t('stats.cost')} partialNote={stats.partial.cost ? note : undefined}>
           {formatUsd(stats.usd, t)}
-        </ProjectStatsItem>
-        <ProjectStatsItem
+        </StatRowItem>
+        <StatRowItem
           label={t('stats.agents')}
           partialNote={stats.partial.agents ? note : undefined}
         >
           {t('stats.integer', { value: stats.agents })}
-        </ProjectStatsItem>
+        </StatRowItem>
         {group && (
-          <ProjectStatsItem label={t('stats.worktrees')}>
+          <StatRowItem label={t('stats.worktrees')}>
             {t('stats.integer', { value: group.worktrees.length })}
-          </ProjectStatsItem>
+          </StatRowItem>
         )}
-        <ProjectStatsItem label={t('stats.latest')}>
+        <StatRowItem label={t('stats.latest')}>
           {stats.latestMs === null ? t('stats.none') : t('lastActive', { value: stats.latestMs })}
-        </ProjectStatsItem>
-      </dl>
+        </StatRowItem>
+      </StatRow>
       {stats.reasons.length > 0 && (
         <Footnote
           id={PROJECT_STATS_FOOTNOTE_ID}

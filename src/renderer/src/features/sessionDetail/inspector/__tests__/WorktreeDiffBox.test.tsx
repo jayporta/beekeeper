@@ -755,14 +755,16 @@ describe('WorktreeDiffBox when a session turns archived', () => {
       button.focus()
     })
     await userEvent.click(inspector().getByText('feature/x'))
-    expect(document.activeElement).toBe(document.body)
+    // The inspector is a tab stop, so a click on its plain text focuses the inspector itself.
+    const region = screen.getByRole('region', { name: 'Agent inspector' })
+    expect(document.activeElement).toBe(region)
 
     act(() => {
       client.setQueryData(LEAD_KEY, archivedDetail)
     })
 
     await inspector().findByText(NOT_AVAILABLE)
-    expect(document.activeElement).toBe(document.body)
+    expect(document.activeElement).toBe(region)
   })
 
   it('moves focus to a message when it was on a teammate’s shared worktree link', async () => {
