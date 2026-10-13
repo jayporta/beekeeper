@@ -51,7 +51,7 @@ export function ReportedCostStat({ sessionId, agentId }: ReportedCostStatProps):
   return (
     <StatRowItem label={label}>
       {pending ? (
-        <EmptyCell />
+        <EmptyCell spokenText={t('inspector.reportedCost.pending')} />
       ) : unreadable ? (
         t('inspector.reportedCost.unavailable')
       ) : (
