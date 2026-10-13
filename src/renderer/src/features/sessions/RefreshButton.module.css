@@ -13,8 +13,9 @@
     transition: background-color 0.2s;
   }
 
+  /* An underline rather than a darker fill, which would take the dark-ink colors below 4.5:1. */
   &:hover {
-    filter: brightness(0.92);
+    text-decoration: underline;
   }
 }
 

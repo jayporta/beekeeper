@@ -75,7 +75,7 @@ export function ProjectStats({ stats, dirName }: ProjectStatsProps): React.JSX.E
       {stats.reasons.length > 0 && (
         <Footnote
           id={PROJECT_STATS_FOOTNOTE_ID}
-          label={t('footnote.label')}
+          label={t('stats.footnoteLabel')}
           sentences={sentences}
         />
       )}

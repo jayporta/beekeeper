@@ -24,9 +24,10 @@ interface SelectedProjectHeadingProps {
 }
 
 /**
- * The sessions view's header card: a breadcrumb from "All projects" to the
- * selected project, the project's name as the heading, its folder name exactly
- * as on disk beneath it, and optional controls on the right, and an optional stat row beneath. A worktree
+ * The sessions view's header card. It holds a breadcrumb from "All projects"
+ * to the selected project, the project's name as the heading with its folder
+ * name exactly as on disk beneath it, optional controls on the right, and an
+ * optional stat row at the bottom. A worktree
  * folder is named by its worktree, with its parent project as a step in the
  * breadcrumb. With no project selected it shows only a fixed heading.
  *

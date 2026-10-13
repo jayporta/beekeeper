@@ -21,7 +21,7 @@ interface RefreshButtonProps {
    */
   readonly status: RefreshStatus
   /**
-   * The project's color slot, which colors the button. Without one the button takes the accent.
+   * The project's color slot, which colors the button. Without one the button takes the first slot's fill and ink.
    * @defaultValue None.
    */
   readonly colorSlot?: ProjectColorSlot | null

@@ -18,7 +18,7 @@ export interface FolderStats {
   readonly usd: number
   /** How many agents: every session of the folder, teammates included, and each one's subagents. */
   readonly agents: number
-  /** When the lead or solo session active last was last active, or `null` when none has timestamps. */
+  /** The last activity time of the most recently active lead or solo session, or `null` when none has timestamps. */
   readonly latestMs: number | null
   /** Why a figure may be low. Without `undated`, which means nothing without a window. */
   readonly reasons: readonly CountReason[]

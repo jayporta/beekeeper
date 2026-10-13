@@ -122,6 +122,7 @@
     "none": "None",
     "integer": "{{value, integer}}",
     "compact": "{{value, compactInteger}}",
-    "partialNote": "partial, see the note below"
+    "partialNote": "partial, see the note under these totals",
+    "footnoteLabel": "¹ Partial totals:"
   }
 }
