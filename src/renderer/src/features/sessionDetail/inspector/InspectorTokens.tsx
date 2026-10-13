@@ -2,7 +2,6 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AgentReportDto } from '../../../../../shared/ipc/agentDto'
 import { MutedText } from '@renderer/components/MutedText'
-import { formatTokens } from '@renderer/features/sessions/formatTokens'
 import { tokenClasses } from '../tokens/tokenClasses'
 import { TokenClassBar } from '../tokens/TokenClassBar'
 import { TokenClassRows } from '../tokens/TokenClassRows'
@@ -35,7 +34,9 @@ export function InspectorTokens({
   const { t } = useTranslation('sessionDetail')
   const { t: tSessions } = useTranslation('sessions')
   const classes = useMemo(() => tokenClasses([report]), [report])
-  const heading = t('inspector.tokensHeading', { total: formatTokens(tokens, tSessions) })
+  const heading = t('inspector.tokensHeading', {
+    total: tSessions('figure.compact', { value: tokens })
+  })
 
   return (
     <section className={styles.tokens}>

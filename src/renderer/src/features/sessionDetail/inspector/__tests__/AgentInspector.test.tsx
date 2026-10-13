@@ -92,9 +92,7 @@ describe('AgentInspector for the lead', () => {
     expect(row('Output')).toBe('Output400')
     expect(row('Cache read')).toBe('Cache read100')
     expect(row('Cache write')).toBe('Cache write100')
-    expect(
-      inspector().getByRole('heading', { level: 3, name: 'Tokens · 1.6K tokens' })
-    ).toBeTruthy()
+    expect(inspector().getByRole('heading', { level: 3, name: 'Tokens · 1.6K' })).toBeTruthy()
   })
 
   it('names the model beside the tokens heading', () => {

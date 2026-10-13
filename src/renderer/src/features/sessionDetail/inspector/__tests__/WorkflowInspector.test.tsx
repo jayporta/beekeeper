@@ -133,7 +133,7 @@ describe('AgentInspector for a workflow run', () => {
   it('shows tokens by class over every agent', async () => {
     await openRun()
 
-    expect(inspector().getByRole('heading', { level: 3, name: 'Tokens · 30 tokens' })).toBeTruthy()
+    expect(inspector().getByRole('heading', { level: 3, name: 'Tokens · 30' })).toBeTruthy()
     expect(inspector().getByText('Input').closest('li')?.textContent).toBe('Input20')
     expect(inspector().getByText('Output').closest('li')?.textContent).toBe('Output10')
   })

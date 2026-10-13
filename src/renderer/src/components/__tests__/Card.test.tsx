@@ -26,11 +26,14 @@ describe('Card', () => {
     expect(container.firstElementChild?.tagName).toBe(as.toUpperCase())
   })
 
-  it('drops its padding when flush', () => {
+  it('adds a class when flush that a padded card does not have', () => {
     const plain = render(<Card>Body</Card>).container.firstElementChild
     const flush = render(<Card flush>Body</Card>).container.firstElementChild
 
-    expect(flush?.classList.length).toBe((plain?.classList.length ?? 0) + 1)
+    const extra = [...(flush?.classList ?? [])].filter((name) => !plain?.classList.contains(name))
+
+    expect(extra).toHaveLength(1)
+    expect(extra[0]).toMatch(/flush/)
   })
 
   it('passes a role, a name, a tab stop and a ref through to its element', () => {
