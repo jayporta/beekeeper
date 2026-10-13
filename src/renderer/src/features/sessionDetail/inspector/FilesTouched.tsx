@@ -1,12 +1,13 @@
 import { useTranslation } from 'react-i18next'
 import { useMemo } from 'react'
 import { MutedText } from '@renderer/components/MutedText'
+import { Pill } from '@renderer/components/Pill'
 import type { AgentReportDto } from '../../../../../shared/ipc/agentDto'
 import styles from './FilesTouched.module.css'
 import { groupFileTouches } from './groupFileTouches'
 import { InspectorMarker } from './InspectorMarker'
-import { InspectorList } from './InspectorList'
 import { InspectorSection } from './InspectorSection'
+import { operationTone } from './operationTone'
 
 /** Props for {@link FilesTouched}. */
 interface FilesTouchedProps {
@@ -16,9 +17,10 @@ interface FilesTouchedProps {
 
 /**
  * The files the agent's tools touched, one row per path: the path in
- * monospace, whole and wrapping so none of it is hidden, a neutral tag for each
- * distinct thing done to it, and how many times it was touched when more than
- * once. An agent with none says it is read-only, unless its list may be incomplete,
+ * monospace on one line, cut at the start so the file name always shows (the
+ * whole path is in the row's tooltip and in the page's text), a colored pill
+ * for each distinct thing done to it, and how many times it was touched when
+ * more than once. An agent with none says it is read-only, unless its list may be incomplete,
  * which it says with a "¹" instead of claiming so.
  *
  * @example
@@ -44,17 +46,17 @@ export function FilesTouched({ report }: FilesTouchedProps): React.JSX.Element {
           {fileListIncomplete ? t('inspector.noEditsRecorded') : t('inspector.readOnly')}
         </MutedText>
       ) : (
-        <InspectorList>
+        <ul className={styles.list}>
           {files.map(({ filePath, operations, touches }) => (
             <li key={filePath} className={styles.file}>
-              <span className={styles.path}>
-                <bdi>{filePath}</bdi>
+              <span className={styles.path} title={filePath}>
+                <bdi dir="ltr">{filePath}</bdi>
               </span>
               <span className={styles.tags}>
                 {operations.map((operation) => (
-                  <MutedText key={operation} as="span" smaller className={styles.tag}>
+                  <Pill key={operation} tone={operationTone(operation)}>
                     {t(`inspector.operation.${operation}`)}
-                  </MutedText>
+                  </Pill>
                 ))}
                 {touches > 1 && (
                   <>
@@ -69,7 +71,7 @@ export function FilesTouched({ report }: FilesTouchedProps): React.JSX.Element {
               </span>
             </li>
           ))}
-        </InspectorList>
+        </ul>
       )}
     </InspectorSection>
   )

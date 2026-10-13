@@ -18,12 +18,14 @@ describe('Pill', () => {
         <Pill tone="warning">warning</Pill>
         <Pill tone="neutral">neutral</Pill>
         <Pill tone="info">info</Pill>
+        <Pill tone="success">success</Pill>
+        <Pill tone="edit">edit</Pill>
       </>
     )
 
-    const classes = ['error', 'warning', 'neutral', 'info'].map(
+    const classes = ['error', 'warning', 'neutral', 'info', 'success', 'edit'].map(
       (name) => screen.getByText(name).className
     )
-    expect(new Set(classes).size).toBe(4)
+    expect(new Set(classes).size).toBe(6)
   })
 })

@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
+import { Card } from '@renderer/components/Card'
 import { sessionKey } from '@renderer/features/sessions/sessionKey'
 import type { AgentGraphNode } from '../graph/agentGraphNode'
 import styles from './AgentInspector.module.css'
@@ -31,17 +32,17 @@ interface AgentInspectorProps {
 export function AgentInspector({ node, sessionRef }: AgentInspectorProps): React.JSX.Element {
   const { t } = useTranslation('sessionDetail')
   const { selection } = node
-  const region = useRef<HTMLDivElement>(null)
+  const region = useRef<HTMLElement>(null)
   // The region persists across selections, so the new agent would open at the old one's offset.
   useLayoutEffect(() => {
     if (region.current) region.current.scrollTop = 0
   }, [node.key])
 
   return (
-    <div
+    <Card
       ref={region}
       role="region"
-      aria-label={t('inspector.label')}
+      label={t('inspector.label')}
       tabIndex={0}
       className={styles.inspector}
     >
@@ -54,6 +55,6 @@ export function AgentInspector({ node, sessionRef }: AgentInspectorProps): React
       ) : (
         <InspectedAgent key={node.key} node={node} selection={selection} sessionRef={sessionRef} />
       )}
-    </div>
+    </Card>
   )
 }

@@ -6,7 +6,7 @@ import type { ReportedCostDto } from '../../../../../../shared/ipc/reportedCostD
 import { REPORTED_COST_POLL_MS } from '@renderer/features/telemetry/useReportedCost'
 import { installBeekeeperApi, type TestBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { createQueryWrapper, createTestQueryClient } from '@renderer/testQueryWrapper'
-import { ReportedCostNote } from '../ReportedCostNote'
+import { ReportedCostStat } from '../ReportedCostStat'
 
 const SESSION = '11111111-2222-4333-8444-555555555555'
 const LISTENING: OtelReceiverDto = {
@@ -43,12 +43,27 @@ function stub(
 
 const OFF: OtelReceiverDto = { enabled: false, status: 'off', failure: null }
 
-function renderNote(agentId: string | null): { container: HTMLElement; client: QueryClient } {
+function renderNote(agentId: string | null): { client: QueryClient } {
   const client = createTestQueryClient()
-  const { container } = render(<ReportedCostNote sessionId={SESSION} agentId={agentId} />, {
+  render(<ReportedCostStat sessionId={SESSION} agentId={agentId} />, {
     wrapper: createQueryWrapper(client)
   })
-  return { container, client }
+  return { client }
+}
+
+const SESSION_LABEL = "Claude Code's estimate for this session"
+const AGENT_LABEL = "Claude Code's estimate"
+
+/** The figure under a label. */
+function valueOf(label: string): string | undefined {
+  return screen.getByText(label, { selector: 'dt' }).nextElementSibling?.textContent
+}
+
+/** Waits for the figure under a label to read `text`. */
+async function expectValue(label: string, text: string): Promise<void> {
+  await waitFor(() => {
+    expect(valueOf(label)).toBe(text)
+  })
 }
 
 /**
@@ -66,92 +81,91 @@ async function settle(client: QueryClient, listening: boolean): Promise<void> {
   })
 }
 
-describe('ReportedCostNote', () => {
+describe('ReportedCostStat', () => {
   it('gives the whole session’s reported cost for the lead', async () => {
     stub(reported())
     renderNote(null)
 
-    expect(await screen.findByText("Claude Code's estimate for this session: $1.50")).toBeTruthy()
+    await expectValue(SESSION_LABEL, '$1.50')
   })
 
   it('reads a cost under a cent as such', async () => {
     stub(reported({ costUsd: 0.004 }))
     renderNote(null)
 
-    expect(await screen.findByText("Claude Code's estimate for this session: <$0.01")).toBeTruthy()
+    await expectValue(SESSION_LABEL, '<$0.01')
   })
 
   it('gives a subagent’s own share when its id matches exactly', async () => {
     stub(reported())
     renderNote('sub-1')
 
-    expect(await screen.findByText("Claude Code's estimate: $0.40")).toBeTruthy()
+    await expectValue(AGENT_LABEL, '$0.40')
   })
 
-  it('shows nothing for a subagent with no share under its id', async () => {
+  it('says not available for a subagent with no share under its id', async () => {
     stub(reported())
-    const { container, client } = renderNote('sub-2')
+    const { client } = renderNote('sub-2')
     await settle(client, true)
 
-    expect(container.textContent).toBe('')
+    expect(valueOf(AGENT_LABEL)).toBe('Not available')
   })
 
   it('does not match a subagent id by prefix', async () => {
     stub(reported({ byAgent: [{ agentId: 'sub-10', costUsd: 9 }] }))
-    const { container, client } = renderNote('sub-1')
+    const { client } = renderNote('sub-1')
     await settle(client, true)
 
-    expect(container.textContent).toBe('')
+    expect(valueOf(AGENT_LABEL)).toBe('Not available')
   })
 
-  it('shows nothing when the session reported nothing', async () => {
+  it('says not available when the session reported nothing', async () => {
     stub(null)
-    const { container, client } = renderNote(null)
+    const { client } = renderNote(null)
     await settle(client, true)
 
-    expect(container.textContent).toBe('')
+    expect(valueOf(SESSION_LABEL)).toBe('Not available')
   })
 
   it('does not ask for a reported cost while the receiver is off', async () => {
     const api = stub(reported(), OFF)
-    const { container, client } = renderNote(null)
+    const { client } = renderNote(null)
     await settle(client, false)
 
-    expect([api.getReportedCost.mock.calls.length, container.textContent]).toEqual([0, ''])
+    expect([api.getReportedCost.mock.calls.length, valueOf(SESSION_LABEL)]).toEqual([
+      0,
+      'Not available'
+    ])
   })
 
   it('drops the figure when the receiver is turned off', async () => {
     stub(reported())
     const { client } = renderNote(null)
-    await screen.findByText("Claude Code's estimate for this session: $1.50")
+    await expectValue(SESSION_LABEL, '$1.50')
 
     act(() => {
       client.setQueryData(['otelReceiver'], OFF)
     })
 
-    await waitFor(() => {
-      expect(screen.queryByText(/Claude Code's estimate/)).toBeNull()
-    })
+    await expectValue(SESSION_LABEL, 'Not available')
   })
 
   it('drops the figure when the receiver is on but has stopped listening', async () => {
     stub(reported())
     const { client } = renderNote(null)
-    await screen.findByText("Claude Code's estimate for this session: $1.50")
+    await expectValue(SESSION_LABEL, '$1.50')
 
     act(() => {
       client.setQueryData(['otelReceiver'], { ...LISTENING, status: 'failed', failure: 'failed' })
     })
 
-    await waitFor(() => {
-      expect(screen.queryByText(/Claude Code's estimate/)).toBeNull()
-    })
+    await expectValue(SESSION_LABEL, 'Not available')
   })
 
   it('shows the figure again when the receiver is turned back on', async () => {
     stub(reported())
     const { client } = renderNote(null)
-    await screen.findByText("Claude Code's estimate for this session: $1.50")
+    await expectValue(SESSION_LABEL, '$1.50')
     act(() => {
       client.setQueryData(['otelReceiver'], OFF)
     })
@@ -160,7 +174,7 @@ describe('ReportedCostNote', () => {
       client.setQueryData(['otelReceiver'], LISTENING)
     })
 
-    expect(await screen.findByText("Claude Code's estimate for this session: $1.50")).toBeTruthy()
+    await expectValue(SESSION_LABEL, '$1.50')
   })
 
   it('says the estimate is not available when the call fails', async () => {
@@ -170,7 +184,7 @@ describe('ReportedCostNote', () => {
     })
     renderNote(null)
 
-    expect(await screen.findByText("Claude Code's estimate isn't available.")).toBeTruthy()
+    await expectValue(SESSION_LABEL, "Claude Code's estimate isn't available.")
   })
 
   it('keeps the last figure when a later read fails', async () => {
@@ -184,15 +198,14 @@ describe('ReportedCostNote', () => {
           : Promise.resolve({ ok: false, error: { code: 'internal' } })
     })
     renderNote(null)
-    await screen.findByText("Claude Code's estimate for this session: $1.50")
+    await expectValue(SESSION_LABEL, '$1.50')
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(REPORTED_COST_POLL_MS * 2)
     })
 
     expect(calls).toBeGreaterThanOrEqual(2)
-    expect(screen.getByText("Claude Code's estimate for this session: $1.50")).toBeTruthy()
-    expect(screen.queryByText("Claude Code's estimate isn't available.")).toBeNull()
+    expect(valueOf(SESSION_LABEL)).toBe('$1.50')
   })
 
   it('reads again every five seconds while the receiver is listening', async () => {
