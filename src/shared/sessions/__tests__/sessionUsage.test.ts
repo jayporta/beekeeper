@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { sessionUsage } from '../sessionUsage'
-import {
-  testLeadTeam,
-  testSession,
-  testUsage
-} from '../../../../../shared/sessions/testSessionFixtures'
+import { testLeadTeam, testSession, testUsage } from '../testSessionFixtures'
 
 const NOTHING = { tokens: null, usd: null, tokensPartial: false, usdPartial: false }
 

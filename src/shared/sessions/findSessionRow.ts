@@ -1,6 +1,6 @@
-import type { SessionRefDto } from '../../../../shared/ipc/sessionRefDto'
-import { sessionKey } from '../../../../shared/sessions/sessionKey'
-import type { SessionRow } from '../../../../shared/sessions/sessionRow'
+import type { SessionRefDto } from '../ipc/sessionRefDto'
+import { sessionKey } from './sessionKey'
+import type { SessionRow } from './sessionRow'
 
 /**
  * Finds a session's row in a folder's grouped sessions list: a top-level row,

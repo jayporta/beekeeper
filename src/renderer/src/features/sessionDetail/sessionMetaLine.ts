@@ -1,5 +1,5 @@
 import { agentCountLabel, hasAgents } from '@renderer/features/sessions/agentCountLabel'
-import { cardFigures } from '@renderer/features/sessions/cardFigures'
+import { cardFigures } from '../../../../shared/sessions/cardFigures'
 import { activitySpanMs } from '@renderer/features/sessions/activitySpanMs'
 import { formatDuration } from '@renderer/features/sessions/formatDuration'
 import { formatLastActive } from '@renderer/features/sessions/formatLastActive'

@@ -1,4 +1,4 @@
-import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
+import type { SessionListItemDto } from '../ipc/sessionListDto'
 import { sessionUsage, type UsageFigures } from './sessionUsage'
 
 /** The usage figures a session card shows. */

@@ -5,7 +5,7 @@
  * A value carrying a newline, a bidi override, U+2028, or a non-breaking
  * space could misrepresent what it shows or what it matches.
  */
-const UNPRINTABLE_PATTERN = /[\p{Cc}\p{Cf}\p{Cs}\p{Co}]|[^\S ]/u
+export const UNPRINTABLE_PATTERN = /[\p{Cc}\p{Cf}\p{Cs}\p{Co}]|[^\S ]/u
 
 /**
  * Whether an untrusted string holds a character that can't safely be shown.

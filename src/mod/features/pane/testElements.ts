@@ -30,3 +30,21 @@ export function installTestH(): void {
 export function removeTestH(): void {
   Reflect.deleteProperty(globalThis, 'h')
 }
+
+/** Every string in a drawn tree, in order, joined: what a person would read. */
+export function textOf(node: unknown): string {
+  if (typeof node === 'string') return node
+  if (Array.isArray(node)) return node.map(textOf).join('')
+  if (node !== null && typeof node === 'object' && 'children' in node) {
+    return textOf((node as TestNode).children)
+  }
+  return ''
+}
+
+/** Every node in a drawn tree whose type is `type`, in order. */
+export function findAll(node: unknown, type: unknown): TestNode[] {
+  if (Array.isArray(node)) return node.flatMap((child) => findAll(child, type))
+  if (node === null || typeof node !== 'object' || !('children' in node)) return []
+  const found = node as TestNode
+  return [...(found.type === type ? [found] : []), ...findAll(found.children, type)]
+}

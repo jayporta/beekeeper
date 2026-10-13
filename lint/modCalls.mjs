@@ -5,6 +5,7 @@
  * @property {string[]} calls - Every `$` call the mod's modules make, such as `$.ui.open`.
  * @property {string[]} envReads - The environment variables the modules read.
  * @property {string[]} envWrites - The environment variables the modules write.
+ * @property {string[]} stateReads - The `$.state` keys the modules read.
  * @property {string[]} stateWrites - The `$.state` keys the modules write.
  * @property {string[]} uncaughtGates - Each gating hook without a `.catch`, as "module hook".
  * @property {string[]} errors - Everything validate reported as wrong.
@@ -14,6 +15,8 @@
  * @typedef {object} Allowlist
  * @property {readonly string[]} calls - The `$` calls the mod may make.
  * @property {readonly string[]} envReads - The environment variables the mod may read.
+ * @property {readonly string[]} stateReads - The `$.state` keys the mod may read.
+ * @property {readonly string[]} stateWrites - The `$.state` keys the mod may write.
  */
 
 /**
@@ -22,10 +25,10 @@
  * renamed label cannot hide a call.
  */
 const NOTE_LINE =
-  /^(\S+) (hooks|answers its own command|gating hook without \.catch|calls|env reads|env writes|state writes): (.*)$/
+  /^(\S+) (hooks|answers its own command|gating hook (?:with|without) \.catch|calls|env reads|env writes|state reads|state writes): (.*)$/
 
 /** The notes that list what a module does, by label. */
-const READ_LABELS = ['calls', 'env reads', 'env writes', 'state writes']
+const READ_LABELS = ['calls', 'env reads', 'env writes', 'state reads', 'state writes']
 
 /**
  * Fails with the one error every malformed report gets.
@@ -107,6 +110,7 @@ export function parseValidateReport(report) {
     calls: [],
     envReads: [],
     envWrites: [],
+    stateReads: [],
     stateWrites: [],
     uncaughtGates: [],
     errors: arrayOf(report.manifest.errors, '`manifest.errors`').map(describeError)
@@ -117,6 +121,7 @@ export function parseValidateReport(report) {
     calls: parsed.calls,
     'env reads': parsed.envReads,
     'env writes': parsed.envWrites,
+    'state reads': parsed.stateReads,
     'state writes': parsed.stateWrites
   }
   let sawCalls = false
@@ -164,7 +169,12 @@ export function findViolations(parsed, allowlist) {
       .filter((name) => !allowlist.envReads.includes(name))
       .map((name) => `env read not on the allowlist: ${name}`),
     ...parsed.envWrites.map((name) => `env write is never allowed: ${name}`),
-    ...parsed.stateWrites.map((key) => `state write is never allowed: ${key}`),
+    ...parsed.stateReads
+      .filter((key) => !allowlist.stateReads.includes(key))
+      .map((key) => `state read not on the allowlist: ${key}`),
+    ...parsed.stateWrites
+      .filter((key) => !allowlist.stateWrites.includes(key))
+      .map((key) => `state write not on the allowlist: ${key}`),
     ...parsed.uncaughtGates.map((gate) => `gating hook without .catch: ${gate}`)
   ]
 }

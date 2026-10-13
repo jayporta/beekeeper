@@ -7,7 +7,7 @@ import { groupSessionRows } from '../../../../shared/sessions/groupSessionRows'
 import type { SessionRow } from '../../../../shared/sessions/sessionRow'
 import { sessionLabelWords } from '@renderer/features/sessions/sessionLabelWords'
 import { useSessions } from '@renderer/features/sessions/useSessions'
-import { findSessionRow } from './findSessionRow'
+import { findSessionRow } from '../../../../shared/sessions/findSessionRow'
 
 /** What {@link useSessionRow} found. */
 export interface SessionRowState {

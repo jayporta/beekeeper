@@ -5,7 +5,7 @@ import { formatUsd } from '@renderer/i18n/formatUsd'
 import { EmptyCell } from './EmptyCell'
 import styles from './CardTokens.module.css'
 import { formatTokens } from './formatTokens'
-import type { UsageFigures } from './sessionUsage'
+import type { UsageFigures } from '../../../../shared/sessions/sessionUsage'
 
 /** Props for {@link CardTokens}. */
 interface CardTokensProps {

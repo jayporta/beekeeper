@@ -24,11 +24,20 @@ import {
 /** Only src/mod/register.ts talks to the engine; the rest of the mod gets a ModHost. */
 const modEngineImport = {
   name: 'claude-code',
-  message: 'Only src/mod/register.ts talks to the engine; lib gets a ModHost.'
+  allowTypeImports: true,
+  message:
+    'Only src/mod/register.ts talks to the engine; lib gets a ModHost. A type-only import is erased and allowed.'
 }
 
 /** The engine elements' props whose string values are layout or style names, not text. */
-const MOD_LAYOUT_PROPS = ['flexDirection', 'justifyContent', 'alignItems', 'borderStyle', 'color']
+const MOD_LAYOUT_PROPS = [
+  'flexDirection',
+  'justifyContent',
+  'alignItems',
+  'borderStyle',
+  'color',
+  'wrap'
+]
 
 /**
  * The options for `i18next/no-literal-string`, shared by the renderer and the mod.

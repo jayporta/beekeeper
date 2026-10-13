@@ -87,6 +87,30 @@ describe('parseValidateReport', () => {
     expect(parsed.stateWrites).toEqual(['pane.title'])
   })
 
+  it('accepts a gating hook that has a .catch, which gatingHooks reports', () => {
+    const parsed = parseValidateReport(
+      report([...CLEAN_NOTES, './register.js gating hook with .catch: agent.spawn'])
+    )
+
+    expect(parsed.uncaughtGates).toEqual([])
+  })
+
+  it('reads state reads', () => {
+    const parsed = parseValidateReport(
+      report(['./register.js calls: $.state.get', './register.js state reads: beekeeper.view'])
+    )
+
+    expect(parsed.stateReads).toEqual(['beekeeper.view'])
+  })
+
+  it('reads state reads of "nothing" as none', () => {
+    const parsed = parseValidateReport(
+      report(['./register.js calls: $.ui.open', './register.js state reads: nothing'])
+    )
+
+    expect(parsed.stateReads).toEqual([])
+  })
+
   it('throws on a note it does not recognize, so a renamed label cannot hide a call', () => {
     expect(() =>
       parseValidateReport(report([...CLEAN_NOTES, './register.js environment reads: HOME']))
@@ -190,11 +214,30 @@ describe('findViolations', () => {
     expect(violations[0]).toContain('FOO')
   })
 
-  it('names a state write', () => {
+  it('names a state write outside the allowlist', () => {
     const violations = findViolations({ ...clean(), stateWrites: ['pane.title'] }, MOD_ALLOWLIST)
 
     expect(violations).toHaveLength(1)
     expect(violations[0]).toContain('pane.title')
+  })
+
+  it("allows a write to the mod's own state key", () => {
+    expect(findViolations({ ...clean(), stateWrites: ['beekeeper.view'] }, MOD_ALLOWLIST)).toEqual(
+      []
+    )
+  })
+
+  it('names a state read outside the allowlist', () => {
+    const violations = findViolations({ ...clean(), stateReads: ['other.key'] }, MOD_ALLOWLIST)
+
+    expect(violations).toHaveLength(1)
+    expect(violations[0]).toContain('other.key')
+  })
+
+  it("allows a read of the mod's own state key", () => {
+    expect(findViolations({ ...clean(), stateReads: ['beekeeper.view'] }, MOD_ALLOWLIST)).toEqual(
+      []
+    )
   })
 
   it('names an env read outside the allowlist', () => {

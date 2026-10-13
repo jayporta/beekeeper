@@ -2,5 +2,6 @@
   "name": "beekeeper",
   "version": "0.0.0",
   "description": "See what your Claude Code agents did, what they changed, and what they cost. Local-only.",
-  "author": { "name": "Jason Matthew Porta" }
+  "author": { "name": "Jason Matthew Porta" },
+  "types": "./types/index.d.ts"
 }
