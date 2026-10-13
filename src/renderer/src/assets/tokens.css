@@ -258,6 +258,10 @@
   --size-chart-bar-min: 0.125rem;
   /* The By model ring: 156px. */
   --size-ring: 9.75rem;
+  /* The tokens per day card's least comfortable width: below it, By model wraps under it so the table's day column keeps its room. */
+  --size-chart-card-basis: 40rem;
+  /* The By model card's least comfortable width. */
+  --size-model-card-basis: 16.25rem;
   /* The hairline of ground between a bar's segments, so each meets the ground. */
   --size-hairline: 1px;
   /* The stripes of the hatch that marks the other series, and half the tile of the dots that mark haiku: 3px of color, then 3px of ground. */
