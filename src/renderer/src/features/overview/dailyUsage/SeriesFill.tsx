@@ -1,19 +1,20 @@
 import { withClassName } from '@renderer/components/withClassName'
+import type { ModelFamily } from './modelFamily'
 import styles from './SeriesFill.module.css'
 
-/** The class of each series' color, by the series' index. */
-const SERIES_CLASSES = [
-  styles.series0,
-  styles.series1,
-  styles.series2,
-  styles.series3,
-  styles.series4
-]
+/** The class of each family's color. */
+const FAMILY_CLASSES = {
+  fable: styles.fable,
+  opus: styles.opus,
+  sonnet: styles.sonnet,
+  haiku: styles.haiku,
+  other: styles.other
+} as const satisfies Record<ModelFamily, string | undefined>
 
 /** Props for {@link SeriesFill}. */
 interface SeriesFillProps {
-  /** The series' index, which picks its color. */
-  readonly index: number
+  /** The model family, which picks the fill's color and pattern. */
+  readonly family: ModelFamily
   /**
    * A class that sizes and places the fill.
    * @defaultValue No extra class.
@@ -26,17 +27,18 @@ interface SeriesFillProps {
 }
 
 /**
- * A block of a series' color: a swatch in the legend or a segment of a bar.
- * It is decorative: the series' name and figures are given in text.
+ * A block of a model family's color: a swatch in the legend or a segment of a bar.
+ * Haiku carries dots and other carries a hatch, so neither relies on color alone.
+ * It is decorative: the family's name and figures are given in text.
  *
  * @example
- * <SeriesFill index={0} className={styles.swatch} />
+ * <SeriesFill family="opus" className={styles.swatch} />
  */
-export function SeriesFill({ index, className, title, grow }: SeriesFillProps): React.JSX.Element {
+export function SeriesFill({ family, className, title, grow }: SeriesFillProps): React.JSX.Element {
   return (
     <span
       aria-hidden="true"
-      className={withClassName(SERIES_CLASSES[index], className)}
+      className={withClassName(FAMILY_CLASSES[family], className)}
       title={title}
       style={grow === undefined ? undefined : { flexGrow: grow }}
     />

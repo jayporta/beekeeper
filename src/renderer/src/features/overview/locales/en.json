@@ -12,10 +12,13 @@
   },
   "totals": {
     "label": "Totals, {{range}}",
-    "tokens": "tokens",
-    "sessions": "sessions",
-    "agents": "agents, incl. teammates and subagents",
     "labelUpdating": "Totals, {{range}}, updating"
+  },
+  "kpi": {
+    "tokens": { "label": "Tokens" },
+    "api": { "label": "At API prices", "sub": "an estimate, not your bill" },
+    "sessions": { "label": "Sessions", "sub": "leads and solo sessions" },
+    "agents": { "label": "Agents", "sub": "incl. teammates and subagents" }
   },
   "figure": {
     "integer": "{{value, integer}}",
@@ -55,7 +58,6 @@
     "sessions_other": "{{count, integer}} sessions",
     "agents_one": "{{count, integer}} agent",
     "agents_other": "{{count, integer}} agents",
-    "share": "{{value, integer}}% of the busiest project's tokens",
     "latest": "Latest: {{title}} · {{when, shortDateTime}}",
     "latestUntitled": "Latest: untitled session · {{when, shortDateTime}}",
     "noLatest": "No sessions in this window",
@@ -89,7 +91,13 @@
     "heading": "Tokens per day, by model",
     "note": "Tokens count on the day each message ran, so this can differ from the totals above.",
     "legendLabel": "Models",
-    "otherModels": "Other models",
+    "family": {
+      "fable": "Fable",
+      "opus": "Opus",
+      "sonnet": "Sonnet",
+      "haiku": "Haiku",
+      "other": "Other models"
+    },
     "chartLabel": "Tokens per day, {{range}}: {{total, compactInteger}} in all, most on {{busiestDay}} with {{busiestTotal, compactInteger}}",
     "chartLabelEmpty": "No tokens in the {{range}}",
     "segmentTitle": "{{day}}: {{series}}, {{value, integer}} tokens",
@@ -118,5 +126,29 @@
       "mayBeLow": "A day's total may be low."
     },
     "tableToggle": "Tokens per day as a table"
+  },
+  "percent": "{{value, integer}}%",
+  "projects": {
+    "heading": "Projects",
+    "sortBy": "Sort by",
+    "sort": { "tokens": "Tokens", "latest": "Latest", "name": "Name" },
+    "col": {
+      "project": "Project",
+      "latest": "Latest",
+      "bar": "Tokens compared with the busiest project",
+      "tokens": "Tokens",
+      "sessions": "Sessions",
+      "agents": "Agents",
+      "share": "Share"
+    },
+    "shareOfTotal": "{{value, integer}}% of all tokens"
+  },
+  "byModel": {
+    "heading": "By model",
+    "label": "Tokens by model",
+    "unit": "tokens",
+    "underOne": "<1%",
+    "loading": "Loading models",
+    "error": "Couldn't load models."
   }
 }

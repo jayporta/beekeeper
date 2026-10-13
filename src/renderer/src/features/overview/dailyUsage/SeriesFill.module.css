@@ -1,24 +1,32 @@
-.series0 {
-  background: var(--color-series-1);
+.fable {
+  background: var(--color-model-fable);
 }
 
-.series1 {
-  background: var(--color-series-2);
+.opus {
+  background: var(--color-model-opus);
 }
 
-.series2 {
-  background: var(--color-series-3);
+.sonnet {
+  background: var(--color-model-sonnet);
 }
 
-.series3 {
-  background: var(--color-series-4);
+/* Haiku is dotted as well as colored, so it is told apart without color. */
+.haiku {
+  background:
+    radial-gradient(
+        circle,
+        var(--color-bg) 0 calc(var(--size-hatch) / 2),
+        transparent calc(var(--size-hatch) / 2 + var(--size-hairline))
+      )
+      0 0 / calc(2 * var(--size-hatch)) calc(2 * var(--size-hatch)),
+    var(--color-model-haiku);
 }
 
 /* The other series is hatched as well as grey, so it is told apart without color. */
-.series4 {
+.other {
   background: repeating-linear-gradient(
     135deg,
-    var(--color-series-other) 0 var(--size-hatch),
+    var(--color-model-other) 0 var(--size-hatch),
     transparent var(--size-hatch) calc(2 * var(--size-hatch))
   );
 }
@@ -27,11 +35,11 @@
  * Forced colors would replace each fill with a system color, so the series could not be told apart.
  * Each keeps its own color, edged in the system text color so it shows on any high-contrast ground.
  */
-.series0,
-.series1,
-.series2,
-.series3,
-.series4 {
+.fable,
+.opus,
+.sonnet,
+.haiku,
+.other {
   @media (forced-colors: active) {
     forced-color-adjust: none;
     outline: var(--size-hairline) solid CanvasText;

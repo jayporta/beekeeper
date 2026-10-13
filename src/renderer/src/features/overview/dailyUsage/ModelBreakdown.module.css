@@ -1,0 +1,31 @@
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0;
+  font-size: var(--font-size-body);
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: var(--size-mark) minmax(0, 1fr) auto 4ch;
+  gap: var(--space-2-5);
+  align-items: center;
+}
+
+.swatch {
+  display: inline-block;
+  inline-size: var(--size-mark);
+  block-size: var(--size-mark);
+}
+
+.name {
+  overflow-wrap: anywhere;
+}
+
+.figure {
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  color: var(--color-text-muted);
+}

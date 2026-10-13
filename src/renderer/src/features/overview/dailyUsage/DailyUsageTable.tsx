@@ -37,7 +37,6 @@ export const DailyUsageTable = memo(function DailyUsageTable({
   range
 }: DailyUsageTableProps): React.JSX.Element {
   const { t } = useTranslation('overview')
-  const otherModels = t('dailyUsage.otherModels')
   const exact = (value: number): string => t('dailyUsage.exact', { value })
   const captionId = useId()
 
@@ -51,8 +50,8 @@ export const DailyUsageTable = memo(function DailyUsageTable({
           <tr>
             <th scope="col">{t('dailyUsage.table.day')}</th>
             {series.map((entry) => (
-              <th key={entry.index} scope="col">
-                {seriesLabel(entry, otherModels)}
+              <th key={entry.key} scope="col">
+                {seriesLabel(entry, t)}
               </th>
             ))}
             <th scope="col">{t('dailyUsage.table.total')}</th>
@@ -63,9 +62,7 @@ export const DailyUsageTable = memo(function DailyUsageTable({
             <tr key={day.day}>
               <th scope="row">{dayLabels(t, day.day).full}</th>
               {series.map((entry) => (
-                <td key={entry.index}>
-                  {exact(seriesTokens({ day, series: entry, all: series }))}
-                </td>
+                <td key={entry.key}>{exact(seriesTokens({ day, series: entry }))}</td>
               ))}
               <td>{exact(day.total)}</td>
             </tr>
@@ -75,7 +72,7 @@ export const DailyUsageTable = memo(function DailyUsageTable({
           <tr>
             <th scope="row">{t('dailyUsage.table.total')}</th>
             {series.map((entry) => (
-              <td key={entry.index}>{exact(entry.total)}</td>
+              <td key={entry.key}>{exact(entry.total)}</td>
             ))}
             <td>{exact(total)}</td>
           </tr>
