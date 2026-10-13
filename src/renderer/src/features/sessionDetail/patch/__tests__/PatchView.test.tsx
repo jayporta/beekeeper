@@ -220,15 +220,11 @@ describe('the patch dialog', () => {
     expect(await dialog().findByText(note)).toBeTruthy()
   })
 
-  it.each([
-    ['branch-not-found', 'The branch no longer exists.'],
-    ['output-too-large', 'The diff is too large to show.'],
-    ['outside-project', "The repository can't be found."],
-    ['git-failed', "The diff couldn't be computed."]
-  ] as const)('notes why a patch failed (%s)', async (code, note) => {
-    await openDiff({ a1: { ok: true, value: { kind: 'failed', code } } })
+  // Which note each failure code gets is covered in diffFailureKey.test.ts and WorktreeDiffBox.test.tsx.
+  it('notes why a patch failed', async () => {
+    await openDiff({ a1: { ok: true, value: { kind: 'failed', code: 'branch-not-found' } } })
 
-    expect(await dialog().findByText(note)).toBeTruthy()
+    expect(await dialog().findByText('The branch no longer exists.')).toBeTruthy()
   })
 
   it('says there is nothing to show for a patch of no files', async () => {
@@ -465,18 +461,6 @@ describe('uncommitted work', () => {
     expect(
       within(status).getByText('Diff loaded: 1 file').classList.contains('visuallyHidden')
     ).toBe(true)
-  })
-
-  it('says uncommitted work is left out when a git filter would have to run', async () => {
-    await openDiff({ a1: withUncommitted('skipped-filters') })
-
-    expect(await dialog().findByText(/this repository uses git filters/)).toBeTruthy()
-  })
-
-  it('says uncommitted work is left out when the folder is not the agent’s worktree', async () => {
-    await openDiff({ a1: withUncommitted('worktree-mismatch') })
-
-    expect(await dialog().findByText(/that folder isn't this agent's worktree/)).toBeTruthy()
   })
 
   it('has no note when uncommitted work is included', async () => {

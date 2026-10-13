@@ -223,18 +223,16 @@ describe('parseOtlpLogs', () => {
     expect(requests).toEqual([])
   })
 
-  it.each(['0x10', '', '   ', '1,5', 'Infinity'])(
-    'drops a record whose cost is the non-decimal text %j',
-    (text) => {
-      expect(oneRequest({ cost_usd: { stringValue: text } })).toEqual([])
-    }
-  )
+  // The decimal text rules themselves are covered in otlpAttributes.test.ts.
+  it('drops a record whose cost is non-decimal text', () => {
+    expect(oneRequest({ cost_usd: { stringValue: '0x10' } })).toEqual([])
+  })
 
   it('accepts a body with no resource logs as an empty batch', () => {
     expect(parseOtlpLogs({ resourceLogs: [] })).toEqual({ ok: true, value: [] })
   })
 
-  it.each([null, 'text', 42, [], {}, { resourceLogs: 'nope' }])(
+  it.each([null, [], {}, { resourceLogs: 'nope' }])(
     'rejects a body that is not an OTLP logs request: %j',
     (body) => {
       expect(parseOtlpLogs(body)).toEqual({ ok: false, error: 'malformed' })

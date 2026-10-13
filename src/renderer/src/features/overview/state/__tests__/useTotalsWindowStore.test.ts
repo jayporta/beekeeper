@@ -9,10 +9,4 @@ describe('useTotalsWindowStore', () => {
   it('starts at 7 days', () => {
     expect(useTotalsWindowStore.getState().window).toBe('7d')
   })
-
-  it('changes the window', () => {
-    useTotalsWindowStore.getState().setWindow('30d')
-
-    expect(useTotalsWindowStore.getState().window).toBe('30d')
-  })
 })

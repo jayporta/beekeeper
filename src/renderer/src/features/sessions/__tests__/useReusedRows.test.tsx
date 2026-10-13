@@ -58,7 +58,10 @@ describe('useReusedRows', () => {
   it('returns the earlier row when an equal item arrives as a new object', () => {
     const { initial, rerenderWith } = renderRows([lead, teammate, solo])
 
-    const next = rerenderWith([lead, teammate, structuredClone(solo)])
+    // A JSON round trip, not structuredClone: under the vmThreads pool, structuredClone builds
+    // objects from the host realm, which replaceEqualDeep does not treat as plain objects.
+    const copy = JSON.parse(JSON.stringify(solo)) as SessionListItemDto
+    const next = rerenderWith([lead, teammate, copy])
 
     expect(rowOf(next, solo)).toBe(rowOf(initial, solo))
   })

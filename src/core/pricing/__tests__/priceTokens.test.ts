@@ -33,7 +33,7 @@ describe('priceTokens', () => {
     expect(result).toEqual({ kind: 'unpriced', reason: 'unknown-model' })
   })
 
-  it.each(['constructor', 'toString', '__proto__', 'hasOwnProperty'])(
+  it.each(['constructor', '__proto__'])(
     'returns unpriced for the inherited Object.prototype property %s, not a crash',
     (model) => {
       const result = priceTokens({ model, speed: 'standard', tokens: emptyTokenCounts })

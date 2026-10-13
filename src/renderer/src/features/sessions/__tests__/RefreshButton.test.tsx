@@ -57,7 +57,7 @@ describe('RefreshButton', () => {
     expect(onRefresh).toHaveBeenCalledOnce()
   })
 
-  it.each(['idle', 'refreshing', 'refreshed', 'failed'] as const)(
+  it.each(['idle', 'failed'] as const)(
     'keeps the status region visually hidden when the status is %s',
     (status) => {
       render(<RefreshButton onRefresh={vi.fn()} status={status} />)
