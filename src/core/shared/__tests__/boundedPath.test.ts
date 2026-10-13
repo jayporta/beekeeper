@@ -21,8 +21,7 @@ describe('isPathWithinCap', () => {
     expect(isPathWithinCap(value)).toBe(false)
   })
 
-  // A list has a length, so it is the non-string a length check alone would let through.
-  it.each([[null], [['a']]])('rejects a non-string: %j', (value) => {
+  it.each([[undefined], [null], [42], [{}], [['a']]])('rejects a non-string: %j', (value) => {
     expect(isPathWithinCap(value)).toBe(false)
   })
 })
@@ -48,8 +47,11 @@ describe('isAbsolutePathWithinCap', () => {
     expect(isAbsolutePathWithinCap(`/${'a'.repeat(MAX_PATH_CODE_UNITS)}`)).toBe(false)
   })
 
-  // A list has a length, so it is the non-string a length check alone would let through.
-  it.each([[null], [['a']]])('rejects a non-string: %j', (value) => {
+  it('rejects a non-BMP absolute path under the code-point cap but over the code-unit cap', () => {
+    expect(isAbsolutePathWithinCap(`/${'😀'.repeat(3000)}`)).toBe(false)
+  })
+
+  it.each([[undefined], [null], [42], [{}], [['a']]])('rejects a non-string: %j', (value) => {
     expect(isAbsolutePathWithinCap(value)).toBe(false)
   })
 })

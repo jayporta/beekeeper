@@ -21,7 +21,7 @@ describe('isLabelWithinCap', () => {
     expect(isLabelWithinCap(value)).toBe(false)
   })
 
-  it('rejects a non-string', () => {
-    expect(isLabelWithinCap(['a'])).toBe(false)
+  it.each([[undefined], [null], [42], [{}], [['a']]])('rejects a non-string: %j', (value) => {
+    expect(isLabelWithinCap(value)).toBe(false)
   })
 })

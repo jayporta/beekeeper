@@ -61,4 +61,11 @@ describe('teammateSpawnResultSchema', () => {
 
     expect(teammateSpawnResultSchema.safeParse({ ...valid, name }).success).toBe(false)
   })
+
+  it('reads a non-BMP agent_id under the code-point cap but over the code-unit cap as absent', () => {
+    const agentId = '😀'.repeat(200)
+    const parsed = teammateSpawnResultSchema.safeParse({ ...valid, agent_id: agentId })
+
+    expect([parsed.success, parsed.data?.agent_id]).toEqual([true, undefined])
+  })
 })

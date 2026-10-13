@@ -5,8 +5,12 @@ import {
   MAX_IDENTIFIER_CODE_UNITS
 } from '../schemas/boundedIdentifier'
 
-/** The classes of unprintable character are covered in hasUnprintable.test.ts. */
-const UNPRINTABLE_IDENTIFIER = 'claude\u202Eopus'
+const UNPRINTABLE_IDENTIFIERS = [
+  ['a bidi override', 'claude\u202Eopus'],
+  ['a line separator', 'claude\u2028opus'],
+  ['a control character', 'claude\u0007opus'],
+  ['a lone surrogate', 'claude\uD800opus']
+] as const
 
 describe('boundedIdentifierSchema', () => {
   it('accepts a well-formed identifier', () => {
@@ -37,12 +41,12 @@ describe('boundedIdentifierSchema', () => {
     expect(boundedIdentifierSchema.safeParse(value).success).toBe(false)
   })
 
-  it('rejects a non-string', () => {
-    expect(boundedIdentifierSchema.safeParse(42).success).toBe(false)
+  it.each([[undefined], [null], [42], [{}], [['a']]])('rejects a non-string: %j', (value) => {
+    expect(boundedIdentifierSchema.safeParse(value).success).toBe(false)
   })
 
-  it('rejects an unprintable identifier', () => {
-    expect(boundedIdentifierSchema.safeParse(UNPRINTABLE_IDENTIFIER).success).toBe(false)
+  it.each(UNPRINTABLE_IDENTIFIERS)('rejects %s', (_label, value) => {
+    expect(boundedIdentifierSchema.safeParse(value).success).toBe(false)
   })
 
   it('accepts a well-formed character outside the Basic Multilingual Plane', () => {
@@ -51,19 +55,22 @@ describe('boundedIdentifierSchema', () => {
 })
 
 describe('isBoundedIdentifier', () => {
-  it('accepts a value of exactly the cap', () => {
-    expect(isBoundedIdentifier('x'.repeat(MAX_IDENTIFIER_CODE_UNITS))).toBe(true)
-  })
+  it.each([['toolu_1'], [''], ['model-😀'], ['x'.repeat(MAX_IDENTIFIER_CODE_UNITS)]])(
+    'accepts %j',
+    (value) => {
+      expect(isBoundedIdentifier(value)).toBe(true)
+    }
+  )
 
-  it('rejects an unprintable identifier', () => {
-    expect(isBoundedIdentifier(UNPRINTABLE_IDENTIFIER)).toBe(false)
+  it.each(UNPRINTABLE_IDENTIFIERS)('rejects %s', (_label, value) => {
+    expect(isBoundedIdentifier(value)).toBe(false)
   })
 
   it('rejects a value over the cap', () => {
     expect(isBoundedIdentifier('x'.repeat(MAX_IDENTIFIER_CODE_UNITS + 1))).toBe(false)
   })
 
-  it('rejects a non-string', () => {
-    expect(isBoundedIdentifier(['a'])).toBe(false)
+  it.each([[undefined], [null], [42], [{}]])('rejects a non-string: %j', (value) => {
+    expect(isBoundedIdentifier(value)).toBe(false)
   })
 })
