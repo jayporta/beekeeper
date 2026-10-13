@@ -25,7 +25,7 @@ interface SegmentedControlProps<T extends string> {
  * A row of mutually exclusive choices that reads as one control, such as a
  * time window. It is a radio group built on native radio inputs, so the arrow
  * keys move and select within it, it is one tab stop, and the selected
- * segment has an accent fill.
+ * segment is raised, in the accent text color and a heavier weight.
  *
  * @example
  * <SegmentedControl

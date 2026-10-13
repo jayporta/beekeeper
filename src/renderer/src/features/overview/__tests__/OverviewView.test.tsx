@@ -166,6 +166,13 @@ describe('OverviewView header', () => {
     expect(screen.getByText('Overview · last 7 days')).toBeTruthy()
   })
 
+  it('shows a visible "Time window" label beside the control', async () => {
+    renderOverview()
+
+    expect(await screen.findByText('Time window')).toBeTruthy()
+    expect(screen.getByRole('radiogroup', { name: 'Time window' })).toBeTruthy()
+  })
+
   it('offers 7 days and 30 days, with 7 days chosen', async () => {
     renderOverview()
 
@@ -186,10 +193,10 @@ describe('OverviewView totals strip', () => {
     const strip = within(main()).getByRole('list', { name: 'Totals, last 7 days' })
 
     expect(within(strip).getByText('2M')).toBeTruthy()
-    expect(within(strip).getByText('$16.50 at API prices')).toBeTruthy()
+    expect(within(strip).getByText('$16.50')).toBeTruthy()
     expect(within(strip).getByText('6')).toBeTruthy()
     expect(within(strip).getByText('11')).toBeTruthy()
-    expect(within(strip).getByText('agents, incl. teammates and subagents')).toBeTruthy()
+    expect(within(strip).getByText('incl. teammates and subagents')).toBeTruthy()
   })
 })
 
@@ -429,7 +436,7 @@ describe('OverviewView partial totals', () => {
 
     const strip = within(within(main()).getByRole('list', { name: 'Totals, last 7 days' }))
 
-    expect(strip.getByText('$16.50 at API prices').textContent).toContain('¹')
+    expect(strip.getByText('$16.50').textContent).toContain('¹')
     expect(strip.getByText('2M').textContent).not.toContain('¹')
   })
 
@@ -440,7 +447,7 @@ describe('OverviewView partial totals', () => {
     const strip = within(within(main()).getByRole('list', { name: 'Totals, last 7 days' }))
 
     expect(strip.getByText('2M').textContent).toContain('¹')
-    expect(strip.getByText('$16.50 at API prices').textContent).not.toContain('¹')
+    expect(strip.getByText('$16.50').textContent).not.toContain('¹')
   })
 
   it("marks a card's agents but not its tokens, cost or sessions when subagents went uncounted", async () => {
@@ -464,7 +471,7 @@ describe('OverviewView partial totals', () => {
     expect(strip.getByText('2M').textContent).not.toContain('¹')
     expect(strip.getByText('11').textContent).toContain('¹')
     expect(strip.getByText('6').textContent).not.toContain('¹')
-    expect(strip.getByText('$16.50 at API prices').textContent).not.toContain('¹')
+    expect(strip.getByText('$16.50').textContent).not.toContain('¹')
     expect(main().textContent).toContain(
       "¹ Partial: Some sessions have a subagents folder that couldn't be read, so their subagents are missing from the agent count."
     )
@@ -494,7 +501,7 @@ describe('OverviewView loading and errors', () => {
 
     const strip = await within(main()).findByRole('list', { name: 'Totals, last 7 days' })
 
-    expect(within(strip).getAllByText('Loading')).toHaveLength(3)
+    expect(within(strip).getAllByText('Loading')).toHaveLength(4)
   })
 
   it("shows an error on a card whose folder can't be read, with the others and the strip intact", async () => {
@@ -525,7 +532,7 @@ describe('OverviewView loading and errors', () => {
     const strip = await within(main()).findByRole('list', { name: 'Totals, last 7 days' })
 
     await waitFor(() => {
-      expect(within(strip).getAllByText('Unavailable')).toHaveLength(3)
+      expect(within(strip).getAllByText('Unavailable')).toHaveLength(4)
     })
   })
 })

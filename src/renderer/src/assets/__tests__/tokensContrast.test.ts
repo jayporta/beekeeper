@@ -102,6 +102,8 @@ const PILL_PAIRS: readonly (readonly [string, string])[] = [
     (slot) => [`--color-project-ink-${slot}`, `--color-project-button-${slot}`] as const
   ),
   ['--color-kind-lead-text', '--color-kind-lead'],
+  ['--color-segment-selected-text', '--color-bg'],
+  ['--color-text-muted', '--color-segment-track'],
   ...['tokens', 'api', 'sessions', 'agents'].flatMap((kpi) =>
     ['--color-kpi-label', '--color-kpi-sub'].map((text) => [text, `--color-kpi-${kpi}-bg`] as const)
   )
@@ -175,6 +177,15 @@ describe.each(Object.entries(schemes))('%s color scheme model colors', (_scheme,
     const colors = MODEL_TOKENS.map((model) => token(tokens, model).toLowerCase())
 
     expect(new Set(colors).size).toBe(MODEL_TOKENS.length)
+  })
+})
+
+describe.each(Object.entries(schemes))('%s color scheme segmented control', (_scheme, tokens) => {
+  // The selected segment is the page ground on the track, so the track has to differ from the card ground.
+  it('has a track that differs from the card ground', () => {
+    expect(token(tokens, '--color-segment-track').toLowerCase()).not.toBe(
+      token(tokens, '--color-bg').toLowerCase()
+    )
   })
 })
 

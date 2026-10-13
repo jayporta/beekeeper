@@ -3,6 +3,7 @@ import { StatusMessage } from '@renderer/components/StatusMessage'
 import { DailyUsageSection } from './dailyUsage/DailyUsageSection'
 import { dailyUsageStatusOf } from './dailyUsage/dailyUsageStatus'
 import { useDailyUsage } from './dailyUsage/useDailyUsage'
+import { KpiTiles } from './KpiTiles'
 import { OverviewFootnote } from './OverviewFootnote'
 import { OverviewHeader } from './OverviewHeader'
 import styles from './OverviewView.module.css'
@@ -11,7 +12,6 @@ import { ProjectCard } from './ProjectCard'
 import { shareOfLargest } from './shareOfLargest'
 import { totalsStatus } from './sumTotals'
 import { TotalsAnnouncement } from './TotalsAnnouncement'
-import { TotalsStrip } from './TotalsStrip'
 import type { DailyAnnouncement, TotalsOutcome } from './useTotalsAnnouncement'
 import { useProjectGroupTotals } from './useProjectGroupTotals'
 
@@ -73,7 +73,7 @@ export function OverviewView(): React.JSX.Element {
         outcome={outcome}
         daily={dailyAnnouncement}
       />
-      {cards.length > 0 && <TotalsStrip totals={overall} range={range} />}
+      {cards.length > 0 && <KpiTiles totals={overall} range={range} />}
       {!empty && <DailyUsageSection usage={dailyUsage} />}
       {empty && (
         <StatusMessage

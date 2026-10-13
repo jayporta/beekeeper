@@ -12,10 +12,13 @@
   },
   "totals": {
     "label": "Totals, {{range}}",
-    "tokens": "tokens",
-    "sessions": "sessions",
-    "agents": "agents, incl. teammates and subagents",
     "labelUpdating": "Totals, {{range}}, updating"
+  },
+  "kpi": {
+    "tokens": { "label": "Tokens" },
+    "api": { "label": "At API prices", "sub": "an estimate, not your bill" },
+    "sessions": { "label": "Sessions", "sub": "leads and solo sessions" },
+    "agents": { "label": "Agents", "sub": "incl. teammates and subagents" }
   },
   "figure": {
     "integer": "{{value, integer}}",
