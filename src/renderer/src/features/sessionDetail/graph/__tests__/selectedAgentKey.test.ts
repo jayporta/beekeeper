@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { testRef } from '../../../../../../shared/sessions/testSessionFixtures'
-import type { AgentGraphNode } from '../agentGraphNode'
+import type { AgentGraphNode } from '../../../../../../shared/agentGraph/agentGraphNode'
 import { selectedAgentKey } from '../selectedAgentKey'
-import { testGraphNode } from '../testGraphNode'
+import { testGraphNode } from '../../../../../../shared/agentGraph/testGraphNode'
 
 const OWNER = testRef(1)
 const MATE = testRef(2, '-other')

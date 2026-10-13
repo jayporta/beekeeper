@@ -13,7 +13,7 @@ import {
   testSession,
   testTeammateTeam
 } from '../../../../../shared/sessions/testSessionFixtures'
-import { testRow } from '../testSessionRows'
+import { testRow } from '../../../../../shared/sessions/testSessionRows'
 
 const DIR = '-p'
 const LEAD_REF = testRef(1)

@@ -1,4 +1,4 @@
-import type { AgentKey, RootAgentGraphNode } from './agentGraphNode'
+import type { AgentKey, RootAgentGraphNode } from '../../../../../shared/agentGraph/agentGraphNode'
 import type { TeammateExpansion } from './teammateExpansion'
 import { useAnnounceExpansions } from './useAnnounceExpansions'
 import { useAnnounceSelection, type SelectedNode } from './useAnnounceSelection'

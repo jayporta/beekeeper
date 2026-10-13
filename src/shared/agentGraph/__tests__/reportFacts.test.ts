@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { EMPTY_AGENT_SIGNALS_DTO } from '../../../../../../shared/ipc/emptyAgentSignals'
-import { testReport } from '../../testSessionDetail'
+import { EMPTY_AGENT_SIGNALS_DTO } from '../../ipc/emptyAgentSignals'
+import { testReport } from '../testSessionDetail'
 import { isPartialReport } from '../reportFacts'
 
 describe('isPartialReport', () => {

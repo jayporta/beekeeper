@@ -1,5 +1,5 @@
-import type { AgentGraphNode, AgentKey } from './agentGraphNode'
-import { flattenPreorder } from './flattenPreorder'
+import type { AgentGraphNode, AgentKey } from '../../../../../shared/agentGraph/agentGraphNode'
+import { flattenPreorder } from '../../../../../shared/agentGraph/flattenPreorder'
 import {
   COLUMN_WIDTH,
   LEAF_PITCH,

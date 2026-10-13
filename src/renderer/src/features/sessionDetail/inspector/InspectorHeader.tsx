@@ -4,7 +4,7 @@ import { CapsText } from '@renderer/components/CapsText'
 import { MutedText } from '@renderer/components/MutedText'
 import { formatDuration } from '@renderer/features/sessions/formatDuration'
 import { SeparatedText } from '@renderer/features/sessions/SeparatedText'
-import type { AgentGraphNode } from '../graph/agentGraphNode'
+import type { AgentGraphNode } from '../../../../../shared/agentGraph/agentGraphNode'
 import styles from './InspectorHeader.module.css'
 import { inspectorKicker } from './inspectorKicker'
 

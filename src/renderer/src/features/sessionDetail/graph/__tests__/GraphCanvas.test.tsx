@@ -10,7 +10,12 @@ import {
   testSession,
   testUsage
 } from '../../../../../../shared/sessions/testSessionFixtures'
-import { testDetail, testNode, testReport, testTokenGroup } from '../../testSessionDetail'
+import {
+  testDetail,
+  testNode,
+  testReport,
+  testTokenGroup
+} from '../../../../../../shared/agentGraph/testSessionDetail'
 import { layoutGraph as layoutGraphOriginal } from '../layoutGraph'
 import { COLUMN_WIDTH, LEAF_PITCH, NODE_HEIGHT, NODE_WIDTH } from '../graphMetrics'
 import {

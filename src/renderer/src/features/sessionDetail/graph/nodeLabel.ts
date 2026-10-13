@@ -1,5 +1,5 @@
 import type { SessionDetailT } from '../sessionDetailT'
-import type { AgentGraphNode } from './agentGraphNode'
+import type { AgentGraphNode } from '../../../../../shared/agentGraph/agentGraphNode'
 import { workflowLabel } from './workflowLabel'
 
 /**

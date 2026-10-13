@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { testReport, testTokenGroup } from '../../testSessionDetail'
+import { testReport, testTokenGroup } from '../../../../../../shared/agentGraph/testSessionDetail'
 import { tokenBreakdown } from '../tokenBreakdown'
 
 describe('tokenBreakdown', () => {

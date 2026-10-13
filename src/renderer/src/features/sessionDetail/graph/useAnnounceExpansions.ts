@@ -1,7 +1,11 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { AgentGraphNode, AgentKey, RootAgentGraphNode } from './agentGraphNode'
-import { flattenPreorder } from './flattenPreorder'
+import type {
+  AgentGraphNode,
+  AgentKey,
+  RootAgentGraphNode
+} from '../../../../../shared/agentGraph/agentGraphNode'
+import { flattenPreorder } from '../../../../../shared/agentGraph/flattenPreorder'
 import type { TeammateExpansion } from './teammateExpansion'
 
 /** What {@link useAnnounceExpansions} needs. */

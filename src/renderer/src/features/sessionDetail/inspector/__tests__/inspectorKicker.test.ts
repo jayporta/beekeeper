@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { testRef } from '../../../../../../shared/sessions/testSessionFixtures'
-import type { NodeWorkflow } from '../../graph/agentGraphNode'
-import { testGraphNode } from '../../graph/testGraphNode'
+import type { NodeWorkflow } from '../../../../../../shared/agentGraph/agentGraphNode'
+import { testGraphNode } from '../../../../../../shared/agentGraph/testGraphNode'
 import { testSessionDetailT } from '../../testSessionDetailT'
 import { inspectorKicker } from '../inspectorKicker'
 

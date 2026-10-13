@@ -4,8 +4,8 @@ import type { SessionDetailDto } from '../../../../../shared/ipc/sessionDetailDt
 import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import type { SessionRow } from '../../../../../shared/sessions/sessionRow'
-import type { AgentKey, RootAgentGraphNode } from './agentGraphNode'
-import { buildAgentGraph } from './buildAgentGraph'
+import type { AgentKey, RootAgentGraphNode } from '../../../../../shared/agentGraph/agentGraphNode'
+import { buildAgentGraph } from '../../../../../shared/agentGraph/buildAgentGraph'
 import { layoutGraph, type GraphLayout } from './layoutGraph'
 import { selectedAgentKey } from './selectedAgentKey'
 import { graftTeammates, type TeammateExpansion } from './teammateExpansion'
@@ -47,10 +47,17 @@ export interface AgentGraph {
 export function useAgentGraph(input: UseAgentGraphInput): AgentGraph {
   const { detail, sessionRef, row } = input
   const { t } = useTranslation('sessionDetail')
+  const words = useMemo(() => ({ lead: t('graph.lead'), teammate: t('graph.teammate') }), [t])
   const base = useMemo(
     () =>
-      buildAgentGraph({ detail, ref: sessionRef, rootItem: row?.item ?? null, rootRow: row, t }),
-    [detail, sessionRef, row, t]
+      buildAgentGraph({
+        detail,
+        ref: sessionRef,
+        rootItem: row?.item ?? null,
+        rootRow: row,
+        words
+      }),
+    [detail, sessionRef, row, words]
   )
   const expansions = useTeammateExpansions(base)
   const root = useMemo(() => graftTeammates(base, expansions), [base, expansions])

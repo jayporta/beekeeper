@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PriceDto } from '../../../../../../shared/ipc/agentDto'
-import { testReport, testTokenGroup } from '../../testSessionDetail'
+import { testReport, testTokenGroup } from '../../../../../../shared/agentGraph/testSessionDetail'
 import { reportCost } from '../reportCost'
 
 const group = (price: PriceDto): ReturnType<typeof testTokenGroup> => ({

@@ -1,6 +1,6 @@
-import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
-import type { WorkflowRunDto } from '../../../../../shared/ipc/workflowRunDto'
-import { sessionKey } from '../../../../../shared/sessions/sessionKey'
+import type { SessionRefDto } from '../ipc/sessionRefDto'
+import type { WorkflowRunDto } from '../ipc/workflowRunDto'
+import { sessionKey } from '../sessions/sessionKey'
 import type { AgentGraphNode, NodeWorkflow } from './agentGraphNode'
 import { runMembers } from './runMembers'
 

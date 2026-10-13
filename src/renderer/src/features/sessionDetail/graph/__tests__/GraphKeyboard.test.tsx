@@ -2,7 +2,11 @@ import { fireEvent, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it } from 'vitest'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
-import { testDetail, testMeta, testNode } from '../../testSessionDetail'
+import {
+  testDetail,
+  testMeta,
+  testNode
+} from '../../../../../../shared/agentGraph/testSessionDetail'
 import { SCENE_SESSION, graphNode, graphNodes, renderGraph } from '../testGraphScene'
 
 afterEach(() => {

@@ -1,4 +1,4 @@
-import type { AgentKey } from './agentGraphNode'
+import type { AgentKey } from '../../../../../shared/agentGraph/agentGraphNode'
 import type { GraphT } from './graphT'
 import type { GraphLayout } from './layoutGraph'
 import { nodeLabel } from './nodeLabel'

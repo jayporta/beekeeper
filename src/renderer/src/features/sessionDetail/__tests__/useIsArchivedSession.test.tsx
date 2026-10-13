@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
 import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { createQueryWrapper, createTestQueryClient } from '@renderer/testQueryWrapper'
-import { testDetail } from '../testSessionDetail'
+import { testDetail } from '../../../../../shared/agentGraph/testSessionDetail'
 import { useIsArchivedSession } from '../useIsArchivedSession'
 
 const REF: SessionRefDto = {

@@ -1,5 +1,5 @@
 import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
-import type { SelectedAgent } from '@renderer/features/navigation/state/useNavigationStore'
+import type { SelectedAgent } from '../../../../../shared/agentGraph/agentGraphNode'
 
 /** Where the data for the inspected agent lives. */
 export interface InspectionTarget {

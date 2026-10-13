@@ -1,5 +1,5 @@
 import type { AgentReportDto } from '../../../../../shared/ipc/agentDto'
-import { reportTokens } from '../graph/reportFacts'
+import { reportTokens } from '../../../../../shared/agentGraph/reportFacts'
 import type { ReportCost } from './reportCost'
 import type { Rollup } from './rollupBelow'
 

@@ -5,7 +5,7 @@ import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { createQueryWrapper, createTestQueryClient } from '@renderer/testQueryWrapper'
 import { LISTS_STALE_TIME_MS } from '@renderer/app/listsStaleTime'
-import { testDetail } from '../testSessionDetail'
+import { testDetail } from '../../../../../shared/agentGraph/testSessionDetail'
 import { useSessionDetail } from '../useSessionDetail'
 
 const REF: SessionRefDto = {

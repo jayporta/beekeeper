@@ -14,7 +14,7 @@ import {
   refetchAndSettle
 } from '@renderer/testQueryWrapper'
 import { SessionDetailContent } from '../SessionDetailContent'
-import { testDetail } from '../testSessionDetail'
+import { testDetail } from '../../../../../shared/agentGraph/testSessionDetail'
 
 const DIR = '-Users-a-repo'
 const REF = testRef(1, DIR)

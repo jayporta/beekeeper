@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { FileTouchDto } from '../../../../../../shared/ipc/agentDto'
-import { testDetail } from '../../testSessionDetail'
+import { testDetail } from '../../../../../../shared/agentGraph/testSessionDetail'
 import { LEAD_REPORT, inspector, renderInspectorScene } from '../testInspectorScene'
 
 const withFiles = (

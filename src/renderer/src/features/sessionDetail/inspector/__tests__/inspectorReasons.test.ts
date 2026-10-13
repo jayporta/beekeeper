@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { EMPTY_AGENT_SIGNALS_DTO } from '../../../../../../shared/ipc/emptyAgentSignals'
-import { testReport, testTokenGroup } from '../../testSessionDetail'
+import { testReport, testTokenGroup } from '../../../../../../shared/agentGraph/testSessionDetail'
 import { inspectorReasons } from '../inspectorReasons'
 
 const complete = { usd: 1, partial: false }

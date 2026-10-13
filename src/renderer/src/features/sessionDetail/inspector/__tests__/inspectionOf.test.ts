@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { AgentNodeDto } from '../../../../../../shared/ipc/agentDto'
 import { testRef } from '../../../../../../shared/sessions/testSessionFixtures'
-import { testDetail, testMeta, testNode, testReport } from '../../testSessionDetail'
+import {
+  testDetail,
+  testMeta,
+  testNode,
+  testReport
+} from '../../../../../../shared/agentGraph/testSessionDetail'
 import { inspectionOf } from '../inspectionOf'
 
 const OWNER = testRef(1)

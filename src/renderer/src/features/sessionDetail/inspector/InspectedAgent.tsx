@@ -1,5 +1,5 @@
 import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
-import type { AgentGraphNode } from '../graph/agentGraphNode'
+import type { AgentGraphNode } from '../../../../../shared/agentGraph/agentGraphNode'
 import { useSessionDetail } from '../useSessionDetail'
 import { inspectionOf } from './inspectionOf'
 import { inspectionTarget, type AgentSelection } from './inspectionTarget'

@@ -1,10 +1,6 @@
-import type {
-  AgentMetaDto,
-  AgentMetaStatusDto,
-  AgentReportDto
-} from '../../../../../shared/ipc/agentDto'
-import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
-import { sessionKey } from '../../../../../shared/sessions/sessionKey'
+import type { AgentMetaDto, AgentMetaStatusDto, AgentReportDto } from '../ipc/agentDto'
+import type { SessionRefDto } from '../ipc/sessionRefDto'
+import { sessionKey } from '../sessions/sessionKey'
 import type { AgentGraphNode, AgentKind, NodeWorkflow } from './agentGraphNode'
 import { agentName } from './agentName'
 import { nodeMarks } from './nodeMarks'

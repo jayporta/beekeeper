@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { LIVE_COPY_CLEAR_MS } from '@renderer/components/liveCopyClearMs'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { testRef } from '../../../../../../shared/sessions/testSessionFixtures'
-import { testDetail, testNode } from '../../testSessionDetail'
+import { testDetail, testNode } from '../../../../../../shared/agentGraph/testSessionDetail'
 import { SCENE_SESSION, graphNode, renderGraph, renderGraphWith } from '../testGraphScene'
 
 afterEach(() => {

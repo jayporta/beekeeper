@@ -1,5 +1,5 @@
 import type { SessionDetailT } from '../sessionDetailT'
-import type { NodeWorkflow } from './agentGraphNode'
+import type { NodeWorkflow } from '../../../../../shared/agentGraph/agentGraphNode'
 
 /**
  * Names a workflow run where its own node isn't the one speaking: as the

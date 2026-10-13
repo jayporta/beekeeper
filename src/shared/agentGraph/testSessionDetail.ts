@@ -4,10 +4,10 @@ import type {
   AgentNodeDto,
   AgentReportDto,
   TokenGroupDto
-} from '../../../../shared/ipc/agentDto'
-import { EMPTY_AGENT_SIGNALS_DTO } from '../../../../shared/ipc/emptyAgentSignals'
-import type { SessionDetailDto } from '../../../../shared/ipc/sessionDetailDto'
-import type { WorkflowRunDto } from '../../../../shared/ipc/workflowRunDto'
+} from '../ipc/agentDto'
+import { EMPTY_AGENT_SIGNALS_DTO } from '../ipc/emptyAgentSignals'
+import type { SessionDetailDto } from '../ipc/sessionDetailDto'
+import type { WorkflowRunDto } from '../ipc/workflowRunDto'
 
 /** An agent report with no usage, files, or flags, unless overridden. */
 export function testReport(overrides: Partial<AgentReportDto> = {}): AgentReportDto {

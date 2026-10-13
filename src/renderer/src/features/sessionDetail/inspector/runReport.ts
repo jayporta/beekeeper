@@ -1,7 +1,7 @@
 import type { AgentReportDto } from '../../../../../shared/ipc/agentDto'
 import { EMPTY_AGENT_SIGNALS_DTO } from '../../../../../shared/ipc/emptyAgentSignals'
 import type { SessionDetailDto } from '../../../../../shared/ipc/sessionDetailDto'
-import { reportTokens } from '../graph/reportFacts'
+import { reportTokens } from '../../../../../shared/agentGraph/reportFacts'
 
 /**
  * Reads the reports of a run's agents out of the session's detail, in the order

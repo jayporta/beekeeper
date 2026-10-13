@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { NodeWorkflow } from '../agentGraphNode'
-import { testGraphNode } from '../testGraphNode'
+import type { NodeWorkflow } from '../../../../../../shared/agentGraph/agentGraphNode'
+import { testGraphNode } from '../../../../../../shared/agentGraph/testGraphNode'
 import { testGraphT } from '../testGraphT'
 import { nodeAccessibleName, nodeDetail } from '../nodeFacts'
 

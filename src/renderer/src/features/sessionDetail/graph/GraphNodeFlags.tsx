@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
-import type { NodeMarks } from './agentGraphNode'
+import type { NodeMarks } from '../../../../../shared/agentGraph/agentGraphNode'
 import styles from './GraphNodeFlags.module.css'
-import { markLabels } from './nodeMarks'
+import { markLabels } from './nodeMarkText'
 
 /** Props for {@link GraphNodeFlags}. */
 interface GraphNodeFlagsProps {

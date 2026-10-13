@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { AgentKey } from './agentGraphNode'
+import type { AgentKey } from '../../../../../shared/agentGraph/agentGraphNode'
 
 /** The node the graph has selected. */
 export interface SelectedNode {

@@ -13,7 +13,12 @@ import { shortId } from '../../../../../../shared/sessions/sessionLabel'
 import { testRef } from '../../../../../../shared/sessions/testSessionFixtures'
 import { createTestQueryClient } from '@renderer/testQueryWrapper'
 import { SCENE_OTHER_FOLDER, SCENE_SESSION } from '../../graph/testGraphScene'
-import { testDetail, testMeta, testNode, testReport } from '../../testSessionDetail'
+import {
+  testDetail,
+  testMeta,
+  testNode,
+  testReport
+} from '../../../../../../shared/agentGraph/testSessionDetail'
 import { LEAD_REPORT, inspector, renderInspectorScene } from '../testInspectorScene'
 
 afterEach(() => {

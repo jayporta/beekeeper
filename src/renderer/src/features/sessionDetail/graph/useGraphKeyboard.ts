@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
-import type { RootAgentGraphNode } from './agentGraphNode'
+import type { RootAgentGraphNode } from '../../../../../shared/agentGraph/agentGraphNode'
 import { focusGraphNode } from './focusGraphNode'
 import { directionOfKey, graphNeighbor } from './graphNavigation'
 

@@ -6,7 +6,13 @@ import type { SessionDetailDto } from '../../../../../../shared/ipc/sessionDetai
 import { LIVE_COPY_CLEAR_MS } from '@renderer/components/liveCopyClearMs'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { testRef } from '../../../../../../shared/sessions/testSessionFixtures'
-import { testDetail, testMeta, testNode, testReport, testTokenGroup } from '../../testSessionDetail'
+import {
+  testDetail,
+  testMeta,
+  testNode,
+  testReport,
+  testTokenGroup
+} from '../../../../../../shared/agentGraph/testSessionDetail'
 import {
   SCENE_OTHER_FOLDER,
   SCENE_SESSION,

@@ -1,4 +1,4 @@
-import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
+import type { SessionListItemDto } from '../ipc/sessionListDto'
 import type { NodeMarks } from './agentGraphNode'
 import { nodeMarks } from './nodeMarks'
 
