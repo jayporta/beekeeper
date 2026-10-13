@@ -4,9 +4,19 @@
     "opened": "beekeeper pane opened.",
     "waiting": "beekeeper pane is open but can't be shown here yet."
   },
-  "pane": { "title": "beekeeper", "empty": "Nothing here yet." },
+  "pane": {
+    "title": "beekeeper",
+    "empty": "Nothing here yet."
+  },
   "start": {
     "tooOld": "beekeeper needs Claude Code {{minimum}} or later. This is {{version}}.",
     "failed": "beekeeper couldn't start in this session."
+  },
+  "words": {
+    "lead": "Lead",
+    "teammate": "Teammate",
+    "unreadable": "Unreadable session",
+    "untitled": "Untitled session",
+    "agentName": "{{name}} ({{type}})"
   }
 }
