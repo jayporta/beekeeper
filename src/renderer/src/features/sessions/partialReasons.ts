@@ -23,7 +23,7 @@ function skippedLines(item: SessionListItemDto): boolean {
 
 /**
  * Works out why the figures a session shows for itself may leave something
- * out, which its teammates' chips don't count. A view that shows no chips,
+ * out, which its teammate rows don't count. A view that shows no teammate rows,
  * such as the session detail, explains its figures with these.
  *
  * - `unreadableLines`: the session or one of its teammates skipped transcript
@@ -61,12 +61,12 @@ export function figureReasons(row: SessionRow): Set<PartialReason> {
 }
 
 /**
- * Works out why the figures on a card, and on its teammates' chips, may leave
+ * Works out why the figures on a card, and on its teammate rows, may leave
  * something out. The card shows a partial marker when the set is not empty,
  * and the footnote explains each reason in it. These are the reasons of
- * {@link figureReasons}, plus `subagentsExcluded` for a chip that shows a
+ * {@link figureReasons}, plus `subagentsExcluded` for a teammate row that shows a
  * transcript total, which leaves out its subagents. A card that shows no
- * figures has no marker of its own, but a chip that shows a transcript total
+ * figures has no marker of its own, but a teammate row that shows a transcript total
  * has one, so it still counts.
  *
  * @param row - The card's row, with its teammates.

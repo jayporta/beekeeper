@@ -5,7 +5,8 @@ import { MutedText } from '@renderer/components/MutedText'
 import { AgentLegend } from './AgentLegend'
 import { agentMarks, type AgentMarkKind } from './agentMarks'
 import { CardColumns } from './CardColumns'
-import { matchOf } from './sessionMatches'
+import { matchOf, rowMatches } from './sessionMatches'
+import { teammateName } from './teammateName'
 import { PartialFootnote } from './PartialFootnote'
 import { partialReasons, type PartialReason } from './partialReasons'
 import { SessionCard } from './SessionCard'
@@ -39,7 +40,7 @@ interface SessionCardListProps {
   readonly largestTokens: number
   /** How many sessions match the search, shown beside the title, or `null` when no search is active. */
   readonly matchCount: number | null
-  /** The search text from `normalizeQuery`, or `''` when no search is active. It highlights the chips that match and names the workflow or subagent a card matches only through. */
+  /** The search text from `normalizeQuery`, or `''` when no search is active. It marks the teammates that match and names the workflow or subagent a card matches only through. */
   readonly query: string
 }
 
@@ -74,15 +75,24 @@ export const SessionCardList = memo(function SessionCardList({
     return reasons
   }, [cards, rows])
   const kinds = useMemo(() => kindsDrawn(rows), [rows])
-  // Worked out here, as a string or `null`, so a card without chips re-renders only when its note changes.
-  const matchNotes = useMemo(
+  // Worked out here, as strings or `null`, so a row re-renders only when its own match changes.
+  const matches = useMemo(
     () =>
       rows.map((row) => {
         const match = matchOf(row, query)
-        if (match === null) return null
-        return match.kind === 'workflow'
-          ? t('matchingWorkflow', { workflow: match.name })
-          : t('matchingSubagent', { agent: match.name })
+        const matching = query === '' ? [] : row.teammates.filter((mate) => rowMatches(mate, query))
+        const first = matching[0]
+        return {
+          note:
+            match === null
+              ? null
+              : match.kind === 'workflow'
+                ? t('matchingWorkflow', { workflow: match.name })
+                : t('matchingSubagent', { agent: match.name }),
+          teammates: matching.map((mate) => mate.key).join('\0'),
+          teammateNote:
+            first === undefined ? null : t('matchingTeammate', { agent: teammateName(first).name })
+        }
       }),
     [rows, query, t]
   )
@@ -116,10 +126,11 @@ export const SessionCardList = memo(function SessionCardList({
                 key={row.key}
                 row={row}
                 selectedDirName={selectedDirName}
-                needle={row.teammates.length > 0 ? query : ''}
+                matchedTeammates={matches[index]?.teammates ?? ''}
                 largestTokens={largestTokens}
                 partial={reasons.size > 0}
-                matchNote={matchNotes[index] ?? null}
+                matchNote={matches[index]?.note ?? null}
+                teammateNote={matches[index]?.teammateNote ?? null}
               />
             ))}
           </ol>

@@ -141,11 +141,11 @@ describe('session search by subagent', () => {
     expect(within(await card('Refactor parser')).getByText('matching subagent scout')).toBeTruthy()
   })
 
-  it('highlights a teammate’s chip, and adds no "matching subagent" line, when its own subagent matches', async () => {
+  it('opens a lead to the teammate whose own subagent matches, and adds no "matching subagent" line, when its own subagent matches', async () => {
     await search('checker', [lead, mate, refactor])
 
     const shown = await card('Team lead')
-    expect(within(shown).getByRole('button', { name: /^reviewer \(code\)/ })).toBeTruthy()
+    expect(within(shown).getByRole('button', { name: /^reviewer code/ })).toBeTruthy()
     expect(within(shown).getByText('matches search')).toBeTruthy()
     expect(within(shown).queryByText(/^matching subagent/)).toBeNull()
     expect(screen.queryByRole('button', { name: 'Refactor parser' })).toBeNull()

@@ -14,6 +14,7 @@ import { resetPersistedState } from '@renderer/testRenderApp'
 import App from '@renderer/App'
 import { STATUS_ANNOUNCE_DELAY_MS } from '../statusAnnounceDelay'
 import { useSessionsViewStore } from '../state/useSessionsViewStore'
+import { expandTeammates } from '../testExpandTeammates'
 import {
   testAgentRole,
   testLeadTeam,
@@ -127,7 +128,12 @@ describe('refreshing the lists on window focus', () => {
 
     expect(await screen.findByRole('heading', { level: 3, name: 'Brand new session' })).toBeTruthy()
     expect(screen.getByRole('heading', { level: 3, name: 'Refactor parser' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /^reviewer \(code\)/ })).toBeTruthy()
+    await expandTeammates(
+      screen
+        .getByRole('heading', { level: 3, name: 'Refactor parser' })
+        .closest('li') as HTMLElement
+    )
+    expect(screen.getByRole('button', { name: /^reviewer code/ })).toBeTruthy()
   })
 
   it('makes no second call when the window is focused within the stale time', async () => {

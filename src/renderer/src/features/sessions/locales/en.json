@@ -101,12 +101,6 @@
     "workflow": "Workflow",
     "subagent": "Subagent"
   },
-  "chip": {
-    "matches": "matches search"
-  },
-  "chips": {
-    "label": "Teammates of {{name}}"
-  },
   "footnote": {
     "label": "¹ Partial:",
     "unreadableLines": "Some transcript lines couldn't be read, so a total may be low.",
@@ -132,5 +126,14 @@
     "compact": "{{value, compactInteger}}"
   },
   "tokensLabel": "tokens",
-  "listTitle": "Sessions"
+  "listTitle": "Sessions",
+  "teammate": {
+    "matches": "matches search",
+    "share": "{{value, integer}}%",
+    "shareSuffix": "of the session"
+  },
+  "teammates": {
+    "label": "Teammates of {{name}}"
+  },
+  "matchingTeammate": "matching teammate {{agent}}"
 }

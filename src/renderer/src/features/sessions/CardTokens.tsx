@@ -55,8 +55,7 @@ export function CardTokens({ figures, teamTotal, partial }: CardTokensProps): Re
       <MutedText smaller>
         {teamTotal ? (
           <>
-            {t('teamTotal')}
-            <span className="visuallyHidden"> {t('tokensLabel')}</span>
+            {t('teamTotal')} <span className="visuallyHidden">{t('tokensLabel')}</span>
           </>
         ) : (
           t('tokensLabel')

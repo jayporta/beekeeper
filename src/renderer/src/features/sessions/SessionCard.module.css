@@ -4,7 +4,7 @@
 
 /*
  * The grid is the open button's positioned ancestor, so the button's overlay
- * covers this row and not the chips beneath it. Hover and focus show on the grid for the same reason.
+ * covers this row and not the teammate rows beneath it. Hover and focus show on the grid for the same reason.
  */
 .grid {
   position: relative;
@@ -31,11 +31,17 @@
   align-self: center;
 }
 
-/* The chips sit beneath the grid, not under the open button's overlay, so each is its own target. */
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2-5);
-  padding: 0 var(--space-4-5) var(--space-3-5);
+/* The teammates sit beneath the grid, not under the open button's overlay, so each is its own target. */
+.teammates {
+  margin: 0 var(--space-4-5) var(--space-3-5);
+  padding: 0;
   list-style: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-nav);
+  overflow: hidden;
+
+  & > li + li {
+    border-block-start: 1px solid var(--color-divider);
+  }
 }
