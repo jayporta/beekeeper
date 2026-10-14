@@ -213,7 +213,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
 for (const surface of ['terminal', 'desktop'] as const) {
   // The kit answers every process with `uname`'s text, so git can't be faked through it: the
   // diff and the patch say that git isn't usable, which is the path a person without git sees.
-  test(`a worktree agent shows its branch, its diff and a patch on a press on ${surface}`, async ($, on) => {
+  test(`a worktree agent shows its branch and, without git, why it has no diff on ${surface}`, async ($, on) => {
     const { clock } = mockSession(on)
     await $.session.start({ cwd: '/work', surface, isInteractive: true })
     await $.command.run({ command: 'beekeeper', args: '' })

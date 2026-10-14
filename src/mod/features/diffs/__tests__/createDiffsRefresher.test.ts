@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { AgentWorktreeDiffDto } from '../../../../shared/ipc/worktreeDiffDto'
+import type { IpcResult } from '../../../../shared/ipc/ipcResult'
+import type { AgentWorktreeDiffDto, WorktreeDiffsDto } from '../../../../shared/ipc/worktreeDiffDto'
 import { testRef } from '../../../../shared/sessions/testSessionFixtures'
 import { testPaneNode, testPaneView } from '../../pane/testPaneView'
 import type { PaneNode, PaneView } from '../../pane/paneView'
@@ -206,5 +207,51 @@ describe('createDiffsRefresher', () => {
 
     expect(before).toBe(2)
     expect(written.length).toBe(before + 1)
+  })
+
+  describe('an agent missing from the fetched diffs', () => {
+    const answer = (...ids: string[]): IpcResult<WorktreeDiffsDto> => ({
+      ok: true as const,
+      value: { git: 'ok' as const, agents: ids.map(entry), sharedWorktree: null }
+    })
+
+    it('asks again when the view changed because the agent was just spawned, and stores loading first', async () => {
+      const { written, refresher, services } = setup()
+      let calls = 0
+      services.getWorktreeDiffs = async () =>
+        (calls += 1) === 1 ? answer('a1') : answer('a1', 'a2')
+
+      await refresher.refresh({
+        services,
+        view: viewOf(worktreeNode('a1')),
+        selected: pick('sub:a1'),
+        nowMs: 1
+      })
+      await refresher.refresh({
+        services,
+        view: viewOf(worktreeNode('a1'), worktreeNode('a2')),
+        selected: pick('sub:a2'),
+        nowMs: 2
+      })
+
+      expect(calls).toBe(2)
+      expect(written.slice(-2).map((d) => [d.key, d.status])).toEqual([
+        ['sub:a2', 'loading'],
+        ['sub:a2', 'ready']
+      ])
+      expect(written.at(-1)?.result).toMatchObject({ ok: true })
+    })
+
+    it('does not ask again while the view is unchanged, whatever the service holds', async () => {
+      const { refresher, services } = setup()
+      let calls = 0
+      services.getWorktreeDiffs = async () => ((calls += 1), answer('a1'))
+      const view = viewOf(worktreeNode('a1'), worktreeNode('a2'))
+
+      await refresher.refresh({ services, view, selected: pick('sub:a2'), nowMs: 1 })
+      await refresher.refresh({ services, view, selected: pick('sub:a2'), nowMs: 2 })
+
+      expect(calls).toBe(1)
+    })
   })
 })

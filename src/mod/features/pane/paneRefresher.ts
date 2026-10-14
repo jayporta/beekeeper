@@ -169,6 +169,16 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
     await patches.refresh(input)
   }
 
+  /** Stores the view; whether the engine kept it. */
+  async function writeView(view: PaneView): Promise<boolean> {
+    try {
+      return await pane.writeView(view)
+    } catch {
+      log('pane-write-failed')
+      return false
+    }
+  }
+
   async function build(withList: boolean, nav: PaneNav | undefined): Promise<PaneView> {
     const { sessionId: currentId, sessionRoot, nowMs, outcome } = await readSession()
     const { ref: wanted, target } = targetOf(nav, { projectDirName: '', sessionId: currentId })
@@ -238,18 +248,14 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
         nowMs: 0
       })
     }
-    // Before the view's early returns: a row press changes the diff without changing the view.
-    await loadWorktree(view)
     const key = contentKey(view)
-    if (key === lastKey) return
-    try {
-      if (!(await pane.writeView(view))) return
-    } catch {
-      log('pane-write-failed')
-      return
+    if (key !== lastKey && (await writeView(view))) {
+      lastView = view
+      lastKey = key
     }
-    lastView = view
-    lastKey = key
+    // After the view, so git never holds it back, and on every path: a row press changes the diff
+    // without changing the view.
+    await loadWorktree(view)
   }
 
   const forgetStored = (): void => {

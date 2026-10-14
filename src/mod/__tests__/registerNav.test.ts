@@ -332,16 +332,19 @@ describe('the pane selection', () => {
       ])
     })
 
-    it('stores a hidden patch and builds no timers when Hide patch is pressed', async () => {
-      const { engine, render } = harness({
+    it('stores a hidden patch and asks for no refresh when Hide patch is pressed', async () => {
+      const { engine, run, render } = harness({
+        panes: [],
         state: { 'beekeeper.view': testPaneView(testPaneNode('lead')) }
       })
+      await run('session.start')
+      const before = engine.timers.length
 
       const props = await render()
       await (props['patch'] as Patch).onHide()
 
       expect(patchWrites(engine)).toEqual([expect.objectContaining({ status: 'none' })])
-      expect(engine.timers).toEqual([])
+      expect(engine.timers.slice(before)).toEqual([])
     })
 
     it('hands the pane the stored patch', async () => {

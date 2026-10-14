@@ -50,8 +50,31 @@ type Fetched =
 /** The diffs of one session, and when they were fetched. */
 interface CachedFetch {
   readonly owner: string
+  /** The shown view's content when fetched, so a changed view (a newly spawned agent) can be told. */
+  readonly viewKey: string
   readonly fetchedAtMs: number
   readonly fetched: Fetched
+}
+
+/**
+ * Whether a fetch must be redone: none for this session, older than a window, or one that has no
+ * entry for the agent although the view has changed since (the agent was just spawned).
+ */
+function isStale(input: {
+  readonly cache: CachedFetch
+  readonly owner: string
+  readonly viewKey: string
+  readonly agentId: string
+  readonly nowMs: number
+}): boolean {
+  const { cache, owner, viewKey, agentId, nowMs } = input
+  if (cache.owner !== owner || nowMs - cache.fetchedAtMs >= LIST_TICK_MS) return true
+  const { fetched } = cache
+  const isMissing =
+    fetched.ok &&
+    fetched.value.git === 'ok' &&
+    !fetched.value.agents.some((agent) => agent.agentId === agentId)
+  return isMissing && cache.viewKey !== viewKey
 }
 
 /**
@@ -117,13 +140,24 @@ export function createDiffsRefresher(deps: DiffsRefresherDeps): DiffsRefresher {
     if (!request.success) return store(withStatus('error', 'invalid-request'))
 
     const owner = `${worktree.projectDirName}/${worktree.sessionId}`
-    if (cache?.owner !== owner || nowMs - cache.fetchedAtMs >= LIST_TICK_MS) {
+    const viewKey = contentKey(view)
+    let current = cache
+    if (
+      current === null ||
+      isStale({ cache: current, owner, viewKey, agentId: worktree.agentId, nowMs })
+    ) {
       if (stored?.sessionId !== ids.sessionId || stored.key !== ids.key) {
         await store(withStatus('loading', null))
       }
-      cache = { owner, fetchedAtMs: nowMs, fetched: await fetchDiffs(services, request.data) }
+      current = {
+        owner,
+        viewKey,
+        fetchedAtMs: nowMs,
+        fetched: await fetchDiffs(services, request.data)
+      }
+      cache = current
     }
-    const { fetched } = cache
+    const { fetched } = current
     await store(
       fetched.ok
         ? toPaneDiffs({ ...ids, agentId: worktree.agentId, dto: fetched.value, nowMs })

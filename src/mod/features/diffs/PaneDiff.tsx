@@ -24,7 +24,7 @@ interface PaneDiffProps {
 }
 
 /** Whether the stored diff is of this node and lists at least one changed file. */
-function hasFiles(diffs: PaneDiffs | undefined, node: PaneNode, sessionId: string): boolean {
+function hasFiles({ diffs, node, sessionId }: PaneDiffProps): boolean {
   return (
     diffs?.sessionId === sessionId &&
     diffs.key === node.key &&
@@ -35,12 +35,7 @@ function hasFiles(diffs: PaneDiffs | undefined, node: PaneNode, sessionId: strin
 }
 
 /** The lines under the heading: why the diff isn't there, or what it holds. */
-function bodyOf(
-  elements: PaneElements,
-  diffs: PaneDiffs | undefined,
-  node: PaneNode,
-  sessionId: string
-): object {
+function bodyOf({ elements, diffs, node, sessionId }: PaneDiffProps): object {
   const { Box, Text } = elements
   if (diffs?.sessionId !== sessionId || diffs.key !== node.key || diffs.status === 'loading') {
     return <Text>{t('diff.loading')}</Text>
@@ -89,7 +84,8 @@ function bodyOf(
  * @param props - The elements, the selected node, the session and the stored diff.
  * @returns The section.
  */
-export function PaneDiff({ elements, node, sessionId, diffs, patch }: PaneDiffProps): object {
+export function PaneDiff(props: PaneDiffProps): object {
+  const { elements, node, sessionId, patch } = props
   const { Box, Text } = elements
   return (
     <Box flexDirection="column">
@@ -99,12 +95,12 @@ export function PaneDiff({ elements, node, sessionId, diffs, patch }: PaneDiffPr
           {node.worktree?.branch ?? ''}
         </Text>
       </Box>
-      {bodyOf(elements, diffs, node, sessionId)}
+      {bodyOf(props)}
       {PanePatchView({
         elements,
         node,
         sessionId,
-        hasFiles: hasFiles(diffs, node, sessionId),
+        hasFiles: hasFiles(props),
         patch
       })}
     </Box>

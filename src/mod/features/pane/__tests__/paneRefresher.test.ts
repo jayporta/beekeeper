@@ -756,6 +756,22 @@ describe('createPaneRefresher worktree diffs', () => {
     expect(services.diffCalls).toBe(1)
   })
 
+  it('writes the view before it runs git for the diff', async () => {
+    const order: string[] = []
+    const { selectedRef, refresher, services } = setup({
+      get: { ok: true, value: worktreeDetail },
+      diffs: diffsAnswer,
+      writeView: async () => (order.push('view'), true)
+    })
+    selectedRef.current = { sessionId: ID, key: `sub:-p/${ID}:a1` }
+    const real = services.getWorktreeDiffs
+    services.getWorktreeDiffs = async (request) => (order.push('diff'), real(request))
+
+    await refresher.refresh({ withList: true })
+
+    expect(order).toEqual(['view', 'diff'])
+  })
+
   it('loads the diff even when the engine refuses the view', async () => {
     const { diffed, selectedRef, refresher } = setup({
       get: { ok: true, value: worktreeDetail },

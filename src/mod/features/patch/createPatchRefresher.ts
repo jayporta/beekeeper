@@ -45,55 +45,74 @@ export interface PatchRefresher {
  * @returns The refresher.
  */
 export function createPatchRefresher(deps: PatchRefresherDeps): PatchRefresher {
-  async function store(patch: PanePatch): Promise<void> {
+  /** A fetched patch whose write failed, kept so the next refresh retries the write, not git. */
+  let unwritten: PanePatch | null = null
+
+  /** Stores the patch; whether the engine kept it. A failure is logged by code. */
+  async function store(patch: PanePatch): Promise<boolean> {
     try {
-      await deps.writePatch(patch)
+      if (await deps.writePatch(patch)) return true
     } catch {
-      deps.log('pane-patch-write-failed')
+      // Logged below, like a refusal.
+    }
+    deps.log('pane-patch-write-failed')
+    return false
+  }
+
+  /** Reads the stored patch; `undefined` when none is stored or it can't be read, which is logged. */
+  async function read(): Promise<PanePatch | undefined> {
+    try {
+      return await deps.readPatch()
+    } catch {
+      deps.log('pane-patch-read-failed')
+      return undefined
     }
   }
 
-  /** Whether the stored patch still asks for this node, after the fetch. */
-  async function isStillAsked(asked: PanePatch): Promise<boolean> {
+  async function fetchPatch(
+    services: PaneServices,
+    request: Parameters<PaneServices['getWorktreePatch']>[0],
+    ids: { readonly sessionId: string; readonly key: string; readonly nowMs: number }
+  ): Promise<PanePatch> {
+    const failed = (errorCode: PaneErrorCode): PanePatch =>
+      emptyPanePatch({ ...ids, status: 'error', errorCode })
     try {
-      const now = await deps.readPatch()
-      return now?.status === 'loading' && now.sessionId === asked.sessionId && now.key === asked.key
+      const result = await services.getWorktreePatch(request)
+      return result.ok ? toPanePatch({ ...ids, dto: result.value }) : failed(result.error.code)
     } catch {
-      return false
+      deps.log('pane-patch-failed')
+      return failed('internal')
     }
   }
 
   async function refresh(input: PatchRefreshInput): Promise<void> {
     const { services, view, selected, nowMs } = input
-    let asked: PanePatch | undefined
-    try {
-      asked = await deps.readPatch()
-    } catch {
-      return
-    }
+    const asked = await read()
     if (asked?.status !== 'loading' || asked.sessionId !== view.sessionId) return
     const node = view.status === 'ready' ? selectedNode(view, selected) : null
     const worktree = node?.worktree ?? null
     if (node === null || worktree === null || node.key !== asked.key) return
     const ids = { sessionId: asked.sessionId, key: asked.key, nowMs }
-    const failed = (errorCode: PaneErrorCode): PanePatch =>
-      emptyPanePatch({ ...ids, status: 'error', errorCode })
+    if (unwritten?.sessionId === asked.sessionId && unwritten.key === asked.key) {
+      if (await store(unwritten)) unwritten = null
+      return
+    }
+    unwritten = null
     const request = getWorktreePatchRequestSchema.safeParse({
       projectDirName: worktree.projectDirName,
       sessionId: worktree.sessionId,
       agentId: worktree.agentId
     })
-    if (!request.success) return store(failed('invalid-request'))
-
-    let next: PanePatch
-    try {
-      const result = await services.getWorktreePatch(request.data)
-      next = result.ok ? toPanePatch({ ...ids, dto: result.value }) : failed(result.error.code)
-    } catch {
-      deps.log('pane-patch-failed')
-      next = failed('internal')
+    if (!request.success) {
+      await store(emptyPanePatch({ ...ids, status: 'error', errorCode: 'invalid-request' }))
+      return
     }
-    if (await isStillAsked(asked)) await store(next)
+
+    const next = await fetchPatch(services, request.data, ids)
+    const now = await read()
+    const isStillAsked =
+      now?.status === 'loading' && now.sessionId === asked.sessionId && now.key === asked.key
+    if (isStillAsked && !(await store(next))) unwritten = next
   }
 
   return { refresh }

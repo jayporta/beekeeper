@@ -179,4 +179,87 @@ describe('createPatchRefresher', () => {
     expect(written[0]).toMatchObject({ status: 'error', errorCode: 'invalid-request' })
     expect(services.patchCalls).toBe(0)
   })
+
+  describe('a patch that could not be stored', () => {
+    it('logs a code, keeps the fetched patch, and retries only the write on the next refresh', async () => {
+      const { written, logs, services } = setup(loading('sub:a1'))
+      let accept = false
+      const state = { current: loading('sub:a1') as PanePatch | undefined }
+      const refresher = createPatchRefresher({
+        readPatch: async () => state.current,
+        writePatch: async (patch) => {
+          written.push(patch)
+          if (accept) state.current = patch
+          return accept
+        },
+        log: (code) => logs.push(code)
+      })
+      const input = {
+        services,
+        view,
+        selected: { sessionId: 's1', key: 'sub:a1' },
+        nowMs: 9
+      }
+
+      await refresher.refresh(input)
+      accept = true
+      await refresher.refresh(input)
+
+      expect(logs).toEqual(['pane-patch-write-failed'])
+      expect(services.patchCalls).toBe(1)
+      expect(written).toHaveLength(2)
+      expect(written[1]).toBe(written[0])
+      expect(state.current).toMatchObject({ status: 'ready' })
+    })
+
+    it('logs a code when the stored patch cannot be read', async () => {
+      const logs: string[] = []
+      const services = testPaneServices({
+        list: { ok: true, value: [] },
+        get: { ok: false, error: { code: 'internal' } }
+      })
+      const refresher = createPatchRefresher({
+        readPatch: async () => {
+          throw new Error('boom')
+        },
+        writePatch: async () => true,
+        log: (code) => logs.push(code)
+      })
+
+      await refresher.refresh({ services, view, selected: null, nowMs: 1 })
+
+      expect(logs).toEqual(['pane-patch-read-failed'])
+      expect(services.patchCalls).toBe(0)
+    })
+
+    it('logs a code, and stores nothing, when the stored patch cannot be read after the fetch', async () => {
+      const logs: string[] = []
+      const written: PanePatch[] = []
+      let reads = 0
+      const services = testPaneServices({
+        list: { ok: true, value: [] },
+        get: { ok: false, error: { code: 'internal' } },
+        patch: READY
+      })
+      const refresher = createPatchRefresher({
+        readPatch: async () => {
+          reads += 1
+          if (reads > 1) throw new Error('boom')
+          return loading('sub:a1')
+        },
+        writePatch: async (patch) => (written.push(patch), true),
+        log: (code) => logs.push(code)
+      })
+
+      await refresher.refresh({
+        services,
+        view,
+        selected: { sessionId: 's1', key: 'sub:a1' },
+        nowMs: 1
+      })
+
+      expect(logs).toEqual(['pane-patch-read-failed'])
+      expect(written).toEqual([])
+    })
+  })
 })
