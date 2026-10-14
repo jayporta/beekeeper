@@ -4,33 +4,10 @@ import type { FilesChangedDto } from '../../shared/ipc/filesChangedDto'
 import type { IpcResult } from '../../shared/ipc/ipcResult'
 import type { OtelReceiverDto } from '../../shared/ipc/otelReceiverDto'
 import type { ProjectDto } from '../../shared/ipc/projectDto'
+import { testProject } from '../../shared/projects/testProject'
 
 /** A telemetry receiver that is off, which is what an unstubbed `getOtelReceiver` reports. */
 export const TEST_OTEL_OFF: OtelReceiverDto = { enabled: false, status: 'off', failure: null }
-
-/** What makes a test project a worktree: the folder it belongs to and its name. Set together or not at all. */
-export interface TestWorktree {
-  /** The name of the folder this one is a worktree of. */
-  readonly worktreeOf: string
-  /** The worktree's name, as the app reports it. */
-  readonly worktreeName: string
-}
-
-/**
- * A project folder, for stubbing `listProjects`.
- *
- * @param dirName - The folder's name under `~/.claude/projects`.
- * @param worktree - Set when the folder is a worktree of another listed folder. Omit it for a top-level project.
- * @returns The project, with no label.
- */
-export function testProject(dirName: string, worktree?: TestWorktree): ProjectDto {
-  return {
-    dirName,
-    label: null,
-    worktreeOf: worktree?.worktreeOf ?? null,
-    worktreeName: worktree?.worktreeName ?? null
-  }
-}
 
 /** The stubbed API: each method is a mock, so a test can assert on calls or change a result. */
 export type TestBeekeeperApi = { [K in keyof BeekeeperApi]: Mock<BeekeeperApi[K]> } & {

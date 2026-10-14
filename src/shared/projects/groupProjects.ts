@@ -1,4 +1,4 @@
-import type { ProjectDto } from '../../../../shared/ipc/projectDto'
+import type { ProjectDto } from '../ipc/projectDto'
 
 /** A top-level project with the worktree folders grouped under it. */
 export interface ProjectGroup {

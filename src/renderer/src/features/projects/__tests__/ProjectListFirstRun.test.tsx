@@ -7,7 +7,8 @@ import {
 } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { idbStorage } from '@renderer/storage/idbStorage'
-import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
+import { testProject } from '../../../../../shared/projects/testProject'
+import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
 
 const ALPHA = '-Users-a-alpha'

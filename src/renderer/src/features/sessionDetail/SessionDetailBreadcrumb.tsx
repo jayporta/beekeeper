@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 import type { SessionRefDto } from '../../../../shared/ipc/sessionRefDto'
 import { Breadcrumb, type BreadcrumbSegment } from '@renderer/features/navigation/Breadcrumb'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
-import { projectTitle } from '@renderer/features/projects/projectTitle'
+import { projectTitle } from '../../../../shared/projects/projectTitle'
 import { useSelectedProject } from '@renderer/features/projects/state/useSelectedProject'
 
 /** Props for {@link SessionDetailBreadcrumb}. */

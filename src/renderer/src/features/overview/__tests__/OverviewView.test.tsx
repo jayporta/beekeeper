@@ -10,7 +10,8 @@ import type { ProjectTotalsDto } from '../../../../../shared/ipc/projectTotalsDt
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { useSelectedProjectStore } from '@renderer/features/projects/state/useSelectedProjectStore'
-import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
+import { testProject } from '../../../../../shared/projects/testProject'
+import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
 import {
   createQueryWrapper,
   createTestQueryClient,

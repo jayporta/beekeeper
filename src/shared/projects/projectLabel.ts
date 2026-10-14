@@ -1,4 +1,4 @@
-import type { ProjectDto } from '../../../../shared/ipc/projectDto'
+import type { ProjectDto } from '../ipc/projectDto'
 
 /**
  * The name to show for a project: the label read from its transcripts, else

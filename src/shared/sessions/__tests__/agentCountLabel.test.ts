@@ -1,20 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
+import type { SessionListItemDto } from '../../ipc/sessionListDto'
 import { agentCountLabel, hasAgents } from '../agentCountLabel'
-import {
-  testLeadTeam,
-  testRef,
-  testSession,
-  testTeammateTeam
-} from '../../../../../shared/sessions/testSessionFixtures'
-import { testSessionsT } from '../testSessionsT'
+import { testLeadTeam, testRef, testSession, testTeammateTeam } from '../testSessionFixtures'
+import { testAgentCountWords } from '../testAgentCountWords'
 
 const withSubagents = (item: SessionListItemDto, count: number | null): SessionListItemDto => ({
   ...item,
   subagentCount: count
 })
 
-const labelOf = (item: SessionListItemDto): string | null => agentCountLabel(item, testSessionsT)
+const labelOf = (item: SessionListItemDto): string | null =>
+  agentCountLabel(item, testAgentCountWords)
 
 const leadOf = (teammates: number): SessionListItemDto =>
   testSession(1, {

@@ -8,8 +8,9 @@ import { shareOfTotal } from '@renderer/components/shareOfTotal'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import type { SessionRefDto } from '../../../../shared/ipc/sessionRefDto'
 import { AgentMark } from './AgentMark'
-import { agentCounts } from './agentCounts'
-import { workflowsText } from './agentCountLabel'
+import { agentCounts } from '../../../../shared/sessions/agentCounts'
+import { agentCountWords } from './agentCountWords'
+import { workflowsText } from '../../../../shared/sessions/agentCountLabel'
 import { EmptyCell } from './EmptyCell'
 import { folderNote, stoppedNote } from './itemNotes'
 import { PARTIAL_FOOTNOTE_ID } from './partialFootnoteId'
@@ -62,7 +63,7 @@ export const TeammateRow = memo(function TeammateRow({
   const stopped = stoppedNote(item, t)
   const notes = [
     counts.subagents > 0 ? t('agents.subagents', { count: counts.subagents }) : null,
-    workflowsText(counts, t),
+    workflowsText(counts, agentCountWords(t)),
     folderNote(item, selectedDirName, t)
   ].filter((note) => note !== null)
   const hasShare = tokens !== null && sessionTokens !== null && sessionTokens > 0

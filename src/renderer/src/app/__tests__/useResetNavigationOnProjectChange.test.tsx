@@ -4,7 +4,8 @@ import type { IpcResult } from '../../../../shared/ipc/ipcResult'
 import type { ProjectDto } from '../../../../shared/ipc/projectDto'
 import { useSelectedProjectDirName } from '@renderer/features/projects/state/useSelectedProjectDirName'
 import { useSelectedProjectStore } from '@renderer/features/projects/state/useSelectedProjectStore'
-import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
+import { testProject } from '../../../../shared/projects/testProject'
+import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
 import {
   createQueryWrapper,
   createTestQueryClient,

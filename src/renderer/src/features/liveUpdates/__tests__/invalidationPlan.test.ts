@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { FilesChangedDto } from '../../../../../shared/ipc/filesChangedDto'
-import { testProject } from '@renderer/testBeekeeperApi'
+import { testProject } from '../../../../../shared/projects/testProject'
 import { familyOf, invalidationPlan, isInFamilies } from '../invalidationPlan'
 
 const BASE = '-Users-a-repo'

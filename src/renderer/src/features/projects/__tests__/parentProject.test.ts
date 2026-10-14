@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { testProject } from '@renderer/testBeekeeperApi'
+import { testProject } from '../../../../../shared/projects/testProject'
 import { parentProject } from '../parentProject'
 
 const parent = testProject('a')

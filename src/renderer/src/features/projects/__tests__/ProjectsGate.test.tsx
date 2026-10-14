@@ -3,7 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { IpcErrorCode, IpcResult } from '../../../../../shared/ipc/ipcResult'
 import type { ProjectDto } from '../../../../../shared/ipc/projectDto'
-import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
+import { testProject } from '../../../../../shared/projects/testProject'
+import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
 import {
   createQueryWrapper,
   createTestQueryClient,

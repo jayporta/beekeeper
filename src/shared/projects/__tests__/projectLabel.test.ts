@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { testProject } from '@renderer/testBeekeeperApi'
+import { testProject } from '../testProject'
 import { projectLabel } from '../projectLabel'
 
 describe('projectLabel', () => {

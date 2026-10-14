@@ -1,4 +1,4 @@
-import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
+import type { SessionListItemDto } from '../ipc/sessionListDto'
 
 /** How many agents of each kind a session has. */
 export interface AgentCounts {

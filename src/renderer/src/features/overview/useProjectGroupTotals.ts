@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import type { ProjectDto } from '../../../../shared/ipc/projectDto'
 import type { TotalsWindowDto } from '../../../../shared/ipc/projectTotalsDto'
-import { groupProjects, type ProjectGroup } from '@renderer/features/projects/groupProjects'
+import { groupProjects, type ProjectGroup } from '../../../../shared/projects/groupProjects'
 import { useProjects } from '@renderer/features/projects/useProjects'
 import { folderTotalsOf, overviewTotals, projectTotalsOf } from './projectTotalsOf'
 import type { AggregateTotals } from './sumTotals'

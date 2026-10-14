@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
+import { testProject } from '../../../../../shared/projects/testProject'
+import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { createQueryWrapper } from '@renderer/testQueryWrapper'
 import { ProjectStats } from '../ProjectStats'
 import type { FolderStats as Stats } from '../folderStats'

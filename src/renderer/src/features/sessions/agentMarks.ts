@@ -1,5 +1,5 @@
 import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
-import { agentCounts } from './agentCounts'
+import { agentCounts } from '../../../../shared/sessions/agentCounts'
 
 /** What a mark in a card's agent strip stands for. */
 export type AgentMarkKind = 'lead' | 'teammate' | 'workflow' | 'subagent'

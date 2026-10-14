@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { MutedText } from '@renderer/components/MutedText'
 import { ShareBar } from '@renderer/components/ShareBar'
 import { shareOfLargest } from '@renderer/components/shareOfLargest'
-import { agentCountLabel } from './agentCountLabel'
+import { agentCountWords } from './agentCountWords'
+import { agentCountLabel } from '../../../../shared/sessions/agentCountLabel'
 import { AgentStrip } from './AgentStrip'
 import { AgentsToggle } from './AgentsToggle'
 import { CardColumns } from './CardColumns'
@@ -70,7 +71,7 @@ export const SessionCard = memo(function SessionCard({
   const { t } = useTranslation('sessions')
   const { item, label, teammates } = row
   const { figures, teamTotal } = cardFigures(item)
-  const agents = agentCountLabel(item, t)
+  const agents = agentCountLabel(item, agentCountWords(t))
   const duration = formatDuration(
     activitySpanMs(item.summary.ok ? item.summary.value.activity : null),
     t

@@ -1,6 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
+import { testProject } from '../../../../../shared/projects/testProject'
+import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { createQueryWrapper } from '@renderer/testQueryWrapper'
 import { useProjectColorSlot } from '../useProjectColorSlot'
 import { useProjects } from '../useProjects'

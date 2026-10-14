@@ -5,7 +5,8 @@ import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunS
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { testDetail } from '../../../../shared/agentGraph/testSessionDetail'
 import { useSelectedProjectStore } from '@renderer/features/projects/state/useSelectedProjectStore'
-import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
+import { testProject } from '../../../../shared/projects/testProject'
+import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { hydratePersistedStores, renderAppReady } from '@renderer/testAppReady'
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
 

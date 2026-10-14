@@ -6,7 +6,8 @@ import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDt
 import { LISTS_STALE_TIME_MS } from '@renderer/app/listsStaleTime'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useSelectedProjectStore } from '@renderer/features/projects/state/useSelectedProjectStore'
-import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
+import { testProject } from '../../../../../shared/projects/testProject'
+import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
 import {
   createQueryWrapper,
   createTestQueryClient,

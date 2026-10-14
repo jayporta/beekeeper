@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
-import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
+import { testProject } from '../../../../../shared/projects/testProject'
+import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { createQueryWrapper } from '@renderer/testQueryWrapper'
 import { resetPersistedState } from '@renderer/testRenderApp'
 import { useSelectedProject } from '../state/useSelectedProject'

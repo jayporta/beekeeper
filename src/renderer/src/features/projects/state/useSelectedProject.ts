@@ -1,5 +1,5 @@
 import type { ProjectDto } from '../../../../../shared/ipc/projectDto'
-import { pickProject } from '../pickProject'
+import { pickProject } from '../../../../../shared/projects/pickProject'
 import { useProjects } from '../useProjects'
 import { useSelectedProjectStore } from './useSelectedProjectStore'
 

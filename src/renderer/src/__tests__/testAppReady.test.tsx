@@ -4,7 +4,8 @@ import { useNavigationStore } from '@renderer/features/navigation/state/useNavig
 import { testDetail } from '../../../shared/agentGraph/testSessionDetail'
 import { testSession } from '../../../shared/sessions/testSessionFixtures'
 import { hydratePersistedStores, renderAppReady } from '@renderer/testAppReady'
-import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
+import { testProject } from '../../../shared/projects/testProject'
+import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { resetPersistedState } from '@renderer/testRenderApp'
 import { createTestQueryClient } from '@renderer/testQueryWrapper'
 
