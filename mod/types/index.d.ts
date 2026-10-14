@@ -52,7 +52,7 @@ export type BeekeeperPaneView = {
 /** Which screen the pane shows; a missing value is `current`. */
 export type BeekeeperNav =
   | { screen: 'current' }
-  | { screen: 'browse'; projectDirName: string | null }
+  | { screen: 'browse'; projectDirName: string | null; openId?: number }
   | { screen: 'session'; ref: { projectDirName: string; sessionId: string }; backTo: string }
 
 /** One project in the Browse picker. */

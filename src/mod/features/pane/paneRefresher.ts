@@ -49,6 +49,7 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
   let lastKey: string | null = null
   let lastNavKey: string | null = null
   let lastNavScreen: PaneNav['screen'] = 'current'
+  let lastOpenId: number | undefined
   let lastScreen: PaneNav['screen'] = 'current'
   let lastListedAtMs = Number.NEGATIVE_INFINITY
 
@@ -78,7 +79,11 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
   const browse = createBrowseRefresher({
     writeBrowse: (view) => pane.writeBrowse(view),
     log,
-    servicesFor
+    servicesFor,
+    readOpenId: async () => {
+      const stored = await readNav()
+      return stored?.screen === 'browse' ? stored.openId : undefined
+    }
   })
 
   /** The engine's own session's folder, remembered per session id; `null` when its transcript isn't there yet. */
@@ -119,7 +124,10 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
     lastKey = null
     browse.forgetStored()
     lastList = null
-    return { changed: true, opened: screen === 'browse' && previous !== 'browse' }
+    const openId = nav?.screen === 'browse' ? nav.openId : undefined
+    const isReopen = openId !== undefined && openId !== lastOpenId
+    lastOpenId = openId
+    return { changed: true, opened: screen === 'browse' && (previous !== 'browse' || isReopen) }
   }
 
   /** What every refresh starts from: the engine's session, its root, the time, and what starting the mod came to. */
@@ -178,6 +186,7 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
         await browse.refresh({
           projectDirName: nav.projectDirName,
           opened,
+          openId: nav.openId,
           outcome,
           nowMs,
           currentFolder: () =>
@@ -187,7 +196,7 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
         })
       } catch {
         log('pane-browse-failed')
-        await browse.fail(nav.projectDirName)
+        await browse.fail(nav.projectDirName, nav.openId)
       }
       return
     }

@@ -230,4 +230,16 @@ describe('refreshBrowse', () => {
     expect(written.at(-1)?.projects).toHaveLength(2)
     expect(result.projects).toEqual(PROJECTS)
   })
+
+  it('keeps the known projects in the error view when a service throws', async () => {
+    const services = testPaneServices({
+      list: new Error('secret'),
+      get: ok(null as never)
+    })
+
+    const { written } = await run(services)
+
+    expect(written[0]).toMatchObject({ status: 'error', errorCode: 'internal' })
+    expect(written[0]?.projects).toHaveLength(2)
+  })
 })

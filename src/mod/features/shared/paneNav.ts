@@ -6,7 +6,12 @@ import type { SessionRefDto } from '../../../shared/ipc/sessionRefDto'
  */
 export type PaneNav =
   | { readonly screen: 'current' }
-  | { readonly screen: 'browse'; readonly projectDirName: string | null }
+  | {
+      readonly screen: 'browse'
+      readonly projectDirName: string | null
+      /** Set when Browse is opened from another screen, so a reopen is told from the open before it. */
+      readonly openId?: number
+    }
   | { readonly screen: 'session'; readonly ref: SessionRefDto; readonly backTo: string }
 
 /** The session a pane view is built for, and whether it is the engine's own session or one the person browsed to. */

@@ -83,10 +83,27 @@ describe('the pane nav', () => {
     const props = await render()
     await (props['onNav'] as (nav: PaneNav) => Promise<void>)(BROWSE)
 
-    expect(navWrites(engine)).toEqual([[NAV, BROWSE]])
+    expect(navWrites(engine)).toEqual([[NAV, { ...BROWSE, openId: 1 }]])
     expect(engine.timers.slice(before).map((timer) => [timer.kind, timer.ms])).toEqual([
       ['after', 0]
     ])
+  })
+
+  it('gives each opening of Browse its own open id, so a reopen is told from the open before it', async () => {
+    const { engine, render } = harness({
+      panes: [],
+      state: { 'beekeeper.view': testPaneView(testPaneNode('lead')) }
+    })
+
+    const first = await render()
+    await (first['onNav'] as (nav: PaneNav) => Promise<void>)(BROWSE)
+    engine.clearState()
+    const second = await render()
+    await (second['onNav'] as (nav: PaneNav) => Promise<void>)(BROWSE)
+
+    const ids = navWrites(engine).map((write) => (write[1] as { openId?: number }).openId)
+    expect(ids).toHaveLength(2)
+    expect(ids[0]).not.toBe(ids[1])
   })
 
   it('opens Browse on the picked project and refreshes at once', async () => {

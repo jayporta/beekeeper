@@ -145,6 +145,7 @@ export async function refreshBrowse(
         refreshedAtMs: input.nowMs,
         status: 'error',
         errorCode: 'internal',
+        projects: input.lastProjects === null ? [] : browseProjects(input.lastProjects),
         projectDirName: input.projectDirName
       })
     )

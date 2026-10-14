@@ -34,6 +34,9 @@ const NAV = { plugin: 'beekeeper', key: 'nav' } as const
 /** The `$.state` value the Browse screen draws from. */
 const BROWSE = { plugin: 'beekeeper', key: 'browse' } as const
 
+/** Counts the times Browse was opened from another screen in this loaded copy; each open carries its number in the nav. */
+let browseOpens = 0
+
 /** The names among the git repository variables that Claude Code's environment sets, even to empty. */
 async function gitRepoVariablesSet($: Engine): Promise<string[]> {
   const found = await Promise.all([
@@ -192,10 +195,13 @@ async function drawPane($: Engine, e: PaneRenderInput): Promise<object> {
     },
     onNav: async (next) => {
       // Opening Browse from another screen must not show the last project's rows as current.
-      if (next.screen === 'browse' && nav?.screen !== 'browse') {
+      const isOpen = next.screen === 'browse' && nav?.screen !== 'browse'
+      if (isOpen)
         await $.state.set(BROWSE, emptyBrowseView({ status: 'loading', refreshedAtMs: 0 }))
-      }
-      await $.state.set(NAV, next)
+      await $.state.set(
+        NAV,
+        isOpen && next.screen === 'browse' ? { ...next, openId: ++browseOpens } : next
+      )
       refreshForNav()
     },
     columns: e.props.bodyColumns,

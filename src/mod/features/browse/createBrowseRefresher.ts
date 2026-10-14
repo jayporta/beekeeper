@@ -15,6 +15,8 @@ export interface BrowseRefresherDeps {
   readonly writeBrowse: (view: BrowseView) => Promise<boolean>
   /** Receives a code-only line for a failure the refresher survives. */
   readonly log: (line: string) => void
+  /** The open id of the nav now stored, or `undefined` when none is or Browse isn't showing. */
+  readonly readOpenId: () => Promise<number | undefined>
   /** The services for a projects folder. */
   readonly servicesFor: (projectsRoot: string) => PaneServices
 }
@@ -25,6 +27,8 @@ export interface BrowseRefreshRequest {
   readonly projectDirName: string | null
   /** Whether Browse was just opened, from another screen. */
   readonly opened: boolean
+  /** The open id of the nav this refresh was asked for, or `undefined` when it has none. A view from a refresh whose id is no longer the stored nav's is dropped. */
+  readonly openId: number | undefined
   /** What starting the mod came to. */
   readonly outcome: StartOutcome
   /** The time, in milliseconds since the epoch. */
@@ -38,7 +42,7 @@ export interface BrowseRefresher {
   /** Builds the Browse view and stores it, as far as it changed. Never rejects. */
   refresh(request: BrowseRefreshRequest): Promise<void>
   /** Stores an error view for a refresh that could not run, so Browse does not stay on loading. Never rejects. */
-  fail(projectDirName: string | null): Promise<void>
+  fail(projectDirName: string | null, openId: number | undefined): Promise<void>
   /** Forgets what was stored, so the next refresh stores its view even if it matches. */
   forgetStored(): void
   /** Whether a view is stored since the last time stored views were forgotten. */
@@ -59,10 +63,12 @@ export function createBrowseRefresher(deps: BrowseRefresherDeps): BrowseRefreshe
   let shown: string | null = null
   let lastKey: string | null = null
 
-  async function write(view: BrowseView): Promise<boolean> {
+  async function write(view: BrowseView, openId: number | undefined): Promise<boolean> {
     const key = contentKey(view)
     if (key === lastKey) return true
     try {
+      // A refresh that began before Browse was reopened must not land as the new Browse's view.
+      if ((await deps.readOpenId()) !== openId) return false
       if (!(await deps.writeBrowse(view))) return false
     } catch {
       deps.log('pane-write-failed')
@@ -76,7 +82,7 @@ export function createBrowseRefresher(deps: BrowseRefresherDeps): BrowseRefreshe
   const heldProjects = (): readonly BrowseProject[] =>
     projects === null ? [] : browseProjects(projects)
 
-  async function fail(projectDirName: string | null): Promise<void> {
+  async function fail(projectDirName: string | null, openId: number | undefined): Promise<void> {
     await write(
       emptyBrowseView({
         status: 'error',
@@ -84,7 +90,8 @@ export function createBrowseRefresher(deps: BrowseRefresherDeps): BrowseRefreshe
         projects: heldProjects(),
         projectDirName,
         refreshedAtMs: 0
-      })
+      }),
+      openId
     )
   }
 
@@ -98,7 +105,8 @@ export function createBrowseRefresher(deps: BrowseRefresherDeps): BrowseRefreshe
           projects: heldProjects(),
           projectDirName: request.projectDirName ?? shown,
           refreshedAtMs: nowMs
-        })
+        }),
+        request.openId
       )
       return
     }
@@ -111,7 +119,7 @@ export function createBrowseRefresher(deps: BrowseRefresherDeps): BrowseRefreshe
       lastProjects: projects,
       nowMs,
       words: BROWSE_WORDS,
-      write
+      write: (view) => write(view, request.openId)
     })
     projects = result.projects
     shown = result.projectDirName
@@ -121,7 +129,7 @@ export function createBrowseRefresher(deps: BrowseRefresherDeps): BrowseRefreshe
     try {
       await build(request)
     } catch {
-      await fail(request.projectDirName ?? shown)
+      await fail(request.projectDirName ?? shown, request.openId)
     }
   }
 

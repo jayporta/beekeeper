@@ -64,6 +64,18 @@ describe('BrowseScreen', () => {
   afterAll(removeTestH)
 
   describe.each(['terminal', 'desktop'])('on %s', () => {
+    it.each([
+      ['a ready view', view()],
+      ['an empty project', view({ rows: [] })],
+      ['no projects', view({ projects: [], projectDirName: null, rows: [] })],
+      ['an error', view({ status: 'error', errorCode: 'unreadable', rows: [] })],
+      ['loading', undefined]
+    ])('has a title line that says it is Browse, for %s', (_label, browse) => {
+      const { tree } = draw(browse, { nav: { screen: 'browse', projectDirName: null } })
+
+      expect(textOf(tree)).toContain('beekeeper, browsing projects')
+    })
+
     it('draws the projects in a Select with the picked one selected', () => {
       const { tree, elements } = draw(view())
 
@@ -242,6 +254,16 @@ describe('BrowseScreen', () => {
       ])
       await (projects[1]?.props['onPress'] as () => Promise<void>)()
       expect(onPickProject).toHaveBeenCalledWith('-q')
+    })
+
+    it('puts a word before the project Buttons and one before the sessions, so they can be told apart', () => {
+      const { tree } = draw(view(), { hasSelect: false })
+
+      const text = textOf(tree)
+      expect(text).toContain('Project')
+      expect(text.indexOf('Project')).toBeLessThan(text.indexOf('alpha'))
+      expect(text.indexOf('Sessions')).toBeGreaterThan(text.indexOf('beta'))
+      expect(text.indexOf('Sessions')).toBeLessThan(text.indexOf('Session 1'))
     })
 
     it('draws no project Buttons when there are no projects', () => {

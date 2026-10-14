@@ -54,6 +54,7 @@ export function BrowseScreen({
   if (browse === undefined || !isCurrent(browse, nav)) {
     return (
       <Box flexDirection="column">
+        <Text>{t('browse.title')}</Text>
         <Text>{t('browse.loading')}</Text>
       </Box>
     )
@@ -61,12 +62,14 @@ export function BrowseScreen({
   if (browse.projects.length === 0 && browse.projectDirName === null && browse.status === 'ready') {
     return (
       <Box flexDirection="column">
+        <Text>{t('browse.title')}</Text>
         <Text>{t('browse.noProjects')}</Text>
       </Box>
     )
   }
   return (
     <Box flexDirection="column">
+      <Text>{t('browse.title')}</Text>
       {browse.projects.length > 0
         ? ProjectPicker({
             elements,
@@ -79,6 +82,7 @@ export function BrowseScreen({
       {browse.status === 'ready' && browse.rows.length === 0 ? (
         <Text>{t('browse.noSessions')}</Text>
       ) : null}
+      {browse.rows.length > 0 ? <Text>{t('browse.sessions')}</Text> : null}
       {browse.rows.map((row) =>
         BrowseRowButton({
           elements,

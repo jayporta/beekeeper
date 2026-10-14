@@ -512,6 +512,44 @@ describe('createPaneRefresher', () => {
       expect(browsed.at(-1)?.projects).toHaveLength(2)
     })
 
+    it("opens on the current session's folder again when Browse is reopened, even if the refresher saw no other screen between", async () => {
+      const { services, refresher, navRef } = setup({
+        nav: { screen: 'browse', projectDirName: '-q', openId: 1 },
+        projects: [testProject('-p'), testProject('-q')]
+      })
+
+      await refresher.refresh({ withList: true })
+      navRef.current = { screen: 'browse', projectDirName: null, openId: 2 }
+      await refresher.refresh({ withList: true })
+
+      expect(services.listedFolders).toEqual(['-q', '-p'])
+      expect(services.projectCalls).toBe(2)
+    })
+
+    it('does not store a view from a refresh that began before Browse was reopened', async () => {
+      const { services, browsed, refresher, navRef } = setup({
+        nav: { screen: 'browse', projectDirName: '-q', openId: 1 },
+        projects: [testProject('-p'), testProject('-q')]
+      })
+      let release: () => void = () => {}
+      const gate = new Promise<void>((resolve) => {
+        release = resolve
+      })
+      const listSessions = services.listSessions
+      services.listSessions = async (request) => {
+        await gate
+        return listSessions(request)
+      }
+
+      const inFlight = refresher.refresh({ withList: true })
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      navRef.current = { screen: 'browse', projectDirName: null, openId: 2 }
+      release()
+      await inFlight
+
+      expect(browsed).toEqual([])
+    })
+
     it('wants the list tick', async () => {
       const { refresher } = setup({ nav: browse })
 

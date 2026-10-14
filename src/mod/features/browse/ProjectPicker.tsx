@@ -41,6 +41,7 @@ export function ProjectPicker({
   }
   return (
     <Box flexDirection="column">
+      <Text>{t('browse.project')}</Text>
       {projects.map(({ dirName, label }) => (
         <Button key={`project:${dirName}`} onPress={() => onPick(dirName)}>
           <Text wrap="truncate-end">

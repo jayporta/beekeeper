@@ -95,6 +95,8 @@
     "noSessions": "No sessions in this project",
     "more_one": "{{count, integer}} more session. The desktop app lists them all.",
     "more_other": "{{count, integer}} more sessions. The desktop app lists them all.",
-    "lastActive": "{{value, shortDateTime}}"
+    "lastActive": "{{value, shortDateTime}}",
+    "title": "beekeeper, browsing projects",
+    "sessions": "Sessions"
   }
 }
