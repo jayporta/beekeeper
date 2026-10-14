@@ -43,6 +43,18 @@ describe('NavRow', () => {
     expect(browse.map((button) => button.text)).toEqual(['This session', 'Browse (showing)'])
   })
 
+  it('marks Browse as showing on a browsed session, which belongs to it', () => {
+    const nav: PaneNav = {
+      screen: 'session',
+      ref: { projectDirName: '-p', sessionId: 's' },
+      backTo: '-p'
+    }
+
+    const texts = buttons(NavRow({ elements, nav, onNav: vi.fn() })).map((button) => button.text)
+
+    expect(texts).toEqual(['This session', 'Browse (showing)'])
+  })
+
   it('opens Browse with no project from the current screen', async () => {
     const onNav = vi.fn()
     const [, browse] = buttons(NavRow({ elements, nav: { screen: 'current' }, onNav }))

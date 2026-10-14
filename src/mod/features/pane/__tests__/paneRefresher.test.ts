@@ -560,4 +560,57 @@ describe('createPaneRefresher', () => {
       expect(written[0]).toMatchObject({ sessionId: ID, target: 'current' })
     })
   })
+
+  describe('when building throws', () => {
+    const other = { projectDirName: '-other', sessionId: testSessionId(7) }
+    const failing = (message: string) => async (): Promise<string> => {
+      throw new Error(message)
+    }
+
+    it('tags the error view with the browsed session, so it is not taken for loading forever', async () => {
+      const { written, refresher } = setup({
+        nav: { screen: 'session', ref: other, backTo: '-other' },
+        sessionId: failing('secret /home/u/x')
+      })
+
+      await refresher.refresh({ withList: true })
+
+      expect(written[0]).toMatchObject({
+        status: 'error',
+        errorCode: 'internal',
+        target: 'browsed',
+        sessionId: other.sessionId
+      })
+    })
+
+    it('stores an error Browse view for the project asked for, so Browse does not stay on loading', async () => {
+      const { browsed, refresher } = setup({
+        nav: { screen: 'browse', projectDirName: '-q' },
+        sessionId: failing('secret /home/u/x')
+      })
+
+      await refresher.refresh({ withList: true })
+
+      expect(browsed).toHaveLength(1)
+      expect(browsed[0]).toMatchObject({
+        status: 'error',
+        errorCode: 'internal',
+        projectDirName: '-q'
+      })
+      expect(JSON.stringify(browsed[0])).not.toContain('secret')
+    })
+  })
+
+  describe('whether Browse is stored', () => {
+    it('is not before Browse is built, is after, and is not again once the stored views are forgotten', async () => {
+      const { refresher } = setup({ nav: { screen: 'browse', projectDirName: null } })
+      expect(refresher.isBrowseStored()).toBe(false)
+
+      await refresher.refresh({ withList: true })
+      expect(refresher.isBrowseStored()).toBe(true)
+
+      refresher.forgetStored()
+      expect(refresher.isBrowseStored()).toBe(false)
+    })
+  })
 })

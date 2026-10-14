@@ -22,7 +22,9 @@
       "tokens_other": "{{count, compactInteger}} tokens in this session",
       "none": "No token usage yet.",
       "partial": "May be incomplete."
-    }
+    },
+    "browsing": "beekeeper, browsing: {{label}}",
+    "browsingTitle": "beekeeper, browsing"
   },
   "start": {
     "tooOld": "beekeeper needs Claude Code {{minimum}} or later. This is {{version}}.",
@@ -83,8 +85,7 @@
   "nav": {
     "current": "This session",
     "showing": "{{name}} (showing)",
-    "browse": "Browse",
-    "back": "Back"
+    "browse": "Browse"
   },
   "browse": {
     "loading": "Loading the sessions.",

@@ -146,14 +146,20 @@ function wired($: Engine): PaneWiring {
 /** Schedules a debounced refresh, and restarts lost ticks, when the pane is open. */
 async function refreshIfOpen($: Engine, withList: boolean): Promise<void> {
   if (!(await isPaneOpen($))) return
-  const { scheduler } = wired($)
+  const { refresher, scheduler } = wired($)
   scheduler.ensureTicks()
-  // Browse refreshes only when it opens, on a pick and on the list tick, not on a turn or a spawn.
-  if ((await $.state.get<PaneNav>(NAV)).value?.screen === 'browse') return
+  // Browse refreshes only when it opens, on a pick and on the list tick, not on a turn or a spawn,
+  // except once in a copy that has not built it yet (after a hot reload or a lost hooks worker).
+  const isBrowsing = (await $.state.get<PaneNav>(NAV)).value?.screen === 'browse'
+  if (isBrowsing && refresher.isBrowseStored()) return
+  if (isBrowsing) {
+    scheduler.schedule({ withList: true, delayMs: DEBOUNCE_MS })
+    return
+  }
   scheduler.schedule({ withList, delayMs: DEBOUNCE_MS })
 }
 
-/** Asks the loaded copy's refresher for a fresh view at once, after the nav changed. A copy with no wiring yet has no timers to hold this `$`, and the next hook that wires it refreshes. */
+/** Asks the loaded copy's refresher for a fresh view at once, after the nav changed. A copy with no wiring yet has no timers to hold this `$`, so it asks for nothing: the next hook that wires it refreshes, and `refreshIfOpen` builds a Browse screen a copy has not built. */
 function refreshForNav(): void {
   wiring?.refresher.forgetStored()
   wiring?.scheduler.schedule({ withList: true, delayMs: 0 })

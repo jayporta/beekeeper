@@ -115,6 +115,16 @@ describe('Pane', () => {
     expect(rowText(draw(testPaneView(root)))[0]?.trim()).toBe('Selected: Lead  general-purpose')
   })
 
+  it('cuts a long agent name so the facts stay in view', () => {
+    const long = testPaneNode('lead', { kind: 'lead', name: 'n'.repeat(500), tokens: 12_345 })
+
+    const text = rowText(draw(testPaneView(long)))[0] ?? ''
+
+    expect(text.length).toBeLessThan(150)
+    expect(text).toContain('12.3K tokens')
+    expect(text).toContain('…')
+  })
+
   it('leaves out marks the agent does not have', () => {
     const line = rowText(draw(testPaneView(team)))[2]
 

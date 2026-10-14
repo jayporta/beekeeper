@@ -55,7 +55,7 @@ export function BrowseScreen({
       </Box>
     )
   }
-  if (browse.projects.length === 0 && browse.status === 'ready') {
+  if (browse.projects.length === 0 && browse.projectDirName === null && browse.status === 'ready') {
     return (
       <Box flexDirection="column">
         <Text>{t('browse.noProjects')}</Text>

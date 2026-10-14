@@ -1,7 +1,7 @@
 import { t } from '../../i18n/modI18n'
+import { cutLabel } from '../pane/cutLabel'
 import type { PaneElements } from '../pane/paneElements'
 import type { BrowseRow } from './browseView'
-import { cutLabel } from './cutLabel'
 
 /** The facts about a session as words, most important first, since a long row is cut at its end. */
 function facts(row: BrowseRow): string {

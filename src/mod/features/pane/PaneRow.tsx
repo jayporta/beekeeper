@@ -1,4 +1,5 @@
 import { t } from '../../i18n/modI18n'
+import { cutLabel } from './cutLabel'
 import type { PaneElements } from './paneElements'
 import type { PaneNode } from './paneView'
 
@@ -58,7 +59,7 @@ export function PaneRow(props: PaneRowProps): object {
         {indent}
         {t(isSelected ? 'row.selected' : 'row.unselected')}
         {kindWord(node.kind)}
-        {node.name}
+        {cutLabel(node.name)}
         {summary === '' ? '' : `  ${summary}`}
         {node.agentType === null ? (
           ''

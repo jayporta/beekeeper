@@ -122,7 +122,7 @@ describe('BrowseScreen', () => {
       expect(textOf(findAll(tree, elements.Button)[0])).toBe('Session 1')
     })
 
-    it('opens a pressed row as a session of its own folder, with Back to the picked project', async () => {
+    it('opens a pressed row as a session of its own folder, to return to the picked project', async () => {
       const onNav = vi.fn()
       const worktreeRow = row(1, {
         ref: { projectDirName: '-p--claude-worktrees-x', sessionId: 's1' }
@@ -155,6 +155,14 @@ describe('BrowseScreen', () => {
 
       expect(textOf(tree)).toContain('No sessions in this project')
       expect(findAll(tree, elements.Button)).toEqual([])
+    })
+
+    it('draws the rows, and no picker, while the projects are not listed yet for a picked project', () => {
+      const { tree, elements } = draw(view({ projects: [] }))
+
+      expect(textOf(tree)).toContain('Session 1')
+      expect(textOf(tree)).not.toContain('No projects yet')
+      expect(findAll(tree, elements.Select)).toEqual([])
     })
 
     it('says there are no projects, and draws no Select, when none are listed', () => {

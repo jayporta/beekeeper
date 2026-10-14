@@ -186,6 +186,7 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
         })
       } catch {
         log('pane-browse-failed')
+        await browse.fail(nav.projectDirName)
       }
       return
     }
@@ -194,9 +195,10 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
     try {
       view = await build(request.withList, nav)
     } catch {
+      const { ref, target } = targetOf(nav, { projectDirName: '', sessionId: '' })
       view = emptyPaneView({
-        sessionId: '',
-        target: 'current',
+        sessionId: ref.sessionId,
+        target,
         status: 'error',
         errorCode: 'internal',
         nowMs: 0
@@ -223,6 +225,7 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
     start: startNow,
     refresh,
     forgetStored,
+    isBrowseStored: browse.isStored,
     wantsListTick: () => lastScreen === 'browse' || hasTeam(lastView)
   }
 }

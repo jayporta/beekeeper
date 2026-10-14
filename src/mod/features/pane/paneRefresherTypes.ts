@@ -43,6 +43,8 @@ export interface PaneRefresher {
   forgetStored(): void
   /** Builds the view the nav calls for and stores it: the Browse screen on a list refresh only, otherwise a session's tree. Never rejects. */
   refresh(request: { readonly withList: boolean }): Promise<void>
+  /** Whether this copy has stored a Browse view since the stored views were last forgotten. */
+  isBrowseStored(): boolean
   /** Whether the Browse screen shows, or the last view shows a team, so the slow list tick is worth running. */
   wantsListTick(): boolean
 }

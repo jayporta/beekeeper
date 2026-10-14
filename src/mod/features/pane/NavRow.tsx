@@ -38,7 +38,7 @@ export function NavRow({ elements, nav, onNav }: NavRowProps): object {
         <Text>{nav.screen === 'current' ? t('nav.showing', { name: current }) : current}</Text>
       </Button>
       <Button key="nav-browse" onPress={toBrowse}>
-        <Text>{nav.screen === 'browse' ? t('nav.showing', { name: browse }) : browse}</Text>
+        <Text>{nav.screen === 'current' ? browse : t('nav.showing', { name: browse })}</Text>
       </Button>
     </Box>
   )

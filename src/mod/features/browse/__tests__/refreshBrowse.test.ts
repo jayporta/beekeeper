@@ -216,4 +216,18 @@ describe('refreshBrowse', () => {
     expect(written[0]?.rows).toHaveLength(1)
     expect(result.projects).toEqual(PROJECTS)
   })
+
+  it('lists the projects when none are known, even for a picked project and without being asked', async () => {
+    const services = testPaneServices({
+      list: ok([testSession(1, { title: 'One' })]),
+      get: ok(null as never),
+      projects: ok(PROJECTS)
+    })
+
+    const { written, result } = await run(services, { withProjects: false, lastProjects: null })
+
+    expect(services.projectCalls).toBe(1)
+    expect(written.at(-1)?.projects).toHaveLength(2)
+    expect(result.projects).toEqual(PROJECTS)
+  })
 })

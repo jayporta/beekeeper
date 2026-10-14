@@ -125,13 +125,36 @@ describe('the pane nav', () => {
   })
 
   describe('while Browse shows', () => {
-    it.each(['turn.complete', 'agent.spawn'])('does not refresh on %s', async (event) => {
-      const { engine, run } = harness({ state: { 'beekeeper.nav': BROWSE } })
+    const afters = (engine: ReturnType<typeof createTestEngine>): number[] =>
+      engine.timers.filter((timer) => timer.kind === 'after' && !timer.cancelled).map((t) => t.ms)
 
-      await run(event)
+    /** Runs the debounced refresh a turn asked for, so this copy has built Browse. */
+    async function buildBrowse(h: ReturnType<typeof harness>): Promise<void> {
+      await h.run('turn.complete')
+      h.engine.timers.filter((timer) => timer.kind === 'after').forEach((timer) => timer.fn())
+      await new Promise((resolve) => setTimeout(resolve, 20))
+      h.engine.timers.length = 0
+    }
 
-      expect(engine.timers.filter((timer) => timer.kind === 'after')).toEqual([])
+    it('refreshes on a turn when this copy has not built Browse yet, as after a hot reload', async () => {
+      const h = harness({ state: { 'beekeeper.nav': BROWSE } })
+
+      await h.run('turn.complete')
+
+      expect(afters(h.engine)).toEqual([1000])
     })
+
+    it.each(['turn.complete', 'agent.spawn'])(
+      'does not refresh on %s once this copy has built Browse',
+      async (event) => {
+        const h = harness({ state: { 'beekeeper.nav': BROWSE } })
+        await buildBrowse(h)
+
+        await h.run(event)
+
+        expect(afters(h.engine)).toEqual([])
+      }
+    )
 
     it('still starts the ticks, so the list tick keeps Browse fresh', async () => {
       const { engine, run } = harness({ state: { 'beekeeper.nav': BROWSE } })
@@ -151,26 +174,22 @@ describe('the pane nav', () => {
   })
 
   describe('after a /clear', () => {
-    it('reads the nav as the current screen, since the state is emptied', async () => {
-      const { engine, run, render } = harness({ state: { 'beekeeper.nav': BROWSE } })
+    const viewWrites = (engine: ReturnType<typeof createTestEngine>): unknown[] =>
+      engine.calls
+        .filter(
+          (call) => call.name === 'state.set' && JSON.stringify(call.args[0]).includes('view')
+        )
+        .map((call) => call.args[1])
 
-      engine.clearState()
-      await run('session.end')
-
-      expect((await render())['nav']).toBeUndefined()
-    })
-
-    it('refreshes the current session, which a stored Browse nav would have blocked', async () => {
+    it("builds the current session's view, which the stored Browse nav would have blocked", async () => {
       const { engine, run } = harness({ state: { 'beekeeper.nav': BROWSE } })
-      await run('session.end')
-      expect(engine.timers.filter((timer) => timer.kind === 'after')).toEqual([])
 
       engine.clearState()
       await run('session.end')
+      engine.timers.filter((timer) => timer.kind === 'after').forEach((timer) => timer.fn())
+      await new Promise((resolve) => setTimeout(resolve, 20))
 
-      expect(engine.timers.filter((timer) => timer.kind === 'after').map((t) => t.ms)).toEqual([
-        1000
-      ])
+      expect(viewWrites(engine)).toEqual([expect.objectContaining({ target: 'current' })])
     })
   })
 })

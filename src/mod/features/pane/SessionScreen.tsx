@@ -38,6 +38,8 @@ interface SessionScreenProps {
   readonly selected: PaneSelection | null
   /** Stores the selection; runs when a row is pressed. */
   readonly onSelect: (key: string) => void | Promise<void>
+  /** Whether the session is one the person browsed to, which the title says in words. */
+  readonly isBrowsed: boolean
 }
 
 /**
@@ -47,12 +49,18 @@ interface SessionScreenProps {
  * @param props - The elements, the view, the selection and the select handler.
  * @returns The screen.
  */
-export function SessionScreen({ elements, view, selected, onSelect }: SessionScreenProps): object {
+export function SessionScreen({
+  elements,
+  view,
+  selected,
+  onSelect,
+  isBrowsed
+}: SessionScreenProps): object {
   const { Box, Text } = elements
   if (view === undefined || view.status !== 'ready' || view.root === null) {
     return (
       <Box flexDirection="column">
-        <Text>{t('pane.title')}</Text>
+        <Text>{t(isBrowsed ? 'pane.browsingTitle' : 'pane.title')}</Text>
         <Text>{statusLine(view)}</Text>
       </Box>
     )
@@ -62,8 +70,8 @@ export function SessionScreen({ elements, view, selected, onSelect }: SessionScr
   const current = rows.find(({ node }) => node.key === chosen)?.node ?? view.root
   return (
     <Box flexDirection="column">
-      <Text>{t('pane.title')}</Text>
-      <Text bold>{view.label ?? ''}</Text>
+      <Text>{isBrowsed ? t('pane.browsing', { label: view.label ?? '' }) : t('pane.title')}</Text>
+      {isBrowsed ? null : <Text bold>{view.label ?? ''}</Text>}
       <Text>{totalsLine(view)}</Text>
       {rows.map(({ node, depth }) =>
         PaneRow({

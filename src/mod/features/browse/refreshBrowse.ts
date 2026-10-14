@@ -102,7 +102,7 @@ async function build(services: Services, input: RefreshBrowseInput): Promise<Ref
     emptyBrowseView({ refreshedAtMs: input.nowMs, status: 'ready', ...shown(), rows, hiddenCount })
   )
 
-  if (input.withProjects && !projectsFresh) {
+  if ((input.withProjects || projects === null) && !projectsFresh) {
     const relisted = await services.listProjects()
     // The sessions and the projects already held stay on screen: a failed relist loses nothing.
     if (!relisted.ok) return { projects, projectDirName }

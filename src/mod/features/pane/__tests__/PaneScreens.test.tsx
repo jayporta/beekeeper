@@ -82,6 +82,22 @@ describe('Pane screens', () => {
     expect(buttonKeys(tree)).toContain('lead')
   })
 
+  it('says in words that a browsed session is browsed, with its label', () => {
+    const view = testPaneView(lead, { sessionId: REF.sessionId, target: 'browsed' })
+
+    const text = textOf(draw({ view, nav: SESSION_NAV }))
+
+    expect(text).toContain('beekeeper, browsing: Fix the bug')
+  })
+
+  it('says it is browsing while a browsed session loads', () => {
+    expect(textOf(draw({ nav: SESSION_NAV }))).toContain('beekeeper, browsing')
+  })
+
+  it('does not say browsing on the current screen', () => {
+    expect(textOf(draw({ view: testPaneView(lead) }))).not.toContain('browsing')
+  })
+
   it.each<[string, PaneView, PaneNav | undefined]>([
     ["the current session's view while a session is browsed", testPaneView(lead), SESSION_NAV],
     [

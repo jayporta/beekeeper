@@ -62,7 +62,8 @@ export function Pane(props: PaneProps): object {
             elements,
             view: isViewOf(nav, view) ? view : undefined,
             selected,
-            onSelect
+            onSelect,
+            isBrowsed: nav.screen === 'session'
           })}
     </Box>
   )

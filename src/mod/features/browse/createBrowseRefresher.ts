@@ -36,8 +36,12 @@ export interface BrowseRefreshRequest {
 export interface BrowseRefresher {
   /** Builds the Browse view and stores it, as far as it changed. Never rejects. */
   refresh(request: BrowseRefreshRequest): Promise<void>
+  /** Stores an error view for a refresh that could not run, so Browse does not stay on loading. Never rejects. */
+  fail(projectDirName: string | null): Promise<void>
   /** Forgets what was stored, so the next refresh stores its view even if it matches. */
   forgetStored(): void
+  /** Whether a view is stored since the last time stored views were forgotten. */
+  isStored(): boolean
 }
 
 /**
@@ -67,7 +71,13 @@ export function createBrowseRefresher(deps: BrowseRefresherDeps): BrowseRefreshe
     return true
   }
 
-  async function refresh(request: BrowseRefreshRequest): Promise<void> {
+  async function fail(projectDirName: string | null): Promise<void> {
+    await write(
+      emptyBrowseView({ status: 'error', errorCode: 'internal', projectDirName, refreshedAtMs: 0 })
+    )
+  }
+
+  async function build(request: BrowseRefreshRequest): Promise<void> {
     const { outcome, nowMs } = request
     if (outcome.kind !== 'ready') {
       await write(
@@ -94,5 +104,13 @@ export function createBrowseRefresher(deps: BrowseRefresherDeps): BrowseRefreshe
     shown = result.projectDirName
   }
 
-  return { refresh, forgetStored: () => (lastKey = null) }
+  async function refresh(request: BrowseRefreshRequest): Promise<void> {
+    try {
+      await build(request)
+    } catch {
+      await fail(request.projectDirName ?? shown)
+    }
+  }
+
+  return { refresh, fail, forgetStored: () => (lastKey = null), isStored: () => lastKey !== null }
 }
