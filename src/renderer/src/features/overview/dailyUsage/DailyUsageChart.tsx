@@ -7,7 +7,7 @@ import { dayLabels } from './dayLabels'
 import { seriesLabel } from './seriesLabel'
 import { seriesTokens, type Series } from './seriesOf'
 import { SeriesFill } from './SeriesFill'
-import type { DailyUsageDay } from './sumDailyUsage'
+import type { DailyUsageDay } from '../../../../../shared/overview/sumDailyUsage'
 
 /** How many days apart the 30 day chart labels its days, counting back from the last. */
 const LABEL_EVERY_DAYS = 5

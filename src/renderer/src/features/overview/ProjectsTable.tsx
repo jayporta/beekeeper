@@ -8,7 +8,7 @@ import { shareOfLargest } from '@renderer/components/shareOfLargest'
 import { shareOfTotal } from '@renderer/components/shareOfTotal'
 import { PROJECT_SORT_KEYS, sortProjects, type ProjectSortKey } from './sortProjects'
 import { useProjectSortStore } from './state/useProjectSortStore'
-import { totalsStatus, type AggregateTotals } from './sumTotals'
+import { totalsStatus, type AggregateTotals } from '../../../../shared/overview/sumTotals'
 import type { ProjectGroupItem } from './useProjectGroupTotals'
 
 /** Props for {@link ProjectsTable}. */

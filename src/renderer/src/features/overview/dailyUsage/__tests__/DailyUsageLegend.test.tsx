@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { DailyUsageLegend } from '../DailyUsageLegend'
 import { seriesOf } from '../seriesOf'
-import { testSummary } from '../testDailyUsage'
+import { testSummary } from '../../../../../../shared/overview/testDailyUsage'
 
 function legendFor(models: Record<string, number>): React.JSX.Element {
   return <DailyUsageLegend series={seriesOf(testSummary({ '2026-03-10': models }).days)} />

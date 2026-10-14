@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { localDayKey } from './localDayKey'
+import { localDayKey } from '../../../../../shared/overview/localDayKey'
 
 function getSnapshot(): string {
   return localDayKey(Date.now())

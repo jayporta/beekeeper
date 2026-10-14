@@ -7,7 +7,7 @@ import {
   QueryObserver
 } from '@tanstack/react-query'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { TOTALS_STALE_TIME_MS } from '@renderer/features/overview/totalsStaleTime'
+import { TOTALS_STALE_TIME_MS } from '../../../../shared/overview/totalsStaleTime'
 import { SESSIONS_GC_TIME_MS } from '@renderer/features/sessions/sessionsGcTime'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import { LISTS_STALE_TIME_MS } from '../listsStaleTime'

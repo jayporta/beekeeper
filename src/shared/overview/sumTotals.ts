@@ -2,7 +2,7 @@ import type {
   ProjectTotalsDto,
   ProjectTotalsLatestDto,
   ProjectTotalsPartialDto
-} from '../../../../shared/ipc/projectTotalsDto'
+} from '../ipc/projectTotalsDto'
 import type { FolderTotalsState } from './folderTotalsState'
 
 /** Several folders' totals added together, with how many of the folders are in each state. */

@@ -1,5 +1,5 @@
-import { dailyUsageReasonsOf } from './dailyUsageReasons'
-import type { DailyUsageSummary } from './sumDailyUsage'
+import { dailyUsageReasonsOf } from '../../../../../shared/overview/dailyUsageReasons'
+import type { DailyUsageSummary } from '../../../../../shared/overview/sumDailyUsage'
 
 /** What the window's daily usage came to once it settled: figures, figures that may be low, or nothing that could be loaded. */
 export type DailyUsageOutcome = 'updated' | 'partial' | 'failed'

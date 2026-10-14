@@ -1,7 +1,4 @@
-import type {
-  ProjectDailyUsageDto,
-  ProjectDailyUsagePartialDto
-} from '../../../../../shared/ipc/projectDailyUsageDto'
+import type { ProjectDailyUsageDto, ProjectDailyUsagePartialDto } from '../ipc/projectDailyUsageDto'
 
 /** Where one folder's daily usage stands. */
 export type FolderDailyUsageState =

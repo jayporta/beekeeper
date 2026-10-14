@@ -2,7 +2,11 @@ import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { DailyUsageChart } from '../DailyUsageChart'
 import { seriesOf } from '../seriesOf'
-import { OCTOBER_WEEK, dayKeys, testSummary } from '../testDailyUsage'
+import {
+  OCTOBER_WEEK,
+  dayKeys,
+  testSummary
+} from '../../../../../../shared/overview/testDailyUsage'
 
 function chartFor(
   days: Parameters<typeof testSummary>[0],

@@ -9,7 +9,11 @@ import { useTotalsWindowStore } from '../../state/useTotalsWindowStore'
 import { listing } from '../../testProjectListing'
 import { DailyUsageSection } from '../DailyUsageSection'
 import { useDailyUsage } from '../useDailyUsage'
-import { OCTOBER_WEEK, dayKeys, testDailyUsage } from '../testDailyUsage'
+import {
+  OCTOBER_WEEK,
+  dayKeys,
+  testDailyUsage
+} from '../../../../../../shared/overview/testDailyUsage'
 
 afterEach(() => {
   useTotalsWindowStore.setState({ window: '7d' })

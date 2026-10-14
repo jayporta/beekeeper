@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { dailyUsageStatusOf } from '../dailyUsageStatus'
-import { testPartial, testSummary } from '../testDailyUsage'
+import { testPartial, testSummary } from '../../../../../../shared/overview/testDailyUsage'
 
 const withDays = (
   overrides: Parameters<typeof testSummary>[1] = {}

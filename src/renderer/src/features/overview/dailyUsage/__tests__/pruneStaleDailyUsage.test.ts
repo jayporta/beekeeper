@@ -1,7 +1,7 @@
 import { QueryClient } from '@tanstack/react-query'
 import { describe, expect, it } from 'vitest'
 import { pruneStaleDailyUsage } from '../pruneStaleDailyUsage'
-import { testDailyUsage } from '../testDailyUsage'
+import { testDailyUsage } from '../../../../../../shared/overview/testDailyUsage'
 
 const keys = (client: QueryClient): string[] =>
   client

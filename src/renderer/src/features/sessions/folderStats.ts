@@ -6,7 +6,7 @@ import {
   figuresMarkedBy,
   type CountReason,
   type PartialFigure
-} from '@renderer/components/countReasons'
+} from '../../../../shared/usage/countReasons'
 
 /** What every session in a folder adds up to. */
 export interface FolderStats {

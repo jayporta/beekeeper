@@ -1,5 +1,5 @@
 /**
- * The local calendar day of an instant, in the renderer's time zone.
+ * The local calendar day of an instant, in this process's local time zone.
  *
  * @param epochMs - The instant, in milliseconds since the Unix epoch.
  * @returns The day as `YYYY-MM-DD`.

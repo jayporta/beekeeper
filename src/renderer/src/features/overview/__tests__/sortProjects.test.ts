@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { groupProjects } from '../../../../../shared/projects/groupProjects'
 import { testProject } from '../../../../../shared/projects/testProject'
-import { LOADING } from '../folderTotalsState'
+import { LOADING } from '../../../../../shared/overview/folderTotalsState'
 import type { ProjectGroupItem } from '../useProjectGroupTotals'
 import { PROJECT_SORT_KEYS, sortProjects, type ProjectSortKey } from '../sortProjects'
-import { sumTotals } from '../sumTotals'
-import { readyTotals } from '../testTotals'
+import { sumTotals } from '../../../../../shared/overview/sumTotals'
+import { readyTotals } from '../../../../../shared/overview/testTotals'
 
 interface ItemSpec {
   readonly dir: string

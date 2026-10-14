@@ -1,5 +1,5 @@
-import { partialFiguresOf } from './partialReasons'
-import { totalsStatus, type AggregateTotals } from './sumTotals'
+import { partialFiguresOf } from '../../../../shared/overview/partialReasons'
+import { totalsStatus, type AggregateTotals } from '../../../../shared/overview/sumTotals'
 
 /**
  * Whether a sidebar figure shows, with the "~" that says its tokens may be low.

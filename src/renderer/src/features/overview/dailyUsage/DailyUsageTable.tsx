@@ -5,7 +5,7 @@ import styles from './DailyUsageTable.module.css'
 import { dayLabels } from './dayLabels'
 import { seriesLabel } from './seriesLabel'
 import { seriesTokens, type Series } from './seriesOf'
-import type { DailyUsageDay } from './sumDailyUsage'
+import type { DailyUsageDay } from '../../../../../shared/overview/sumDailyUsage'
 
 /** Props for {@link DailyUsageTable}. */
 interface DailyUsageTableProps {

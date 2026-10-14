@@ -1,7 +1,4 @@
-import type {
-  ProjectDailyUsageDto,
-  ProjectDailyUsagePartialDto
-} from '../../../../../shared/ipc/projectDailyUsageDto'
+import type { ProjectDailyUsageDto, ProjectDailyUsagePartialDto } from '../ipc/projectDailyUsageDto'
 import { sumDailyUsage, type DailyUsageSummary } from './sumDailyUsage'
 
 /** A folder's partial counts, all zero unless overridden. */

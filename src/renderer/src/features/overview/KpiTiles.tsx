@@ -5,8 +5,8 @@ import { formatUsd } from '@renderer/i18n/formatUsd'
 import { FigurePlaceholder } from './FigurePlaceholder'
 import { KpiTile, type KpiKind } from './KpiTile'
 import styles from './KpiTiles.module.css'
-import { partialFiguresOf } from './partialReasons'
-import { totalsStatus, type AggregateTotals } from './sumTotals'
+import { partialFiguresOf } from '../../../../shared/overview/partialReasons'
+import { totalsStatus, type AggregateTotals } from '../../../../shared/overview/sumTotals'
 import type { TotalsWindowDto } from '../../../../shared/ipc/projectTotalsDto'
 
 /** Props for {@link KpiTiles}. */
