@@ -1,9 +1,12 @@
-import type { PaneErrorCode, PaneStatus, PaneView } from './paneView'
+import type { PaneErrorCode } from '../shared/paneErrorCode'
+import type { PaneStatus, PaneView } from './paneView'
 
 /** What {@link emptyPaneView} needs. */
 interface EmptyPaneViewInput {
   /** The session the view is of; empty when it couldn't be read. */
   readonly sessionId: string
+  /** Whether the session is the engine's own or a browsed one. */
+  readonly target: PaneView['target']
   /** Why there is no tree. */
   readonly status: Exclude<PaneStatus, 'ready'>
   /** The failure's code for an `error` view, otherwise `null`. */
@@ -22,6 +25,7 @@ interface EmptyPaneViewInput {
 export function emptyPaneView(input: EmptyPaneViewInput): PaneView {
   return {
     sessionId: input.sessionId,
+    target: input.target,
     status: input.status,
     errorCode: input.errorCode,
     label: null,

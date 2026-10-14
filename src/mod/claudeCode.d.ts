@@ -42,10 +42,34 @@ declare module 'claude-code' {
     children?: RenderChildren
   }
 
+  /** One option of a {@link SelectProps} picker. */
+  export interface SelectOption {
+    /** The value `onSelect` carries. */
+    value: string
+    /** The text drawn for it; the value when absent. */
+    label?: string
+  }
+
+  /** Props of a one-of-several picker. */
+  export interface SelectProps {
+    /** The element's address. */
+    key: string
+    /** Text drawn before the current value. */
+    label?: string
+    /** What can be picked, in the order drawn; at least one, values unique. */
+    options: readonly SelectOption[]
+    /** Which option is selected when drawn. */
+    value?: string
+    /** Runs when an option is picked, with its value. */
+    onSelect: (value: string) => void | Promise<void>
+  }
+
   /** The elements a surface draws with. */
   export interface Elements {
     /** A pressable row. */
     Button: (props: ButtonProps) => object
+    /** A one-of-several picker. Absent on the mobile surface, which draws no field yet. */
+    Select?: (props: SelectProps) => object
     /** A layout box. */
     Box: (props: BoxProps) => object
     /** A run of text. */

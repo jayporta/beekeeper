@@ -91,6 +91,8 @@ function totalsOf(
 interface ToPaneViewInput {
   /** The session the graph is of. */
   readonly sessionId: string
+  /** Whether the session is the engine's own or a browsed one. */
+  readonly target: PaneView['target']
   /** The session's graph. */
   readonly root: RootAgentGraphNode
   /** The session's entry in the sessions list, or `null` when the list doesn't hold it. */
@@ -111,10 +113,11 @@ interface ToPaneViewInput {
  * @returns A `ready` view.
  */
 export function toPaneView(input: ToPaneViewInput): PaneView {
-  const { sessionId, root, rootItem, detail, label, nowMs } = input
+  const { sessionId, target, root, rootItem, detail, label, nowMs } = input
   const totals = totalsOf(rootItem, root)
   return {
     sessionId,
+    target,
     status: 'ready',
     errorCode: null,
     label: replaceUnprintable(label),

@@ -22,7 +22,9 @@
       "tokens_other": "{{count, compactInteger}} tokens in this session",
       "none": "No token usage yet.",
       "partial": "May be incomplete."
-    }
+    },
+    "browsing": "beekeeper, browsing: {{label}}",
+    "browsingTitle": "beekeeper, browsing"
   },
   "start": {
     "tooOld": "beekeeper needs Claude Code {{minimum}} or later. This is {{version}}.",
@@ -67,5 +69,34 @@
       "delete": "deleted",
       "change": "changed"
     }
+  },
+  "agents": {
+    "teammates_one": "{{count, integer}} teammate",
+    "teammates_other": "{{count, integer}} teammates",
+    "subagents_one": "{{count, integer}} subagent",
+    "subagents_other": "{{count, integer}} subagents",
+    "separator": ", ",
+    "workflows_one": "{{count, integer}} workflow ({{agents}})",
+    "workflows_other": "{{count, integer}} workflows ({{agents}})",
+    "workflowAgents_one": "{{count, integer}} agent",
+    "workflowAgents_other": "{{count, integer}} agents",
+    "none": "None"
+  },
+  "nav": {
+    "current": "This session",
+    "showing": "{{name}} (showing)",
+    "browse": "Browse",
+    "browseFromSession": "Browse: back to the session list"
+  },
+  "browse": {
+    "loading": "Loading the sessions.",
+    "project": "Project",
+    "noProjects": "No projects yet",
+    "noSessions": "No sessions in this project",
+    "more_one": "{{count, integer}} more session. The desktop app lists them all.",
+    "more_other": "{{count, integer}} more sessions. The desktop app lists them all.",
+    "lastActive": "{{value, shortDateTime}}",
+    "title": "beekeeper, browsing projects",
+    "sessions": "Sessions"
   }
 }

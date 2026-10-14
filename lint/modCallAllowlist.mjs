@@ -50,8 +50,22 @@ export const MOD_ALLOWLIST = Object.freeze({
     '$.process.spawn'
   ]),
   // The mod's own `$.state` values, declared in mod/types/index.d.ts; never another plugin's.
-  stateReads: Object.freeze(['beekeeper.view', 'beekeeper.selected']),
-  stateWrites: Object.freeze(['beekeeper.view', 'beekeeper.selected']),
+  stateReads: Object.freeze([
+    'beekeeper.view',
+    'beekeeper.selected',
+    // Which screen the pane shows; read by the refresher to pick its target.
+    'beekeeper.nav',
+    // The Browse screen's data, read while drawing.
+    'beekeeper.browse'
+  ]),
+  stateWrites: Object.freeze([
+    'beekeeper.view',
+    'beekeeper.selected',
+    // Written only by the pane's press handlers.
+    'beekeeper.nav',
+    // Written by the refresher with the Browse screen's data.
+    'beekeeper.browse'
+  ]),
   envReads: Object.freeze([
     // The home folder, for ~/.claude.
     'HOME',

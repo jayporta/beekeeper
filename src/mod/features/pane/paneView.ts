@@ -1,7 +1,4 @@
-import type { IpcErrorCode } from '../../../shared/ipc/ipcResult'
-
-/** Why a view has no tree: a service failure's code, or the mod's own when it can't start. */
-export type PaneErrorCode = IpcErrorCode | 'too-old' | 'start-failed'
+import type { PaneErrorCode } from '../shared/paneErrorCode'
 
 /** One changed file of an agent. */
 export interface PaneFile {
@@ -48,6 +45,8 @@ export type PaneStatus = 'loading' | 'ready' | 'waiting' | 'error'
 export interface PaneView {
   /** The session the view is of. */
   readonly sessionId: string
+  /** Whether the view is of the engine's own session or one the person browsed to. */
+  readonly target: 'current' | 'browsed'
   /** How the data stands. */
   readonly status: PaneStatus
   /** The failure's code when `status` is `error`, otherwise `null`. Never a message. */

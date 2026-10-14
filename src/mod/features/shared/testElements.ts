@@ -1,3 +1,20 @@
+import type { PaneElements } from './paneElements'
+
+/**
+ * Fresh element constructors the test `h` can record, as a surface hands them out. Each call
+ * builds new ones, so a test finds them in a tree by identity.
+ *
+ * @param options - `hasSelect: false` leaves out `Select`, as the mobile surface does.
+ * @returns The elements.
+ */
+export function makeTestElements(options: { readonly hasSelect?: boolean } = {}): PaneElements {
+  const Box = (): object => ({})
+  const Text = (): object => ({})
+  const Button = (): object => ({})
+  const Select = (): object => ({})
+  return (options.hasSelect ?? true) ? { Box, Text, Button, Select } : { Box, Text, Button }
+}
+
 /** A node the test `h` builds: the type it was called with, its props, and its children. */
 export interface TestNode {
   readonly type: unknown

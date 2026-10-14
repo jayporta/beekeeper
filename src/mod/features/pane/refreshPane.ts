@@ -1,34 +1,26 @@
 import { buildAgentGraph } from '../../../shared/agentGraph/buildAgentGraph'
-import type { IpcErrorCode, IpcResult } from '../../../shared/ipc/ipcResult'
+import type { IpcErrorCode } from '../../../shared/ipc/ipcResult'
 import {
   getSessionRequestSchema,
-  listSessionsRequestSchema,
-  type GetSessionRequest,
-  type ListSessionsRequest
+  listSessionsRequestSchema
 } from '../../../shared/ipc/requestSchemas'
-import type { SessionDetailDto } from '../../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
 import type { SessionRefDto } from '../../../shared/ipc/sessionRefDto'
 import { findSessionRow } from '../../../shared/sessions/findSessionRow'
 import { groupSessionRows } from '../../../shared/sessions/groupSessionRows'
 import { shortId } from '../../../shared/sessions/sessionLabel'
+import type { PaneServices } from '../shared/paneServices'
 import { emptyPaneView } from './emptyPaneView'
-import { PANE_WORDS } from './paneWords'
+import { PANE_WORDS } from '../shared/paneWords'
 import type { PaneView } from './paneView'
 import { toPaneView } from './toPaneView'
-
-/** The two service calls a refresh makes. */
-export interface PaneServices {
-  /** `listSessions` for a project folder. */
-  listSessions(request: ListSessionsRequest): Promise<IpcResult<readonly SessionListItemDto[]>>
-  /** `getSession` for one session. */
-  getSession(request: GetSessionRequest): Promise<IpcResult<SessionDetailDto>>
-}
 
 /** What {@link refreshPane} needs. */
 export interface RefreshPaneInput {
   /** The session to show. */
   readonly ref: SessionRefDto
+  /** Whether the session is the engine's own or a browsed one. */
+  readonly target: PaneView['target']
   /** Whether to list the folder's sessions again, or reuse `lastItems`. */
   readonly withList: boolean
   /** The items the last list returned, or `null` when none has. */
@@ -48,6 +40,7 @@ export interface RefreshedPane {
 function errorView(input: RefreshPaneInput, code: IpcErrorCode): PaneView {
   return emptyPaneView({
     sessionId: input.ref.sessionId,
+    target: input.target,
     status: 'error',
     errorCode: code,
     nowMs: input.nowMs
@@ -85,6 +78,7 @@ async function build(services: PaneServices, input: RefreshPaneInput): Promise<R
   })
   const view = toPaneView({
     sessionId: ref.sessionId,
+    target: input.target,
     root,
     rootItem: rootRow?.item ?? null,
     detail: detail.value,

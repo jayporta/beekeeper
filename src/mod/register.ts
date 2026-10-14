@@ -10,6 +10,9 @@ import {
   type PaneRefresher,
   type PaneSelection,
   type PaneScheduler,
+  emptyBrowseView,
+  type BrowseView,
+  type PaneNav,
   type PaneView,
   type StartOutcome
 } from './lib.js'
@@ -24,6 +27,15 @@ const VIEW = { plugin: 'beekeeper', key: 'view' } as const
 
 /** The `$.state` value holding the node the person selected. */
 const SELECTED = { plugin: 'beekeeper', key: 'selected' } as const
+
+/** The `$.state` value holding which screen the pane shows. Only the pane's press handlers write it. */
+const NAV = { plugin: 'beekeeper', key: 'nav' } as const
+
+/** The `$.state` value the Browse screen draws from. */
+const BROWSE = { plugin: 'beekeeper', key: 'browse' } as const
+
+/** Counts the times Browse was opened from another screen in this loaded copy; each open carries its number in the nav. */
+let browseOpens = 0
 
 /** The names among the git repository variables that Claude Code's environment sets, even to empty. */
 async function gitRepoVariablesSet($: Engine): Promise<string[]> {
@@ -105,11 +117,13 @@ function wire($: Engine): PaneWiring {
       sessionId: () => $.session.id(),
       sessionRoot: () => $.session.root(),
       now: () => $.clock.now(),
+      nav: async () => (await $.state.get<PaneNav>(NAV)).value,
       writeView: async (view) => {
         const { isSet } = await $.state.set(VIEW, view)
         wantsFirstView = true
         return isSet
-      }
+      },
+      writeBrowse: async (view) => (await $.state.set(BROWSE, view)).isSet
     },
     log: logCode
   })
@@ -136,9 +150,23 @@ function wired($: Engine): PaneWiring {
 /** Schedules a debounced refresh, and restarts lost ticks, when the pane is open. */
 async function refreshIfOpen($: Engine, withList: boolean): Promise<void> {
   if (!(await isPaneOpen($))) return
-  const { scheduler } = wired($)
+  const { refresher, scheduler } = wired($)
   scheduler.ensureTicks()
+  // Browse refreshes only when it opens, on a pick and on the list tick, not on a turn or a spawn,
+  // except once in a copy that has not built it yet (after a hot reload or a lost hooks worker).
+  const isBrowsing = (await $.state.get<PaneNav>(NAV)).value?.screen === 'browse'
+  if (isBrowsing && refresher.isBrowseStored()) return
+  if (isBrowsing) {
+    scheduler.schedule({ withList: true, delayMs: DEBOUNCE_MS })
+    return
+  }
   scheduler.schedule({ withList, delayMs: DEBOUNCE_MS })
+}
+
+/** Asks the loaded copy's refresher for a fresh view at once, after the nav changed. A copy with no wiring yet has no timers to hold this `$`, so it asks for nothing: the next hook that wires it refreshes, and `refreshIfOpen` builds a Browse screen a copy has not built. */
+function refreshForNav(): void {
+  wiring?.refresher.forgetStored()
+  wiring?.scheduler.schedule({ withList: true, delayMs: 0 })
 }
 
 /**
@@ -149,6 +177,8 @@ async function refreshIfOpen($: Engine, withList: boolean): Promise<void> {
 async function drawPane($: Engine, e: PaneRenderInput): Promise<object> {
   const view = (await $.state.get<PaneView>(VIEW)).value
   const selected = (await $.state.get<PaneSelection | null>(SELECTED)).value ?? null
+  const nav = (await $.state.get<PaneNav>(NAV)).value
+  const browse = (await $.state.get<BrowseView>(BROWSE)).value
   if (view === undefined && wantsFirstView && wiring !== undefined) {
     wantsFirstView = false
     wiring.refresher.forgetStored()
@@ -158,8 +188,26 @@ async function drawPane($: Engine, e: PaneRenderInput): Promise<object> {
     elements: $.ui.resolve(e),
     view,
     selected,
+    nav,
+    browse,
     onSelect: async (key) => {
       if (view !== undefined) await $.state.set(SELECTED, { sessionId: view.sessionId, key })
+    },
+    onNav: async (next) => {
+      // Opening Browse from another screen must not show the last project's rows as current.
+      const isOpen = next.screen === 'browse' && nav?.screen !== 'browse'
+      if (isOpen)
+        await $.state.set(BROWSE, emptyBrowseView({ status: 'loading', refreshedAtMs: 0 }))
+      await $.state.set(
+        NAV,
+        isOpen && next.screen === 'browse' ? { ...next, openId: ++browseOpens } : next
+      )
+      refreshForNav()
+    },
+    columns: e.props.bodyColumns,
+    onPickProject: async (dirName) => {
+      await $.state.set(NAV, { screen: 'browse', projectDirName: dirName })
+      refreshForNav()
     }
   })
 }

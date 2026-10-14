@@ -1,6 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { Pane, type PaneElements } from '../Pane'
-import { installTestH, findAll, removeTestH, textOf, type TestNode } from '../testElements'
+import {
+  installTestH,
+  findAll,
+  removeTestH,
+  textOf,
+  type TestNode
+} from '../../shared/testElements'
 import { testPaneNode, testPaneView } from '../testPaneView'
 import type { PaneView } from '../paneView'
 
@@ -14,17 +20,24 @@ function draw(
   options: {
     selected?: { sessionId: string; key: string } | null
     onSelect?: (key: string) => void
+    columns?: number
   } = {}
 ): TestNode {
   return Pane({
     elements,
     view,
     selected: options.selected ?? null,
-    onSelect: options.onSelect ?? (() => {})
+    onSelect: options.onSelect ?? (() => {}),
+    nav: undefined,
+    browse: undefined,
+    onNav: () => {},
+    onPickProject: () => {},
+    columns: options.columns
   }) as TestNode
 }
 
-const rows = (tree: TestNode): TestNode[] => findAll(tree, Button)
+const rows = (tree: TestNode): TestNode[] =>
+  findAll(tree, Button).filter((node) => !String(node.props['key']).startsWith('nav-'))
 const rowText = (tree: TestNode): string[] => rows(tree).map((row) => textOf(row))
 
 const team = testPaneNode('lead', {
@@ -108,6 +121,25 @@ describe('Pane', () => {
     const root = testPaneNode('lead', { name: 'Lead', agentType: 'general-purpose' })
 
     expect(rowText(draw(testPaneView(root)))[0]?.trim()).toBe('Selected: Lead  general-purpose')
+  })
+
+  it('cuts a long agent name so the facts stay in view', () => {
+    const long = testPaneNode('lead', { kind: 'lead', name: 'n'.repeat(500), tokens: 12_345 })
+
+    const text = rowText(draw(testPaneView(long)))[0] ?? ''
+
+    expect(text.length).toBeLessThan(150)
+    expect(text).toContain('12.3K tokens')
+    expect(text).toContain('…')
+  })
+
+  it("cuts a long agent name to the pane's width so the facts stay in view", () => {
+    const long = testPaneNode('lead', { kind: 'lead', name: 'n'.repeat(500), tokens: 12_345 })
+
+    const text = rowText(draw(testPaneView(long), { columns: 60 }))[0] ?? ''
+
+    expect(text.length).toBeLessThanOrEqual(60)
+    expect(text).toContain('12.3K tokens')
   })
 
   it('leaves out marks the agent does not have', () => {

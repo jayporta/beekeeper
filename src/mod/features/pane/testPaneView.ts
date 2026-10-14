@@ -25,6 +25,7 @@ export function testPaneNode(key: string, overrides: Partial<PaneNode> = {}): Pa
 export function testPaneView(root: PaneNode, overrides: Partial<PaneView> = {}): PaneView {
   return {
     sessionId: 's1',
+    target: 'current',
     status: 'ready',
     errorCode: null,
     label: 'Fix the bug',

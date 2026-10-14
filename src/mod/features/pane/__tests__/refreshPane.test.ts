@@ -17,7 +17,7 @@ import {
 } from '../../../../shared/sessions/testSessionFixtures'
 import type { PaneNode } from '../paneView'
 import { refreshPane } from '../refreshPane'
-import { testPaneServices } from '../testPaneServices'
+import { testPaneServices } from '../../shared/testPaneServices'
 
 const REF = testRef(1)
 const NOW = 5000
@@ -49,7 +49,8 @@ describe('refreshPane', () => {
       ref: REF,
       withList: true,
       lastItems: null,
-      nowMs: NOW
+      nowMs: NOW,
+      target: 'current'
     })
 
     expect(view.status).toBe('ready')
@@ -76,7 +77,8 @@ describe('refreshPane', () => {
       ref: REF,
       withList: true,
       lastItems: null,
-      nowMs: NOW
+      nowMs: NOW,
+      target: 'current'
     })
 
     expect(view).toMatchObject({ totalTokens: 300, totalTokensPartial: true })
@@ -93,7 +95,8 @@ describe('refreshPane', () => {
       ref: REF,
       withList: true,
       lastItems: null,
-      nowMs: NOW
+      nowMs: NOW,
+      target: 'current'
     })
 
     expect(view).toMatchObject({ totalTokens: 90, totalTokensPartial: false })
@@ -114,7 +117,8 @@ describe('refreshPane', () => {
       ref: REF,
       withList: true,
       lastItems: null,
-      nowMs: NOW
+      nowMs: NOW,
+      target: 'current'
     })
 
     expect(view).toMatchObject({ totalTokens: 140, totalTokensPartial: false })
@@ -140,7 +144,8 @@ describe('refreshPane', () => {
       ref: REF,
       withList: true,
       lastItems: null,
-      nowMs: NOW
+      nowMs: NOW,
+      target: 'current'
     })
 
     expect(view.root?.files).toEqual([{ path: '/lead.ts', operation: 'edit' }])
@@ -159,7 +164,8 @@ describe('refreshPane', () => {
       ref: REF,
       withList: true,
       lastItems: null,
-      nowMs: NOW
+      nowMs: NOW,
+      target: 'current'
     })
 
     expect(view.root?.children[0]?.files).toEqual([])
@@ -185,7 +191,8 @@ describe('refreshPane', () => {
       ref: REF,
       withList: true,
       lastItems: null,
-      nowMs: NOW
+      nowMs: NOW,
+      target: 'current'
     })
 
     const kinds = Object.fromEntries(
@@ -212,7 +219,8 @@ describe('refreshPane', () => {
       ref: REF,
       withList: true,
       lastItems: null,
-      nowMs: NOW
+      nowMs: NOW,
+      target: 'current'
     })
 
     const child = view.root?.children[0]
@@ -235,7 +243,8 @@ describe('refreshPane', () => {
       ref: REF,
       withList: true,
       lastItems: null,
-      nowMs: NOW
+      nowMs: NOW,
+      target: 'current'
     })
 
     expect(view.root?.files).toHaveLength(200)
@@ -254,7 +263,8 @@ describe('refreshPane', () => {
       ref: REF,
       withList: true,
       lastItems: null,
-      nowMs: NOW
+      nowMs: NOW,
+      target: 'current'
     })
 
     expect(view.label).toBe('Fix it')
@@ -270,7 +280,8 @@ describe('refreshPane', () => {
       ref: REF,
       withList: true,
       lastItems: null,
-      nowMs: NOW
+      nowMs: NOW,
+      target: 'current'
     })
 
     expect(services.listCalls).toBe(1)
@@ -287,7 +298,8 @@ describe('refreshPane', () => {
       ref: REF,
       withList: false,
       lastItems: [lead],
-      nowMs: NOW
+      nowMs: NOW,
+      target: 'current'
     })
 
     expect(services.listCalls).toBe(0)
@@ -305,7 +317,8 @@ describe('refreshPane', () => {
       ref: REF,
       withList: true,
       lastItems: null,
-      nowMs: NOW
+      nowMs: NOW,
+      target: 'current'
     })
 
     expect(view).toMatchObject({ status: 'error', errorCode: 'not-found', root: null })
@@ -321,7 +334,8 @@ describe('refreshPane', () => {
       ref: REF,
       withList: true,
       lastItems: [lead],
-      nowMs: NOW
+      nowMs: NOW,
+      target: 'current'
     })
 
     expect(view).toMatchObject({ status: 'error', errorCode: 'unreadable' })
@@ -338,7 +352,8 @@ describe('refreshPane', () => {
       ref: REF,
       withList: true,
       lastItems: null,
-      nowMs: NOW
+      nowMs: NOW,
+      target: 'current'
     })
 
     expect(view).toMatchObject({ status: 'error', errorCode: 'internal' })
@@ -355,10 +370,45 @@ describe('refreshPane', () => {
       ref: { projectDirName: '../x', sessionId: 'nope' },
       withList: true,
       lastItems: null,
-      nowMs: NOW
+      nowMs: NOW,
+      target: 'current'
     })
 
     expect(view).toMatchObject({ status: 'error', errorCode: 'invalid-request' })
     expect(services.listCalls + services.getCalls).toBe(0)
+  })
+
+  it.each(['current', 'browsed'] as const)('tags a ready view as %s', async (target) => {
+    const services = testPaneServices({
+      list: { ok: true, value: [lead] },
+      get: { ok: true, value: testDetail() }
+    })
+
+    const { view } = await refreshPane(services, {
+      ref: REF,
+      withList: true,
+      lastItems: null,
+      nowMs: NOW,
+      target
+    })
+
+    expect(view.target).toBe(target)
+  })
+
+  it('tags an error view with the target too', async () => {
+    const services = testPaneServices({
+      list: { ok: true, value: [lead] },
+      get: { ok: false, error: { code: 'not-found' } }
+    })
+
+    const { view } = await refreshPane(services, {
+      ref: REF,
+      withList: true,
+      lastItems: null,
+      nowMs: NOW,
+      target: 'browsed'
+    })
+
+    expect(view).toMatchObject({ status: 'error', target: 'browsed' })
   })
 })
