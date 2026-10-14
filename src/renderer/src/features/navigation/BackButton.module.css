@@ -4,7 +4,6 @@
   align-items: center;
   width: fit-content;
   min-height: var(--size-target-min);
-  margin-block-end: var(--space-1);
   padding: 0 var(--space-2) 0 var(--space-1);
   color: var(--color-text);
   font: inherit;
@@ -20,7 +19,8 @@
 
   /* Unavailable, but still focusable and named, so a person on it keeps their place. */
   &[aria-disabled='true'] {
-    color: var(--color-text-muted);
+    /* The text and chevron fade, not the element, so the focus ring keeps its full contrast. */
+    color: color-mix(in srgb, var(--color-text) calc(var(--opacity-disabled) * 100%), transparent);
     cursor: default;
 
     &:hover {

@@ -17,6 +17,9 @@
 :root {
   color-scheme: light dark;
 
+  /* Scrolled-to and focused elements stop below the sticky title bar (WCAG 2.4.11). */
+  scroll-padding-top: var(--size-titlebar-current);
+
   /* Ground, surface, and text. */
   /* The card and sidebar ground, where most text sits. */
   --color-bg: #ffffff;
@@ -50,6 +53,8 @@
   --shadow-card: 0 1px 2px rgb(20 24 40 / 4%), 0 4px 14px rgb(20 24 40 / 4%);
   /* A graph node's lift. */
   --shadow-node: 0 1px 2px rgb(20 24 40 / 10%);
+  /* A control that can't be used right now, faded so it reads as unavailable. */
+  --opacity-disabled: 0.4;
   /* The tint a row takes on hover: the accent at this opacity over transparent, so it works on any surface. The contrast test reads the opacity. */
   --opacity-hover: 0.05;
   --color-hover: color-mix(
@@ -217,6 +222,10 @@
   --space-main-block: 1.125rem;
   --space-main-inline: var(--space-6);
   --space-main-end: 3rem;
+  /* The page's title bar: a 44px target with padding. The main process sizes the macOS overlay to match (TITLE_BAR_HEIGHT). */
+  --size-titlebar: 3rem;
+  /* The bar's height, grown to the window controls' overlay when that is taller. Sticky panes sit below it. */
+  --size-titlebar-current: max(var(--size-titlebar), env(titlebar-area-height, 0px));
   /* The gap between the cards of a page. */
   --space-grid: var(--space-4-5);
   /* A project dot 9px, a worktree chevron's box 26px, a share bar 6px, and a selected node's ring 3px at an offset of 2px. */

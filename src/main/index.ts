@@ -20,6 +20,7 @@ import { sendOpenAbout } from './sendOpenAbout'
 import { surfaceWindows } from './surfaceWindows'
 import { describeError } from './describeError'
 import { isFatalLoadFailure } from './startupFailure'
+import { windowChromeOptions } from './windowChrome'
 
 // An empty value counts as unset, so every check below agrees on it.
 const devServerUrl = (is.dev && process.env['ELECTRON_RENDERER_URL']) || undefined
@@ -34,6 +35,7 @@ function createWindow(): BrowserWindow {
     minWidth: 1024,
     minHeight: 560,
     show: false,
+    ...windowChromeOptions(process.platform),
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       devTools: devToolsEnabled,
