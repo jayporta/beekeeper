@@ -32,7 +32,7 @@ const ISOLATION_ENV = {
  * over the engine's inherited one, not the whole of it. Git is refused (`gitDisabled`) when an
  * inherited repository variable could redirect it, and the variables that most change its behavior
  * are pinned, but any other inherited variable still reaches it. Stdout comes back as text, so
- * `exactOutput` is false.
+ * `exactOutput` is false, though each run reports `exact` when its text holds no U+FFFD.
  *
  * @param options - The host; the platform name; and whether to refuse every run.
  * @returns The adapter to install with `installProcessPort`.
@@ -62,7 +62,8 @@ export function createModProcessPort(options: {
       if (result.isStdoutTruncated) return err('output-too-large')
       const stdout = encoder.encode(result.stdout)
       if (stdout.length > request.maxOutputBytes) return err('output-too-large')
-      return ok({ exitCode: result.exitCode, stdout })
+      // Valid UTF-8 re-encodes to the same bytes; U+FFFD marks bytes the engine's decoding lost.
+      return ok({ exitCode: result.exitCode, stdout, exact: !result.stdout.includes('\uFFFD') })
     },
     /** The engine reports no mode bits, so any regular file counts. */
     async isExecutable(path) {

@@ -84,7 +84,7 @@ async function diffFiles(
   if (!files.ok) return err(files.error)
   return ok({
     files: files.value,
-    pathsAreUtf8: processPort().exactOutput && isUtf8Bytes(diff.value.stdout)
+    pathsAreUtf8: (diff.value.exact ?? processPort().exactOutput) && isUtf8Bytes(diff.value.stdout)
   })
 }
 

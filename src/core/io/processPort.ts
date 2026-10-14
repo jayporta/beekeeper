@@ -23,6 +23,8 @@ export interface ProcessOutput {
   readonly exitCode: number
   /** The child's stdout. */
   readonly stdout: Uint8Array
+  /** Whether this run's `stdout` is the child's exact bytes; overrides the port's `exactOutput` when set. */
+  readonly exact?: boolean
 }
 
 /**
@@ -50,6 +52,6 @@ export interface ProcessPort {
   isExecutable(path: string): Promise<boolean>
   /** The host platform, as Node names it (`darwin`, `linux`, ...). */
   readonly platform: string
-  /** Whether `stdout` is the child's exact bytes; `false` for an adapter that only gets text. */
+  /** Whether `stdout` is the child's exact bytes by default; `false` for an adapter that only gets text. A run's own `exact` overrides it. */
   readonly exactOutput: boolean
 }
