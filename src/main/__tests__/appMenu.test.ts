@@ -1,4 +1,4 @@
-import type { MenuItemConstructorOptions } from 'electron'
+import type { BaseWindow, MenuItemConstructorOptions } from 'electron'
 import { describe, expect, it, vi } from 'vitest'
 import { buildAppMenuTemplate } from '../appMenu'
 
@@ -7,6 +7,7 @@ const ZOOM_ROLES = ['zoomIn', 'zoomOut', 'resetZoom']
 /** The menu has one branch for macOS and one for every other platform. */
 const PLATFORMS = ['darwin', 'linux'] as const
 const ABOUT_LABEL = 'About beekeeper'
+const BACK_LABEL = 'Back'
 
 /** Every item in the template, submenus included. */
 function flatten(items: readonly MenuItemConstructorOptions[]): MenuItemConstructorOptions[] {
@@ -16,12 +17,29 @@ function flatten(items: readonly MenuItemConstructorOptions[]): MenuItemConstruc
   })
 }
 
-/** The template for a platform, with a spy as the About handler unless one is given. */
+/** The template for a platform, with spies as the About and Back handlers unless they are given. */
 function build(
   platform: NodeJS.Platform,
-  { devTools = false, onAbout = vi.fn() }: { devTools?: boolean; onAbout?: () => void } = {}
+  {
+    devTools = false,
+    onAbout = vi.fn(),
+    onBack = vi.fn()
+  }: {
+    devTools?: boolean
+    onAbout?: () => void
+    onBack?: (window: BaseWindow | undefined) => void
+  } = {}
 ): MenuItemConstructorOptions[] {
-  return buildAppMenuTemplate({ platform, devTools, onAbout })
+  return buildAppMenuTemplate({ platform, devTools, onAbout, onBack })
+}
+
+/** The View menu's Back item. */
+function backItem(template: readonly MenuItemConstructorOptions[]): MenuItemConstructorOptions {
+  const view = template.find((item) => item.label === 'View')
+  const items = Array.isArray(view?.submenu) ? view.submenu : []
+  const item = items.find((candidate) => candidate.label === BACK_LABEL)
+  if (item === undefined) throw new Error('the View menu has no Back item')
+  return item
 }
 
 function rolesOf(template: readonly MenuItemConstructorOptions[]): (string | undefined)[] {
@@ -61,12 +79,75 @@ describe('buildAppMenuTemplate', () => {
       ).toBe(true)
     })
 
-    it('has no item with a click handler besides About', () => {
+    it('has no item with a click handler besides About and Back', () => {
       const items = flatten(build(platform, { devTools: true }))
 
-      const others = items.filter((item) => item.click !== undefined && item.label !== ABOUT_LABEL)
+      const others = items.filter(
+        (item) =>
+          item.click !== undefined && item.label !== ABOUT_LABEL && item.label !== BACK_LABEL
+      )
 
       expect(others).toEqual([])
+    })
+
+    it('has a Back item in the View menu bound to Cmd or Ctrl and [', () => {
+      const item = backItem(build(platform))
+
+      expect(item.accelerator).toBe('CommandOrControl+[')
+    })
+
+    it('keeps the Back item visible and enabled, since the renderer decides whether there is anywhere to go', () => {
+      const item = backItem(build(platform))
+
+      expect(item.visible).not.toBe(false)
+      expect(item.enabled).not.toBe(false)
+    })
+
+    it('hands the window the Back item was chosen in to onBack', () => {
+      const onBack = vi.fn()
+      const chosenIn = {} as BaseWindow
+
+      backItem(build(platform, { onBack })).click?.(
+        undefined as never,
+        chosenIn,
+        undefined as never
+      )
+
+      expect(onBack).toHaveBeenCalledExactlyOnceWith(chosenIn)
+    })
+
+    it('hands onBack no window when the Back item is chosen with none open', () => {
+      const onBack = vi.fn()
+
+      backItem(build(platform, { onBack })).click?.(
+        undefined as never,
+        undefined,
+        undefined as never
+      )
+
+      expect(onBack).toHaveBeenCalledExactlyOnceWith(undefined)
+    })
+
+    it('does not call onAbout when Back is chosen', () => {
+      const onAbout = vi.fn()
+
+      backItem(build(platform, { onAbout })).click?.(
+        undefined as never,
+        undefined,
+        undefined as never
+      )
+
+      expect(onAbout).not.toHaveBeenCalled()
+    })
+
+    it('does not call onBack when About is chosen', () => {
+      const onBack = vi.fn()
+      const help = build(platform, { onBack }).find((item) => item.role === 'help')
+      const about = Array.isArray(help?.submenu) ? help.submenu[0] : undefined
+
+      about?.click?.(undefined as never, undefined, undefined as never)
+
+      expect(onBack).not.toHaveBeenCalled()
     })
 
     it('has a file menu', () => {

@@ -158,6 +158,21 @@ describe('SessionsView breadcrumb for a worktree', () => {
     expect(within(breadcrumb()).getAllByRole('listitem')).toHaveLength(2)
   })
 
+  it('records the worktree sessions list it leaves, and files the parent as the project in effect', async () => {
+    showProjects([acme, worktree])
+    await heading('fix-bug')
+
+    await userEvent.click(within(breadcrumb()).getByRole('button', { name: 'Acme Web' }))
+
+    expect(useNavigationStore.getState().history.at(-1)).toEqual({
+      view: 'sessions',
+      projectDirName: WORKTREE_DIR,
+      sessionRef: null,
+      agent: null
+    })
+    expect(useNavigationStore.getState().currentProjectDirName).toBe(DIR)
+  })
+
   it('has no parent step when the parent folder is not listed', async () => {
     showProjects([worktree])
     await heading('fix-bug')

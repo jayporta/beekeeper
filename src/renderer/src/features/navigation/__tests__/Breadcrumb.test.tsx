@@ -23,6 +23,15 @@ describe('Breadcrumb', () => {
     expect(onSelect).toHaveBeenCalledOnce()
   })
 
+  it('calls onSelect with no arguments, so the click event never reaches a handler that takes options', async () => {
+    const onSelect = vi.fn()
+    render(<Breadcrumb segments={[{ label: 'Sessions', onSelect }, { label: 'Fix bug' }]} />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sessions' }))
+
+    expect(onSelect).toHaveBeenCalledWith()
+  })
+
   it('marks the last segment as the current page and does not make it a button', () => {
     render(
       <Breadcrumb segments={[{ label: 'Sessions', onSelect: vi.fn() }, { label: 'Fix bug' }]} />

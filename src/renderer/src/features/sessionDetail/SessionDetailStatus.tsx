@@ -24,16 +24,16 @@ interface SessionDetailStatusProps {
 /**
  * What the session detail shows while it has no data: a loading message, or
  * the reason the load failed. A session that is gone offers a way back to
- * the sessions list, and any other failure offers a retry. The loading,
- * unreadable and error states have their own keys, so an alert mounts fresh
- * and screen readers announce it. The `not-found` message is a group named by
- * its heading and described by its body, and is never a live region itself.
- * When it replaces a focused control, focus moves to it. Otherwise a separate,
- * visually hidden alert announces it, then empties out. While `holdNotFound`
- * is set, loading shows in its place. The message is the whole view, so its
- * heading is the page's `h1`. With `summaryOnly`, a `not-found` message instead
- * says that only the session's summary was archived, and its heading is an `h2`
- * under the header's `h1`.
+ * the sessions list, which leaves it out of the navigation history, and any
+ * other failure offers a retry. The loading, unreadable and error states have
+ * their own keys, so an alert mounts fresh and screen readers announce it.
+ * The `not-found` message is a group named by its heading and described by its
+ * body, and is never a live region itself. When it replaces a focused control,
+ * focus moves to it. Otherwise a separate, visually hidden alert announces it,
+ * then empties out. While `holdNotFound` is set, loading shows in its place.
+ * The message is the whole view, so its heading is the page's `h1`. With
+ * `summaryOnly`, a `not-found` message instead says that only the session's
+ * summary was archived, and its heading is an `h2` under the header's `h1`.
  *
  * @example
  * <SessionDetailStatus
@@ -53,7 +53,14 @@ export function SessionDetailStatus({
 }: SessionDetailStatusProps): React.JSX.Element {
   const { t } = useTranslation(['sessionDetail', 'common'])
   const showSessions = useNavigationStore((state) => state.showSessions)
+  const replaceWithSessions = useNavigationStore((state) => state.replaceWithSessions)
   const notFoundMessage = useRef<HTMLDivElement>(null)
+
+  // A session that is gone is not somewhere Back should return to. An archived one still has its page.
+  const leaveSession = (): void => {
+    if (summaryOnly) showSessions()
+    else replaceWithSessions()
+  }
 
   const code = IpcCallError.codeOf(error)
   const gone = code === 'not-found'
@@ -79,7 +86,7 @@ export function SessionDetailStatus({
           groupRef={notFoundMessage}
           announce={announceNotFound}
         >
-          <button type="button" onClick={showSessions}>
+          <button type="button" onClick={leaveSession}>
             {t('notFound.back')}
           </button>
         </NotFoundMessage>

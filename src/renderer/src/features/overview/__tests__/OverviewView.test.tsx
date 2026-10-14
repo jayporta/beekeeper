@@ -356,6 +356,21 @@ describe('OverviewView projects table', () => {
     expect(useSelectedProjectStore.getState().selectedDirName).toBe(BETA)
     expect(await screen.findByRole('heading', { level: 1, name: 'beta-app' })).toBeTruthy()
   })
+
+  it('records the overview, with no project, when a card opens a project', async () => {
+    renderOverview()
+    await totalsLoaded()
+
+    await userEvent.click(within(main()).getByRole('button', { name: 'beta-app' }))
+
+    expect(useNavigationStore.getState().history.at(-1)).toEqual({
+      view: 'overview',
+      projectDirName: null,
+      sessionRef: null,
+      agent: null
+    })
+    expect(useNavigationStore.getState().currentProjectDirName).toBe(BETA)
+  })
 })
 
 describe('OverviewView partial totals', () => {

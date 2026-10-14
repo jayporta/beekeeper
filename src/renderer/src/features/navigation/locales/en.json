@@ -1,4 +1,8 @@
 {
+  "back": {
+    "label": "Back",
+    "nothing": "Nothing to go back to"
+  },
   "breadcrumb": {
     "label": "Breadcrumb",
     "sessions": "Sessions"
