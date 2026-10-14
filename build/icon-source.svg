@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <radialGradient id="bg" cx="0.5" cy="0.35" r="0.75">
+      <stop offset="0" stop-color="#FFD25A"/>
+      <stop offset="1" stop-color="#E38B0B"/>
+    </radialGradient>
+    <linearGradient id="eye" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3B2A18"/>
+      <stop offset="1" stop-color="#1A1209"/>
+    </linearGradient>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#bg)"/>
+  <!-- antennae -->
+  <g stroke="#1F150B" stroke-width="30" stroke-linecap="round" fill="none">
+    <path d="M452 318 Q 430 240 360 222"/>
+    <path d="M572 318 Q 594 240 664 222"/>
+  </g>
+  <circle cx="352" cy="220" r="36" fill="#1F150B"/>
+  <circle cx="672" cy="220" r="36" fill="#1F150B"/>
+  <!-- head: dark, rounded, slightly wider than tall -->
+  <ellipse cx="512" cy="560" rx="300" ry="270" fill="#1F150B"/>
+  <!-- honey band across the forehead -->
+  <path d="M232 470 Q 512 400 792 470 L 800 520 Q 512 455 224 520 Z" fill="#FFC93A"/>
+  <!-- big compound eyes -->
+  <ellipse cx="392" cy="600" rx="98" ry="118" fill="url(#eye)" stroke="#FFC93A" stroke-width="18"/>
+  <ellipse cx="632" cy="600" rx="98" ry="118" fill="url(#eye)" stroke="#FFC93A" stroke-width="18"/>
+  <ellipse cx="420" cy="555" rx="30" ry="36" fill="#FFF4D6"/>
+  <ellipse cx="660" cy="555" rx="30" ry="36" fill="#FFF4D6"/>
+  <!-- small smile -->
+  <path d="M478 730 Q 512 758 546 730" fill="none" stroke="#FFC93A" stroke-width="18" stroke-linecap="round"/>
+</svg>
