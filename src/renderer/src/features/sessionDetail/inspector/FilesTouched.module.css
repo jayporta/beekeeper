@@ -6,14 +6,35 @@
 
 /* A long list is painted as it scrolls into view. */
 .file {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--space-2);
-  align-items: center;
   padding-block: var(--space-1-5);
   border-block-start: 1px solid var(--color-divider);
   content-visibility: auto;
   contain-intrinsic-size: auto 2rem;
+}
+
+/* The whole row opens the file's diff, and looks as the row did before it could. */
+.button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: center;
+  width: 100%;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: 0;
+
+  &:hover {
+    background: var(--color-hover);
+  }
+
+  &:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
 }
 
 /*

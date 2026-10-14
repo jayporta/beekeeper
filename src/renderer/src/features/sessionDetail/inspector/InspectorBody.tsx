@@ -61,7 +61,7 @@ export function InspectorBody({ node, target, inspection }: InspectorBodyProps):
         <ReportedCostStat sessionId={target.ownerRef.sessionId} agentId={target.agentId} />
       </InspectorStatGrid>
       {tokens !== null && <InspectorTokens report={report} tokens={tokens} model={node.model} />}
-      <FilesTouched report={report} />
+      <FilesTouched report={report} target={target} agentName={node.name} />
       {target.agentId === null && node.kind === 'teammate' && (
         <WorktreeDiffBox sessionRef={target.ownerRef} agentId={null} branch={null} />
       )}
