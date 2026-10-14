@@ -40,17 +40,6 @@ Lines for files you didn't download will report as missing. Ignore those.
 
 Tools like Langfuse, Braintrust, and Helicone are built to trace single requests in a production LLM app. That's not the question a local agent swarm raises. When you kick off a handful of subagents or teammates on a repo, you want to know which agent touched which files, what each worktree actually changed, what each one cost, and where one of them went off the rails. Beekeeper is built to answer those questions by reading Claude Code's own session files on disk, without a proxy, a server, or a network call.
 
-## Status
-
-A rough roadmap, in build order:
-
-- [x] Project scaffold, security hardening, lint, tests, and CI
-- [x] Read and parse Claude Code transcripts
-- [x] Agent tree, token usage, and cost estimates
-- [x] Worktree diffs
-- [x] Sessions list
-- [ ] Session detail: agents, timeline, and files
-
 ## Privacy promise
 
 Beekeeper is local-first and read-only. It makes zero outbound network calls and collects zero telemetry. The only network listener is an opt-in receiver for Claude Code's own cost reports, described below, and it is off until you turn it on. That's not just a claim in this README, it's enforced in a few concrete ways:
