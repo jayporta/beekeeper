@@ -87,7 +87,7 @@ If you turn on the telemetry receiver, beekeeper also writes `otel-receiver.json
 | Agent tree: lead, subagents, teammates, model, team                           | Files changed via Bash in a shared checkout (attribution is a guess without a hook)                           |
 | Tokens per agent, tool calls, wall-clock span, errors                         | Exact billed cost (subscription plans aren't billed per token, so beekeeper shows an API-equivalent estimate) |
 | Files edited through Edit/Write (the transcript records each patch)           | A worktree's base commit once the worktree is deleted                                                         |
-| A worktree agent's exact `git diff` against its merge-base                    | History older than 30 days (Claude Code's default retention)                                                  |
+| A worktree agent's exact `git diff` against its merge-base                    | History older than 30 days (Claude Code's default retention), unless beekeeper archived the session first                                                  |
 | Signs an agent went off the rails: error streaks, `stoppedByUser`, compaction | Live output while an agent is still running (beekeeper reads what's on disk, not a live stream)               |
 
 ## Development
