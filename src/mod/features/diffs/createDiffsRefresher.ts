@@ -33,9 +33,10 @@ export interface DiffsRefreshInput {
 /** Loads the selected agent's worktree diff into state. */
 export interface DiffsRefresher {
   /**
-   * Stores the selected agent's worktree diff, or a `none` diff when the selected node has none. Runs git
-   * (through the service) at most once per {@link LIST_TICK_MS} per session that holds the agent,
-   * whatever the selection or the view. Never rejects.
+   * Stores the selected agent's worktree diff, or a `none` diff when the selected node has none. Keeps
+   * the last session's diffs and runs git (through the service) again only when the agent belongs to
+   * another session, {@link LIST_TICK_MS} has passed, or the agent is missing from them after the view
+   * changed. Never rejects.
    */
   refresh(input: DiffsRefreshInput): Promise<void>
   /** Forgets what was last stored, so the next refresh writes even a diff that matches: call it when the stored diff may be gone. */
