@@ -14,6 +14,27 @@ const status = document.querySelector('.flower-status')
 /** @type {{ dismiss: () => Promise<void>, destroy: () => void } | null} */
 let game = null
 let busy = false
+/** @type {Element[]} */
+let inertParts = []
+
+/**
+ * Everything on the page except the daisy, its note, and the game's own layers, so a click
+ * meant for a bee can't follow a link or start a download while the bees are out.
+ */
+function pageParts() {
+  const isGame = (el) => el.classList.contains('bee-swarm') || el.classList.contains('bee-lineup')
+  const outside = [...document.body.children].filter(
+    (el) => !el.contains(flower) && el.tagName !== 'SCRIPT' && !isGame(el)
+  )
+  const beside = [...flower.parentElement.children].filter((el) => el !== flower && el !== status)
+  return [...outside, ...beside]
+}
+
+function setPageInert(on) {
+  for (const el of inertParts) el.inert = false
+  inertParts = on ? pageParts() : []
+  for (const el of inertParts) el.inert = true
+}
 
 /** Where the daisy's center is, in viewport pixels. */
 function flowerCenter() {
@@ -47,14 +68,19 @@ async function release() {
     }
   }
   created.start()
+  setPageInert(true)
   flower.setAttribute('aria-label', HOME_LABEL)
 }
 
 async function sendHome() {
   const ending = game
   game = null
-  await ending.dismiss()
-  flower.setAttribute('aria-label', RELEASE_LABEL)
+  try {
+    await ending.dismiss()
+  } finally {
+    setPageInert(false)
+    flower.setAttribute('aria-label', RELEASE_LABEL)
+  }
 }
 
 flower.addEventListener('click', async () => {
