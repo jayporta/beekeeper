@@ -74,6 +74,12 @@ export interface IpcDeps {
    */
   readonly copyToClipboard: ((text: string) => void) | null
   /**
+   * The version of the running app, or `null` when the app didn't set one up.
+   * The app supplies Electron's `app.getVersion()` in `index.ts`, so tests that
+   * don't touch it get `null`.
+   */
+  readonly appVersion: string | null
+  /**
    * Where listed sessions and scanned details are archived, or `null` when
    * the archive is off or couldn't be opened. A write failure never fails the
    * request that triggered it.
