@@ -13,6 +13,12 @@ describe('FirstRunScreen', () => {
 
     expect(screen.getByText('~/.claude/projects').tagName).toBe('CODE')
   })
+
+  it('says CLAUDE_CONFIG_DIR moves that path, and renders the variable as code', () => {
+    render(<FirstRunScreen />)
+
+    expect(screen.getByText('CLAUDE_CONFIG_DIR').tagName).toBe('CODE')
+  })
 })
 
 describe('FirstRunScreen macOS section', () => {

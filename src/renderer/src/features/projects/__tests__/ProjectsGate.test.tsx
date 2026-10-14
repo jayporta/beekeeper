@@ -38,6 +38,7 @@ describe('ProjectsGate states', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'No sessions found' })).toBeTruthy()
     expect(screen.getByText(/after you run Claude Code/)).toBeTruthy()
+    expect(screen.getByText(/CLAUDE_CONFIG_DIR/)).toBeTruthy()
   })
 
   it('announces denied access for an unreadable result, with Retry and no automatic retries', async () => {
@@ -48,6 +49,7 @@ describe('ProjectsGate states', () => {
     expect(
       within(alert).getByRole('heading', { level: 1, name: "Can't read your sessions" })
     ).toBeTruthy()
+    expect(within(alert).getByText(/CLAUDE_CONFIG_DIR/)).toBeTruthy()
     expect(within(alert).getByRole('button', { name: 'Retry' })).toBeTruthy()
     expect(api.listProjects).toHaveBeenCalledTimes(1)
   })

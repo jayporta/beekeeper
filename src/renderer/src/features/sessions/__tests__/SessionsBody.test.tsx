@@ -26,7 +26,8 @@ describe('SessionsBody for a gone folder', () => {
     expect(
       screen.getByRole('group', {
         name: 'Project folder not found',
-        description: "This project's folder no longer exists in ~/.claude/projects."
+        description:
+          "This project's folder no longer exists under ~/.claude/projects (or the projects folder under CLAUDE_CONFIG_DIR when it's set)."
       })
     ).toBeTruthy()
   })

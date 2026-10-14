@@ -12,7 +12,7 @@ import type { WorkflowRunNamesCache } from './workflowRunNamesCache'
 
 /** What the handlers need, injected so tests can point them at a temp directory. */
 export interface IpcDeps {
-  /** The `~/.claude/projects` directory. */
+  /** The `projects` directory under Claude Code's config folder: `~/.claude`, or `CLAUDE_CONFIG_DIR` when it is set. */
   readonly projectsRoot: string
   /** Project labels read from one of each project's first few transcripts, kept for the app's lifetime. */
   readonly projectLabels: ProjectLabelCache

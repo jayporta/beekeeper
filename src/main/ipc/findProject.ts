@@ -4,7 +4,7 @@ import type { SessionEntry } from '../../core/transcript/discoverSessions'
 /**
  * Finds a project by exact match in a fresh directory listing, so no path is
  * ever built from a renderer-supplied string.
- * @param projectsRoot - The `~/.claude/projects` directory.
+ * @param projectsRoot - The projects directory, `projects` under `~/.claude` or `CLAUDE_CONFIG_DIR`.
  * @param dirName - A folder name the renderer sent.
  * @returns The listed entry, or `undefined` when no project has that name.
  */
