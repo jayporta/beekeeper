@@ -1,10 +1,16 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render as renderPlain, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { installBeekeeperApi, type TestBeekeeperApi } from '@renderer/testBeekeeperApi'
+import { createQueryWrapper } from '@renderer/testQueryWrapper'
 import { AboutDialog } from '../AboutDialog'
 
 let api: TestBeekeeperApi
+
+/** Renders `ui` with a fresh query client, since the dialog reads the app version through a query. */
+function render(ui: React.ReactElement): ReturnType<typeof renderPlain> {
+  return renderPlain(ui, { wrapper: createQueryWrapper() })
+}
 
 beforeEach(() => {
   api = installBeekeeperApi()
@@ -48,6 +54,37 @@ describe('AboutDialog', () => {
 
     expect(screen.getByText(/reads the session files Claude Code writes/)).toBeTruthy()
     expect(screen.getByText(/runs entirely on your computer/)).toBeTruthy()
+  })
+
+  it('shows the app version', async () => {
+    api = installBeekeeperApi({
+      getAppVersion: () => Promise.resolve({ ok: true, value: '0.1.0' })
+    })
+    render(<AboutDialog />)
+
+    openAbout()
+
+    expect(await screen.findByText('Version 0.1.0')).toBeTruthy()
+  })
+
+  it('shows no version line while the version loads', () => {
+    api = installBeekeeperApi({ getAppVersion: () => new Promise(() => undefined) })
+    render(<AboutDialog />)
+
+    openAbout()
+
+    expect(screen.queryByText(/version/i)).toBeNull()
+  })
+
+  it('says the version could not be read when the call fails', async () => {
+    api = installBeekeeperApi({
+      getAppVersion: () => Promise.resolve({ ok: false, error: { code: 'internal' } })
+    })
+    render(<AboutDialog />)
+
+    openAbout()
+
+    expect(await screen.findByText('The version could not be read.')).toBeTruthy()
   })
 
   it('closes with the Close button and returns focus to what had it before', async () => {

@@ -110,6 +110,7 @@ if (!is.dev && !app.requestSingleInstanceLock()) {
         ...createIpcDeps(app.getPath('home')),
         otel,
         copyToClipboard: (text: string) => clipboard.writeText(text),
+        appVersion: app.getVersion(),
         archive
       }
 

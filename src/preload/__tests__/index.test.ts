@@ -44,7 +44,8 @@ describe('preload API', () => {
       api.getOtelReceiver(),
       api.setOtelReceiverEnabled(true),
       api.getReportedCost('s'),
-      api.copyText('t')
+      api.copyText('t'),
+      api.getAppVersion()
     ])
 
     expect(invoke.mock.calls.map(([channel]) => channel).sort()).toEqual(
@@ -74,6 +75,14 @@ describe('preload API', () => {
     await api.copyText('KEY=value')
 
     expect(invoke).toHaveBeenCalledWith(IPC_CHANNELS.copyText, { text: 'KEY=value' })
+  })
+
+  it('sends no payload to getAppVersion', async () => {
+    const api = await loadApi()
+
+    await api.getAppVersion()
+
+    expect(invoke).toHaveBeenCalledWith(IPC_CHANNELS.getAppVersion, undefined)
   })
 
   it('sends no payload to getOtelReceiver', async () => {

@@ -39,13 +39,14 @@ afterEach(async () => {
 
 function register(
   otel: IpcDeps['otel'] = null,
-  copyToClipboard: IpcDeps['copyToClipboard'] = null
+  copyToClipboard: IpcDeps['copyToClipboard'] = null,
+  appVersion: IpcDeps['appVersion'] = null
 ): Map<string, Listener> {
   const { ipcMain, listeners } = fakeIpcMain()
   registerIpcHandlers({
     ipcMain,
     isTrusted: (event) => isTrustedSender(event, TEST_ORIGINS),
-    deps: { ...createIpcDeps(tree.home), otel, copyToClipboard }
+    deps: { ...createIpcDeps(tree.home), otel, copyToClipboard, appVersion }
   })
   return listeners
 }
@@ -97,6 +98,18 @@ describe('registerIpcHandlers', () => {
       { ok: true, value: null },
       { ok: false, error: { code: 'untrusted-sender' } },
       ['a=b']
+    ])
+  })
+
+  it('serves the app version to a trusted sender and refuses an untrusted one', async () => {
+    const listener = register(null, null, '0.1.0').get(IPC_CHANNELS.getAppVersion)
+
+    const trusted = await listener?.(trustedEvent)
+    const foreign = await listener?.({ senderFrame: null })
+
+    expect([trusted, foreign]).toEqual([
+      { ok: true, value: '0.1.0' },
+      { ok: false, error: { code: 'untrusted-sender' } }
     ])
   })
 
