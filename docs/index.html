@@ -181,14 +181,13 @@
               <h3 class="card-title">Your data stays put</h3>
               <p>
                 Transcripts are read in place and shown as plain text. What beekeeper keeps is its
-                own, in its app data folder: a cache of your session lists that expires after 7
-                days, an archive of what its session views show, such as each session's title,
-                agents and their tasks, token counts, costs, and the paths of files they touched
-                (never prompts, responses, or file contents), and a few settings. The archive has no
-                expiry, so it outlives Claude Code's own transcripts. To remove it, quit beekeeper
-                and delete
-                <code>archive.sqlite</code> and its <code>archive.sqlite-wal</code> and
-                <code>archive.sqlite-shm</code> files.
+                own, in its app data folder and never sent anywhere: a cache of your session lists,
+                project totals, and daily usage that expires after 7 days; an archive of what its
+                session views show, with no expiry, so it outlives Claude Code's own transcripts;
+                and a few settings. It never stores prompts, responses, tool output, or file
+                contents. To remove the archive, quit beekeeper and delete
+                <code>archive.sqlite</code>, <code>archive.sqlite-wal</code>, and
+                <code>archive.sqlite-shm</code>.
               </p>
             </div>
           </div>

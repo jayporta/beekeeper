@@ -51,28 +51,21 @@ beekeeper never reads `~/.claude/sessions/*.key` (a peer token, not session data
 
 ## What beekeeper stores
 
-beekeeper keeps a cache of the project list and of the session lists you've opened, so the app opens without rescanning everything. The cache holds those lists exactly as the app shows them:
+beekeeper keeps its own data in its app data folder: `~/Library/Application Support/beekeeper` on macOS, `~/.config/beekeeper` on Linux. It never writes to `~/.claude` or a repository, and nothing it keeps is sent anywhere.
 
-- **Projects:** each project folder name, which encodes the path of the project, and which project is a worktree of which.
-- **Each session:** its id, the project folder it's in, its title, whether it's a lead or a teammate agent, its agent type, name, and team, its model, and its activity times; its transcript's size and modification time; its subagent count and each subagent's name, task description, and type (so search can match them); how many workflow runs it has, their names, and how many subagents ran inside them; its recorded token and cost totals, and the token total of its own transcript; its signal counts (tool errors, the longest error streak, the longest run of repeated Bash commands, compactions, and stopped agents); how many lines couldn't be read; and any plan limit it hit, with its reset time.
-- **Why a summary is missing:** when a session's summary couldn't be read, the error code (`not-found`, `unreadable`, or `internal`).
-- **Teams:** the team name, and how a session groups with its lead and teammates, including how a teammate was matched to its lead, whether it stopped, and whether it's missing. For a lead, it also holds the team's token and cost totals, how many sessions have no figure, and whether the lead's spawn or stop lists were capped.
+It never stores your prompts, the model's responses, tool output, or file contents. Session titles are the ones Claude Code generates itself. The categories below are described with examples, not as complete lists.
 
-beekeeper also keeps two preferences: the selected project and whether you've dismissed the first-run screen.
+- **Cache.** So the app opens without rescanning, beekeeper caches (in IndexedDB) the project list, the session lists you've opened, per-project totals, and daily usage. A session list holds each session as the sessions list shows it, such as its title, agent, team, token and cost totals, signals, and its subagents' names, task descriptions, and types. Totals hold tokens and cost per project and the latest session's id, title, and time. Daily usage holds tokens per day per model. Entries expire after 7 days, and an update that changes the data format clears the cache.
+- **Preferences.** The selected project, whether you've dismissed the first-run screen, and the sidebar width (in IndexedDB). They stay until you change them.
+- **Archive.** Claude Code deletes old transcripts (after 30 days by default), so beekeeper keeps an archive in a SQLite file, `archive.sqlite` (plus `archive.sqlite-wal` and `archive.sqlite-shm`).
+  - **List entries.** Each session in a project folder you listed gets an entry, once its transcript has been read. It holds what the cache holds, plus a record of when the session was active (its teammates spawned and stopped, and its token usage per model in 15-minute UTC slots).
+  - **Session details.** Once a session's last activity is 7 days old, the archive keeps everything its session view shows, such as the agent tree and each agent's metadata, tokens and API-equivalent cost, the paths of files its tool calls touched, signals, message counts, activity times, and workflow runs. A detail over 5 million characters is skipped.
+  - **When.** A background pass writes the archive a minute after the first window loads, then daily, and opening a project or session writes it too.
+  - **How long.** The archive has no expiry, and beekeeper never deletes a row. A session stays in it after Claude Code removes its transcript, and beekeeper then shows the archived copy and marks it as archived.
 
-- They live in IndexedDB in beekeeper's own app data folder, never in `~/.claude` or in a repository, and they're never sent anywhere.
-- No cached list is older than 7 days, and an update that changes the data format clears the cache. The two preferences stay until you change them.
+If you turn on the telemetry receiver, beekeeper also writes `otel-receiver.json` to the same folder with your on or off choice and, while it is on, the bearer token and port, readable only by you. Costs the receiver hears about are held in memory and never written to disk.
 
-beekeeper also keeps an archive, because Claude Code deletes old transcripts (after 30 days by default) and you may want to look back past that. The archive is a SQLite file, `archive.sqlite`, in the same app data folder. It holds:
-
-- **Every session beekeeper has listed:** the same fields as its entry in the cache, plus the teammates its lead spawned and stopped (their names, teams, types, and tool-use ids) and the lead's token usage per model.
-- **The detail of quiet sessions:** once a session's last activity is 7 days old, everything its session view shows. That is its agent tree (each agent's id, type, name, team, model, task description, and worktree path and branch); each agent's token counts and API-equivalent cost; the paths of the files its tool calls touched, and whether each touch came from an edit or from a Bash command; its signals (tool errors, error streaks, repeated Bash commands, compactions, stopped agents, and the longest tool wait); its message counts and activity times; its workflow runs and their phase names; and how the recorded usage compares with the transcripts' usage. A detail over 5 million characters is skipped, and that session keeps only its list entry.
-
-A daily background pass, which first runs a minute after the first window loads, writes the archive, and so does opening a project or a session. It holds no prompts, responses, tool output, or file contents, and it's never written to `~/.claude` or a repository, or sent anywhere.
-
-The archive has no expiry, and beekeeper never deletes a row. A session stays in it after Claude Code removes its transcript, and beekeeper then shows the archived copy and marks it as archived. To remove the archive, quit beekeeper and delete `archive.sqlite` and its `archive.sqlite-wal` and `archive.sqlite-shm` files from the app data folder: `~/Library/Application Support/beekeeper` on macOS, `~/.config/beekeeper` on Linux. beekeeper starts a new archive the next time it runs, from the transcripts still on disk.
-
-If you turn on the telemetry receiver, beekeeper also writes `otel-receiver.json` to its app data folder with your on or off choice and, while it is on, the bearer token and port, readable only by you. Costs the receiver hears about are held in memory and never written to disk.
+To delete the archive, quit beekeeper and delete `archive.sqlite`, `archive.sqlite-wal`, and `archive.sqlite-shm` from the app data folder. beekeeper starts a new archive the next time it runs, from the transcripts still on disk.
 
 ## Permissions you may see
 
