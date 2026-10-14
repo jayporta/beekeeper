@@ -122,6 +122,7 @@ html[data-platform] .download-option {
 
 html[data-platform='mac'] .download-option[data-for='mac'],
 html[data-platform='linux'] .download-option[data-for='linux'],
+html[data-platform='linux'] .download-option[data-for='linux-appimage'],
 html[data-platform='other'] .download-option[data-for='other'] {
   display: inline-flex;
 }
