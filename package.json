@@ -1,6 +1,6 @@
 {
   "name": "beekeeper",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "See what your Claude Code agents did, what they changed, and what they cost. Local-only.",
   "main": "./out/main/index.js",
