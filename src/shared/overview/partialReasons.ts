@@ -5,7 +5,7 @@ import {
   figuresMarkedBy,
   type CountReason,
   type PartialFigure
-} from '@renderer/components/countReasons'
+} from './countReasons'
 import type { AggregateTotals } from './sumTotals'
 
 export type { PartialFigure }

@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { Footnote } from '@renderer/components/Footnote'
 import { OVERVIEW_FOOTNOTE_ID } from './overviewFootnoteId'
-import type { PartialReason } from './partialReasons'
+import type { PartialReason } from '../../../../shared/overview/partialReasons'
 
 /** Props for {@link OverviewFootnote}. */
 interface OverviewFootnoteProps {

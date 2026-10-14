@@ -7,7 +7,7 @@ import { DailyUsageTable } from '../DailyUsageTable'
 import { dayLabels } from '../dayLabels'
 import { seriesLabel } from '../seriesLabel'
 import { seriesOf } from '../seriesOf'
-import { OCTOBER_WEEK, testSummary } from '../testDailyUsage'
+import { OCTOBER_WEEK, testSummary } from '../../../../../../shared/overview/testDailyUsage'
 
 // Counting calls to what each part does while it renders tells a render from a skipped one.
 vi.mock('../dayLabels', async (importOriginal) => {

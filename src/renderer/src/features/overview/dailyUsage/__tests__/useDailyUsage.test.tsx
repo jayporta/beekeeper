@@ -8,7 +8,7 @@ import { createQueryWrapper, createTestQueryClient } from '@renderer/testQueryWr
 import { useTotalsWindowStore } from '../../state/useTotalsWindowStore'
 import { listing } from '../../testProjectListing'
 import { useDailyUsage } from '../useDailyUsage'
-import { dayKeys, testDailyUsage } from '../testDailyUsage'
+import { dayKeys, testDailyUsage } from '../../../../../../shared/overview/testDailyUsage'
 
 afterEach(() => {
   useTotalsWindowStore.setState({ window: '7d' })

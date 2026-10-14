@@ -8,7 +8,7 @@ import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { createQueryWrapper } from '@renderer/testQueryWrapper'
 import { useTotalsWindowStore } from '../state/useTotalsWindowStore'
 import { listing } from '../testProjectListing'
-import { testTotals } from '../testTotals'
+import { testTotals } from '../../../../../shared/overview/testTotals'
 import { useProjectGroupTotals } from '../useProjectGroupTotals'
 
 afterEach(() => {

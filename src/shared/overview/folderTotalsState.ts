@@ -1,5 +1,5 @@
-import type { IpcErrorCode } from '../../../../shared/ipc/ipcResult'
-import type { ProjectTotalsDto } from '../../../../shared/ipc/projectTotalsDto'
+import type { IpcErrorCode } from '../ipc/ipcResult'
+import type { ProjectTotalsDto } from '../ipc/projectTotalsDto'
 
 /** Where one folder's totals stand. */
 export type FolderTotalsState =

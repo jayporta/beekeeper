@@ -1,5 +1,5 @@
 import type { TFunction } from 'i18next'
-import { dayKeyDate } from './dayKeyDate'
+import { dayKeyDate } from '../../../../../shared/overview/dayKeyDate'
 
 /** A day's text in each form the chart and table use. */
 export interface DayLabels {

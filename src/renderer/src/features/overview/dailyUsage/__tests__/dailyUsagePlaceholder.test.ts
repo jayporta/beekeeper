@@ -1,7 +1,7 @@
 import { QueryClient } from '@tanstack/react-query'
 import { describe, expect, it, vi } from 'vitest'
 import { createDailyUsagePlaceholder, placeholderRange } from '../dailyUsagePlaceholder'
-import { testDailyUsage } from '../testDailyUsage'
+import { testDailyUsage } from '../../../../../../shared/overview/testDailyUsage'
 
 const usage = testDailyUsage({ '2026-03-10': { a: 1 } })
 

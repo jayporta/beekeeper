@@ -11,7 +11,7 @@ import {
 } from '@renderer/testQueryWrapper'
 import { useTotalsWindowStore } from '../state/useTotalsWindowStore'
 import { listing } from '../testProjectListing'
-import { testTotals } from '../testTotals'
+import { testTotals } from '../../../../../shared/overview/testTotals'
 import { useProjectTotals } from '../useProjectTotals'
 
 afterEach(() => {

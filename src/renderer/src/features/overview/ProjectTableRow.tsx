@@ -10,9 +10,9 @@ import { projectTitle } from '../../../../shared/projects/projectTitle'
 import { useSelectedProjectStore } from '@renderer/features/projects/state/useSelectedProjectStore'
 import { FigurePlaceholder } from './FigurePlaceholder'
 import { OVERVIEW_FOOTNOTE_ID } from './overviewFootnoteId'
-import { partialFiguresOf, partialReasonsOf } from './partialReasons'
+import { partialFiguresOf, partialReasonsOf } from '../../../../shared/overview/partialReasons'
 import styles from './ProjectTableRow.module.css'
-import { totalsStatus, type AggregateTotals } from './sumTotals'
+import { totalsStatus, type AggregateTotals } from '../../../../shared/overview/sumTotals'
 
 /** Marks the start of text whose direction is its own, so it doesn't reorder the text around it. */
 const FIRST_STRONG_ISOLATE = '⁨'

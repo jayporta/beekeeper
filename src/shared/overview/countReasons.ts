@@ -1,4 +1,4 @@
-import type { ProjectTotalsPartialDto } from '../../../shared/ipc/projectTotalsDto'
+import type { ProjectTotalsPartialDto } from '../ipc/projectTotalsDto'
 
 /** Why a sum of sessions may be low, for each reason a session count can give. The order is the order a footnote gives them in. */
 export const COUNT_REASONS = [

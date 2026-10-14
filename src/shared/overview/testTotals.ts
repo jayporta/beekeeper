@@ -1,4 +1,4 @@
-import type { ProjectTotalsDto } from '../../../../shared/ipc/projectTotalsDto'
+import type { ProjectTotalsDto } from '../ipc/projectTotalsDto'
 import type { FolderTotalsState } from './folderTotalsState'
 
 /** A folder's totals with nothing in the window, unless overridden. */

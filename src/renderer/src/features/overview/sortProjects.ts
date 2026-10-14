@@ -1,5 +1,5 @@
 import { projectTitle } from '../../../../shared/projects/projectTitle'
-import { totalsStatus } from './sumTotals'
+import { totalsStatus } from '../../../../shared/overview/sumTotals'
 import type { ProjectGroupItem } from './useProjectGroupTotals'
 
 /** How the projects table can be ordered, in the order the menu offers them. */

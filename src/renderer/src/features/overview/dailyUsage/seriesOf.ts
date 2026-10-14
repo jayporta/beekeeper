@@ -1,5 +1,5 @@
 import { FAMILIES, modelFamily, type ModelFamily } from './modelFamily'
-import type { DailyUsageDay } from './sumDailyUsage'
+import type { DailyUsageDay } from '../../../../../shared/overview/sumDailyUsage'
 
 /** What a series stands for: a model family. */
 export type SeriesKey = ModelFamily

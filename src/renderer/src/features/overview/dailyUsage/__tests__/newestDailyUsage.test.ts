@@ -1,7 +1,7 @@
 import { QueryClient } from '@tanstack/react-query'
 import { describe, expect, it } from 'vitest'
 import { newestDailyUsage } from '../newestDailyUsage'
-import { testDailyUsage } from '../testDailyUsage'
+import { testDailyUsage } from '../../../../../../shared/overview/testDailyUsage'
 
 const usage = (tokens: number): ReturnType<typeof testDailyUsage> =>
   testDailyUsage({ '2026-03-10': { a: tokens } })

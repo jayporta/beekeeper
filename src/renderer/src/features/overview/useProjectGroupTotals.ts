@@ -3,8 +3,12 @@ import type { ProjectDto } from '../../../../shared/ipc/projectDto'
 import type { TotalsWindowDto } from '../../../../shared/ipc/projectTotalsDto'
 import { groupProjects, type ProjectGroup } from '../../../../shared/projects/groupProjects'
 import { useProjects } from '@renderer/features/projects/useProjects'
-import { folderTotalsOf, overviewTotals, projectTotalsOf } from './projectTotalsOf'
-import type { AggregateTotals } from './sumTotals'
+import {
+  folderTotalsOf,
+  overviewTotals,
+  projectTotalsOf
+} from '../../../../shared/overview/projectTotalsOf'
+import type { AggregateTotals } from '../../../../shared/overview/sumTotals'
 import { useProjectTotals } from './useProjectTotals'
 
 /** One project with what it and its worktrees add up to. */

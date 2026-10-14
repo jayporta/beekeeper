@@ -1,9 +1,9 @@
 import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import type { FolderTotalsState } from '../folderTotalsState'
+import type { FolderTotalsState } from '../../../../../shared/overview/folderTotalsState'
 import { KpiTiles } from '../KpiTiles'
-import { sumTotals } from '../sumTotals'
-import { readyTotals, testTotals } from '../testTotals'
+import { sumTotals } from '../../../../../shared/overview/sumTotals'
+import { readyTotals, testTotals } from '../../../../../shared/overview/testTotals'
 
 const FIGURES = { tokens: 2_000_000, usd: 16.5, sessions: 6, agents: 11 }
 

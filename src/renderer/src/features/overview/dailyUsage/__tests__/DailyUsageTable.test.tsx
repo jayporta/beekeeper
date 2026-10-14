@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { DailyUsageTable } from '../DailyUsageTable'
 import { seriesOf } from '../seriesOf'
-import { OCTOBER_WEEK, testSummary } from '../testDailyUsage'
+import { OCTOBER_WEEK, testSummary } from '../../../../../../shared/overview/testDailyUsage'
 
 function tableFor(days: Parameters<typeof testSummary>[0]): React.JSX.Element {
   const { days: summed, total } = testSummary(days)

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { seriesOf, seriesTokens } from '../seriesOf'
-import type { DailyUsageDay } from '../sumDailyUsage'
+import type { DailyUsageDay } from '../../../../../../shared/overview/sumDailyUsage'
 
 function day(byModel: Record<string, number>): DailyUsageDay {
   const models = new Map(Object.entries(byModel))

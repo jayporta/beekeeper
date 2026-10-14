@@ -1,6 +1,6 @@
 import { useId } from 'react'
 import { SidebarTotal } from '@renderer/features/overview/SidebarTotal'
-import type { AggregateTotals } from '@renderer/features/overview/sumTotals'
+import type { AggregateTotals } from '../../../../shared/overview/sumTotals'
 import type { ProjectGroupItem } from '@renderer/features/overview/useProjectGroupTotals'
 import { ProjectDot } from './ProjectDot'
 import styles from './ProjectGroupRows.module.css'

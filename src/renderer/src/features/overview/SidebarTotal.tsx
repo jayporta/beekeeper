@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { showsMayBeLow } from './showsMayBeLow'
-import { totalsStatus, type AggregateTotals } from './sumTotals'
+import { totalsStatus, type AggregateTotals } from '../../../../shared/overview/sumTotals'
 import { useTotalsWindowStore } from './state/useTotalsWindowStore'
 
 /** Props for {@link SidebarTotal}. */

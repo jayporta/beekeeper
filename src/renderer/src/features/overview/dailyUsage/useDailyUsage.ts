@@ -9,7 +9,11 @@ import { dailyUsageLimiterFor } from './dailyUsageLimiter'
 import { createDailyUsagePlaceholder, placeholderRange } from './dailyUsagePlaceholder'
 import { pruneStaleDailyUsage } from './pruneStaleDailyUsage'
 import { useTodayKey } from './useTodayKey'
-import { sumDailyUsage, type DailyUsageSummary, type FolderDailyUsageState } from './sumDailyUsage'
+import {
+  sumDailyUsage,
+  type DailyUsageSummary,
+  type FolderDailyUsageState
+} from '../../../../../shared/overview/sumDailyUsage'
 
 const DAY_COUNT: Readonly<Record<TotalsWindowDto, number>> = { '7d': 7, '30d': 30 }
 

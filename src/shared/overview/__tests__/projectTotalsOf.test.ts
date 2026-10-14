@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { ProjectDto } from '../../../../../shared/ipc/projectDto'
-import { groupProjects } from '../../../../../shared/projects/groupProjects'
+import type { ProjectDto } from '../../ipc/projectDto'
+import { groupProjects } from '../../projects/groupProjects'
 import type { FolderTotalsState } from '../folderTotalsState'
 import { folderTotalsOf, overviewTotals, projectTotalsOf } from '../projectTotalsOf'
 import { readyTotals } from '../testTotals'
