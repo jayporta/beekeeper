@@ -85,19 +85,21 @@ beekeeper never reads `~/.claude/sessions/*.key` (a peer token, not session data
 
 ## What beekeeper stores
 
-beekeeper keeps a cache of the project list and of the session lists you've opened, so the app opens without rescanning everything. The cache holds those lists exactly as the app shows them:
+beekeeper keeps its own data in its app data folder: `~/Library/Application Support/beekeeper` on macOS, `~/.config/beekeeper` on Linux. It never writes to `~/.claude` or a repository, and nothing it keeps is sent anywhere.
 
-- **Projects:** each project folder name, which encodes the path of the project, and which project is a worktree of which.
-- **Each session:** its id, the project folder it's in, its title, whether it's a lead or a teammate agent, its agent type, name, and team, its model, and its activity times; its transcript's size and modification time; its subagent count; its recorded token and cost totals, and the token total of its own transcript; how many lines couldn't be read; and any plan limit it hit, with its reset time.
-- **Why a summary is missing:** when a session's summary couldn't be read, the error code (`not-found`, `unreadable`, or `internal`).
-- **Teams:** the team name, and how a session groups with its lead and teammates, including how a teammate was matched to its lead, whether it stopped, and whether it's missing. For a lead, it also holds the team's token and cost totals, how many sessions have no figure, and whether the lead's spawn or stop lists were capped.
+It never stores your prompts, the model's responses, tool output, or file contents. Session titles are the ones Claude Code generates itself. The categories below are described with examples, not as complete lists.
 
-beekeeper also keeps two preferences: the selected project and whether you've dismissed the first-run screen.
+- **Cache.** So the app opens without rescanning, beekeeper caches (in IndexedDB) the project list, the session lists you've opened, per-project totals, and daily usage. A session list holds each session as the sessions list shows it, such as its title, agent, team, token and cost totals, signals, and its subagents' names, task descriptions, and types. Totals hold tokens and cost per project and the latest session's id, title, and time. Daily usage holds tokens per day per model. Entries expire after 7 days, and an update that changes the data format clears the cache.
+- **Preferences.** The selected project, whether you've dismissed the first-run screen, and the sidebar width (in IndexedDB). They stay until you change them.
+- **Archive.** Claude Code deletes old transcripts (after 30 days by default), so beekeeper keeps an archive in a SQLite file, `archive.sqlite` (plus `archive.sqlite-wal` and `archive.sqlite-shm`).
+  - **List entries.** Each session with a readable transcript in any project folder under `~/.claude/projects` gets an entry: a background pass archives every folder, not only the ones you open. It holds what the cache holds, plus a record of when the session was active (its teammates spawned and stopped, and its token usage per model in 15-minute UTC slots).
+  - **Session details.** Once a session's last activity is 7 days old, the archive keeps the session's detail, such as the agent tree and each agent's metadata, tokens and API-equivalent cost, the paths of files its tool calls touched, signals, message counts, activity times, and workflow runs. A detail over 5 million characters is skipped. Worktree diffs and patches, and costs from the telemetry receiver, are read live and never archived.
+  - **When.** A background pass writes the archive a minute after the first window loads, then daily, and opening a project or session writes it too.
+  - **How long.** The archive has no expiry, and beekeeper never deletes a row. A session stays in it after Claude Code removes its transcript, and beekeeper then shows the archived copy and marks it as archived.
 
-- They live in IndexedDB in beekeeper's own app data folder, never in `~/.claude` or in a repository, and they're never sent anywhere.
-- No cached list is older than 7 days, and an update that changes the data format clears the cache. The two preferences stay until you change them.
+If you turn on the telemetry receiver, beekeeper also writes `otel-receiver.json` to the same folder with your on or off choice and, while it is on, the bearer token and port, readable only by you. Costs the receiver hears about are held in memory and never written to disk.
 
-If you turn on the telemetry receiver, beekeeper also writes `otel-receiver.json` to its app data folder with your on or off choice and, while it is on, the bearer token and port, readable only by you. Costs the receiver hears about are held in memory and never written to disk.
+To delete the archive, quit beekeeper and delete `archive.sqlite`, `archive.sqlite-wal`, and `archive.sqlite-shm` from the app data folder. beekeeper starts a new archive the next time it runs, from the transcripts still on disk.
 
 ## Permissions you may see
 
@@ -112,7 +114,7 @@ If you turn on the telemetry receiver, beekeeper also writes `otel-receiver.json
 | Agent tree: lead, subagents, teammates, model, team                           | Files changed via Bash in a shared checkout (attribution is a guess without a hook)                           |
 | Tokens per agent, tool calls, wall-clock span, errors                         | Exact billed cost (subscription plans aren't billed per token, so beekeeper shows an API-equivalent estimate) |
 | Files edited through Edit/Write (the transcript records each patch)           | A worktree's base commit once the worktree is deleted                                                         |
-| A worktree agent's exact `git diff` against its merge-base                    | History older than 30 days (Claude Code's default retention)                                                  |
+| A worktree agent's exact `git diff` against its merge-base                    | History older than 30 days (Claude Code's default retention), unless beekeeper archived the session first     |
 | Signs an agent went off the rails: error streaks, `stoppedByUser`, compaction | Live output while an agent is still running (beekeeper reads what's on disk, not a live stream)               |
 
 ## Development

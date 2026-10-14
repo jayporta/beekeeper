@@ -30,6 +30,8 @@ const PARKING_SPEEDUP = 1.4
 const PARKING_WOBBLE = 0.3
 /** How quickly a parked bee glides to a new spot in the lineup, per second. */
 const GLIDE_EASE = 8
+/** Speed of a bee flying straight home, in pixels per second. */
+const HOMING_SPEED = 1100
 /** Distance from a bee's center that still counts as pointing at it. */
 const HIT_RADIUS = 22
 
@@ -67,7 +69,16 @@ export class Bee {
    * @returns {Bee} The new bee.
    */
   static fromEdge(bounds) {
-    const spot = pickEdgeSpot(bounds)
+    return Bee.fromPoint(pickEdgeSpot(bounds), bounds)
+  }
+
+  /**
+   * Creates a bee at a point, already flying toward a spot on the page.
+   * @param {{ x: number, y: number }} spot - Where the bee appears, in CSS pixels.
+   * @param {{ width: number, height: number }} bounds - The area the bee flies in.
+   * @returns {Bee} The new bee.
+   */
+  static fromPoint(spot, bounds) {
     const destination = pickDestination(bounds, spot)
     const heading = Math.atan2(destination.y - spot.y, destination.x - spot.x)
     const bee = new Bee({ ...spot, facing: destination.x < spot.x ? -1 : 1 })
@@ -85,6 +96,13 @@ export class Bee {
    */
   update(dt, bounds) {
     this.shaking.update(dt)
+    if (this.mode === 'homing') {
+      this.#flyHome(dt)
+      this.#face(dt)
+      this.wingPhase += WING_RATE * dt
+      this.trail.record(this)
+      return
+    }
     if (this.mode === 'parked') {
       this.#glide(dt)
       this.#face(dt)
@@ -107,6 +125,7 @@ export class Bee {
    * @param {{ width: number, height: number }} bounds - The area the bee flies in.
    */
   keepInside({ width, height }) {
+    if (this.mode === 'homing') return
     const across = { min: 0, max: width }
     const down = { min: 0, max: height }
     this.x = clamp(this.x, across)
@@ -118,6 +137,24 @@ export class Bee {
   /** Whether the bee has reached its spot in the lineup and frozen there. */
   get isParked() {
     return this.mode === 'parked'
+  }
+
+  /** Whether the bee has flown all the way home after `goHome`. */
+  get isHome() {
+    return this.mode === 'homing' && this.arrivedHome
+  }
+
+  /**
+   * Sends the bee straight to a point, fast, from wherever it is, even from the lineup. Call it
+   * again to follow a point that moves.
+   * @param {{ x: number, y: number }} spot - The point to fly to, in CSS pixels.
+   */
+  goHome(spot) {
+    this.pausedAt = null
+    this.target = { ...spot }
+    if (this.mode === 'homing') return
+    this.mode = 'homing'
+    this.arrivedHome = false
   }
 
   /**
@@ -159,7 +196,7 @@ export class Bee {
    * lands in its spot facing right, and a released bee hovers where it lands.
    */
   snap() {
-    if (this.mode === 'hover') return
+    if (this.mode === 'hover' || this.mode === 'homing') return
     this.x = this.target.x
     this.y = this.target.y
     if (this.mode === 'parking') this.#freeze()
@@ -173,6 +210,23 @@ export class Bee {
     this.vy = 0
     this.posture.facing = 1
     this.pausedAt = performance.now()
+  }
+
+  #flyHome(dt) {
+    const dx = this.target.x - this.x
+    const dy = this.target.y - this.y
+    const distance = Math.hypot(dx, dy)
+    const step = HOMING_SPEED * dt
+    if (distance <= Math.max(step, ARRIVED_DISTANCE)) {
+      this.x = this.target.x
+      this.y = this.target.y
+      this.arrivedHome = true
+      return
+    }
+    this.vx = (dx / distance) * HOMING_SPEED
+    this.vy = (dy / distance) * HOMING_SPEED
+    this.x += (dx / distance) * step
+    this.y += (dy / distance) * step
   }
 
   #glide(dt) {
@@ -244,7 +298,7 @@ export class Bee {
   }
 
   #face(dt) {
-    const flying = this.mode === 'travel' || this.mode === 'parking'
+    const flying = this.mode === 'travel' || this.mode === 'parking' || this.mode === 'homing'
     this.posture.update(dt, { vx: this.vx, vy: this.vy, flying })
   }
 }

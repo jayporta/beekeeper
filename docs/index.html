@@ -2,23 +2,307 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="beekeeper keeps track of your agent swarms" />
-    <meta name="color-scheme" content="light dark" />
-    <title>beekeeper</title>
-    <link
-      rel="icon"
-      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%F0%9F%90%9D</text></svg>"
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:"
     />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Beekeeper is a local, read-only desktop app that shows what each Claude Code agent did, changed, and cost."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>Beekeeper: see what your Claude Code agents did</title>
+    <link rel="icon" type="image/png" sizes="64x64" href="./img/icon-64.png" />
+    <link rel="apple-touch-icon" href="./img/icon-180.png" />
+    <link
+      rel="preload"
+      href="./fonts/figtree-latin-400-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="./fonts/figtree-latin-500-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="./fonts/figtree-latin-600-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="./fonts/figtree-latin-700-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <script src="./download.js"></script>
+    <link rel="stylesheet" href="./tokens.css" />
     <link rel="stylesheet" href="./styles.css" />
-    <script type="module" src="./main.js"></script>
+    <link rel="stylesheet" href="./frame.css" />
+    <link rel="stylesheet" href="./sections.css" />
+    <link rel="stylesheet" href="./bees/game.css" />
+    <script src="./flower.js" defer></script>
   </head>
   <body>
-    <canvas id="swarm" class="swarm" aria-hidden="true"></canvas>
-    <main class="hero">
-      <h1 class="brand">beekeeper</h1>
-      <p class="headline">keep track of your agent swarms</p>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header">
+      <div class="container site-header-inner">
+        <p class="wordmark">
+          <img class="wordmark-icon" src="./img/icon-64.png" width="32" height="32" alt="" />
+          beekeeper
+        </p>
+        <nav aria-label="Site">
+          <ul class="nav-list">
+            <li><a class="nav-link" href="#downloads">Downloads</a></li>
+            <li><a class="nav-link" href="https://github.com/jayporta/beekeeper">GitHub</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="container">
+          <h1 id="hero-title" class="hero-title">
+            See what your Claude Code agents did, changed, and cost
+          </h1>
+          <p class="hero-lede">
+            Beekeeper reads Claude Code's session files on your machine and shows what each agent in
+            a session did, which files it changed, and what it cost.
+          </p>
+          <div class="actions">
+            <!-- Without JavaScript every option shows. download.js sets data-platform on the root
+                 element, and the styles keep only the option for the visitor's system. -->
+            <a
+              class="button button-primary download-option"
+              data-for="mac"
+              href="https://github.com/jayporta/beekeeper/releases/latest/download/beekeeper-mac-arm64.dmg"
+              >Download for macOS (Apple Silicon)</a
+            >
+            <a
+              class="button button-primary download-option"
+              data-for="linux"
+              href="https://github.com/jayporta/beekeeper/releases/latest/download/beekeeper-linux-amd64.deb"
+              >Download for Linux (.deb)</a
+            >
+            <a
+              class="button download-option"
+              data-for="linux-appimage"
+              href="https://github.com/jayporta/beekeeper/releases/latest/download/beekeeper-linux-x86_64.AppImage"
+              >Download for Linux (AppImage)</a
+            >
+            <a class="button button-primary download-option" data-for="other" href="#downloads"
+              >See downloads</a
+            >
+            <a class="button" href="https://github.com/jayporta/beekeeper">View on GitHub</a>
+          </div>
+          <p class="hero-note">
+            These builds are unsigned, so macOS blocks the first launch. See the
+            <a href="https://github.com/jayporta/beekeeper#install">install steps</a> or
+            <a href="#downloads">all downloads and checksums</a>.
+          </p>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="shots-title">
+        <div class="container">
+          <h2 id="shots-title" class="section-title">Every agent in a session, at a glance</h2>
+          <figure class="shot">
+            <img
+              class="shot-image"
+              src="./img/session-graph.png"
+              loading="lazy"
+              decoding="async"
+              width="2000"
+              height="1150"
+              alt="The beekeeper session view. An agent graph shows a lead agent connected to its subagents and a workflow run, and an inspector beside it lists the selected subagent's tokens, cost, changed files, and a streak of three tool errors."
+            />
+            <figcaption class="shot-caption">
+              The session graph shows who spawned whom, with tokens, cost, and errors for each
+              agent.
+            </figcaption>
+          </figure>
+          <div class="shot-pair">
+            <figure class="shot">
+              <img
+                class="shot-image"
+                src="./img/sessions-list.png"
+                width="1600"
+                height="1066"
+                loading="lazy"
+                decoding="async"
+                alt="The beekeeper sessions list for one project. Each row is a session, with its agents, duration, tokens, and cost at API prices."
+              />
+              <figcaption class="shot-caption">
+                The sessions list shows each session's agents, tokens, and cost.
+              </figcaption>
+            </figure>
+            <div class="card mod-card">
+              <h3 class="card-title">Beekeeper mod for Claude Code CLI coming soon</h3>
+              <p>
+                See the same agents, tokens, and costs in a pane beside the transcript.
+                <a href="https://github.com/jayporta/beekeeper/issues/219"
+                  >Follow the mod's progress on GitHub</a
+                >
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <div class="card promises">
+            <div class="promise">
+              <h3 class="card-title">Local only</h3>
+              <p>
+                No network requests and no telemetry. A request allowlist, a strict
+                Content-Security-Policy, and lint rules that ban network APIs enforce it. The
+                optional receiver for Claude Code's cost reports is off until you turn it on, and it
+                listens only on 127.0.0.1.
+              </p>
+            </div>
+            <div class="promise">
+              <h3 class="card-title">Read-only</h3>
+              <p>
+                Beekeeper never writes to <code>~/.claude</code> or to your repositories. Every git
+                command it runs is checked against an allowlist of read-only ones.
+              </p>
+            </div>
+            <div class="promise">
+              <h3 class="card-title">Your data stays put</h3>
+              <p>
+                Transcripts are read in place and shown as plain text. What beekeeper keeps is its
+                own, in its app data folder and never sent anywhere: a cache of your session lists,
+                project totals, and daily usage that expires after 7 days; an archive of your
+                sessions, such as their agents, tokens, costs, and touched file paths (the full
+                detail once a session has been quiet for 7 days), with no expiry, so it outlives
+                Claude Code's own transcripts; and a few settings. It never stores prompts,
+                responses, tool output, or file contents. To remove the archive, quit beekeeper and
+                delete
+                <code>archive.sqlite</code>, <code>archive.sqlite-wal</code>, and
+                <code>archive.sqlite-shm</code>.
+              </p>
+            </div>
+          </div>
+          <p class="section-note">
+            Read the full
+            <a href="https://github.com/jayporta/beekeeper#privacy-promise">privacy promise</a> and
+            <a href="https://github.com/jayporta/beekeeper#what-beekeeper-stores"
+              >what beekeeper stores</a
+            >.
+          </p>
+        </div>
+      </section>
+
+      <section id="downloads" class="section" aria-labelledby="downloads-title">
+        <div class="container">
+          <h2 id="downloads-title" class="section-title">Downloads</h2>
+          <p class="section-lede">
+            Every link fetches the latest release. These builds are unsigned, so macOS blocks the
+            first launch. The
+            <a href="https://github.com/jayporta/beekeeper#install">install steps</a> show how to
+            open the app anyway.
+          </p>
+          <ul class="card downloads">
+            <li class="download-row">
+              <div class="download-info">
+                <p class="download-name">macOS, Apple Silicon</p>
+                <p class="download-meta"><code>beekeeper-mac-arm64.dmg</code></p>
+                <p class="download-meta">Intel Macs aren't supported yet.</p>
+              </div>
+              <a
+                class="button"
+                href="https://github.com/jayporta/beekeeper/releases/latest/download/beekeeper-mac-arm64.dmg"
+                >Download<span class="visually-hidden"> beekeeper-mac-arm64.dmg</span></a
+              >
+            </li>
+            <li class="download-row">
+              <div class="download-info">
+                <p class="download-name">
+                  Linux, x64 (.deb) <span class="pill">Recommended on Ubuntu 24.04 and newer</span>
+                </p>
+                <p class="download-meta"><code>beekeeper-linux-amd64.deb</code></p>
+              </div>
+              <a
+                class="button"
+                href="https://github.com/jayporta/beekeeper/releases/latest/download/beekeeper-linux-amd64.deb"
+                >Download<span class="visually-hidden"> beekeeper-linux-amd64.deb</span></a
+              >
+            </li>
+            <li class="download-row">
+              <div class="download-info">
+                <p class="download-name">Linux, x64 (AppImage)</p>
+                <p class="download-meta"><code>beekeeper-linux-x86_64.AppImage</code></p>
+              </div>
+              <a
+                class="button"
+                href="https://github.com/jayporta/beekeeper/releases/latest/download/beekeeper-linux-x86_64.AppImage"
+                >Download<span class="visually-hidden"> beekeeper-linux-x86_64.AppImage</span></a
+              >
+            </li>
+            <li class="download-row">
+              <div class="download-info">
+                <p class="download-name">Checksums</p>
+                <p class="download-meta"><code>SHA256SUMS</code></p>
+              </div>
+              <a
+                class="button"
+                href="https://github.com/jayporta/beekeeper/releases/latest/download/SHA256SUMS"
+                >Download<span class="visually-hidden"> SHA256SUMS</span></a
+              >
+            </li>
+          </ul>
+        </div>
+      </section>
     </main>
-    <div id="lineup" class="lineup"></div>
+
+    <footer class="site-footer">
+      <div class="container site-footer-inner">
+        <p>
+          Beekeeper is open source under the
+          <a href="https://github.com/jayporta/beekeeper/blob/main/LICENSE">Apache 2.0 license</a>.
+        </p>
+        <p>
+          <a class="link-block" href="https://github.com/jayporta/beekeeper">Source on GitHub</a>
+        </p>
+        <button class="flower" type="button" aria-label="Release the bees">
+          <svg
+            width="42"
+            height="42"
+            viewBox="0 0 32 32"
+            aria-hidden="true"
+            focusable="false"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <defs>
+              <path
+                id="daisy-petal"
+                d="M15.2 12C13.8 10.6 11.8 7.9 11.8 5.1A4.2 4.2 0 0 1 20.2 5.1C20.2 7.9 18.2 10.6 16.8 12Z"
+              />
+            </defs>
+            <g class="flower-petals">
+              <use href="#daisy-petal" />
+              <use href="#daisy-petal" transform="rotate(60 16 16)" />
+              <use href="#daisy-petal" transform="rotate(120 16 16)" />
+              <use href="#daisy-petal" transform="rotate(180 16 16)" />
+              <use href="#daisy-petal" transform="rotate(240 16 16)" />
+              <use href="#daisy-petal" transform="rotate(300 16 16)" />
+            </g>
+            <circle class="flower-heart" cx="16" cy="16" r="5" />
+          </svg>
+        </button>
+        <span class="flower-status" role="status"></span>
+      </div>
+    </footer>
   </body>
 </html>

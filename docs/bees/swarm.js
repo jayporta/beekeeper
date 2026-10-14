@@ -26,11 +26,49 @@ export class Swarm {
   }
 
   /**
-   * Adds a bee that flies in from a random edge, unless the swarm is full.
+   * Adds a bee that flies in from a random edge, or out from a point, unless the swarm is full.
    * @param {{ width: number, height: number }} bounds - The area bees fly in.
+   * @param {{ x: number, y: number }} [origin] - Where the bee appears, in CSS pixels. Defaults to a random edge.
    */
-  spawn(bounds) {
-    this.add(Bee.fromEdge(bounds))
+  spawn(bounds, origin) {
+    this.add(origin ? Bee.fromPoint(origin, bounds) : Bee.fromEdge(bounds))
+  }
+
+  /**
+   * Sends every bee, lined up or not, straight to a point. Bees that get there leave the swarm
+   * on the next update. Call it every frame to follow a point that moves.
+   * @param {{ x: number, y: number }} spot - The point to fly to, in CSS pixels.
+   */
+  recall(spot) {
+    this.lineup = []
+    for (const bee of this.bees) bee.goHome(spot)
+  }
+
+  /**
+   * Sends one bee straight to a point. It leaves the swarm when it gets there.
+   * @param {Bee} bee - The bee to send.
+   * @param {{ x: number, y: number }} spot - The point to fly to, in CSS pixels.
+   */
+  sendHome(bee, spot) {
+    this.lineup = this.lineup.filter((linedUp) => linedUp !== bee)
+    bee.goHome(spot)
+  }
+
+  /**
+   * Points every bee already flying home at a point, to follow one that moves.
+   * @param {{ x: number, y: number }} spot - The point to fly to, in CSS pixels.
+   */
+  followHome(spot) {
+    for (const bee of this.bees) if (bee.mode === 'homing') bee.goHome(spot)
+  }
+
+  /**
+   * Takes a bee out of the swarm at once, without flying it anywhere.
+   * @param {Bee} bee - The bee to remove.
+   */
+  remove(bee) {
+    this.bees = this.bees.filter((other) => other !== bee)
+    this.lineup = this.lineup.filter((linedUp) => linedUp !== bee)
   }
 
   /**
@@ -40,6 +78,7 @@ export class Swarm {
    */
   update(dt, bounds) {
     for (const bee of this.bees) bee.update(dt, bounds)
+    if (this.bees.some((bee) => bee.isHome)) this.bees = this.bees.filter((bee) => !bee.isHome)
   }
 
   /**

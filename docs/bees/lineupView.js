@@ -36,18 +36,18 @@ export function createLineupView({ layer, onRelease }) {
 
   function createCard(bee) {
     const group = document.createElement('div')
-    group.className = 'lineup-item'
+    group.className = 'bee-lineup-item'
     const card = document.createElement('p')
-    card.className = 'card'
+    card.className = 'bee-card'
     const spawned = document.createElement('span')
     const paused = document.createElement('span')
     card.append(spawned, paused)
 
     const release = document.createElement('button')
     release.type = 'button'
-    release.className = 'release'
+    release.className = 'bee-release'
     const hint = document.createElement('span')
-    hint.className = 'visually-hidden'
+    hint.className = 'bee-sr'
     hint.textContent = ' this bee'
     release.append('Release', hint)
     release.addEventListener('click', () => onRelease(bee))
@@ -85,7 +85,7 @@ export function createLineupView({ layer, onRelease }) {
     const hadFocus = group.contains(document.activeElement)
     const neighbor = group.nextElementSibling ?? group.previousElementSibling
     group.remove()
-    if (hadFocus) neighbor?.querySelector('.release')?.focus()
+    if (hadFocus) neighbor?.querySelector('.bee-release')?.focus()
   }
 
   /** Puts cards in lineup order in the page, so Tab order and neighbors follow the rows. */

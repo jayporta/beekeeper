@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Catch the bees. A small game from beekeeper." />
+    <meta name="color-scheme" content="light dark" />
+    <title>Beekeeper bees</title>
+    <link rel="icon" type="image/png" sizes="64x64" href="../img/icon-64.png" />
+    <link rel="apple-touch-icon" href="../img/icon-180.png" />
+    <link rel="stylesheet" href="./game.css" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./main.js"></script>
+  </head>
+  <body>
+    <canvas id="swarm" class="bee-swarm" aria-hidden="true"></canvas>
+    <main class="hero">
+      <h1 class="brand">beekeeper</h1>
+      <p class="headline">keep track of your agent swarms</p>
+      <p class="howto">
+        Click or tap a bee to catch it. Caught bees line up at the top, and Release lets one go.
+      </p>
+      <a class="back" href="../">Back to beekeeper</a>
+    </main>
+    <div id="lineup" class="bee-lineup"></div>
+  </body>
+</html>

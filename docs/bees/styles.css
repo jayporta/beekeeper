@@ -1,0 +1,82 @@
+/* The bees page itself. The swarm and lineup styles are in game.css. */
+:root {
+  --color-bg: #fffaf0;
+  --color-text: #1f1a14;
+  --color-brand: #a86400;
+  --focus-ring: #1f1a14;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --space-gutter: 16px;
+  --space-headline: 0.5rem;
+  --space-howto: 1.5rem;
+  --size-target: 44px;
+  --text-brand: clamp(3rem, 1.5rem + 7vw, 6rem);
+  --text-headline: clamp(1.25rem, 0.9rem + 1.75vw, 2.25rem);
+  --text-howto: 1rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #16130f;
+    --color-text: #f6efe3;
+    --color-brand: #f5b301;
+    --focus-ring: #f6efe3;
+  }
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  /* Clicking at bees shouldn't select the text under them. */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.hero {
+  padding-inline: var(--space-gutter);
+  text-align: center;
+}
+
+.brand {
+  margin: 0;
+  color: var(--color-brand);
+  font-size: var(--text-brand);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.headline {
+  margin: var(--space-headline) 0 0;
+  font-size: var(--text-headline);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.howto {
+  max-width: 28rem;
+  margin: var(--space-howto) auto 0;
+  font-size: var(--text-howto);
+  line-height: 1.5;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-target);
+  padding-inline: var(--space-gutter);
+  color: var(--color-text);
+  font-size: var(--text-howto);
+  font-weight: 600;
+  text-underline-offset: 0.2em;
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+}
