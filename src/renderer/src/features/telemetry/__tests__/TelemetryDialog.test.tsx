@@ -27,7 +27,7 @@ function renderDialog(onClose = vi.fn()): { onClose: () => void } {
 }
 
 const COPIED = 'Copied to clipboard.'
-const COPY_FAILED = "beekeeper couldn't copy. Select the lines and copy them yourself."
+const COPY_FAILED = "Beekeeper couldn't copy. Select the lines and copy them yourself."
 
 const dialog = (): HTMLElement => screen.getByRole('dialog', { name: 'Claude Code telemetry' })
 const checkbox = (): HTMLElement =>
@@ -205,14 +205,14 @@ describe('TelemetryDialog', () => {
 
     expect(
       await findStatusLine(
-        "beekeeper couldn't start listening on port 23456, or stopped listening on it. Turn the receiver off and on again to get a new port and token."
+        "Beekeeper couldn't start listening on port 23456, or stopped listening on it. Turn the receiver off and on again to get a new port and token."
       )
     ).toBeTruthy()
   })
 
   it.each([
-    ['port-in-use', "beekeeper couldn't find a free port, so the receiver stays off."],
-    ['failed', "beekeeper couldn't start the receiver, so it stays off."]
+    ['port-in-use', "Beekeeper couldn't find a free port, so the receiver stays off."],
+    ['failed', "Beekeeper couldn't start the receiver, so it stays off."]
   ] as const)(
     'says the receiver stays off when turning it on failed with %s, and shows no lines',
     async (failure, message) => {
@@ -239,7 +239,7 @@ describe('TelemetryDialog', () => {
 
     await userEvent.click(checkbox())
 
-    const reason = "beekeeper couldn't find a free port, so the receiver stays off."
+    const reason = "Beekeeper couldn't find a free port, so the receiver stays off."
     expect((await findStatusLine(reason)).textContent).toBe(reason)
   })
 
@@ -294,9 +294,9 @@ describe('TelemetryDialog', () => {
       await Promise.resolve()
     })
 
-    await findStatusLine("beekeeper couldn't read the telemetry setting.")
+    await findStatusLine("Beekeeper couldn't read the telemetry setting.")
     expect(await settledAnnouncements(announcements)).toEqual([
-      "beekeeper couldn't read the telemetry setting."
+      "Beekeeper couldn't read the telemetry setting."
     ])
   })
 
@@ -321,7 +321,7 @@ describe('TelemetryDialog', () => {
     [
       'a failed turn-on',
       { enabled: false, status: 'failed', failure: 'port-in-use' },
-      "beekeeper couldn't find a free port, so the receiver stays off."
+      "Beekeeper couldn't find a free port, so the receiver stays off."
     ]
   ] as const)(
     'announces exactly one outcome for %s, never the state it replaced',
@@ -366,7 +366,7 @@ describe('TelemetryDialog', () => {
     })
 
     const failure =
-      "beekeeper couldn't start listening on port 23456, or stopped listening on it. Turn the receiver off and on again to get a new port and token."
+      "Beekeeper couldn't start listening on port 23456, or stopped listening on it. Turn the receiver off and on again to get a new port and token."
     await waitFor(() => {
       expect(outcomeRegion().textContent).toBe(failure)
     })
@@ -387,7 +387,7 @@ describe('TelemetryDialog', () => {
     })
     renderDialog()
     await findStatusLine('Off. Nothing is listening.')
-    const failure = "beekeeper couldn't find a free port, so the receiver stays off."
+    const failure = "Beekeeper couldn't find a free port, so the receiver stays off."
     const heldWhileSaving: string[] = []
     const announced: Element[] = []
     let previous = outcomeRegion().firstElementChild
@@ -491,7 +491,7 @@ describe('TelemetryDialog', () => {
     })
     renderDialog()
 
-    expect(await findStatusLine("beekeeper couldn't read the telemetry setting.")).toBeTruthy()
+    expect(await findStatusLine("Beekeeper couldn't read the telemetry setting.")).toBeTruthy()
   })
 
   it('says it could not save the setting and leaves the checkbox as it was', async () => {
@@ -503,7 +503,7 @@ describe('TelemetryDialog', () => {
 
     await userEvent.click(checkbox())
 
-    expect(await findStatusLine("beekeeper couldn't save the telemetry setting.")).toBeTruthy()
+    expect(await findStatusLine("Beekeeper couldn't save the telemetry setting.")).toBeTruthy()
     expect((checkbox() as HTMLInputElement).checked).toBe(false)
   })
 

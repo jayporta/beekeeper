@@ -138,7 +138,7 @@ describe('WorktreeDiffBox for a subagent on a worktree branch', () => {
       diffs: { [SCENE_SESSION.sessionId]: { ok: false, error: { code: 'unreadable' } } }
     })
 
-    expect(await inspector().findByText("beekeeper couldn't load the diff.")).toBeTruthy()
+    expect(await inspector().findByText("Beekeeper couldn't load the diff.")).toBeTruthy()
   })
 
   it('announces a failed diff load in the status region that said it was loading', async () => {
@@ -146,7 +146,7 @@ describe('WorktreeDiffBox for a subagent on a worktree branch', () => {
       diffs: { [SCENE_SESSION.sessionId]: { ok: false, error: { code: 'unreadable' } } }
     })
 
-    const note = await inspector().findByText("beekeeper couldn't load the diff.")
+    const note = await inspector().findByText("Beekeeper couldn't load the diff.")
     expect(note.closest('[role="status"]')).not.toBeNull()
   })
 

@@ -355,7 +355,7 @@ describe('SessionDetailContent for an archived session whose detail was not arch
   ]
   const NOTE = 'Only a summary was archived'
   const SUMMARY_ONLY_SENTENCE =
-    "This session's transcript was removed. beekeeper archived only its summary."
+    "This session's transcript was removed. Beekeeper archived only its summary."
 
   /** Renders the content with the archived row already cached but stale, so the list reloads on mount with `list`'s answer. */
   function renderWithStaleArchivedList(

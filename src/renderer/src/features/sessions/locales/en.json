@@ -77,13 +77,13 @@
   "loading": "Loading sessions",
   "unreadable": {
     "heading": "Can't read this project's sessions",
-    "body": "beekeeper can't read this project's folder. Check its permissions, then retry."
+    "body": "Beekeeper can't read this project's folder. Check its permissions, then retry."
   },
   "notFound": {
     "heading": "Project folder not found",
     "body": "This project's folder no longer exists under ~/.claude/projects (or the projects folder under CLAUDE_CONFIG_DIR when it's set)."
   },
-  "error": "beekeeper couldn't load this project's sessions.",
+  "error": "Beekeeper couldn't load this project's sessions.",
   "emptyProject": {
     "heading": "No sessions in this project",
     "body": "Sessions appear here after you run Claude Code in this folder."
