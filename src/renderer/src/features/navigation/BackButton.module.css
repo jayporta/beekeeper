@@ -20,8 +20,8 @@
 
   /* Unavailable, but still focusable and named, so a person on it keeps their place. */
   &[aria-disabled='true'] {
-    color: var(--color-text-muted);
     cursor: default;
+    opacity: var(--opacity-disabled);
 
     &:hover {
       background: none;

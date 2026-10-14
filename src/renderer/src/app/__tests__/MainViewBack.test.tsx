@@ -74,6 +74,27 @@ describe('MainView Back button', () => {
     ).toBeTruthy()
   })
 
+  it('sits in the title bar, ahead of the sidebar and outside main', async () => {
+    await renderAwayFromSessions()
+
+    const sidebar = screen.getByRole('complementary', { name: 'Sidebar' })
+
+    expect(screen.getByRole('main').contains(backButton())).toBe(false)
+    expect(
+      backButton().compareDocumentPosition(sidebar) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+  })
+
+  it('stays after the skip link in the tab order', async () => {
+    await renderAwayFromSessions()
+
+    const skipLink = screen.getByRole('link', { name: 'Skip to main content' })
+
+    expect(
+      skipLink.compareDocumentPosition(backButton()) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+  })
+
   it('is not on the first-run screen', async () => {
     useFirstRunStore.setState({ dismissed: false })
     await renderAppReady()

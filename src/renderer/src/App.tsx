@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import styles from './App.module.css'
 import { AboutDialog } from '@renderer/features/about/AboutDialog'
+import { AppTitleBar } from '@renderer/app/AppTitleBar'
 import { MainView } from '@renderer/app/MainView'
 import { MAIN_HEADING_ID } from '@renderer/components/mainHeading'
 import { SidebarContent } from '@renderer/app/SidebarContent'
@@ -14,7 +15,7 @@ import { useSelectedProjectStore } from '@renderer/features/projects/state/useSe
 import { usePersistHydrated } from '@renderer/storage/usePersistHydrated'
 
 /**
- * The app shell: a skip link, a sidebar landmark beside the main content
+ * The app shell: a skip link, a title bar with Back, a sidebar landmark beside the main content
  * landmark, and focus moves to main when the person navigates. Until
  * the persisted state is read it renders the empty shell, so neither the
  * first-run screen nor the main view flashes. The About dialog is mounted
@@ -35,6 +36,7 @@ function App(): React.JSX.Element {
   return (
     <ResizableShell
       skipLink={<SkipLink target={mainRef} />}
+      titleBar={<AppTitleBar hydrated={hydrated} />}
       sidebar={hydrated && <SidebarContent />}
       main={
         <main

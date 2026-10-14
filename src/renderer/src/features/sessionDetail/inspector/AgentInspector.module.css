@@ -19,8 +19,8 @@
   @media (min-height: 30rem) {
     @container (min-width: 57.375rem) {
       position: sticky;
-      top: var(--space-main-block);
-      max-height: calc(100vh - 2 * var(--space-main-block));
+      top: calc(var(--size-titlebar-current) + var(--space-main-block));
+      max-height: calc(100vh - var(--size-titlebar-current) - 2 * var(--space-main-block));
       overflow-y: auto;
       overscroll-behavior-y: contain;
     }

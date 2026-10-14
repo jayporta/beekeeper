@@ -283,7 +283,7 @@ describe('SidebarResizer', () => {
       return null
     }
     const sidebar = <Content />
-    render(<ResizableShell skipLink={null} sidebar={sidebar} main={<main />} />)
+    render(<ResizableShell skipLink={null} titleBar={null} sidebar={sidebar} main={<main />} />)
     const before = renders
 
     fireEvent.pointerDown(separator(), { clientX: 300, pointerId: 1 })

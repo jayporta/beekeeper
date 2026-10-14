@@ -1,0 +1,26 @@
+.bar {
+  position: sticky;
+  inset-block-start: 0;
+  /* Above the sticky sidebar and inspector, which come later in the page. */
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  min-height: var(--size-titlebar-current);
+  /* Clears the window's controls where they float over the page. */
+  padding-inline: env(titlebar-area-x, var(--space-main-inline)) var(--space-main-inline);
+  background: var(--color-surface);
+
+  /* The window drags only where it has no native title bar to drag by. */
+  &[data-overlay='true'] {
+    app-region: drag;
+  }
+
+  /* A modal dialog's backdrop sits over the bar and should get its clicks. */
+  :root:has(dialog[open]) & {
+    app-region: no-drag;
+  }
+
+  & > * {
+    app-region: no-drag;
+  }
+}
