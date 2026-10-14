@@ -68,7 +68,7 @@ export const getWorktreePatchRequestSchema = z.strictObject({
   agentId: agentIdSchema
 })
 
-/** The longest file path a `getFileDiff` request may carry. */
+/** The longest file path a `getFileDiff` request may carry: the longest path a tool result's `filePath` can hold. */
 export const MAX_FILE_PATH_LENGTH = 4096
 
 /** The payload of a `getFileDiff` call. */
@@ -76,7 +76,7 @@ export const getFileDiffRequestSchema = z.strictObject({
   projectDirName: projectDirNameSchema,
   sessionId: sessionIdSchema,
   agentId: agentIdSchema.nullable(),
-  filePath: z.string().min(1).max(MAX_FILE_PATH_LENGTH)
+  filePath: z.string().max(MAX_FILE_PATH_LENGTH)
 })
 
 /** The payload of a `setOtelReceiverEnabled` call. */

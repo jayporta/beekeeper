@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_FILE_DIFF_CHARS } from '../fileChange'
+import { MAX_BASH_CHANGED_FILES } from '../../bashFileChanges'
+import { FILE_DIFF_ENTRY_OVERHEAD, MAX_FILE_DIFF_CHARS } from '../fileChange'
 import { readFileChanges } from '../readFileChanges'
 import {
   TEST_DIFF_FILE,
@@ -293,5 +294,50 @@ describe('readFileChanges size cap', () => {
     expect(hunk?.lines.length).toBeLessThan(lines.length)
     expect(hunk?.oldLines).toBe(1)
     expect(hunk?.newLines).toBe(hunk?.lines.length)
+  })
+
+  it('drops a whole later hunk whose overhead no longer fits after a full hunk was kept', async () => {
+    const fillingLine = 'x'.repeat(MAX_FILE_DIFF_CHARS - 2 * FILE_DIFF_ENTRY_OVERHEAD)
+    const result = await read(
+      [
+        buildEditResultRecord({
+          toolUseId: 'e1',
+          structuredPatch: [buildHunk({ lines: [fillingLine] }), buildHunk({ lines: [] })]
+        })
+      ],
+      ['e1']
+    )
+
+    const change = result.byToolUseId.get('e1')
+    expect(change).toMatchObject({ kind: 'patch', cut: true })
+    expect(change?.kind === 'patch' && change.hunks).toHaveLength(1)
+    expect(result.truncated).toBe(true)
+  })
+
+  it('gives a created file no hunk when its lines fit but the hunk overhead does not', async () => {
+    const line = 'x'.repeat(MAX_FILE_DIFF_CHARS - FILE_DIFF_ENTRY_OVERHEAD - 10 - 1)
+    const result = await read(
+      [buildWriteResultRecord({ toolUseId: 'w1', type: 'create', content: line })],
+      ['w1']
+    )
+
+    expect(result.byToolUseId.get('w1')).toMatchObject({ kind: 'patch', hunks: [], cut: true })
+    expect(result.truncated).toBe(true)
+  })
+})
+
+describe('readFileChanges bash entry cap', () => {
+  it('ignores a matching files entry past the per-result entry cap', async () => {
+    const others = Array.from({ length: MAX_BASH_CHANGED_FILES }, () => ({
+      filePath: '/other.ts',
+      hunks: [buildHunk()]
+    }))
+    const match = { filePath: TEST_DIFF_FILE, hunks: [buildHunk()] }
+    const result = await read(
+      [buildBashResultRecord({ toolUseId: 'b1', bashEditDiff: { files: [...others, match] } })],
+      ['b1']
+    )
+
+    expect(result.byToolUseId.get('b1')).toEqual({ kind: 'unrecorded' })
   })
 })

@@ -43,7 +43,8 @@ export interface FileChanges {
   /** The change each found tool use id recorded. */
   readonly byToolUseId: ReadonlyMap<string, FileChange>
   /**
-   * Whether {@link MAX_FILE_DIFF_CHARS} cut any change's lines. Reading stops
+   * Whether {@link MAX_FILE_DIFF_CHARS} cut any change's lines, or dropped
+   * whole hunks. Reading stops
    * at the cut, so an id with no entry then was not reached rather than
    * unrecorded.
    */

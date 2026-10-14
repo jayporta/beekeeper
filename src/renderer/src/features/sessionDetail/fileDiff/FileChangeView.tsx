@@ -23,7 +23,7 @@ interface FileChangeViewProps {
  * what the call did, then its patch as plain text. Notes say what the patch
  * can't: a change made by a Bash command, a diff that may include changes made
  * outside it, an edit the person changed before accepting it, a change with no
- * recorded diff, and a patch with no lines, and a change the size cap cut.
+ * recorded diff, a patch with no lines, and a change the size cap cut.
  *
  * @example
  * <FileChangeView change={change} index={1} count={3} />

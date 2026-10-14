@@ -106,12 +106,21 @@ function createdFileHunks(content: string, budget: Budget): CappedHunks {
   }
 }
 
+/** Input for {@link readChange}, {@link readEditWriteChange} and {@link readBashChange}. */
+interface ReadChangeInput {
+  /** The record's top-level `toolUseResult`, unvalidated. */
+  readonly result: unknown
+  /** The file the change must be for. */
+  readonly filePath: string
+  /** What is left of the size cap. */
+  readonly budget: Budget
+}
+
 /** The change an Edit or Write result recorded for the file. */
 function readEditWriteChange(
-  result: Record<string, unknown>,
-  filePath: string,
-  budget: Budget
+  input: ReadChangeInput & { readonly result: Record<string, unknown> }
 ): FileChange {
+  const { result, filePath, budget } = input
   if (result.filePath !== filePath) return { kind: 'unrecorded' }
   const created = createResultSchema.safeParse(result)
   if (created.success) {
@@ -133,7 +142,8 @@ function readEditWriteChange(
 }
 
 /** The change a Bash result's `bashEditDiff` recorded for the file. */
-function readBashChange(result: unknown, filePath: string, budget: Budget): FileChange {
+function readBashChange(input: ReadChangeInput): FileChange {
+  const { result, filePath, budget } = input
   const diff = bashToolUseResultSchema.safeParse(result).data?.bashEditDiff
   if (diff?.files === undefined) return { kind: 'unrecorded' }
   for (const raw of diff.files.slice(0, MAX_BASH_CHANGED_FILES)) {
@@ -151,23 +161,13 @@ function readBashChange(result: unknown, filePath: string, budget: Budget): File
   return { kind: 'unrecorded' }
 }
 
-/** Input for {@link readChange}. */
-interface ReadChangeInput {
-  /** The record's top-level `toolUseResult`, unvalidated. */
-  readonly result: unknown
-  /** The file the change must be for. */
-  readonly filePath: string
-  /** What is left of the size cap. */
-  readonly budget: Budget
-}
-
 /** Reads one result as an Edit/Write result when it names a file, else as a Bash result. */
 function readChange(input: ReadChangeInput): FileChange {
   const { result, filePath, budget } = input
   if (!isRecordObject(result)) return { kind: 'unrecorded' }
   return 'filePath' in result
-    ? readEditWriteChange(result, filePath, budget)
-    : readBashChange(result, filePath, budget)
+    ? readEditWriteChange({ result, filePath, budget })
+    : readBashChange({ result, filePath, budget })
 }
 
 /**
