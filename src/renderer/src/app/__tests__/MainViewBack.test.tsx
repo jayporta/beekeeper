@@ -33,7 +33,7 @@ async function renderAwayFromSessions(): Promise<void> {
   screen.getByRole('heading', { level: 1, name: 'All projects' })
 }
 
-describe('MainView Back button', () => {
+describe('Back button', () => {
   it('is on the page but unavailable before the person has navigated', async () => {
     await renderAppReady()
 
@@ -110,7 +110,7 @@ describe('MainView Back button', () => {
   })
 })
 
-describe('MainView Back shortcuts', () => {
+describe('Back shortcuts', () => {
   it('goes back when the View menu asks', async () => {
     await renderAwayFromSessions()
 

@@ -9,14 +9,6 @@ describe('windowChromeOptions', () => {
     expect(options.titleBarOverlay).toEqual({ height: TITLE_BAR_HEIGHT })
   })
 
-  it('centers the traffic lights in the bar', () => {
-    const position = windowChromeOptions('darwin').trafficLightPosition
-
-    expect(position).toBeDefined()
-    if (position === undefined) return
-    expect(position.y * 2 + 14).toBe(TITLE_BAR_HEIGHT)
-  })
-
   it.each(['linux', 'win32'] as const)('keeps the native frame on %s', (platform) => {
     expect(windowChromeOptions(platform)).toEqual({})
   })

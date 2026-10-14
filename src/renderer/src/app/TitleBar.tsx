@@ -13,7 +13,7 @@ interface TitleBarProps {
  * drags the window; controls inside it opt out of dragging.
  *
  * @example
- * <TitleBar><BackButton onBack={goBack} /></TitleBar>
+ * <TitleBar><BackButton canGoBack={canGoBack} onBack={goBack} /></TitleBar>
  */
 export function TitleBar({ children }: TitleBarProps): React.JSX.Element {
   const overlay = useWindowControlsOverlay()

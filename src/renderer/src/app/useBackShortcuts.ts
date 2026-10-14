@@ -23,7 +23,7 @@ const MENU_REPEAT_MS = 300
  * menu request within {@link MENU_REPEAT_MS} of the one before it, accepted or
  * not, is a held key repeating and is ignored.
  *
- * Call it once, where the main area renders. The listeners are registered
+ * Call it once, where the Back button renders. The listeners are registered
  * once, and always call the `goBack` of the latest render.
  *
  * @param goBack - What to do on each shortcut. It does nothing when there is nowhere to go back to.

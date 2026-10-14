@@ -3,6 +3,7 @@ import { Translation } from 'react-i18next'
 import { MAIN_HEADING_ID } from '@renderer/components/mainHeading'
 import { StatusMessage } from '@renderer/components/StatusMessage'
 import styles from './AppErrorBoundary.module.css'
+import { TitleBar } from './TitleBar'
 
 /** Props for {@link AppErrorBoundary}. */
 interface AppErrorBoundaryProps {
@@ -64,24 +65,28 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
     if (!this.state.hasError) return this.props.children
 
     const { onReload = reloadWindow } = this.props
+    // The title bar keeps the window draggable and clear of its controls after a crash.
     return (
-      <main className={styles.main} aria-labelledby={MAIN_HEADING_ID}>
-        <Translation ns="common">
-          {(t) => (
-            <StatusMessage heading={t('error.heading')} role="alert">
-              <p>{t('error.unexpected')}</p>
-              <button
-                ref={this.reloadButton}
-                type="button"
-                className={styles.button}
-                onClick={onReload}
-              >
-                {t('error.reload')}
-              </button>
-            </StatusMessage>
-          )}
-        </Translation>
-      </main>
+      <>
+        <TitleBar />
+        <main className={styles.main} aria-labelledby={MAIN_HEADING_ID}>
+          <Translation ns="common">
+            {(t) => (
+              <StatusMessage heading={t('error.heading')} role="alert">
+                <p>{t('error.unexpected')}</p>
+                <button
+                  ref={this.reloadButton}
+                  type="button"
+                  className={styles.button}
+                  onClick={onReload}
+                >
+                  {t('error.reload')}
+                </button>
+              </StatusMessage>
+            )}
+          </Translation>
+        </main>
+      </>
     )
   }
 }

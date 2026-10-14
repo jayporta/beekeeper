@@ -8,7 +8,7 @@ import { useSidebarWidth } from './useSidebarWidth'
 interface ResizableShellProps {
   /** Rendered first, such as a skip link. */
   skipLink: React.ReactNode
-  /** The bar across the top of the window. It scrolls with the page's top edge, above the columns. */
+  /** The bar across the top of the window. It stays at the top of the window, above the columns, while the page scrolls under it. */
   titleBar: React.ReactNode
   /** The sidebar landmark's content, beside its resize handle. */
   sidebar: React.ReactNode

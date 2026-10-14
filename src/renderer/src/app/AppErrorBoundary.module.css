@@ -1,8 +1,7 @@
 .main {
-  min-height: 100vh;
+  min-height: calc(100vh - var(--size-titlebar-current));
   max-width: var(--size-readable);
-  /* Clears the window's controls where they float over the page. */
-  padding: calc(var(--space-6) + env(titlebar-area-height, 0px)) var(--space-6) var(--space-6);
+  padding: var(--space-6);
 }
 
 .button {
