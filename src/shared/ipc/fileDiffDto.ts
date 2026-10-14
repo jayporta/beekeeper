@@ -28,6 +28,8 @@ export type FileChangeDto =
       readonly userModified: boolean
       /** A Bash diff flagged shared, unavailable or skipped: the hunks may include changes made outside the command. */
       readonly shared: boolean
+      /** Whether the size cap removed any of this change's lines or hunks. */
+      readonly cut: boolean
     }
   | {
       readonly kind: 'unrecorded'

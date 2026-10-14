@@ -2,7 +2,8 @@ import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import type { FileDiffDto } from '../../../../../../shared/ipc/fileDiffDto'
-import { inspector, renderInspectorScene } from '../testInspectorScene'
+import { testDetail } from '../../testSessionDetail'
+import { LEAD_REPORT, inspector, renderInspectorScene } from '../testInspectorScene'
 
 const diff: FileDiffDto = {
   filePath: '/repo/src/a.ts',
@@ -14,7 +15,8 @@ const diff: FileDiffDto = {
       operation: 'edit',
       hunks: [{ oldStart: 1, oldLines: 1, newStart: 1, newLines: 1, lines: ['-x', '+y'] }],
       userModified: false,
-      shared: false
+      shared: false,
+      cut: false
     }
   ]
 }
@@ -75,5 +77,12 @@ describe('FilesTouched rows', () => {
     const { api } = renderScene()
 
     expect(api.getFileDiff).not.toHaveBeenCalled()
+  })
+
+  it('are plain text in an archived session, which has no transcript to read', () => {
+    renderInspectorScene({ detail: testDetail({ lead: LEAD_REPORT, archived: true }) })
+
+    expect(inspector().getByText('/repo/src/a.ts')).toBeTruthy()
+    expect(inspector().queryByRole('button', { name: /\/repo\/src\/a\.ts/ })).toBeNull()
   })
 })

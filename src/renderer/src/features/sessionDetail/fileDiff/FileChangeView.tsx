@@ -23,7 +23,7 @@ interface FileChangeViewProps {
  * what the call did, then its patch as plain text. Notes say what the patch
  * can't: a change made by a Bash command, a diff that may include changes made
  * outside it, an edit the person changed before accepting it, a change with no
- * recorded diff, and a patch with no lines.
+ * recorded diff, and a patch with no lines, and a change the size cap cut.
  *
  * @example
  * <FileChangeView change={change} index={1} count={3} />
@@ -49,12 +49,13 @@ export function FileChangeView({ change, index, count }: FileChangeViewProps): R
         <MutedText>{t('inspector.fileDiff.userModified')}</MutedText>
       )}
       {change.kind === 'unrecorded' && <MutedText>{t('inspector.fileDiff.unrecorded')}</MutedText>}
-      {change.kind === 'patch' &&
-        (patch === '' ? (
-          <MutedText>{t('inspector.fileDiff.noLines')}</MutedText>
-        ) : (
-          <PatchText patch={patch} />
-        ))}
+      {patch !== '' && <PatchText patch={patch} />}
+      {change.kind === 'patch' && change.cut && (
+        <MutedText>{t('inspector.fileDiff.cut')}</MutedText>
+      )}
+      {change.kind === 'patch' && !change.cut && patch === '' && (
+        <MutedText>{t('inspector.fileDiff.noLines')}</MutedText>
+      )}
     </section>
   )
 }

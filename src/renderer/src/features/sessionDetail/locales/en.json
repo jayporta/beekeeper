@@ -271,7 +271,8 @@
       "userModified": "Edited by the person before it was accepted.",
       "unrecorded": "No diff was recorded for this change.",
       "noLines": "No lines changed.",
-      "truncated": "The diff was cut to stay within the size limit."
+      "truncated": "The diff was cut to stay within the size limit.",
+      "cut": "Cut to stay within the size limit."
     }
   }
 }

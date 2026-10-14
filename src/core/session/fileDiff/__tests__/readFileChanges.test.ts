@@ -36,7 +36,8 @@ describe('readFileChanges edit and write results', () => {
       kind: 'patch',
       hunks: [{ oldStart: 4, oldLines: 1, newStart: 5, newLines: 2, lines: ['-old', '+new'] }],
       userModified: false,
-      shared: false
+      shared: false,
+      cut: false
     })
     expect(result.truncated).toBe(false)
   })
@@ -58,7 +59,8 @@ describe('readFileChanges edit and write results', () => {
       kind: 'patch',
       hunks: [{ oldStart: 0, oldLines: 0, newStart: 1, newLines: 2, lines: ['+a', '+b'] }],
       userModified: false,
-      shared: false
+      shared: false,
+      cut: false
     })
   })
 
@@ -222,7 +224,7 @@ describe('readFileChanges size cap', () => {
     )
   })
 
-  it('leaves later changes empty once the cap is reached', async () => {
+  it('stops reading once the cap cuts a change, leaving later ids without an entry', async () => {
     const big = `${'y'.repeat(999)}\n`.repeat(700)
     const result = await read(
       [
@@ -232,6 +234,64 @@ describe('readFileChanges size cap', () => {
       ['w1', 'e1']
     )
 
-    expect(result.byToolUseId.get('e1')).toMatchObject({ kind: 'patch', hunks: [] })
+    expect(result.byToolUseId.get('w1')).toMatchObject({ cut: true })
+    expect(result.byToolUseId.has('e1')).toBe(false)
+  })
+
+  it('marks a change the cap did not touch as not cut', async () => {
+    const result = await read(
+      [buildEditResultRecord({ toolUseId: 'e1', structuredPatch: [buildHunk()] })],
+      ['e1']
+    )
+
+    expect(result.byToolUseId.get('e1')).toMatchObject({ cut: false })
+  })
+
+  it('charges for hunks with no lines, so many empty hunks reach the cap', async () => {
+    const empty = buildHunk({ lines: [] })
+    const result = await read(
+      [buildEditResultRecord({ toolUseId: 'e1', structuredPatch: Array(10_000).fill(empty) })],
+      ['e1']
+    )
+
+    const change = result.byToolUseId.get('e1')
+    expect(result.truncated).toBe(true)
+    expect(change).toMatchObject({ kind: 'patch', cut: true })
+    expect(change?.kind === 'patch' && change.hunks.length).toBeLessThan(10_000)
+  })
+
+  it('charges for empty lines, so many of them reach the cap', async () => {
+    const result = await read(
+      [
+        buildEditResultRecord({
+          toolUseId: 'e1',
+          structuredPatch: [buildHunk({ lines: Array(20_000).fill('') })]
+        })
+      ],
+      ['e1']
+    )
+
+    expect(result.truncated).toBe(true)
+  })
+
+  it('recomputes the line counts of a hunk cut partway from the lines it kept', async () => {
+    const lines = ['x'.repeat(999), ...Array(1000).fill('+' + 'z'.repeat(998))].map(
+      (text, index) => (index === 0 ? ` ${text}` : text)
+    )
+    const result = await read(
+      [
+        buildEditResultRecord({
+          toolUseId: 'e1',
+          structuredPatch: [buildHunk({ oldLines: 1, newLines: 1001, lines })]
+        })
+      ],
+      ['e1']
+    )
+
+    const change = result.byToolUseId.get('e1')
+    const [hunk] = change?.kind === 'patch' ? change.hunks : []
+    expect(hunk?.lines.length).toBeLessThan(lines.length)
+    expect(hunk?.oldLines).toBe(1)
+    expect(hunk?.newLines).toBe(hunk?.lines.length)
   })
 })

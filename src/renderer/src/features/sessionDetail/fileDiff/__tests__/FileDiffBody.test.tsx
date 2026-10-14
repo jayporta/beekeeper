@@ -23,6 +23,7 @@ const patch = (
   ],
   userModified: false,
   shared: false,
+  cut: false,
   ...overrides
 })
 
@@ -79,6 +80,13 @@ describe('FileDiffBody', () => {
     renderBody(diff([patch({ hunks: [] })]))
 
     expect(await screen.findByText('No lines changed.')).toBeTruthy()
+  })
+
+  it('says a cut change was cut, never that no lines changed', async () => {
+    renderBody(diff([patch({ hunks: [], cut: true })]))
+
+    expect(await screen.findByText('Cut to stay within the size limit.')).toBeTruthy()
+    expect(screen.queryByText('No lines changed.')).toBeNull()
   })
 
   it('says when the diff was cut', async () => {

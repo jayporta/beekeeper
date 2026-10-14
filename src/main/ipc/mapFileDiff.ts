@@ -14,7 +14,8 @@ export interface MapFileDiffOptions {
 
 /**
  * Pairs each touch with the change its tool result recorded. A touch whose
- * result was not found reads as unrecorded.
+ * result was not found reads as unrecorded, or as a cut change when the read
+ * stopped at the size cap.
  *
  * @param options - The file, the agent's touches of it, and the changes read.
  * @returns The diff, with one change per touch in touch order.
@@ -26,6 +27,18 @@ export function mapFileDiff(options: MapFileDiffOptions): FileDiffDto {
     changes: touches.map((touch): FileChangeDto => {
       const { source, operation } = touch
       const change = changes.byToolUseId.get(touch.toolUseId)
+      if (change === undefined && changes.truncated) {
+        // The read stopped at the size cap before reaching this call's result.
+        return {
+          kind: 'patch',
+          source,
+          operation,
+          hunks: [],
+          userModified: false,
+          shared: false,
+          cut: true
+        }
+      }
       if (change === undefined || change.kind === 'unrecorded') {
         return { kind: 'unrecorded', source, operation }
       }
@@ -35,7 +48,8 @@ export function mapFileDiff(options: MapFileDiffOptions): FileDiffDto {
         operation,
         hunks: change.hunks,
         userModified: change.userModified,
-        shared: change.shared
+        shared: change.shared,
+        cut: change.cut
       }
     }),
     truncated: changes.truncated
