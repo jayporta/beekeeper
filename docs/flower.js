@@ -11,7 +11,7 @@ const UNAVAILABLE_NOTE = "The bees can't load here. Serve the site over http to 
 const flower = document.querySelector('.flower')
 const status = document.querySelector('.flower-status')
 
-/** @type {{ dismiss: () => Promise<void>, destroy: () => void } | null} */
+/** @type {{ start: () => void, dismiss: () => Promise<void>, destroy: () => void } | null} */
 let game = null
 let busy = false
 /** @type {Element[]} */
@@ -52,35 +52,28 @@ function createLayers() {
   return { canvas, lineupLayer }
 }
 
-async function release() {
-  const { createGame } = await import('./bees/game.js')
-  const layers = createLayers()
-  const created = createGame({ ...layers, getOrigin: flowerCenter })
-  const remove = () => {
-    layers.canvas.remove()
-    layers.lineupLayer.remove()
-  }
-  game = {
-    dismiss: () => created.dismiss().then(remove),
-    destroy: () => {
-      created.destroy()
-      remove()
-    }
-  }
-  created.start()
-  setPageInert(true)
-  flower.setAttribute('aria-label', HOME_LABEL)
+/** Puts the page back as it was before the bees came out. */
+function endGame(layers) {
+  layers.canvas.remove()
+  layers.lineupLayer.remove()
+  game = null
+  setPageInert(false)
+  flower.setAttribute('aria-label', RELEASE_LABEL)
 }
 
-async function sendHome() {
-  const ending = game
-  game = null
+async function release() {
+  let createGame
   try {
-    await ending.dismiss()
-  } finally {
-    setPageInert(false)
-    flower.setAttribute('aria-label', RELEASE_LABEL)
+    ;({ createGame } = await import('./bees/game.js'))
+  } catch {
+    status.textContent = UNAVAILABLE_NOTE
+    return
   }
+  const layers = createLayers()
+  game = createGame({ ...layers, getOrigin: flowerCenter, onEnd: () => endGame(layers) })
+  game.start()
+  setPageInert(true)
+  flower.setAttribute('aria-label', HOME_LABEL)
 }
 
 flower.addEventListener('click', async () => {
@@ -88,10 +81,8 @@ flower.addEventListener('click', async () => {
   busy = true
   status.textContent = ''
   try {
-    if (game) await sendHome()
+    if (game) await game.dismiss()
     else await release()
-  } catch {
-    status.textContent = UNAVAILABLE_NOTE
   } finally {
     busy = false
   }

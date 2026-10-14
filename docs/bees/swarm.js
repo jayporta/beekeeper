@@ -45,6 +45,33 @@ export class Swarm {
   }
 
   /**
+   * Sends one bee straight to a point. It leaves the swarm when it gets there.
+   * @param {Bee} bee - The bee to send.
+   * @param {{ x: number, y: number }} spot - The point to fly to, in CSS pixels.
+   */
+  sendHome(bee, spot) {
+    this.lineup = this.lineup.filter((linedUp) => linedUp !== bee)
+    bee.goHome(spot)
+  }
+
+  /**
+   * Points every bee already flying home at a point, to follow one that moves.
+   * @param {{ x: number, y: number }} spot - The point to fly to, in CSS pixels.
+   */
+  followHome(spot) {
+    for (const bee of this.bees) if (bee.mode === 'homing') bee.goHome(spot)
+  }
+
+  /**
+   * Takes a bee out of the swarm at once, without flying it anywhere.
+   * @param {Bee} bee - The bee to remove.
+   */
+  remove(bee) {
+    this.bees = this.bees.filter((other) => other !== bee)
+    this.lineup = this.lineup.filter((linedUp) => linedUp !== bee)
+  }
+
+  /**
    * Moves every bee by one frame.
    * @param {number} dt - Seconds since the last frame.
    * @param {{ width: number, height: number }} bounds - The area bees fly in.

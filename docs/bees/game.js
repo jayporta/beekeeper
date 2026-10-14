@@ -19,16 +19,18 @@ const TAP_MOVEMENT_THRESHOLD_PX = 10
  * @typedef {object} GameOptions
  * @property {HTMLCanvasElement} canvas - A full-viewport canvas the bees fly on.
  * @property {HTMLElement} lineupLayer - A full-viewport layer for the lined-up bees' cards.
- * @property {() => { x: number, y: number }} [getOrigin] - Where bees come out of and fly back to, in viewport pixels. Without it, bees fly in from the page edges and can't be dismissed.
+ * @property {() => { x: number, y: number }} [getOrigin] - Where bees come out of and fly back to, in viewport pixels. With it, the game releases one burst of bees, a click sends a bee home, and the game ends when the last one gets there. Without it, bees fly in from the page edges, a click lines a bee up, and the game can't be dismissed.
+ * @property {() => void} [onEnd] - Called once when the game ends, whether by `dismiss`, `destroy`, or the last bee getting home.
  */
 
 /**
- * Creates the bees game: bees that fly over the page, can be caught into a lineup at the top, and
- * can be released again. Nothing runs until `start`.
+ * Creates the bees game: bees that fly over the page. Without an origin they can be caught into a
+ * lineup at the top and released again; with one, a click sends a bee home. Nothing runs until
+ * `start`.
  * @param {GameOptions} options - The elements to draw into, and an optional origin.
  * @returns {{ start: () => void, dismiss: () => Promise<void>, destroy: () => void }} `start` begins the game, `dismiss` flies every bee back to the origin and ends the game, and `destroy` ends it at once and removes everything it added to the page.
  */
-export function createGame({ canvas, lineupLayer, getOrigin }) {
+export function createGame({ canvas, lineupLayer, getOrigin, onEnd }) {
   const context = canvas.getContext('2d')
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
   const darkScheme = window.matchMedia('(prefers-color-scheme: dark)')
@@ -51,6 +53,9 @@ export function createGame({ canvas, lineupLayer, getOrigin }) {
   let lastTime = 0
   let dismissing = false
   let finishDismiss = null
+  let ended = false
+  /** Bees released from the origin so far; the burst is all there is. */
+  let spawned = 0
   /** Where the pointer was last seen, for showing a pointer cursor over bees. */
   let pointer = null
   /** Where each active pointer went down, keyed by pointer id, so a swipe that ends over a bee doesn't catch it. */
@@ -106,32 +111,45 @@ export function createGame({ canvas, lineupLayer, getOrigin }) {
     const dt = lastTime ? Math.min((time - lastTime) / 1000, MAX_FRAME_SECONDS) : 0
     lastTime = time
     if (dismissing) swarm.recall(getOrigin())
+    else if (getOrigin) swarm.followHome(getOrigin())
     swarm.update(dt, bounds)
     updateCursor()
     render()
     lineupView.sync({ swarm, bounds })
-    if (dismissing && swarm.bees.length === 0) {
+    if ((dismissing || allHome()) && swarm.bees.length === 0) {
       destroy()
       return
     }
     frameId = requestAnimationFrame(frame)
   }
 
-  /** Spawns a bee every few seconds until the swarm is full, with a quick burst first at the origin. */
+  /** Whether every bee from the origin has been released, so an empty swarm means the game is over. */
+  function allHome() {
+    return getOrigin !== undefined && spawned >= BURST_COUNT
+  }
+
+  function spawn() {
+    swarm.spawn(bounds, getOrigin?.())
+    if (getOrigin) spawned += 1
+  }
+
+  /**
+   * Spawns a bee every few seconds until the swarm is full. From an origin, it releases one quick
+   * burst and no more.
+   */
   function scheduleSpawn() {
-    if (swarm.isFull || dismissing) return
-    const bursting = getOrigin && swarm.bees.length < BURST_COUNT
+    if (swarm.isFull || dismissing || allHome()) return
     spawnTimer = window.setTimeout(
       () => {
-        swarm.spawn(bounds, getOrigin?.())
+        spawn()
         scheduleSpawn()
       },
-      bursting ? BURST_INTERVAL_MS : SPAWN_INTERVAL_MS
+      getOrigin ? BURST_INTERVAL_MS : SPAWN_INTERVAL_MS
     )
   }
 
   function fly() {
-    if (swarm.bees.length === 0) swarm.spawn(bounds, getOrigin?.())
+    if (swarm.bees.length === 0 && !allHome()) spawn()
     lastTime = 0
     frameId = requestAnimationFrame(frame)
     scheduleSpawn()
@@ -144,6 +162,7 @@ export function createGame({ canvas, lineupLayer, getOrigin }) {
         ? { x: origin.x, y: origin.y - 80 }
         : { x: bounds.width * 0.22, y: bounds.height * 0.28 }
       swarm.add(new Bee({ ...spot, facing: 1 }))
+      if (getOrigin) spawned = BURST_COUNT
       swarm.fit(bounds)
     }
     refreshLineup()
@@ -166,7 +185,10 @@ export function createGame({ canvas, lineupLayer, getOrigin }) {
     } else fly()
   }
 
-  /** Catches the bee under a tap or primary-button click. Buttons and links handle their own clicks. */
+  /**
+   * Catches the bee under a tap or primary-button click, or sends it home when the game has an
+   * origin. Buttons and links handle their own clicks.
+   */
   function catchBee(event) {
     const from = pointerDownAt.get(event.pointerId)
     pointerDownAt.delete(event.pointerId)
@@ -180,8 +202,22 @@ export function createGame({ canvas, lineupLayer, getOrigin }) {
     }
     const bee = swarm.beeAt({ x: event.clientX, y: event.clientY })
     if (!bee) return
-    swarm.catch(bee, bounds)
+    if (getOrigin) sendHome(bee)
+    else {
+      swarm.catch(bee, bounds)
+      refreshLineup()
+    }
+  }
+
+  /** Flies a bee back to the origin, or takes it away at once when motion is reduced. */
+  function sendHome(bee) {
+    if (!reducedMotion.matches) {
+      swarm.sendHome(bee, getOrigin())
+      return
+    }
+    swarm.remove(bee)
     refreshLineup()
+    if (allHome() && swarm.bees.length === 0) destroy()
   }
 
   function start() {
@@ -237,6 +273,8 @@ export function createGame({ canvas, lineupLayer, getOrigin }) {
   }
 
   function destroy() {
+    if (ended) return
+    ended = true
     listeners.abort()
     cancelAnimationFrame(frameId)
     window.clearTimeout(spawnTimer)
@@ -245,6 +283,7 @@ export function createGame({ canvas, lineupLayer, getOrigin }) {
     context.clearRect(0, 0, bounds.width, bounds.height)
     document.documentElement.classList.remove('over-bee')
     finishDismiss?.()
+    onEnd?.()
   }
 
   return { start, dismiss, destroy }
