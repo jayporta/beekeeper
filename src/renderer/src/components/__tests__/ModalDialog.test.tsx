@@ -79,6 +79,29 @@ describe('ModalDialog', () => {
     expect(document.activeElement).toBe(opener)
   })
 
+  it('closes on a click on the backdrop, outside its box', async () => {
+    render(<Harness />)
+    await userEvent.click(screen.getByRole('button', { name: 'Open it' }))
+    const dialog = screen.getByRole('dialog')
+    dialog.getBoundingClientRect = () => new DOMRect(100, 100, 200, 200)
+
+    fireEvent.click(dialog, { clientX: 20, clientY: 20 })
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('stays open on a click inside its box, padding included', async () => {
+    render(<Harness />)
+    await userEvent.click(screen.getByRole('button', { name: 'Open it' }))
+    const dialog = screen.getByRole('dialog')
+    dialog.getBoundingClientRect = () => new DOMRect(100, 100, 200, 200)
+
+    fireEvent.click(dialog, { clientX: 105, clientY: 105 })
+    fireEvent.click(screen.getByRole('heading', { name: 'Details' }), { clientX: 20, clientY: 20 })
+
+    expect(screen.getByRole('dialog')).toBeTruthy()
+  })
+
   it('opens again after it was closed', async () => {
     render(<Harness />)
     await userEvent.click(screen.getByRole('button', { name: 'Open it' }))

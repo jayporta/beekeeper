@@ -3,9 +3,11 @@ import { useTranslation } from 'react-i18next'
 import { DialogHeader } from '@renderer/components/DialogHeader'
 import { ModalDialog } from '@renderer/components/ModalDialog'
 import { MutedText } from '@renderer/components/MutedText'
+import { useProjects } from '@renderer/features/projects/useProjects'
 import { FileDiffBody } from './FileDiffBody'
 import styles from './FileDiffDialog.module.css'
 import type { FileDiffTarget } from './fileDiffTarget'
+import { projectRelativePath } from './projectRelativePath'
 
 /** Props for {@link FileDiffDialog}. */
 interface FileDiffDialogProps {
@@ -21,7 +23,8 @@ interface FileDiffDialogProps {
 
 /**
  * A modal dialog with what one agent changed in one file, named by the file's
- * path with the agent's name beneath. Escape or Close closes it and focus goes
+ * path from the project's folder down, on one line cut at the start so the file
+ * name shows (the whole path is in its tooltip), with the agent's name beneath. Escape or Close closes it and focus goes
  * back to what opened it. The changes are fetched only while it is open.
  *
  * @example
@@ -35,15 +38,18 @@ export function FileDiffDialog({
 }: FileDiffDialogProps): React.JSX.Element {
   const { t } = useTranslation('sessionDetail')
   const headingId = useId()
+  const { data: projects } = useProjects()
+  const label =
+    projects?.find((project) => project.dirName === target.ref.projectDirName)?.label ?? null
 
   return (
     <ModalDialog open={open} onClose={onClose} labelledBy={headingId}>
       <DialogHeader
         headingId={headingId}
         heading={
-          <bdi dir="ltr" className={styles.path}>
-            {target.filePath}
-          </bdi>
+          <span className={styles.path} title={target.filePath}>
+            <bdi dir="ltr">{projectRelativePath(target.filePath, label)}</bdi>
+          </span>
         }
         closeLabel={t('inspector.fileDiff.close')}
         onClose={onClose}

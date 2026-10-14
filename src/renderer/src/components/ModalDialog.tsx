@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useEffectEvent, useRef } from 'react'
 import styles from './ModalDialog.module.css'
 import { withClassName } from './withClassName'
 
@@ -19,7 +19,7 @@ interface ModalDialogProps {
 /**
  * A modal dialog on the platform's own `<dialog>`: opened with `showModal()`,
  * so the rest of the page is inert and focus stays inside, named by its
- * heading, and closed by Escape or by the parent. When it closes, focus goes
+ * heading, and closed by Escape, by a click on the backdrop, or by the parent. When it closes, focus goes
  * back to what had it when the dialog opened.
  *
  * @example
@@ -35,13 +35,29 @@ export function ModalDialog({
   children
 }: ModalDialogProps): React.JSX.Element {
   const ref = useRef<HTMLDialogElement>(null)
+  const closeFromBackdrop = useEffectEvent(() => {
+    onClose()
+  })
 
   useEffect(() => {
     const dialog = ref.current
     if (dialog === null || !open) return
     const opener = document.activeElement
+    // A click on the backdrop targets the dialog itself, at a point outside its box.
+    const closeOnBackdrop = (event: MouseEvent): void => {
+      if (event.target !== dialog) return
+      const box = dialog.getBoundingClientRect()
+      const inside =
+        event.clientX >= box.left &&
+        event.clientX <= box.right &&
+        event.clientY >= box.top &&
+        event.clientY <= box.bottom
+      if (!inside) closeFromBackdrop()
+    }
+    dialog.addEventListener('click', closeOnBackdrop)
     dialog.showModal()
     return () => {
+      dialog.removeEventListener('click', closeOnBackdrop)
       dialog.close()
       if (opener instanceof HTMLElement && opener.isConnected) opener.focus()
     }
