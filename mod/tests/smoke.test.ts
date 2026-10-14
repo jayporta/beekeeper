@@ -40,7 +40,21 @@ const TRANSCRIPT = [
     message: { id: 'msg_1', model: 'claude-opus-5', usage: { input_tokens: 5, output_tokens: 10 } }
   })
 ].join('\n')
-const FILES: Record<string, string> = { [`${PROJECTS}/-work/${SESSION}.jsonl`]: TRANSCRIPT }
+const AGENT_TRANSCRIPT = JSON.stringify({
+  type: 'assistant',
+  cwd: '/home/u/smoke-app',
+  timestamp: '2026-01-01T00:00:01.000Z',
+  message: { id: 'msg_agent', model: 'claude-opus-5', usage: { input_tokens: 1, output_tokens: 2 } }
+})
+const SUBAGENT_DIR = `${PROJECTS}/-work/${SESSION}/subagents`
+const FILES: Record<string, string> = {
+  [`${PROJECTS}/-work/${SESSION}.jsonl`]: TRANSCRIPT,
+  [`${SUBAGENT_DIR}/agent-a1.jsonl`]: AGENT_TRANSCRIPT,
+  [`${SUBAGENT_DIR}/agent-a1.meta.json`]: JSON.stringify({
+    agentType: 'Explore',
+    worktreeBranch: 'feat/smoke'
+  })
+}
 
 /** The names directly under a directory of the fake file system, or undefined when it isn't one. */
 function childrenOf(dir: string): string[] | undefined {
@@ -51,7 +65,7 @@ function childrenOf(dir: string): string[] | undefined {
   return names.size > 0 ? [...names] : undefined
 }
 
-const missing = (): Error => Object.assign(new Error('no such file'), { code: 'ENOENT' })
+const missing = (): Error => Object.assign(new Error('ENOENT: no such file'), { code: 'ENOENT' })
 
 /** Answers everything a refresh asks of the engine from the fake file system above; returns the clock. */
 function mockSession(on: Parameters<typeof mock.env>[0]): {
@@ -99,6 +113,12 @@ function mockSession(on: Parameters<typeof mock.env>[0]): {
         value: { kind: 'dir' as const, size: 0, mtimeMs: 1000, isLink: false, realPath: e.path }
       }
     }
+    if (e.path.endsWith('/subagents/workflows')) {
+      // Not a folder: the kit skips a hook that throws, so a missing path is answered this way.
+      return {
+        value: { kind: 'other' as const, size: 0, mtimeMs: 1000, isLink: false, realPath: e.path }
+      }
+    }
     throw missing()
   })
   on('fs.list', async (_$, e) => {
@@ -107,7 +127,8 @@ function mockSession(on: Parameters<typeof mock.env>[0]): {
     return {
       value: names.map((name) => ({
         name,
-        kind: name.endsWith('.jsonl') ? ('file' as const) : ('dir' as const),
+        kind:
+          name.endsWith('.jsonl') || name.endsWith('.json') ? ('file' as const) : ('dir' as const),
         size: 0,
         mtimeMs: 1000,
         isLink: false
@@ -186,6 +207,32 @@ for (const surface of ['terminal', 'desktop'] as const) {
 
     expect(await pane.find({ type: 'Button', key: 'lead' })).toBeDefined()
     expect(await pane.find({ type: 'Button', key: 'nav-browse' })).toBeDefined()
+  })
+}
+
+for (const surface of ['terminal', 'desktop'] as const) {
+  // The kit answers every process with `uname`'s text, so git can't be faked through it: the
+  // diff and the patch say that git isn't usable, which is the path a person without git sees.
+  test(`a worktree agent shows its branch and, without git, why it has no diff on ${surface}`, async ($, on) => {
+    const { clock } = mockSession(on)
+    await $.session.start({ cwd: '/work', surface, isInteractive: true })
+    await $.command.run({ command: 'beekeeper', args: '' })
+    await clock.advance(1)
+    const pane = await $.ui.mount({
+      plugin: 'beekeeper',
+      surface,
+      component: 'Pane',
+      requestId: 'beekeeper',
+      props: PANE_PROPS
+    })
+
+    await pane.press({ key: `sub:-work/${SESSION}:a1` })
+    await clock.advance(1)
+
+    expect(await pane.find({ type: 'Text', text: /Worktree branch/ })).toBeDefined()
+    expect(
+      await pane.find({ type: 'Text', text: "Git isn't installed, so the diff isn't available." })
+    ).toBeDefined()
   })
 }
 

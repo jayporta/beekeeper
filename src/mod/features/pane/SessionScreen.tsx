@@ -1,18 +1,16 @@
 import { t } from '../../i18n/modI18n'
+import { PaneDiff } from '../diffs/PaneDiff'
+import type { PaneDiffs } from '../diffs/paneDiffs'
+import type { PatchPane } from '../patch/panePatch'
 import { errorLine } from '../shared/errorLine'
 import type { PaneElements } from '../shared/paneElements'
 import { PaneFiles } from './PaneFiles'
 import { PaneRow } from './PaneRow'
 import { flattenPaneTree } from './paneTree'
 import type { PaneView } from './paneView'
+import { selectedNode, type PaneSelection } from './selectedNode'
 
-/** What the person selected: the session and the node's key. */
-export interface PaneSelection {
-  /** The session the selection was made in. */
-  readonly sessionId: string
-  /** The selected node's key. */
-  readonly key: string
-}
+export type { PaneSelection } from './selectedNode'
 
 /** The fixed line for a pane that has no tree, by why it has none. */
 function statusLine(view: PaneView | undefined): string {
@@ -38,6 +36,10 @@ interface SessionScreenProps {
   readonly selected: PaneSelection | null
   /** Stores the selection; runs when a row is pressed. */
   readonly onSelect: (key: string) => void | Promise<void>
+  /** The stored worktree diff of the selected agent, or `undefined` before any. */
+  readonly diffs: PaneDiffs | undefined
+  /** The stored patch and the handlers that show and hide it. */
+  readonly patch: PatchPane
   /** Whether the session is one the person browsed to, which the title says in words. */
   readonly isBrowsed: boolean
   /** The pane's body width in columns, or `undefined` when it is unknown, which names are cut to. */
@@ -56,6 +58,8 @@ export function SessionScreen({
   view,
   selected,
   onSelect,
+  diffs,
+  patch,
   isBrowsed,
   columns
 }: SessionScreenProps): object {
@@ -69,8 +73,7 @@ export function SessionScreen({
     )
   }
   const rows = flattenPaneTree(view.root)
-  const chosen = selected?.sessionId === view.sessionId ? selected.key : view.root.key
-  const current = rows.find(({ node }) => node.key === chosen)?.node ?? view.root
+  const current = selectedNode(view, selected) ?? view.root
   return (
     <Box flexDirection="column">
       <Text>{isBrowsed ? t('pane.browsing', { label: view.label ?? '' }) : t('pane.title')}</Text>
@@ -87,6 +90,8 @@ export function SessionScreen({
         })
       )}
       {PaneFiles({ elements, node: current })}
+      {current.worktree !== null &&
+        PaneDiff({ elements, node: current, sessionId: view.sessionId, diffs, patch })}
     </Box>
   )
 }

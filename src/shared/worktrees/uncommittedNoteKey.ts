@@ -1,4 +1,4 @@
-import type { UncommittedStatusDto } from '../../../../../shared/ipc/worktreeDiffDto'
+import type { UncommittedStatusDto } from '../ipc/worktreeDiffDto'
 
 /** The note shown when a diff leaves out uncommitted work, by why it was left out. */
 export type UncommittedNoteKey =

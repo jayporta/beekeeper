@@ -12,7 +12,10 @@ export function makeTestElements(options: { readonly hasSelect?: boolean } = {})
   const Text = (): object => ({})
   const Button = (): object => ({})
   const Select = (): object => ({})
-  return (options.hasSelect ?? true) ? { Box, Text, Button, Select } : { Box, Text, Button }
+  const Code = (): object => ({})
+  return (options.hasSelect ?? true)
+    ? { Box, Text, Button, Select, Code }
+    : { Box, Text, Button, Code }
 }
 
 /** A node the test `h` builds: the type it was called with, its props, and its children. */

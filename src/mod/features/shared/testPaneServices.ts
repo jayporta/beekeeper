@@ -2,6 +2,8 @@ import type { IpcResult } from '../../../shared/ipc/ipcResult'
 import type { ProjectDto } from '../../../shared/ipc/projectDto'
 import type { SessionDetailDto } from '../../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
+import type { WorktreeDiffsDto } from '../../../shared/ipc/worktreeDiffDto'
+import type { WorktreePatchDto } from '../../../shared/ipc/worktreePatchDto'
 import type { PaneServices } from './paneServices'
 
 /** A fake {@link PaneServices} that records its calls. */
@@ -12,6 +14,14 @@ export interface TestPaneServices extends PaneServices {
   getCalls: number
   /** How many times `listProjects` was called. */
   projectCalls: number
+  /** How many times `getWorktreeDiffs` was called. */
+  diffCalls: number
+  /** The session each `getWorktreeDiffs` call asked for, in order, as `folder/id`. */
+  diffedSessions: string[]
+  /** How many times `getWorktreePatch` was called. */
+  patchCalls: number
+  /** The agent each `getWorktreePatch` call asked for, in order, as `folder/session/agent`. */
+  patchedAgents: string[]
   /** The folder each `listSessions` call asked for, in order. */
   listedFolders: string[]
   /** The session each `getSession` call asked for, in order, as `folder/id`. */
@@ -21,18 +31,24 @@ export interface TestPaneServices extends PaneServices {
 /**
  * Builds fake services that answer fixed results, or throw when given an `Error`.
  *
- * @param answers - What each service answers. `projects` defaults to no projects.
+ * @param answers - What each service answers. `projects` defaults to no projects and `diffs` to no worktree agents and `patch` to git not found.
  * @returns The services, with call counts.
  */
 export function testPaneServices(answers: {
   readonly list: IpcResult<readonly SessionListItemDto[]> | Error
   readonly get: IpcResult<SessionDetailDto> | Error
   readonly projects?: IpcResult<readonly ProjectDto[]> | Error
+  readonly diffs?: IpcResult<WorktreeDiffsDto> | Error
+  readonly patch?: IpcResult<WorktreePatchDto> | Error
 }): TestPaneServices {
   const services: TestPaneServices = {
     listCalls: 0,
     getCalls: 0,
     projectCalls: 0,
+    diffCalls: 0,
+    patchCalls: 0,
+    patchedAgents: [],
+    diffedSessions: [],
     listedFolders: [],
     gotSessions: [],
     listSessions: async (request) => {
@@ -46,6 +62,28 @@ export function testPaneServices(answers: {
       services.gotSessions.push(`${request.projectDirName}/${request.sessionId}`)
       if (answers.get instanceof Error) throw answers.get
       return answers.get
+    },
+    getWorktreeDiffs: async (request) => {
+      services.diffCalls += 1
+      services.diffedSessions.push(`${request.projectDirName}/${request.sessionId}`)
+      const diffs = answers.diffs ?? {
+        ok: true as const,
+        value: { git: 'ok' as const, agents: [], sharedWorktree: null }
+      }
+      if (diffs instanceof Error) throw diffs
+      return diffs
+    },
+    getWorktreePatch: async (request) => {
+      services.patchCalls += 1
+      services.patchedAgents.push(
+        `${request.projectDirName}/${request.sessionId}/${request.agentId}`
+      )
+      const patch = answers.patch ?? {
+        ok: true as const,
+        value: { kind: 'unavailable' as const, git: 'git-not-found' as const }
+      }
+      if (patch instanceof Error) throw patch
+      return patch
     },
     listProjects: async () => {
       services.projectCalls += 1

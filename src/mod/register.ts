@@ -12,6 +12,9 @@ import {
   type PaneScheduler,
   emptyBrowseView,
   type BrowseView,
+  emptyPanePatch,
+  type PaneDiffs,
+  type PanePatch,
   type PaneNav,
   type PaneView,
   type StartOutcome
@@ -33,6 +36,12 @@ const NAV = { plugin: 'beekeeper', key: 'nav' } as const
 
 /** The `$.state` value the Browse screen draws from. */
 const BROWSE = { plugin: 'beekeeper', key: 'browse' } as const
+
+/** The `$.state` value holding the selected agent's worktree diff. Written only by the refresher. */
+const DIFFS = { plugin: 'beekeeper', key: 'diffs' } as const
+
+/** The `$.state` value holding the worktree patch a press asked for. Written by the pane's press handlers and the refresher. */
+const PATCH = { plugin: 'beekeeper', key: 'patch' } as const
 
 /** Counts the times Browse was opened from another screen in this loaded copy; each open carries its number in the nav. */
 let browseOpens = 0
@@ -123,7 +132,11 @@ function wire($: Engine): PaneWiring {
         wantsFirstView = true
         return isSet
       },
-      writeBrowse: async (view) => (await $.state.set(BROWSE, view)).isSet
+      writeBrowse: async (view) => (await $.state.set(BROWSE, view)).isSet,
+      selected: async () => (await $.state.get<PaneSelection | null>(SELECTED)).value ?? null,
+      writeDiffs: async (diffs) => (await $.state.set(DIFFS, diffs)).isSet,
+      patch: async () => (await $.state.get<PanePatch>(PATCH)).value,
+      writePatch: async (patch) => (await $.state.set(PATCH, patch)).isSet
     },
     log: logCode
   })
@@ -179,6 +192,8 @@ async function drawPane($: Engine, e: PaneRenderInput): Promise<object> {
   const selected = (await $.state.get<PaneSelection | null>(SELECTED)).value ?? null
   const nav = (await $.state.get<PaneNav>(NAV)).value
   const browse = (await $.state.get<BrowseView>(BROWSE)).value
+  const diffs = (await $.state.get<PaneDiffs>(DIFFS)).value
+  const stored = (await $.state.get<PanePatch>(PATCH)).value
   if (view === undefined && wantsFirstView && wiring !== undefined) {
     wantsFirstView = false
     wiring.refresher.forgetStored()
@@ -190,8 +205,31 @@ async function drawPane($: Engine, e: PaneRenderInput): Promise<object> {
     selected,
     nav,
     browse,
+    diffs,
+    patch: {
+      stored,
+      onShow: async (key) => {
+        if (view === undefined) return
+        const nowMs = await $.clock.now()
+        await $.state.set(
+          PATCH,
+          emptyPanePatch({ sessionId: view.sessionId, key, status: 'loading', nowMs })
+        )
+        wiring?.scheduler.schedule({ withList: false, delayMs: 0 })
+      },
+      onHide: async () => {
+        if (view === undefined) return
+        const nowMs = await $.clock.now()
+        await $.state.set(
+          PATCH,
+          emptyPanePatch({ sessionId: view.sessionId, key: '', status: 'none', nowMs })
+        )
+      }
+    },
     onSelect: async (key) => {
-      if (view !== undefined) await $.state.set(SELECTED, { sessionId: view.sessionId, key })
+      if (view === undefined) return
+      await $.state.set(SELECTED, { sessionId: view.sessionId, key })
+      wiring?.scheduler.schedule({ withList: false, delayMs: 0 })
     },
     onNav: async (next) => {
       // Opening Browse from another screen must not show the last project's rows as current.

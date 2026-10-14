@@ -62,7 +62,8 @@ const EMPTY_RUN: ProcessRunResult = {
 export const TEST_ELEMENTS: Elements = {
   Box: () => ({}),
   Text: () => ({}),
-  Button: () => ({})
+  Button: () => ({}),
+  Code: () => ({})
 }
 
 const EMPTY_STAT: FsStat = { kind: 'file', size: 0, mtimeMs: 0, isLink: false }

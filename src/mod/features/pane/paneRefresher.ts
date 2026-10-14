@@ -2,6 +2,8 @@ import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
 import { createBrowseRefresher } from '../browse/createBrowseRefresher'
 import { startMod, type StartOutcome } from '../start/startMod'
 import { createPaneServices } from './createPaneServices'
+import { createWorktreeLoader } from './createWorktreeLoader'
+import { storeView } from './storeView'
 import { contentKey } from '../shared/contentKey'
 import { emptyPaneView } from './emptyPaneView'
 import { findSessionFolder } from './findSessionFolder'
@@ -145,6 +147,8 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
     return { sessionId, sessionRoot, nowMs, outcome: started ?? (await startNow(sessionRoot)) }
   }
 
+  const worktree = createWorktreeLoader({ pane, log })
+
   async function build(withList: boolean, nav: PaneNav | undefined): Promise<PaneView> {
     const { sessionId: currentId, sessionRoot, nowMs, outcome } = await readSession()
     const { ref: wanted, target } = targetOf(nav, { projectDirName: '', sessionId: currentId })
@@ -215,20 +219,19 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
       })
     }
     const key = contentKey(view)
-    if (key === lastKey) return
-    try {
-      if (!(await pane.writeView(view))) return
-    } catch {
-      log('pane-write-failed')
-      return
+    if (key !== lastKey && (await storeView({ pane, view, log }))) {
+      lastView = view
+      lastKey = key
     }
-    lastView = view
-    lastKey = key
+    // After the view, so git never holds it back, and on every path: a row press changes the diff
+    // without changing the view.
+    await worktree.load(view, services?.value ?? null)
   }
 
   const forgetStored = (): void => {
     lastKey = null
     browse.forgetStored()
+    worktree.forgetStored()
   }
 
   return {

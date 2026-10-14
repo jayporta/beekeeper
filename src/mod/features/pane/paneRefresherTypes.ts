@@ -1,8 +1,11 @@
 import type { ModHost } from '../../modHost'
 import type { BrowseView } from '../browse/browseView'
+import type { PaneDiffs } from '../diffs/paneDiffs'
+import type { PanePatch } from '../patch/panePatch'
 import type { StartOutcome } from '../start/startMod'
 import type { PaneNav } from '../shared/paneNav'
 import type { PaneView } from './paneView'
+import type { PaneSelection } from './selectedNode'
 import type { PaneServices } from '../shared/paneServices'
 
 /** The engine calls the pane's refresh makes, as closures so lib never sees `$`. */
@@ -19,6 +22,14 @@ export interface PaneHost {
   writeView(view: PaneView): Promise<boolean>
   /** Stores the Browse view for the pane to draw: `$.state.set`. Resolves whether the engine stored it. */
   writeBrowse(view: BrowseView): Promise<boolean>
+  /** The stored selection, or `null` for none: `$.state.get`. */
+  selected(): Promise<PaneSelection | null>
+  /** Stores the selected agent's worktree diff: `$.state.set`. Resolves whether the engine stored it. */
+  writeDiffs(diffs: PaneDiffs): Promise<boolean>
+  /** The stored worktree patch, or `undefined` before any press: `$.state.get`. */
+  patch(): Promise<PanePatch | undefined>
+  /** Stores the worktree patch: `$.state.set`. Resolves whether the engine stored it. */
+  writePatch(patch: PanePatch): Promise<boolean>
 }
 
 /** What `createPaneRefresher` works through. */

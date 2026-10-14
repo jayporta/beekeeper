@@ -23,6 +23,13 @@ export type BeekeeperPaneNode = {
   files: readonly BeekeeperPaneFile[] | null
   fileCount: number | null
   filesIncomplete: boolean
+  /** The worktree branch a subagent ran on, or `null` for any other node. */
+  worktree: {
+    projectDirName: string
+    sessionId: string
+    agentId: string
+    branch: string
+  } | null
   children: readonly BeekeeperPaneNode[]
 }
 
@@ -46,6 +53,85 @@ export type BeekeeperPaneView = {
   totalTokensPartial: boolean
   root: BeekeeperPaneNode | null
   /** When the view's content last changed, in milliseconds since the epoch: a refresh that finds nothing new stores nothing. */
+  refreshedAtMs: number
+}
+
+/** Why a worktree diff or patch couldn't be computed. */
+export type BeekeeperDiffCode =
+  | 'invalid-ref'
+  | 'invalid-path'
+  | 'branch-not-found'
+  | 'git-failed'
+  | 'no-common-ancestor'
+  | 'malformed-numstat'
+  | 'output-too-large'
+  | 'timeout'
+  | 'spawn-failed'
+  | 'repo-missing'
+  | 'not-a-repo'
+  | 'outside-project'
+  | 'no-base'
+  | 'too-many-agents'
+
+/** One changed file of a worktree branch. */
+export type BeekeeperDiffFile = {
+  path: string
+  oldPath: string | null
+  /** Lines added, or `null` for a binary file. */
+  added: number | null
+  deleted: number | null
+}
+
+/** The selected agent's worktree diff, or why there isn't one. */
+export type BeekeeperDiffs = {
+  sessionId: string
+  key: string
+  status: 'loading' | 'ready' | 'error' | 'none'
+  errorCode:
+    | 'invalid-request'
+    | 'untrusted-sender'
+    | 'not-found'
+    | 'unreadable'
+    | 'internal'
+    | 'too-old'
+    | 'start-failed'
+    | null
+  git: 'ok' | 'git-not-found' | 'git-too-old' | null
+  result:
+    | {
+        ok: true
+        uncommitted: 'included' | 'no-worktree' | 'skipped-filters' | 'worktree-mismatch'
+        files: readonly BeekeeperDiffFile[]
+        fileCount: number
+        untracked: readonly string[]
+        untrackedCount: number
+      }
+    | {
+        ok: false
+        code: BeekeeperDiffCode
+      }
+    | null
+  refreshedAtMs: number
+}
+
+/** One changed file's patch. */
+export type BeekeeperPatchFile = {
+  path: string
+  oldPath: string | null
+  text: string
+  truncated: boolean
+}
+
+/** The selected agent's worktree patch, or the request for one. */
+export type BeekeeperPatch = {
+  sessionId: string
+  key: string
+  status: 'none' | 'loading' | 'ready' | 'error'
+  errorCode: BeekeeperDiffs['errorCode']
+  failure: { git: 'git-not-found' | 'git-too-old' } | { code: BeekeeperDiffCode } | null
+  files: readonly BeekeeperPatchFile[]
+  omittedCount: number
+  uncommitted: 'included' | 'no-worktree' | 'skipped-filters' | 'worktree-mismatch' | null
   refreshedAtMs: number
 }
 
@@ -96,6 +182,10 @@ declare module 'claude-code' {
       nav: BeekeeperNav
       /** The Browse screen's data, rebuilt by every Browse refresh. */
       browse: BeekeeperBrowseView
+      /** The selected agent's worktree diff, loaded by the refresher; `none` status when the selected node has no worktree. */
+      diffs: BeekeeperDiffs
+      /** The worktree patch a press asked for, or `none` when hidden. */
+      patch: BeekeeperPatch
     }
   }
 }

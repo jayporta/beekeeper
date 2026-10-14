@@ -66,6 +66,22 @@ describe('createModProcessPort run', () => {
     expect(result.ok && new TextDecoder().decode(result.value.stdout)).toBe('abc')
   })
 
+  it('marks text without U+FFFD as exact bytes', async () => {
+    const { port } = portWith({ git: { exitCode: 0, stdout: 'a/é.txt', isStdoutTruncated: false } })
+
+    const result = await port.run(REQUEST)
+
+    expect(result.ok && result.value.exact).toBe(true)
+  })
+
+  it('marks text holding U+FFFD as inexact, since the bytes it stood for are lost', async () => {
+    const { port } = portWith({ git: { exitCode: 0, stdout: 'a\uFFFD', isStdoutTruncated: false } })
+
+    const result = await port.run(REQUEST)
+
+    expect(result.ok && result.value.exact).toBe(false)
+  })
+
   it('treats a non-zero exit code as an outcome, not an error', async () => {
     const { port } = portWith({ git: { exitCode: 1, stdout: '', isStdoutTruncated: false } })
 
@@ -140,7 +156,7 @@ describe('createModProcessPort isExecutable', () => {
 })
 
 describe('createModProcessPort facts', () => {
-  it('reports the platform it was given and inexact output', () => {
+  it('reports the platform it was given and inexact output by default', () => {
     const { port } = portWith()
 
     expect(port.platform).toBe('linux')

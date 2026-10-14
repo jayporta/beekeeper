@@ -64,6 +64,22 @@ declare module 'claude-code' {
     onSelect: (value: string) => void | Promise<void>
   }
 
+  /** Props of a block of code or diff text. */
+  export interface CodeProps {
+    /** The text, which the engine draws as is. */
+    source: string
+    /** The source's language. */
+    language?: string
+    /** The file the source is from. */
+    path?: string
+    /** The line number the source starts at. */
+    startLine?: number
+    /** `diff` draws the source as a unified diff; `source` as plain code. A `diff` holds whole hunks. */
+    format?: 'source' | 'diff'
+    /** What a line wider than the room does. */
+    wrap?: 'wrap' | 'truncate-start' | 'truncate-end'
+  }
+
   /** The elements a surface draws with. */
   export interface Elements {
     /** A pressable row. */
@@ -74,6 +90,8 @@ declare module 'claude-code' {
     Box: (props: BoxProps) => object
     /** A run of text. */
     Text: (props: TextProps) => object
+    /** A block of code or diff text. */
+    Code: (props: CodeProps) => object
   }
 
   /** A surface the engine draws on. */

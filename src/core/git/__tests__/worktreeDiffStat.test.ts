@@ -210,6 +210,66 @@ describe('worktreeDiffStat', () => {
     })
   })
 
+  describe('when a run reports its own exactness', () => {
+    afterEach(() => {
+      installProcessPort(nodeProcess)
+    })
+
+    /** A port whose default is inexact and whose every run answers `exact`. */
+    function portAnswering(exact: boolean): typeof nodeProcess {
+      return {
+        ...nodeProcess,
+        exactOutput: false,
+        async run(request) {
+          const result = await nodeProcess.run(request)
+          return result.ok ? { ok: true, value: { ...result.value, exact } } : result
+        }
+      }
+    }
+
+    async function dirtyWorktree(context: Parameters<typeof testGit.requireGit>[0]): Promise<{
+      gitBinary: GitBinary
+      repo: TestRepo
+      worktree: string
+    }> {
+      const gitBinary = testGit.requireGit(context)
+      const repo = await testGit.baseRepo(gitBinary)
+      const worktree = join(repo.root, 'wt')
+      repo.git(['worktree', 'add', '--quiet', worktree, 'agent'])
+      await repo.write({ path: 'plain.txt', content: 'v1\n', dir: worktree })
+      repo.git(['add', '-A'], worktree)
+      repo.git(['commit', '--quiet', '-m', 'plain file'], worktree)
+      await repo.write({ path: 'plain.txt', content: 'v2\nmore\n', dir: worktree })
+      await repo.write({ path: 'new.txt', content: 'n\n', dir: worktree })
+      return { gitBinary, repo, worktree }
+    }
+
+    it('includes uncommitted work and untracked files when the run is exact', async (context) => {
+      const { gitBinary, repo, worktree } = await dirtyWorktree(context)
+      installProcessPort(portAnswering(true))
+
+      const result = await diffStat(gitBinary, repo, { worktreeDir: worktree })
+
+      expect(result).toEqual({
+        ok: true,
+        value: {
+          files: [{ path: 'plain.txt', added: 2, deleted: 0 }],
+          untracked: ['new.txt'],
+          uncommitted: 'included'
+        }
+      })
+    })
+
+    it('falls back to the committed diff when the run is inexact', async (context) => {
+      const { gitBinary, repo, worktree } = await dirtyWorktree(context)
+      installProcessPort({ ...portAnswering(false), exactOutput: true })
+
+      const result = await diffStat(gitBinary, repo, { worktreeDir: worktree })
+
+      expect(result).toMatchObject({ ok: true, value: { uncommitted: 'skipped-filters' } })
+    })
+  })
+
   it('refuses to run an unlisted subcommand against a real repo', async (context) => {
     const gitBinary = testGit.requireGit(context)
     const repo = await testGit.baseRepo(gitBinary)

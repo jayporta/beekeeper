@@ -8,6 +8,18 @@ export interface PaneFile {
   readonly operation: string
 }
 
+/** Where a subagent's worktree branch lives, and the ids to ask the service about it. */
+export interface PaneWorktree {
+  /** The project folder of the session whose transcript holds the subagent. */
+  readonly projectDirName: string
+  /** That session's id. */
+  readonly sessionId: string
+  /** The subagent's id. */
+  readonly agentId: string
+  /** The worktree branch it ran on, cleaned of unprintable characters. */
+  readonly branch: string
+}
+
 /** One node of the pane's agent tree. Every string is cleaned and the node is plain data, so it can sit in `$.state`. */
 export interface PaneNode {
   /** The node's identity, unique within the tree. */
@@ -34,6 +46,8 @@ export interface PaneNode {
   readonly fileCount: number | null
   /** Whether `files` may be missing some. */
   readonly filesIncomplete: boolean
+  /** The worktree branch a subagent ran on, or `null` for any other node. */
+  readonly worktree: PaneWorktree | null
   /** The agents under this one. */
   readonly children: readonly PaneNode[]
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { testDetail } from '../../../../shared/agentGraph/testSessionDetail'
+import { testDetail, testMeta, testNode } from '../../../../shared/agentGraph/testSessionDetail'
 import {
   testAgentRole,
   testLeadTeam,
@@ -17,6 +17,9 @@ import type { PaneNav } from '../../shared/paneNav'
 import { PLAIN_TICK_MS } from '../paneScheduler'
 import { createPaneRefresher, type PaneHost } from '../paneRefresher'
 import type { PaneView } from '../paneView'
+import type { PaneDiffs } from '../../diffs/paneDiffs'
+import { emptyPanePatch, type PanePatch } from '../../patch/panePatch'
+import type { PaneSelection } from '../selectedNode'
 import { testPaneServices, type TestPaneServices } from '../../shared/testPaneServices'
 
 const ROOT = '/home/u/.claude/projects'
@@ -38,6 +41,10 @@ function projects(folder: string | null): Record<string, TestPath> {
 interface Setup {
   readonly written: PaneView[]
   readonly browsed: BrowseView[]
+  readonly diffed: PaneDiffs[]
+  readonly patched: PanePatch[]
+  readonly patchRef: { current: PanePatch | undefined }
+  readonly selectedRef: { current: PaneSelection | null }
   readonly navRef: { current: PaneNav | undefined }
   readonly services: TestPaneServices
   readonly refresher: ReturnType<typeof createPaneRefresher>
@@ -57,10 +64,17 @@ function setup(options: {
   probe?: () => Promise<StartOutcome>
   projects?: ProjectDto[]
   nav?: PaneNav
+  diffs?: Parameters<typeof testPaneServices>[0]['diffs']
+  patch?: Parameters<typeof testPaneServices>[0]['patch']
+  get?: Parameters<typeof testPaneServices>[0]['get']
 }): Setup {
   const { folder = '-p', start = READY, list = [testSession(1, { title: 'Hi' })] } = options
   const written: PaneView[] = []
   const browsed: BrowseView[] = []
+  const diffed: PaneDiffs[] = []
+  const patched: PanePatch[] = []
+  const patchRef: { current: PanePatch | undefined } = { current: undefined }
+  const selectedRef: { current: PaneSelection | null } = { current: null }
   const navRef: { current: PaneNav | undefined } = { current: options.nav }
   const starts: string[] = []
   const built: string[] = []
@@ -69,8 +83,10 @@ function setup(options: {
   let startCalls = 0
   const services = testPaneServices({
     list: { ok: true, value: list },
-    get: { ok: true, value: testDetail() },
-    projects: { ok: true, value: options.projects ?? [testProject('-p')] }
+    get: options.get ?? { ok: true, value: testDetail() },
+    projects: { ok: true, value: options.projects ?? [testProject('-p')] },
+    diffs: options.diffs,
+    patch: options.patch
   })
   const pane: PaneHost = {
     sessionId: options.sessionId ?? (async () => ID),
@@ -79,6 +95,17 @@ function setup(options: {
     nav: async () => navRef.current,
     writeBrowse: async (view) => {
       browsed.push(view)
+      return true
+    },
+    selected: async () => selectedRef.current,
+    writeDiffs: async (diffs) => {
+      diffed.push(diffs)
+      return true
+    },
+    patch: async () => patchRef.current,
+    writePatch: async (patch) => {
+      patched.push(patch)
+      patchRef.current = patch
       return true
     },
     writeView:
@@ -105,6 +132,10 @@ function setup(options: {
   return {
     written,
     browsed,
+    diffed,
+    patched,
+    patchRef,
+    selectedRef,
     navRef,
     services,
     refresher,
@@ -613,7 +644,11 @@ describe('createPaneRefresher', () => {
             throw new Error('nope')
           },
           writeView: async (view) => (written.push(view), true),
-          writeBrowse: async () => true
+          writeBrowse: async () => true,
+          selected: async () => null,
+          writeDiffs: async () => true,
+          patch: async () => undefined,
+          writePatch: async () => true
         },
         start: async () => READY,
         createServices: () =>
@@ -679,6 +714,153 @@ describe('createPaneRefresher', () => {
 
       refresher.forgetStored()
       expect(refresher.isBrowseStored()).toBe(false)
+    })
+  })
+})
+
+describe('createPaneRefresher worktree diffs', () => {
+  const worktreeDetail = testDetail({
+    children: [testNode('a1', { meta: testMeta({ worktreeBranch: 'feat/x' }) })]
+  })
+  const diffsAnswer = {
+    ok: true as const,
+    value: {
+      git: 'ok' as const,
+      sharedWorktree: null,
+      agents: [
+        {
+          agentId: 'a1',
+          inferredBase: false,
+          result: {
+            ok: true as const,
+            diff: { uncommitted: 'included' as const, files: [], untracked: [] }
+          }
+        }
+      ]
+    }
+  }
+
+  it('loads the diff of a newly selected agent while the view is unchanged', async () => {
+    const { written, diffed, selectedRef, refresher, services } = setup({
+      get: { ok: true, value: worktreeDetail },
+      diffs: diffsAnswer
+    })
+
+    await refresher.refresh({ withList: true })
+    const key = written[0]?.root?.children[0]?.key ?? ''
+    selectedRef.current = { sessionId: ID, key }
+    await refresher.refresh({ withList: false })
+
+    expect(written).toHaveLength(1)
+    expect(diffed.at(-1)).toMatchObject({ key, status: 'ready' })
+    expect(services.diffCalls).toBe(1)
+  })
+
+  it('writes the view before it runs git for the diff', async () => {
+    const order: string[] = []
+    const { selectedRef, refresher, services } = setup({
+      get: { ok: true, value: worktreeDetail },
+      diffs: diffsAnswer,
+      writeView: async () => (order.push('view'), true)
+    })
+    selectedRef.current = { sessionId: ID, key: `sub:-p/${ID}:a1` }
+    const real = services.getWorktreeDiffs
+    services.getWorktreeDiffs = async (request) => (order.push('diff'), real(request))
+
+    await refresher.refresh({ withList: true })
+
+    expect(order).toEqual(['view', 'diff'])
+  })
+
+  it('loads the diff even when the engine refuses the view', async () => {
+    const { diffed, selectedRef, refresher } = setup({
+      get: { ok: true, value: worktreeDetail },
+      diffs: diffsAnswer,
+      writeView: async () => false
+    })
+    await refresher.refresh({ withList: true })
+    const key = 'sub:-p/' + ID + ':a1'
+    selectedRef.current = { sessionId: ID, key }
+
+    await refresher.refresh({ withList: false })
+
+    expect(diffed.at(-1)).toMatchObject({ key, status: 'ready' })
+  })
+
+  it('runs no diff work on the Browse screen', async () => {
+    const { diffed, refresher, services } = setup({
+      get: { ok: true, value: worktreeDetail },
+      diffs: diffsAnswer,
+      nav: { screen: 'browse', projectDirName: '-p' }
+    })
+
+    await refresher.refresh({ withList: true })
+    await refresher.refresh({ withList: false })
+
+    expect(diffed).toEqual([])
+    expect(services.diffCalls).toBe(0)
+  })
+
+  describe('the worktree patch', () => {
+    const patchAnswer = {
+      ok: true as const,
+      value: {
+        kind: 'ready' as const,
+        uncommitted: 'included' as const,
+        truncatedTotal: false,
+        files: [
+          { path: 'f.ts', patch: 'diff --git a/f.ts b/f.ts\n@@ -1 +1 @@\n+x\n', truncated: false }
+        ]
+      }
+    }
+    const key = `sub:-p/${ID}:a1`
+    const ask = (): PanePatch => emptyPanePatch({ sessionId: ID, key, status: 'loading', nowMs: 1 })
+
+    it('loads a patch a press asked for, while the view is unchanged, and only once', async () => {
+      const { patched, patchRef, selectedRef, refresher, written, services } = setup({
+        get: { ok: true, value: worktreeDetail },
+        diffs: diffsAnswer,
+        patch: patchAnswer
+      })
+      await refresher.refresh({ withList: true })
+      selectedRef.current = { sessionId: ID, key }
+      patchRef.current = ask()
+
+      await refresher.refresh({ withList: false })
+      await refresher.refresh({ withList: false })
+
+      expect(written).toHaveLength(1)
+      expect(patched).toHaveLength(1)
+      expect(patched[0]).toMatchObject({ status: 'ready', key })
+      expect(services.patchCalls).toBe(1)
+    })
+
+    it('loads a patch left loading by a copy with no wiring on the next refresh, such as /beekeeper asks for', async () => {
+      const { patched, patchRef, selectedRef, refresher } = setup({
+        get: { ok: true, value: worktreeDetail },
+        diffs: diffsAnswer,
+        patch: patchAnswer
+      })
+      selectedRef.current = { sessionId: ID, key }
+      patchRef.current = ask()
+
+      await refresher.refresh({ withList: true })
+
+      expect(patched.at(-1)).toMatchObject({ status: 'ready', key })
+    })
+
+    it('runs no patch work on the Browse screen', async () => {
+      const { patched, patchRef, refresher, services } = setup({
+        get: { ok: true, value: worktreeDetail },
+        patch: patchAnswer,
+        nav: { screen: 'browse', projectDirName: '-p' }
+      })
+      patchRef.current = ask()
+
+      await refresher.refresh({ withList: true })
+
+      expect(patched).toEqual([])
+      expect(services.patchCalls).toBe(0)
     })
   })
 })

@@ -23,9 +23,11 @@ export function withWalkBudget(run: FsRunner, deadlineAt: number): FsRunner {
   return <T>(call: () => Promise<T>): Promise<T> => {
     const remaining = deadlineAt - Date.now()
     if (remaining <= 0) return Promise.reject(new FsTimeoutError())
-    const expired = Promise.withResolvers<never>()
-    const timer = setTimeout(() => expired.reject(new FsTimeoutError()), remaining)
-    unrefTimer(timer)
-    return Promise.race([run(call), expired.promise]).finally(() => clearTimeout(timer))
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const expired = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new FsTimeoutError()), remaining)
+      unrefTimer(timer)
+    })
+    return Promise.race([run(call), expired]).finally(() => clearTimeout(timer))
   }
 }
