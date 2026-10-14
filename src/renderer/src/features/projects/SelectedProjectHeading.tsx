@@ -61,7 +61,7 @@ export function SelectedProjectHeading({
             label: projectLabel(parent),
             onSelect: () => {
               select(parent.dirName)
-              showSessions()
+              showSessions(parent.dirName)
             }
           }
         ]),

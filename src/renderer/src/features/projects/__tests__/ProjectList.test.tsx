@@ -172,6 +172,40 @@ describe('ProjectList', () => {
     expect(useNavigationStore.getState().view).toBe('sessions')
   })
 
+  it('records the session left when another project is pressed, under the project it was in', async () => {
+    const nav = await renderLoaded()
+    const session = { projectDirName: ALPHA, sessionId: 'x' }
+    useNavigationStore.getState().showSession(session)
+
+    await userEvent.click(within(nav).getByRole('button', { name: BETA }))
+
+    expect(useNavigationStore.getState().history.at(-1)).toEqual({
+      view: 'session',
+      projectDirName: ALPHA,
+      sessionRef: session,
+      agent: null
+    })
+    expect(useNavigationStore.getState().currentProjectDirName).toBe(BETA)
+  })
+
+  it('records the sessions list of the project left when another project is pressed from it', async () => {
+    const nav = await renderLoaded()
+
+    await userEvent.click(within(nav).getByRole('button', { name: BETA }))
+
+    expect(useNavigationStore.getState().history).toEqual([
+      { view: 'sessions', projectDirName: ALPHA, sessionRef: null, agent: null }
+    ])
+  })
+
+  it('records nothing when the project in effect is pressed from its own sessions list', async () => {
+    const nav = await renderLoaded()
+
+    await userEvent.click(within(nav).getByRole('button', { name: 'acme-web' }))
+
+    expect(useNavigationStore.getState().history).toEqual([])
+  })
+
   describe('worktrees', () => {
     const toggle = (nav: HTMLElement, project: string): HTMLElement =>
       within(nav).getByRole('button', { name: `Worktrees of ${project}` })

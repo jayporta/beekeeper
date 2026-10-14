@@ -1,27 +1,6 @@
+import { sameAgent } from '@renderer/features/navigation/sameAgent'
 import type { SelectedAgent } from '@renderer/features/navigation/state/useNavigationStore'
-import { sessionKey } from '@renderer/features/sessions/sessionKey'
 import type { AgentGraphNode, AgentKey } from './agentGraphNode'
-
-/** Whether a node's selection picks the same agent as `selected`. */
-function picks(selection: SelectedAgent | null, selected: SelectedAgent): boolean {
-  if (selection === null) return false
-  switch (selection.kind) {
-    case 'subagent':
-      return (
-        selected.kind === 'subagent' &&
-        selected.agentId === selection.agentId &&
-        sessionKey(selected.ownerRef) === sessionKey(selection.ownerRef)
-      )
-    case 'teammate':
-      return selected.kind === 'teammate' && sessionKey(selected.ref) === sessionKey(selection.ref)
-    case 'workflow':
-      return (
-        selected.kind === 'workflow' &&
-        selected.runId === selection.runId &&
-        sessionKey(selected.ownerRef) === sessionKey(selection.ownerRef)
-      )
-  }
-}
 
 /**
  * Finds the node a selection stands for. A selection the graph doesn't hold,
@@ -37,5 +16,5 @@ export function selectedAgentKey(
   selected: SelectedAgent | null
 ): AgentKey {
   if (selected === null) return 'lead'
-  return nodes.find((node) => picks(node.selection, selected))?.key ?? 'lead'
+  return nodes.find((node) => sameAgent(node.selection, selected))?.key ?? 'lead'
 }

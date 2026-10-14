@@ -2,11 +2,14 @@ import 'fake-indexeddb/auto'
 import '@renderer/i18n/i18n'
 import { cleanup } from '@testing-library/react'
 import { afterEach } from 'vitest'
+import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { useExpandedSessionsStore } from '@renderer/features/sessions/state/useExpandedSessionsStore'
 
 afterEach(() => {
   cleanup()
   useExpandedSessionsStore.setState({ expanded: {} })
+  // `reset` leaves the history and the project in effect alone, so a test starts from the initial state instead.
+  useNavigationStore.setState(useNavigationStore.getInitialState(), true)
 })
 
 // jsdom has no pointer capture, which a drag on the graph takes.

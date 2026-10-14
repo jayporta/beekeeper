@@ -88,7 +88,7 @@ export function ProjectTableRow({
             describedBy={describedBy}
             onClick={() => {
               select(project.dirName)
-              showSessions()
+              showSessions(project.dirName)
             }}
           >
             {projectTitle(project)}

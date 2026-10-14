@@ -58,6 +58,19 @@ describe('SessionDetailStatus for an archived session with a summary only', () =
     expect(useNavigationStore.getState().view).toBe('sessions')
   })
 
+  it('records the session when it goes back to the sessions list, since the session still has a page', async () => {
+    const ref = { projectDirName: 'p', sessionId: 's' }
+    useNavigationStore.getState().showSession(ref)
+    render(status('not-found', { summaryOnly: true }))
+
+    await userEvent.click(screen.getByRole('button', { name: 'Back to sessions' }))
+
+    expect(useNavigationStore.getState().history.at(-1)).toMatchObject({
+      view: 'session',
+      sessionRef: ref
+    })
+  })
+
   it('leaves other failures as they are', () => {
     render(status('unreadable', { summaryOnly: true }))
 
@@ -133,6 +146,16 @@ describe('SessionDetailStatus for a missing session', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Back to sessions' }))
 
     expect(useNavigationStore.getState().view).toBe('sessions')
+  })
+
+  it('does not record the missing session when it goes back to the sessions list', async () => {
+    useNavigationStore.getState().showSession({ projectDirName: 'a', sessionId: 'b' })
+    const before = useNavigationStore.getState().history
+    render(status('not-found'))
+
+    await userEvent.click(screen.getByRole('button', { name: 'Back to sessions' }))
+
+    expect(useNavigationStore.getState().history).toEqual(before)
   })
 })
 

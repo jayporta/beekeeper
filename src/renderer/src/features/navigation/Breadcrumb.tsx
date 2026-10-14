@@ -38,7 +38,7 @@ export function Breadcrumb({ segments }: BreadcrumbProps): React.JSX.Element {
             ) : onSelect === undefined ? (
               label
             ) : (
-              <button type="button" className={styles.link} onClick={onSelect}>
+              <button type="button" className={styles.link} onClick={() => onSelect()}>
                 {label}
               </button>
             )}

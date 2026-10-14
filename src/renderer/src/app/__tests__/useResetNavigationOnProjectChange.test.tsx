@@ -117,4 +117,89 @@ describe('useResetNavigationOnProjectChange', () => {
 
     expect(useNavigationStore.getState().view).toBe('session')
   })
+
+  it('records the project in effect for the navigation history', async () => {
+    installBeekeeperApi({ listProjects: () => listing('a', 'b') })
+    render(<Harness />, { wrapper: createQueryWrapper() })
+    await screen.findByText('project:a')
+    expect(useNavigationStore.getState().currentProjectDirName).toBe('a')
+
+    act(() => {
+      useSelectedProjectStore.getState().select('b')
+    })
+    await screen.findByText('project:b')
+
+    expect(useNavigationStore.getState().currentProjectDirName).toBe('b')
+  })
+
+  it('keeps the view a Back restored when the project it selected takes effect', async () => {
+    installBeekeeperApi({ listProjects: () => listing('a', 'b') })
+    render(<Harness />, { wrapper: createQueryWrapper() })
+    await screen.findByText('project:a')
+    openSession()
+
+    act(() => {
+      useNavigationStore.getState().markRestoringProject('b')
+      useSelectedProjectStore.getState().select('b')
+    })
+    await screen.findByText('project:b')
+
+    expect(useNavigationStore.getState()).toMatchObject({
+      view: 'session',
+      selectedSessionRef: ref,
+      restoringProject: null
+    })
+  })
+
+  it('resets on a later project change after it has kept a restored view once', async () => {
+    installBeekeeperApi({ listProjects: () => listing('a', 'b') })
+    render(<Harness />, { wrapper: createQueryWrapper() })
+    await screen.findByText('project:a')
+    openSession()
+    act(() => {
+      useNavigationStore.getState().markRestoringProject('b')
+      useSelectedProjectStore.getState().select('b')
+    })
+    await screen.findByText('project:b')
+
+    act(() => {
+      useSelectedProjectStore.getState().select('a')
+    })
+    await screen.findByText('project:a')
+
+    expect(useNavigationStore.getState().view).toBe('sessions')
+  })
+
+  it('resets when the project that takes effect is not the one a Back meant to select', async () => {
+    installBeekeeperApi({ listProjects: () => listing('a', 'b', 'c') })
+    render(<Harness />, { wrapper: createQueryWrapper() })
+    await screen.findByText('project:a')
+    openSession()
+
+    act(() => {
+      useNavigationStore.getState().markRestoringProject('b')
+      useSelectedProjectStore.getState().select('c')
+    })
+    await screen.findByText('project:c')
+
+    expect(useNavigationStore.getState()).toMatchObject({
+      view: 'sessions',
+      restoringProject: null
+    })
+  })
+
+  it('leaves the navigation history alone when it resets', async () => {
+    installBeekeeperApi({ listProjects: () => listing('a', 'b') })
+    render(<Harness />, { wrapper: createQueryWrapper() })
+    await screen.findByText('project:a')
+    openSession()
+    const before = useNavigationStore.getState().history
+
+    act(() => {
+      useSelectedProjectStore.getState().select('b')
+    })
+    await screen.findByText('project:b')
+
+    expect(useNavigationStore.getState().history).toEqual(before)
+  })
 })
