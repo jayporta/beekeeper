@@ -4,12 +4,14 @@ import { DialogHeader } from '@renderer/components/DialogHeader'
 import { ModalDialog } from '@renderer/components/ModalDialog'
 import styles from './AboutDialog.module.css'
 import { useAboutRequested } from './useAboutRequested'
+import { useAppVersion } from './useAppVersion'
 
 /**
  * A modal About dialog that opens when the menu's About item is chosen. It says
  * what beekeeper reads and that it stays on the computer. Escape or Close
- * closes it and focus goes back to what had it before. Mount it once, outside
- * anything that waits for stored state, so it opens at any time.
+ * closes it and focus goes back to what had it before. It shows the app's
+ * version, or says it is unavailable when the version can't be read. Mount it
+ * once, outside anything that waits for stored state, so it opens at any time.
  *
  * @example
  * <AboutDialog />
@@ -18,6 +20,7 @@ export function AboutDialog(): React.JSX.Element {
   const { t } = useTranslation('about')
   const { open, close } = useAboutRequested()
   const headingId = useId()
+  const version = useAppVersion()
 
   return (
     <ModalDialog open={open} onClose={close} labelledBy={headingId} className={styles.dialog}>
@@ -34,6 +37,8 @@ export function AboutDialog(): React.JSX.Element {
         <p>
           <Trans t={t} i18nKey="promise" components={{ code: <code /> }} />
         </p>
+        {version.isSuccess && <p>{t('version', { version: version.data })}</p>}
+        {version.isError && <p>{t('versionUnavailable')}</p>}
       </div>
     </ModalDialog>
   )

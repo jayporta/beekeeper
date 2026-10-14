@@ -105,6 +105,12 @@ export interface BeekeeperApi {
   copyText(text: string): Promise<IpcResult<null>>
 
   /**
+   * Reads the version of the running app.
+   * @returns The version from the app's `package.json`, such as `0.1.0`, or `internal` when the app has none.
+   */
+  getAppVersion(): Promise<IpcResult<string>>
+
+  /**
    * Subscribes to the menu's request to open the About dialog.
    * @param listener - Called with no arguments each time About is chosen from the menu.
    * @returns A function that removes the subscription.

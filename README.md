@@ -2,7 +2,39 @@
 
 See what your Claude Code agents did, what they changed, and what they cost. Local-only.
 
-**Status: alpha.** The sessions list works: pick a project and see each session's agents, tokens, and API-equivalent cost. Session detail is next.
+**Status: alpha.** 0.1.0 is the first public release. Builds are unsigned for now (signing is tracked in [#20](https://github.com/jayporta/beekeeper/issues/20)), so your OS will warn you the first time you open one. See [Install](#install).
+
+## Install
+
+Download the build for your platform from the [Releases page](https://github.com/jayporta/beekeeper/releases). Builds are available for macOS (Apple Silicon) and Linux (x64).
+
+### macOS
+
+1. Download [`beekeeper-mac-arm64.dmg`](https://github.com/jayporta/beekeeper/releases/latest/download/beekeeper-mac-arm64.dmg), open it, and drag Beekeeper into Applications.
+2. Open Beekeeper. macOS blocks the first launch because the build isn't signed by an identified developer.
+3. Open System Settings > Privacy & Security, scroll to the message about Beekeeper, and click **Open Anyway**.
+
+Or remove the quarantine flag from a terminal:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Beekeeper.app
+```
+
+### Linux
+
+- **deb (recommended, especially on Ubuntu 24.04 and newer):** download [`beekeeper-linux-amd64.deb`](https://github.com/jayporta/beekeeper/releases/latest/download/beekeeper-linux-amd64.deb), then run `sudo apt install ./beekeeper-linux-amd64.deb`. Ubuntu 24.04+ restricts unprivileged user namespaces with AppArmor, and an AppImage needs an allowance for that.
+- **AppImage:** download [`beekeeper-linux-x86_64.AppImage`](https://github.com/jayporta/beekeeper/releases/latest/download/beekeeper-linux-x86_64.AppImage), run `chmod +x beekeeper-linux-x86_64.AppImage`, then run it. It needs FUSE 2, which current distros often leave out: on Ubuntu 24.04 install `libfuse2t64`, and on 22.04 `libfuse2`.
+
+### Verify your download
+
+Each release includes a `SHA256SUMS` file. Put it in the same folder as the files you downloaded, then run:
+
+```bash
+shasum -a 256 -c SHA256SUMS   # macOS
+sha256sum -c SHA256SUMS       # Linux
+```
+
+Lines for files you didn't download will report as missing. Ignore those.
 
 ## Why
 
@@ -68,7 +100,7 @@ If you turn on the telemetry receiver, beekeeper also writes `otel-receiver.json
 ## Permissions you may see
 
 - **A macOS folder prompt.** If a project or worktree lives under Documents, Desktop, Downloads, or iCloud Drive, macOS will ask if beekeeper can access that folder the first time it reads a file or runs `git` there. This is macOS protecting those folders, not beekeeper asking for anything unusual. `~/.claude` itself isn't protected this way.
-- **A Gatekeeper warning on unsigned builds.** Until beekeeper ships signed and notarized builds, macOS will warn you the first time you open one. That's expected for an app you built or downloaded from source.
+- **A Gatekeeper warning on unsigned builds.** Until beekeeper ships signed and notarized builds, macOS blocks the first launch. See [Install](#install) for how to open it.
 - beekeeper never asks for Full Disk Access.
 
 ## What's knowable

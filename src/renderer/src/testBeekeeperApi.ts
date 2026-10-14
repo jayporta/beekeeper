@@ -5,6 +5,9 @@ import type { IpcResult } from '../../shared/ipc/ipcResult'
 import type { OtelReceiverDto } from '../../shared/ipc/otelReceiverDto'
 import type { ProjectDto } from '../../shared/ipc/projectDto'
 
+/** The version an unstubbed `getAppVersion` reports. */
+export const TEST_APP_VERSION = '1.2.3'
+
 /** A telemetry receiver that is off, which is what an unstubbed `getOtelReceiver` reports. */
 export const TEST_OTEL_OFF: OtelReceiverDto = { enabled: false, status: 'off', failure: null }
 
@@ -87,8 +90,8 @@ function createListeners<T extends unknown[]>(
 
 /**
  * Installs a stub `window.beekeeper`. `listProjects` returns one project by
- * default, and `getOtelReceiver` reports an off receiver, since the sidebar
- * reads it. Calls to any other method the test did not stub reject, so a test
+ * default, `getOtelReceiver` reports an off receiver, since the sidebar
+ * reads it, and `getAppVersion` reports {@link TEST_APP_VERSION}, since About reads it. Calls to any other method the test did not stub reject, so a test
  * can't silently depend on it. `onOpenAbout`, `onFilesChanged` and
  * `onLiveUpdatesUnavailable` and `onOtelReceiverChanged` subscriptions are real:
  * each `fire…` helper reaches every listener that has not unsubscribed. As in
@@ -129,6 +132,10 @@ export function installBeekeeperApi(overrides: Partial<BeekeeperApi> = {}): Test
     ),
     getReportedCost: vi.fn(overrides.getReportedCost ?? unstubbed('getReportedCost')),
     copyText: vi.fn(overrides.copyText ?? unstubbed('copyText')),
+    getAppVersion: vi.fn(
+      overrides.getAppVersion ??
+        ((): Promise<IpcResult<string>> => Promise.resolve({ ok: true, value: TEST_APP_VERSION }))
+    ),
     onOpenAbout: vi.fn(overrides.onOpenAbout ?? about.subscribe),
     onFilesChanged: vi.fn(overrides.onFilesChanged ?? filesChanged.subscribe),
     onLiveUpdatesUnavailable: vi.fn(overrides.onLiveUpdatesUnavailable ?? unavailable.subscribe),
