@@ -3,6 +3,7 @@ import type { ProjectDto } from '../../../shared/ipc/projectDto'
 import type { GetSessionRequest, ListSessionsRequest } from '../../../shared/ipc/requestSchemas'
 import type { SessionDetailDto } from '../../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
+import type { WorktreeDiffsDto } from '../../../shared/ipc/worktreeDiffDto'
 
 /** The service calls a refresh makes. */
 export interface PaneServices {
@@ -12,4 +13,6 @@ export interface PaneServices {
   getSession(request: GetSessionRequest): Promise<IpcResult<SessionDetailDto>>
   /** `listProjects`: the project folders, for Browse. */
   listProjects(): Promise<IpcResult<readonly ProjectDto[]>>
+  /** `getWorktreeDiffs` for one session: what each of its worktree agents changed. */
+  getWorktreeDiffs(request: GetSessionRequest): Promise<IpcResult<WorktreeDiffsDto>>
 }

@@ -98,5 +98,32 @@
     "lastActive": "{{value, shortDateTime}}",
     "title": "beekeeper, browsing projects",
     "sessions": "Sessions"
+  },
+  "diff": {
+    "heading": "Worktree branch",
+    "loading": "Loading the worktree diff.",
+    "none": "No changes on this branch.",
+    "counts": "{{added, integer}} added, {{deleted, integer}} deleted",
+    "binary": "Binary",
+    "untracked": "New, not tracked",
+    "renamedFrom": "renamed from {{path}}",
+    "moreFiles_one": "and {{count, integer}} more file",
+    "moreFiles_other": "and {{count, integer}} more files",
+    "moreUntracked_one": "and {{count, integer}} more not tracked",
+    "moreUntracked_other": "and {{count, integer}} more not tracked",
+    "gitNotFound": "Git isn't installed, so the diff isn't available.",
+    "gitTooOld": "This version of git is too old to show the diff. Update git to see it.",
+    "uncommittedFilters": "Uncommitted changes aren't included: this repository uses git filters, which beekeeper doesn't run.",
+    "uncommittedMismatch": "Uncommitted changes aren't included: that folder isn't this agent's worktree of the repository.",
+    "uncommittedNoWorktree": "Uncommitted changes aren't included: this agent's worktree folder isn't available.",
+    "failure": {
+      "branchMissing": "The branch no longer exists.",
+      "repoMissing": "The repository can't be found.",
+      "tooLarge": "The diff is too large to show.",
+      "timeout": "Git took too long to produce the diff.",
+      "tooMany": "This session has too many worktree agents to diff them all.",
+      "noBase": "There's no base branch to compare with.",
+      "failed": "The diff couldn't be computed."
+    }
   }
 }

@@ -56,6 +56,61 @@ export type BeekeeperPaneView = {
   refreshedAtMs: number
 }
 
+/** One changed file of a worktree branch. */
+export type BeekeeperDiffFile = {
+  path: string
+  oldPath: string | null
+  /** Lines added, or `null` for a binary file. */
+  added: number | null
+  deleted: number | null
+}
+
+/** The selected agent's worktree diff, or why there isn't one. */
+export type BeekeeperDiffs = {
+  sessionId: string
+  key: string
+  status: 'loading' | 'ready' | 'error' | 'none'
+  errorCode:
+    | 'invalid-request'
+    | 'untrusted-sender'
+    | 'not-found'
+    | 'unreadable'
+    | 'internal'
+    | 'too-old'
+    | 'start-failed'
+    | null
+  git: 'ok' | 'git-not-found' | 'git-too-old' | null
+  result:
+    | {
+        ok: true
+        uncommitted: 'included' | 'no-worktree' | 'skipped-filters' | 'worktree-mismatch'
+        files: readonly BeekeeperDiffFile[]
+        fileCount: number
+        untracked: readonly string[]
+        untrackedCount: number
+      }
+    | {
+        ok: false
+        code:
+          | 'invalid-ref'
+          | 'invalid-path'
+          | 'branch-not-found'
+          | 'git-failed'
+          | 'no-common-ancestor'
+          | 'malformed-numstat'
+          | 'output-too-large'
+          | 'timeout'
+          | 'spawn-failed'
+          | 'repo-missing'
+          | 'not-a-repo'
+          | 'outside-project'
+          | 'no-base'
+          | 'too-many-agents'
+      }
+    | null
+  refreshedAtMs: number
+}
+
 /** Which screen the pane shows; a missing value is `current`. */
 export type BeekeeperNav =
   | { screen: 'current' }
@@ -103,6 +158,8 @@ declare module 'claude-code' {
       nav: BeekeeperNav
       /** The Browse screen's data, rebuilt by every Browse refresh. */
       browse: BeekeeperBrowseView
+      /** The selected agent's worktree diff, loaded by the refresher; `none` status when the selected node has no worktree. */
+      diffs: BeekeeperDiffs
     }
   }
 }

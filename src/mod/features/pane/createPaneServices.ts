@@ -2,6 +2,7 @@ import { createServiceDeps } from '../../../service/createServiceDeps'
 import { getSession } from '../../../service/sessionDetail/getSession'
 import { listProjects } from '../../../service/projects/listProjects'
 import { listSessions } from '../../../service/sessions/listSessions'
+import { getWorktreeDiffs } from '../../../service/worktrees/getWorktreeDiffs'
 import type { PaneServices } from '../shared/paneServices'
 
 /**
@@ -9,13 +10,14 @@ import type { PaneServices } from '../shared/paneServices'
  * once per projects folder and keep it, so core's scan caches keep a refresh cheap.
  *
  * @param projectsRoot - The `~/.claude/projects` folder, absolute.
- * @returns The list, get and project calls.
+ * @returns The list, get, project and worktree diff calls.
  */
 export function createPaneServices(projectsRoot: string): PaneServices {
   const deps = createServiceDeps(projectsRoot)
   return {
     listSessions: (request) => listSessions(deps, request),
     getSession: (request) => getSession(deps, request),
-    listProjects: () => listProjects(deps)
+    listProjects: () => listProjects(deps),
+    getWorktreeDiffs: (request) => getWorktreeDiffs(deps, request)
   }
 }

@@ -34,6 +34,7 @@ function draw(options: { view?: PaneView; nav?: PaneNav; browse?: BrowseView }):
     onSelect: vi.fn(),
     nav: options.nav,
     browse: options.browse,
+    diffs: undefined,
     onNav: vi.fn(),
     onPickProject: vi.fn(),
     columns: undefined

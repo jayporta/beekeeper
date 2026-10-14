@@ -1,4 +1,4 @@
-import type { WorktreeDiffCodeDto } from '../../../../../shared/ipc/worktreeDiffDto'
+import type { WorktreeDiffCodeDto } from '../ipc/worktreeDiffDto'
 
 /** The note shown for a diff that couldn't be computed, by what the person can do about it. */
 export type DiffFailureKey =

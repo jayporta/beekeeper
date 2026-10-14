@@ -4,9 +4,9 @@ import type {
   WorktreeDiffsDto
 } from '../../../../../shared/ipc/worktreeDiffDto'
 import { MutedText } from '@renderer/components/MutedText'
-import { diffFailureKey } from './diffFailureKey'
+import { diffFailureKey } from '../../../../../shared/worktrees/diffFailureKey'
 import { summarizeNumstat } from './summarizeNumstat'
-import { uncommittedNoteKey } from './uncommittedNoteKey'
+import { uncommittedNoteKey } from '../../../../../shared/worktrees/uncommittedNoteKey'
 import styles from './WorktreeDiffResult.module.css'
 
 /** Props for {@link WorktreeDiffResult}. */

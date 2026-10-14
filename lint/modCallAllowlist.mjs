@@ -56,7 +56,9 @@ export const MOD_ALLOWLIST = Object.freeze({
     // Which screen the pane shows; read by the refresher to pick its target.
     'beekeeper.nav',
     // The Browse screen's data, read while drawing.
-    'beekeeper.browse'
+    'beekeeper.browse',
+    // The selected agent's worktree diff, read while drawing.
+    'beekeeper.diffs'
   ]),
   stateWrites: Object.freeze([
     'beekeeper.view',
@@ -64,7 +66,9 @@ export const MOD_ALLOWLIST = Object.freeze({
     // Written only by the pane's press handlers.
     'beekeeper.nav',
     // Written by the refresher with the Browse screen's data.
-    'beekeeper.browse'
+    'beekeeper.browse',
+    // Written by the refresher with the selected agent's worktree diff.
+    'beekeeper.diffs'
   ]),
   envReads: Object.freeze([
     // The home folder, for ~/.claude.

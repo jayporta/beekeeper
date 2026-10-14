@@ -1,5 +1,6 @@
 import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
 import { createBrowseRefresher } from '../browse/createBrowseRefresher'
+import { createDiffsRefresher } from '../diffs/createDiffsRefresher'
 import { startMod, type StartOutcome } from '../start/startMod'
 import { createPaneServices } from './createPaneServices'
 import { contentKey } from '../shared/contentKey'
@@ -145,6 +146,25 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
     return { sessionId, sessionRoot, nowMs, outcome: started ?? (await startNow(sessionRoot)) }
   }
 
+  const diffs = createDiffsRefresher({ writeDiffs: (value) => pane.writeDiffs(value), log })
+
+  /** Loads the selected agent's worktree diff for a built session view. A stored selection that can't be read is none. */
+  async function loadDiffs(view: PaneView): Promise<void> {
+    if (services === null) return
+    let selected = null
+    try {
+      selected = await pane.selected()
+    } catch {
+      selected = null
+    }
+    await diffs.refresh({
+      services: services.value,
+      view,
+      selected,
+      nowMs: view.refreshedAtMs
+    })
+  }
+
   async function build(withList: boolean, nav: PaneNav | undefined): Promise<PaneView> {
     const { sessionId: currentId, sessionRoot, nowMs, outcome } = await readSession()
     const { ref: wanted, target } = targetOf(nav, { projectDirName: '', sessionId: currentId })
@@ -214,6 +234,8 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
         nowMs: 0
       })
     }
+    // Before the view's early returns: a row press changes the diff without changing the view.
+    await loadDiffs(view)
     const key = contentKey(view)
     if (key === lastKey) return
     try {
@@ -229,6 +251,7 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
   const forgetStored = (): void => {
     lastKey = null
     browse.forgetStored()
+    diffs.forgetStored()
   }
 
   return {

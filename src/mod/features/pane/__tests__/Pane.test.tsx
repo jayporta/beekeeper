@@ -30,6 +30,7 @@ function draw(
     onSelect: options.onSelect ?? (() => {}),
     nav: undefined,
     browse: undefined,
+    diffs: undefined,
     onNav: () => {},
     onPickProject: () => {},
     columns: options.columns

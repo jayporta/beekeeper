@@ -256,3 +256,49 @@ describe('the pane nav', () => {
     })
   })
 })
+
+describe('the pane selection', () => {
+  const SELECTED = { plugin: 'beekeeper', key: 'selected' }
+
+  it('stores the selection and asks for a refresh at once when a row is pressed', async () => {
+    const { engine, run, render } = harness({
+      panes: [],
+      state: { 'beekeeper.view': testPaneView(testPaneNode('lead')) }
+    })
+    await run('session.start')
+    const before = engine.timers.length
+
+    const props = await render()
+    await (props['onSelect'] as (key: string) => Promise<void>)('sub:a1')
+
+    expect(
+      engine.calls
+        .filter(
+          (call) =>
+            call.name === 'state.set' && JSON.stringify(call.args[0]) === JSON.stringify(SELECTED)
+        )
+        .map((call) => call.args[1])
+    ).toEqual([{ sessionId: 's1', key: 'sub:a1' }])
+    expect(engine.timers.slice(before).map((timer) => [timer.kind, timer.ms])).toEqual([
+      ['after', 0]
+    ])
+  })
+
+  it('stores the selection and builds no timers when no other hook has run', async () => {
+    const { engine, render } = harness({
+      state: { 'beekeeper.view': testPaneView(testPaneNode('lead')) }
+    })
+
+    const props = await render()
+    await (props['onSelect'] as (key: string) => Promise<void>)('sub:a1')
+
+    expect(engine.timers).toEqual([])
+  })
+
+  it('hands the pane the stored diff', async () => {
+    const diffs = { sessionId: 's1', key: 'lead', status: 'none' }
+    const { render } = harness({ state: { 'beekeeper.diffs': diffs } })
+
+    expect((await render())['diffs']).toEqual(diffs)
+  })
+})

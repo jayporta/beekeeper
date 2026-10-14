@@ -1,5 +1,6 @@
 import { BrowseScreen } from '../browse/BrowseScreen'
 import type { BrowseView } from '../browse/browseView'
+import type { PaneDiffs } from '../diffs/paneDiffs'
 import { NavRow } from './NavRow'
 import type { PaneElements } from '../shared/paneElements'
 import type { PaneNav } from '../shared/paneNav'
@@ -23,6 +24,8 @@ interface PaneProps {
   readonly nav: PaneNav | undefined
   /** The Browse view in state, or `undefined` before Browse has built one. */
   readonly browse: BrowseView | undefined
+  /** The stored worktree diff of the selected agent, or `undefined` before any. */
+  readonly diffs: PaneDiffs | undefined
   /** Stores the nav; runs when a nav button or a session row is pressed. */
   readonly onNav: (nav: PaneNav) => void | Promise<void>
   /** Opens Browse on a project; runs when a project is picked. */
@@ -41,18 +44,18 @@ function isViewOf(nav: PaneNav, view: PaneView | undefined): view is PaneView {
 /**
  * The pane: a nav row, then the screen the nav names: the Browse screen, or a session's name
  * and token total, its agents as a tree of pressable rows, and the selected agent's changed
- * files. Everything comes from stored views, so drawing never reads a transcript. A view of
+ * files and worktree diff. Everything comes from stored views, so drawing never reads a transcript. A view of
  * another session than the nav shows draws as loading.
  *
  * @param props - The elements, the stored views and selection, the nav and the handlers.
  * @returns The tree the `ui.render` hook returns.
  * @example
  * on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) =>
- *   Pane({ elements: $.ui.resolve(e), view, selected, onSelect, nav, browse, onNav, onPickProject })
+ *   Pane({ elements: $.ui.resolve(e), view, selected, onSelect, nav, browse, diffs, onNav, onPickProject })
  * )
  */
 export function Pane(props: PaneProps): object {
-  const { elements, view, selected, onSelect, browse, onNav, onPickProject, columns } = props
+  const { elements, view, selected, onSelect, browse, diffs, onNav, onPickProject, columns } = props
   const { Box } = elements
   const nav: PaneNav = props.nav ?? { screen: 'current' }
   return (
@@ -65,6 +68,7 @@ export function Pane(props: PaneProps): object {
             view: isViewOf(nav, view) ? view : undefined,
             selected,
             onSelect,
+            diffs,
             isBrowsed: nav.screen === 'session',
             columns
           })}
