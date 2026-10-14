@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { PaneNav } from '../features/pane/paneNav'
+import type { PaneNav } from '../features/shared/paneNav'
 import { testPaneNode, testPaneView } from '../features/pane/testPaneView'
 import { createTestEngine, type TestEngineAnswers } from '../testEngine'
 import { createNext } from '../testNext'
@@ -114,6 +114,52 @@ describe('the pane nav', () => {
 
     expect(navWrites(engine)).toHaveLength(1)
     expect(engine.timers).toEqual([])
+  })
+
+  it("writes a loading Browse view when Browse is opened from another screen, so the last project's rows are not shown as current", async () => {
+    const { engine, run, render } = harness({
+      panes: [],
+      state: { 'beekeeper.view': testPaneView(testPaneNode('lead')) }
+    })
+    await run('session.start')
+
+    const props = await render()
+    await (props['onNav'] as (nav: PaneNav) => Promise<void>)(BROWSE)
+
+    const browseWrites = engine.calls.filter(
+      (call) => call.name === 'state.set' && JSON.stringify(call.args[0]).includes('browse')
+    )
+    expect(browseWrites.map((call) => call.args[1])).toEqual([
+      expect.objectContaining({ status: 'loading', rows: [] })
+    ])
+  })
+
+  it('writes no loading Browse view for a nav that stays on Browse', async () => {
+    const { engine, render } = harness({
+      state: { 'beekeeper.nav': BROWSE, 'beekeeper.view': testPaneView(testPaneNode('lead')) }
+    })
+
+    const props = await render()
+    await (props['onPickProject'] as (dirName: string) => Promise<void>)('-q')
+
+    expect(
+      engine.calls.filter(
+        (call) => call.name === 'state.set' && JSON.stringify(call.args[0]).includes('browse')
+      )
+    ).toEqual([])
+  })
+
+  it('hands the pane the width of its body', async () => {
+    const { run } = harness()
+
+    await run('ui.render', {
+      surface: 'terminal',
+      component: 'Pane',
+      requestId: 'beekeeper',
+      props: { title: 'beekeeper', isFocused: true, bodyColumns: 72 }
+    })
+
+    expect(drawn.props?.['columns']).toBe(72)
   })
 
   it('writes the nav only from the nav and pick handlers, whatever hooks and timers run', async () => {

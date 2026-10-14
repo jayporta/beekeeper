@@ -1,6 +1,6 @@
 import type { AgentCountWords } from '../../../shared/sessions/agentCountLabel'
 import type { SessionLabelWords } from '../../../shared/sessions/sessionLabel'
-import { PANE_WORDS } from '../pane/paneWords'
+import { PANE_WORDS } from '../shared/paneWords'
 import { t } from '../../i18n/modI18n'
 
 /** The words the Browse data uses to name sessions and count agents. */

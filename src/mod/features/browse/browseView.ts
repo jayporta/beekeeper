@@ -1,5 +1,5 @@
 import type { SessionRefDto } from '../../../shared/ipc/sessionRefDto'
-import type { PaneErrorCode } from '../pane/paneView'
+import type { PaneErrorCode } from '../shared/paneErrorCode'
 
 /** How many rows, leads and teammates together, the Browse screen keeps. The rest are counted. */
 export const MAX_BROWSE_ROWS = 100

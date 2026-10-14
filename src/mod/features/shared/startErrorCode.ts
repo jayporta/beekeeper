@@ -1,5 +1,5 @@
 import type { StartOutcome } from '../start/startMod'
-import type { PaneErrorCode } from './paneView'
+import type { PaneErrorCode } from './paneErrorCode'
 
 /**
  * The code a view carries when the mod did not start.

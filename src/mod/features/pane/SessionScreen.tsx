@@ -1,6 +1,6 @@
 import { t } from '../../i18n/modI18n'
-import { errorLine } from './errorLine'
-import type { PaneElements } from './paneElements'
+import { errorLine } from '../shared/errorLine'
+import type { PaneElements } from '../shared/paneElements'
 import { PaneFiles } from './PaneFiles'
 import { PaneRow } from './PaneRow'
 import { flattenPaneTree } from './paneTree'
@@ -40,6 +40,8 @@ interface SessionScreenProps {
   readonly onSelect: (key: string) => void | Promise<void>
   /** Whether the session is one the person browsed to, which the title says in words. */
   readonly isBrowsed: boolean
+  /** The pane's body width in columns, or `undefined` when it is unknown, which names are cut to. */
+  readonly columns: number | undefined
 }
 
 /**
@@ -54,7 +56,8 @@ export function SessionScreen({
   view,
   selected,
   onSelect,
-  isBrowsed
+  isBrowsed,
+  columns
 }: SessionScreenProps): object {
   const { Box, Text } = elements
   if (view === undefined || view.status !== 'ready' || view.root === null) {
@@ -79,7 +82,8 @@ export function SessionScreen({
           node,
           depth,
           isSelected: node.key === current.key,
-          onSelect: () => onSelect(node.key)
+          onSelect: () => onSelect(node.key),
+          columns
         })
       )}
       {PaneFiles({ elements, node: current })}

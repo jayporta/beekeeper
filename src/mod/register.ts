@@ -10,6 +10,7 @@ import {
   type PaneRefresher,
   type PaneSelection,
   type PaneScheduler,
+  emptyBrowseView,
   type BrowseView,
   type PaneNav,
   type PaneView,
@@ -190,9 +191,14 @@ async function drawPane($: Engine, e: PaneRenderInput): Promise<object> {
       if (view !== undefined) await $.state.set(SELECTED, { sessionId: view.sessionId, key })
     },
     onNav: async (next) => {
+      // Opening Browse from another screen must not show the last project's rows as current.
+      if (next.screen === 'browse' && nav?.screen !== 'browse') {
+        await $.state.set(BROWSE, emptyBrowseView({ status: 'loading', refreshedAtMs: 0 }))
+      }
       await $.state.set(NAV, next)
       refreshForNav()
     },
+    columns: e.props.bodyColumns,
     onPickProject: async (dirName) => {
       await $.state.set(NAV, { screen: 'browse', projectDirName: dirName })
       refreshForNav()

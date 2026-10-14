@@ -1,12 +1,12 @@
 import { BrowseScreen } from '../browse/BrowseScreen'
 import type { BrowseView } from '../browse/browseView'
 import { NavRow } from './NavRow'
-import type { PaneElements } from './paneElements'
-import type { PaneNav } from './paneNav'
+import type { PaneElements } from '../shared/paneElements'
+import type { PaneNav } from '../shared/paneNav'
 import type { PaneView } from './paneView'
 import { SessionScreen, type PaneSelection } from './SessionScreen'
 
-export type { PaneElements } from './paneElements'
+export type { PaneElements } from '../shared/paneElements'
 export type { PaneSelection } from './SessionScreen'
 
 /** Props of {@link Pane}. */
@@ -27,6 +27,8 @@ interface PaneProps {
   readonly onNav: (nav: PaneNav) => void | Promise<void>
   /** Opens Browse on a project; runs when a project is picked. */
   readonly onPickProject: (dirName: string) => void | Promise<void>
+  /** The pane's body width in columns, or `undefined` when it is unknown. */
+  readonly columns: number | undefined
 }
 
 /** Whether the stored view is of what the nav shows: the engine's own session, or the browsed one. */
@@ -50,20 +52,21 @@ function isViewOf(nav: PaneNav, view: PaneView | undefined): view is PaneView {
  * )
  */
 export function Pane(props: PaneProps): object {
-  const { elements, view, selected, onSelect, browse, onNav, onPickProject } = props
+  const { elements, view, selected, onSelect, browse, onNav, onPickProject, columns } = props
   const { Box } = elements
   const nav: PaneNav = props.nav ?? { screen: 'current' }
   return (
     <Box flexDirection="column">
       {NavRow({ elements, nav, onNav })}
       {nav.screen === 'browse'
-        ? BrowseScreen({ elements, browse, nav, onNav, onPickProject })
+        ? BrowseScreen({ elements, browse, nav, onNav, onPickProject, columns })
         : SessionScreen({
             elements,
             view: isViewOf(nav, view) ? view : undefined,
             selected,
             onSelect,
-            isBrowsed: nav.screen === 'session'
+            isBrowsed: nav.screen === 'session',
+            columns
           })}
     </Box>
   )

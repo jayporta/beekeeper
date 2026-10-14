@@ -5,7 +5,7 @@ import {
   makeTestElements,
   removeTestH,
   textOf
-} from '../../pane/testElements'
+} from '../../shared/testElements'
 import type { BrowseRow, BrowseView } from '../browseView'
 import { BrowseScreen } from '../BrowseScreen'
 
@@ -44,6 +44,7 @@ function draw(
     nav?: { screen: 'browse'; projectDirName: string | null }
     onNav?: () => void
     onPickProject?: (dirName: string) => void
+    columns?: number
   } = {}
 ): { tree: unknown; elements: ReturnType<typeof makeTestElements> } {
   const elements = makeTestElements({ hasSelect: options.hasSelect ?? true })
@@ -52,7 +53,8 @@ function draw(
     browse,
     nav: options.nav ?? BROWSE_NAV,
     onNav: options.onNav ?? vi.fn(),
-    onPickProject: options.onPickProject ?? vi.fn()
+    onPickProject: options.onPickProject ?? vi.fn(),
+    columns: options.columns
   })
   return { tree, elements }
 }
@@ -107,6 +109,26 @@ describe('BrowseScreen', () => {
       expect(text.length).toBeLessThan(150)
       expect(text).toContain('1.2K tokens')
       expect(text).toContain('…')
+    })
+
+    it("cuts a long label to the pane's width, keeping the facts and the teammate prefix", () => {
+      const long = row(1, { label: 'x'.repeat(500), depth: 1 })
+      const { tree, elements } = draw(view({ rows: [long] }), { columns: 90 })
+
+      const text = textOf(findAll(tree, elements.Button)[0])
+      expect(text.length).toBeLessThanOrEqual(90)
+      expect(text).toContain('Teammate: ')
+      expect(text).toContain('1.2K tokens')
+      expect(text).toContain('2 subagents')
+    })
+
+    it('says it is loading while the stored view is a loading one, whatever the nav names', () => {
+      const { tree, elements } = draw(view({ status: 'loading', rows: [] }), {
+        nav: { screen: 'browse', projectDirName: null }
+      })
+
+      expect(textOf(tree)).toContain('Loading the sessions.')
+      expect(findAll(tree, elements.Select)).toEqual([])
     })
 
     it('says a figure may be incomplete', () => {

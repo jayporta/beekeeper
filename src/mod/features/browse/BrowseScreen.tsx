@@ -1,7 +1,7 @@
 import { t } from '../../i18n/modI18n'
-import { errorLine } from '../pane/errorLine'
-import type { PaneElements } from '../pane/paneElements'
-import type { PaneNav } from '../pane/paneNav'
+import { errorLine } from '../shared/errorLine'
+import type { PaneElements } from '../shared/paneElements'
+import type { PaneNav } from '../shared/paneNav'
 import type { BrowseRow, BrowseView } from './browseView'
 import { BrowseRowButton } from './BrowseRowButton'
 import { ProjectPicker } from './ProjectPicker'
@@ -18,6 +18,8 @@ interface BrowseScreenProps {
   readonly onNav: (nav: PaneNav) => void | Promise<void>
   /** Opens Browse on a project; runs when one is picked. */
   readonly onPickProject: (dirName: string) => void | Promise<void>
+  /** The pane's body width in columns, or `undefined` when it is unknown. */
+  readonly columns: number | undefined
 }
 
 /** Whether the stored view is the one the nav asks for: a view of another project than the one the nav names is stale. */
@@ -39,7 +41,8 @@ export function BrowseScreen({
   browse,
   nav,
   onNav,
-  onPickProject
+  onPickProject,
+  columns
 }: BrowseScreenProps): object {
   const { Box, Text } = elements
   const openSession = (row: BrowseRow): void | Promise<void> =>
@@ -80,6 +83,7 @@ export function BrowseScreen({
         BrowseRowButton({
           elements,
           row,
+          columns,
           onOpen: () => openSession(row)
         })
       )}

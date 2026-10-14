@@ -1,4 +1,5 @@
-import type { PaneErrorCode, PaneStatus, PaneView } from './paneView'
+import type { PaneErrorCode } from '../shared/paneErrorCode'
+import type { PaneStatus, PaneView } from './paneView'
 
 /** What {@link emptyPaneView} needs. */
 interface EmptyPaneViewInput {

@@ -2,7 +2,7 @@ import { createServiceDeps } from '../../../service/createServiceDeps'
 import { getSession } from '../../../service/sessionDetail/getSession'
 import { listProjects } from '../../../service/projects/listProjects'
 import { listSessions } from '../../../service/sessions/listSessions'
-import type { PaneServices } from './refreshPane'
+import type { PaneServices } from '../shared/paneServices'
 
 /**
  * Builds the service calls a refresh makes, over one set of caches. Build it

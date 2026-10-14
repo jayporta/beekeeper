@@ -1,6 +1,6 @@
 import { t } from '../../i18n/modI18n'
 import { MINIMUM_CLAUDE_CODE } from '../start/minimumVersion'
-import type { PaneErrorCode } from './paneView'
+import type { PaneErrorCode } from './paneErrorCode'
 
 /**
  * The fixed line for a failure, by its code. Never a message from the failure itself.

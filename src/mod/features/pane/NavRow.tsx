@@ -1,6 +1,6 @@
 import { t } from '../../i18n/modI18n'
-import type { PaneElements } from './paneElements'
-import type { PaneNav } from './paneNav'
+import type { PaneElements } from '../shared/paneElements'
+import type { PaneNav } from '../shared/paneNav'
 
 /** Props of {@link NavRow}. */
 interface NavRowProps {
@@ -18,9 +18,15 @@ function browseProject(nav: PaneNav): string | null {
   return nav.screen === 'browse' ? nav.projectDirName : null
 }
 
+/** The name of the Browse button: marked as showing on Browse, and on a browsed session saying that it leaves the session. */
+function browseName(nav: PaneNav, browse: string): string {
+  if (nav.screen === 'browse') return t('nav.showing', { name: browse })
+  return nav.screen === 'session' ? t('nav.browseFromSession') : browse
+}
+
 /**
  * The row that leads every screen: `This session` and `Browse`, a word marking the one showing
- * rather than a color. On a browsed session `Browse` returns to the project it was opened from.
+ * rather than a color. On a browsed session `Browse` says it goes back to the session list, and returns to the project the session was opened from.
  *
  * @param props - The elements, the nav and the handler.
  * @returns The row.
@@ -38,7 +44,7 @@ export function NavRow({ elements, nav, onNav }: NavRowProps): object {
         <Text>{nav.screen === 'current' ? t('nav.showing', { name: current }) : current}</Text>
       </Button>
       <Button key="nav-browse" onPress={toBrowse}>
-        <Text>{nav.screen === 'current' ? browse : t('nav.showing', { name: browse })}</Text>
+        <Text>{browseName(nav, browse)}</Text>
       </Button>
     </Box>
   )

@@ -1,5 +1,5 @@
 import { t } from '../../i18n/modI18n'
-import type { PaneElements } from './paneElements'
+import type { PaneElements } from '../shared/paneElements'
 import type { PaneNode } from './paneView'
 
 /** What a tool did to a file, in a word. An operation the pane doesn't know reads as a change. */

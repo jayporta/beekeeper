@@ -1,7 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { NavRow } from '../NavRow'
-import type { PaneNav } from '../paneNav'
-import { findAll, installTestH, makeTestElements, removeTestH, textOf } from '../testElements'
+import type { PaneNav } from '../../shared/paneNav'
+import {
+  findAll,
+  installTestH,
+  makeTestElements,
+  removeTestH,
+  textOf
+} from '../../shared/testElements'
 
 const elements = makeTestElements()
 const buttons = (tree: unknown): { key: unknown; text: string; press: () => unknown }[] =>
@@ -43,16 +49,19 @@ describe('NavRow', () => {
     expect(browse.map((button) => button.text)).toEqual(['This session', 'Browse (showing)'])
   })
 
-  it('marks Browse as showing on a browsed session, which belongs to it', () => {
+  it('names where Browse goes on a browsed session, and does not mark it as showing', () => {
     const nav: PaneNav = {
       screen: 'session',
       ref: { projectDirName: '-p', sessionId: 's' },
       backTo: '-p'
     }
 
-    const texts = buttons(NavRow({ elements, nav, onNav: vi.fn() })).map((button) => button.text)
+    const buttonsDrawn = buttons(NavRow({ elements, nav, onNav: vi.fn() }))
 
-    expect(texts).toEqual(['This session', 'Browse (showing)'])
+    expect(buttonsDrawn.map((button) => [button.key, button.text])).toEqual([
+      ['nav-current', 'This session'],
+      ['nav-browse', 'Browse: back to the session list']
+    ])
   })
 
   it('opens Browse with no project from the current screen', async () => {

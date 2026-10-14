@@ -1,7 +1,4 @@
-import type { IpcErrorCode } from '../../../shared/ipc/ipcResult'
-
-/** Why a view has no tree: a service failure's code, or the mod's own when it can't start. */
-export type PaneErrorCode = IpcErrorCode | 'too-old' | 'start-failed'
+import type { PaneErrorCode } from '../shared/paneErrorCode'
 
 /** One changed file of an agent. */
 export interface PaneFile {

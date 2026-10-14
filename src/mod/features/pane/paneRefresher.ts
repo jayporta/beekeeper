@@ -2,18 +2,19 @@ import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
 import { createBrowseRefresher } from '../browse/createBrowseRefresher'
 import { startMod, type StartOutcome } from '../start/startMod'
 import { createPaneServices } from './createPaneServices'
-import { contentKey } from './contentKey'
+import { contentKey } from '../shared/contentKey'
 import { emptyPaneView } from './emptyPaneView'
 import { findSessionFolder } from './findSessionFolder'
 import { hasTeam } from './hasTeam'
-import { targetOf, type PaneNav } from './paneNav'
+import { targetOf, type PaneNav } from '../shared/paneNav'
 import type { PaneRefresher, PaneRefresherDeps } from './paneRefresherTypes'
 import type { PaneView } from './paneView'
 import { PLAIN_TICK_MS } from './paneScheduler'
-import { refreshPane, type PaneServices } from './refreshPane'
+import type { PaneServices } from '../shared/paneServices'
+import { refreshPane } from './refreshPane'
 
 export type { PaneHost, PaneRefresher, PaneRefresherDeps } from './paneRefresherTypes'
-import { startErrorCode } from './startErrorCode'
+import { startErrorCode } from '../shared/startErrorCode'
 
 /**
  * How long a session without a team goes between lists, a second under the plain tick so a tick

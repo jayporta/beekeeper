@@ -1,9 +1,9 @@
 import type { ModHost } from '../../modHost'
 import type { BrowseView } from '../browse/browseView'
 import type { StartOutcome } from '../start/startMod'
-import type { PaneNav } from './paneNav'
+import type { PaneNav } from '../shared/paneNav'
 import type { PaneView } from './paneView'
-import type { PaneServices } from './refreshPane'
+import type { PaneServices } from '../shared/paneServices'
 
 /** The engine calls the pane's refresh makes, as closures so lib never sees `$`. */
 export interface PaneHost {

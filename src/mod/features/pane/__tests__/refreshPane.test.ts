@@ -17,7 +17,7 @@ import {
 } from '../../../../shared/sessions/testSessionFixtures'
 import type { PaneNode } from '../paneView'
 import { refreshPane } from '../refreshPane'
-import { testPaneServices } from '../testPaneServices'
+import { testPaneServices } from '../../shared/testPaneServices'
 
 const REF = testRef(1)
 const NOW = 5000

@@ -1,6 +1,6 @@
 import { t } from '../../i18n/modI18n'
-import { cutLabel } from '../pane/cutLabel'
-import type { PaneElements } from '../pane/paneElements'
+import { cutLabel, labelRoom } from '../shared/cutLabel'
+import type { PaneElements } from '../shared/paneElements'
 import type { BrowseRow } from './browseView'
 
 /** The facts about a session as words, most important first, since a long row is cut at its end. */
@@ -22,6 +22,8 @@ interface BrowseRowButtonProps {
   readonly row: BrowseRow
   /** Runs when the row is pressed. */
   readonly onOpen: () => void | Promise<void>
+  /** The pane's body width in columns, or `undefined` when it is unknown. */
+  readonly columns: number | undefined
 }
 
 /**
@@ -32,14 +34,19 @@ interface BrowseRowButtonProps {
  * @param props - The elements, the row and the press handler.
  * @returns The row.
  */
-export function BrowseRowButton({ elements, row, onOpen }: BrowseRowButtonProps): object {
+export function BrowseRowButton({ elements, row, onOpen, columns }: BrowseRowButtonProps): object {
   const { Button, Text } = elements
   const summary = facts(row)
+  const prefix = row.depth === 1 ? `  ${t('row.kind.teammate')}` : ''
+  const room = labelRoom({
+    columns,
+    reserved: prefix.length + (summary === '' ? 0 : 2 + summary.length)
+  })
   return (
     <Button key={`browse:${row.key}`} onPress={onOpen}>
       <Text wrap="truncate-end">
-        {row.depth === 1 ? `  ${t('row.kind.teammate')}` : ''}
-        {cutLabel(row.label)}
+        {prefix}
+        {cutLabel(row.label, room)}
         {summary === '' ? '' : `  ${summary}`}
       </Text>
     </Button>

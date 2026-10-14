@@ -1,9 +1,15 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { BrowseView } from '../../browse/browseView'
 import { Pane } from '../Pane'
-import type { PaneNav } from '../paneNav'
+import type { PaneNav } from '../../shared/paneNav'
 import type { PaneView } from '../paneView'
-import { findAll, installTestH, makeTestElements, removeTestH, textOf } from '../testElements'
+import {
+  findAll,
+  installTestH,
+  makeTestElements,
+  removeTestH,
+  textOf
+} from '../../shared/testElements'
 import { testPaneNode, testPaneView } from '../testPaneView'
 
 const elements = makeTestElements()
@@ -29,7 +35,8 @@ function draw(options: { view?: PaneView; nav?: PaneNav; browse?: BrowseView }):
     nav: options.nav,
     browse: options.browse,
     onNav: vi.fn(),
-    onPickProject: vi.fn()
+    onPickProject: vi.fn(),
+    columns: undefined
   })
 }
 

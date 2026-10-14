@@ -1,11 +1,12 @@
 import type { ProjectDto } from '../../../shared/ipc/projectDto'
-import { contentKey } from '../pane/contentKey'
-import type { PaneServices } from '../pane/refreshPane'
-import { startErrorCode } from '../pane/startErrorCode'
+import { contentKey } from '../shared/contentKey'
+import type { PaneServices } from '../shared/paneServices'
+import { startErrorCode } from '../shared/startErrorCode'
 import type { StartOutcome } from '../start/startMod'
-import type { BrowseView } from './browseView'
+import type { BrowseProject, BrowseView } from './browseView'
 import { BROWSE_WORDS } from './browseWords'
 import { emptyBrowseView } from './emptyBrowseView'
+import { browseProjects } from './toBrowseView'
 import { refreshBrowse } from './refreshBrowse'
 
 /** What {@link createBrowseRefresher} works through. */
@@ -71,9 +72,19 @@ export function createBrowseRefresher(deps: BrowseRefresherDeps): BrowseRefreshe
     return true
   }
 
+  /** The picker options for the projects held, so an error screen can still pick another project. */
+  const heldProjects = (): readonly BrowseProject[] =>
+    projects === null ? [] : browseProjects(projects)
+
   async function fail(projectDirName: string | null): Promise<void> {
     await write(
-      emptyBrowseView({ status: 'error', errorCode: 'internal', projectDirName, refreshedAtMs: 0 })
+      emptyBrowseView({
+        status: 'error',
+        errorCode: 'internal',
+        projects: heldProjects(),
+        projectDirName,
+        refreshedAtMs: 0
+      })
     )
   }
 
@@ -84,6 +95,8 @@ export function createBrowseRefresher(deps: BrowseRefresherDeps): BrowseRefreshe
         emptyBrowseView({
           status: 'error',
           errorCode: startErrorCode(outcome),
+          projects: heldProjects(),
+          projectDirName: request.projectDirName ?? shown,
           refreshedAtMs: nowMs
         })
       )

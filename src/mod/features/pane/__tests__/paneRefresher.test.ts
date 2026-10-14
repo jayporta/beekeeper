@@ -13,11 +13,11 @@ import type { StartOutcome } from '../../start/startMod'
 import type { ProjectDto } from '../../../../shared/ipc/projectDto'
 import { testProject } from '../../../../shared/projects/testProject'
 import type { BrowseView } from '../../browse/browseView'
-import type { PaneNav } from '../paneNav'
+import type { PaneNav } from '../../shared/paneNav'
 import { PLAIN_TICK_MS } from '../paneScheduler'
 import { createPaneRefresher, type PaneHost } from '../paneRefresher'
 import type { PaneView } from '../paneView'
-import { testPaneServices, type TestPaneServices } from '../testPaneServices'
+import { testPaneServices, type TestPaneServices } from '../../shared/testPaneServices'
 
 const ROOT = '/home/u/.claude/projects'
 const ID = testSessionId(1)
@@ -480,6 +480,36 @@ describe('createPaneRefresher', () => {
       await refresher.refresh({ withList: true })
 
       expect(browsed[0]).toMatchObject({ status: 'error', errorCode: 'start-failed' })
+    })
+
+    it('keeps the picked project in the error view when the mod could not start', async () => {
+      const { browsed, refresher } = setup({
+        nav: { screen: 'browse', projectDirName: '-q' },
+        start: { kind: 'failed' }
+      })
+
+      await refresher.refresh({ withList: true })
+
+      expect(browsed[0]).toMatchObject({ errorCode: 'start-failed', projectDirName: '-q' })
+    })
+
+    it('keeps the held projects in the error view when a later refresh fails', async () => {
+      let broken = false
+      const { browsed, refresher } = setup({
+        nav: browse,
+        projects: [testProject('-p'), testProject('-q')],
+        sessionId: async () => {
+          if (broken) throw new Error('secret')
+          return ID
+        }
+      })
+
+      await refresher.refresh({ withList: true })
+      broken = true
+      await refresher.refresh({ withList: true })
+
+      expect(browsed.at(-1)).toMatchObject({ status: 'error', errorCode: 'internal' })
+      expect(browsed.at(-1)?.projects).toHaveLength(2)
     })
 
     it('wants the list tick', async () => {

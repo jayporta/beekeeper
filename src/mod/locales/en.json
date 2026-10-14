@@ -85,7 +85,8 @@
   "nav": {
     "current": "This session",
     "showing": "{{name}} (showing)",
-    "browse": "Browse"
+    "browse": "Browse",
+    "browseFromSession": "Browse: back to the session list"
   },
   "browse": {
     "loading": "Loading the sessions.",

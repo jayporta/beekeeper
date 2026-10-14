@@ -1,32 +1,19 @@
 import { buildAgentGraph } from '../../../shared/agentGraph/buildAgentGraph'
-import type { IpcErrorCode, IpcResult } from '../../../shared/ipc/ipcResult'
+import type { IpcErrorCode } from '../../../shared/ipc/ipcResult'
 import {
   getSessionRequestSchema,
-  listSessionsRequestSchema,
-  type GetSessionRequest,
-  type ListSessionsRequest
+  listSessionsRequestSchema
 } from '../../../shared/ipc/requestSchemas'
-import type { ProjectDto } from '../../../shared/ipc/projectDto'
-import type { SessionDetailDto } from '../../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
 import type { SessionRefDto } from '../../../shared/ipc/sessionRefDto'
 import { findSessionRow } from '../../../shared/sessions/findSessionRow'
 import { groupSessionRows } from '../../../shared/sessions/groupSessionRows'
 import { shortId } from '../../../shared/sessions/sessionLabel'
+import type { PaneServices } from '../shared/paneServices'
 import { emptyPaneView } from './emptyPaneView'
-import { PANE_WORDS } from './paneWords'
+import { PANE_WORDS } from '../shared/paneWords'
 import type { PaneView } from './paneView'
 import { toPaneView } from './toPaneView'
-
-/** The service calls a refresh makes. */
-export interface PaneServices {
-  /** `listSessions` for a project folder. */
-  listSessions(request: ListSessionsRequest): Promise<IpcResult<readonly SessionListItemDto[]>>
-  /** `getSession` for one session. */
-  getSession(request: GetSessionRequest): Promise<IpcResult<SessionDetailDto>>
-  /** `listProjects`: the project folders, for Browse. */
-  listProjects(): Promise<IpcResult<readonly ProjectDto[]>>
-}
 
 /** What {@link refreshPane} needs. */
 export interface RefreshPaneInput {

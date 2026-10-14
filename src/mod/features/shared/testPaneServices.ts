@@ -2,7 +2,7 @@ import type { IpcResult } from '../../../shared/ipc/ipcResult'
 import type { ProjectDto } from '../../../shared/ipc/projectDto'
 import type { SessionDetailDto } from '../../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
-import type { PaneServices } from './refreshPane'
+import type { PaneServices } from './paneServices'
 
 /** A fake {@link PaneServices} that records its calls. */
 export interface TestPaneServices extends PaneServices {

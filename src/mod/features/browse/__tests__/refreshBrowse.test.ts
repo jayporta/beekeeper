@@ -4,7 +4,7 @@ import { testAgentCountWords } from '../../../../shared/sessions/testAgentCountW
 import { testSessionLabelWords } from '../../../../shared/sessions/testSessionLabelWords'
 import { testSession } from '../../../../shared/sessions/testSessionFixtures'
 import { testProject } from '../../../../shared/projects/testProject'
-import { testPaneServices } from '../../pane/testPaneServices'
+import { testPaneServices } from '../../shared/testPaneServices'
 import type { BrowseView } from '../browseView'
 import { refreshBrowse, type RefreshBrowseInput } from '../refreshBrowse'
 

@@ -7,7 +7,7 @@ import type {
 } from '../../../../../mod/types/index'
 import type { PaneSelection } from '../Pane'
 import type { BrowseView } from '../../browse/browseView'
-import type { PaneNav } from '../paneNav'
+import type { PaneNav } from '../../shared/paneNav'
 import type { PaneView } from '../paneView'
 
 describe('the $.state contract', () => {

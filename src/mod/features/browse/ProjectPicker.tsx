@@ -1,5 +1,5 @@
 import { t } from '../../i18n/modI18n'
-import type { PaneElements } from '../pane/paneElements'
+import type { PaneElements } from '../shared/paneElements'
 import type { BrowseProject } from './browseView'
 
 /** Props of {@link ProjectPicker}. */
