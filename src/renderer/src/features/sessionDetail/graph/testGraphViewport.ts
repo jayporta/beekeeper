@@ -123,26 +123,3 @@ export function modelScrollClamp({ deferEvents = false }: ScrollClampOptions = {
     if (clamped) fireScroll()
   }
 }
-
-const realComputedStyle = window.getComputedStyle.bind(window)
-
-/**
- * Gives the rendered view a bottom scroll padding, the room the zoom controls
- * cover, since jsdom doesn't apply the stylesheet. Call it after rendering.
- *
- * @param pixels - The scroll padding below the view's content.
- */
-export function stubControlsClearance(pixels: number): void {
-  const view = viewport()
-  vi.spyOn(window, 'getComputedStyle').mockImplementation((element, pseudo) => {
-    const style = realComputedStyle(element, pseudo)
-    if (element !== view) return style
-    return new Proxy(style, {
-      get: (target, property) => {
-        if (property === 'scrollPaddingBottom') return `${pixels}px`
-        const value: unknown = Reflect.get(target, property)
-        return typeof value === 'function' ? value.bind(target) : value
-      }
-    })
-  })
-}

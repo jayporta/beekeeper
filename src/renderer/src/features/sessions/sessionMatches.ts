@@ -86,7 +86,7 @@ export interface SessionMatch {
  * the session's own workflow runs that matches, else the first of its own
  * subagents, when nothing else on the card does. A run wins over a subagent
  * because its name stands for the whole run. A match on the session's label,
- * or on a teammate (which the card's chips show), needs no further note.
+ * or on a teammate (which the card's teammate rows show), needs no further note.
  *
  * @param row - The top-level row to test.
  * @param needle - Search text from {@link normalizeQuery}.

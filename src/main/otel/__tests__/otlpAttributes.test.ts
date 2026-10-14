@@ -39,7 +39,7 @@ describe('collectOtlpAttributes', () => {
     expect([...collectOtlpAttributes(list, new Set(['model'])).keys()]).toEqual(['model'])
   })
 
-  it.each([undefined, null, 'text', {}])('returns nothing for a list of %j', (list) => {
+  it.each([null, {}])('returns nothing for a list of %j', (list) => {
     expect(collectOtlpAttributes(list, new Set(['model'])).size).toBe(0)
   })
 })

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { InspectorList } from './InspectorList'
+import { Pill } from '@renderer/components/Pill'
 import { InspectorMarker } from './InspectorMarker'
 import styles from './InspectorFlags.module.css'
 
@@ -12,7 +12,7 @@ interface InspectorFlagsProps {
 }
 
 /**
- * Accent tags for what is notable about the agent: that it was stopped, and
+ * Warning pills for what is notable about the agent: that it was stopped, and
  * that its transcript is partial. It renders nothing when neither applies.
  *
  * @example
@@ -26,14 +26,20 @@ export function InspectorFlags({
   if (!stopped && !partial) return null
 
   return (
-    <InspectorList className={styles.flags}>
-      {stopped && <li className={styles.flag}>{t('inspector.flags.stopped')}</li>}
-      {partial && (
-        <li className={styles.flag}>
-          {t('inspector.flags.partial')}
-          <InspectorMarker />
+    <ul className={styles.flags}>
+      {stopped && (
+        <li>
+          <Pill tone="warning">{t('inspector.flags.stopped')}</Pill>
         </li>
       )}
-    </InspectorList>
+      {partial && (
+        <li>
+          <Pill tone="warning">
+            {t('inspector.flags.partial')}
+            <InspectorMarker />
+          </Pill>
+        </li>
+      )}
+    </ul>
   )
 }

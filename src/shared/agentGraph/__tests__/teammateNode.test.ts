@@ -39,11 +39,15 @@ describe('teammateNode marks', () => {
   it('counts the tool errors and compactions in the teammate session summary', () => {
     const signals = { ...EMPTY_AGENT_SIGNALS_DTO, toolErrors: 3, compactions: 1 }
 
-    expect(nodeWith(0, { signals }).marks).toEqual({ toolErrors: 3, compactions: 1 })
+    expect(nodeWith(0, { signals }).marks).toEqual({
+      toolErrors: 3,
+      compactions: 1,
+      longestErrorStreak: 0
+    })
   })
 
   it('has zero marks, not none, for a teammate whose summary counts nothing', () => {
-    expect(nodeWith(0).marks).toEqual({ toolErrors: 0, compactions: 0 })
+    expect(nodeWith(0).marks).toEqual({ toolErrors: 0, compactions: 0, longestErrorStreak: 0 })
   })
 
   it('has no marks for a teammate whose summary could not be read', () => {

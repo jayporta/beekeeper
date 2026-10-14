@@ -1,5 +1,6 @@
-import { useRef, type CSSProperties } from 'react'
+import { useRef, type CSSProperties, type RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
+import { GraphCardHeader } from './GraphCardHeader'
 import { GRAPH_NOTES_ID } from './graphFootnoteId'
 import styles from './GraphViewport.module.css'
 import { GraphZoomControls } from './GraphZoomControls'
@@ -14,13 +15,18 @@ interface GraphViewportProps {
   readonly height: number
   /** The graph's edges and nodes, placed in a `width` by `height` box. */
   readonly children: React.ReactNode
+  /**
+   * A ref that holds the graph's region element, for code outside the graph that moves focus to a node.
+   * @defaultValue The viewport keeps its own.
+   */
+  readonly regionRef?: RefObject<HTMLDivElement | null>
 }
 
 /**
- * The window onto the graph: it scrolls, pans freely in every direction by
- * dragging its background, by the wheel and by trackpad (until only the smaller
- * of the graph and half the view stays in view), zooms with the controls at its bottom right and
- * with Ctrl or Cmd and the wheel, and fits the whole graph to its size on
+ * The graph card's header and the window onto the graph: the window scrolls,
+ * pans freely in every direction by dragging its background, by the wheel and
+ * by trackpad (until only the smaller of the graph and half the view stays in
+ * view), zooms with the controls in the header and with Ctrl or Cmd and the wheel, and fits the whole graph to its size on
  * request. The graph is scaled with a CSS transform, and its box is sized to
  * match with empty room on every side, so its scrolling range follows the zoom and the
  * graph can be panned past its edges. It is the graph's labelled region and a
@@ -30,13 +36,17 @@ interface GraphViewportProps {
  * @example
  * <GraphViewport width={476} height={346}>{nodes}</GraphViewport>
  */
-export function GraphViewport({ width, height, children }: GraphViewportProps): React.JSX.Element {
+export function GraphViewport({
+  width,
+  height,
+  children,
+  regionRef
+}: GraphViewportProps): React.JSX.Element {
   const { t } = useTranslation('sessionDetail')
-  const viewportRef = useRef<HTMLDivElement>(null)
+  const ownRef = useRef<HTMLDivElement>(null)
+  const viewportRef = regionRef ?? ownRef
   const { scale, slack, zoomOut, zoomIn, fit } = useGraphZoom(viewportRef, { width, height })
   const pan = useGraphPan(viewportRef)
-  // React types no custom properties, so the full-size height the view's styles read takes an assertion.
-  const viewportStyle = { '--graph-height': `${height}px` } as CSSProperties
   // React types no custom properties, so the scale the graph's styles read takes an assertion.
   const surfaceStyle = {
     width,
@@ -48,7 +58,10 @@ export function GraphViewport({ width, height, children }: GraphViewportProps): 
   } as CSSProperties
 
   return (
-    <div className={styles.stage}>
+    <>
+      <GraphCardHeader
+        controls={<GraphZoomControls onZoomOut={zoomOut} onFit={fit} onZoomIn={zoomIn} />}
+      />
       <div
         ref={viewportRef}
         role="region"
@@ -56,7 +69,6 @@ export function GraphViewport({ width, height, children }: GraphViewportProps): 
         aria-describedby={GRAPH_NOTES_ID}
         tabIndex={0}
         className={styles.viewport}
-        style={viewportStyle}
         {...pan}
       >
         <div
@@ -71,7 +83,6 @@ export function GraphViewport({ width, height, children }: GraphViewportProps): 
           </div>
         </div>
       </div>
-      <GraphZoomControls onZoomOut={zoomOut} onFit={fit} onZoomIn={zoomIn} />
-    </div>
+    </>
   )
 }

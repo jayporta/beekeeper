@@ -5,6 +5,9 @@ import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import { countMatches } from './countMatches'
 import { filterRows } from './filterRows'
 import { groupSessionRows } from '../../../../shared/sessions/groupSessionRows'
+import { largestTokens } from './largestTokens'
+import { ProjectStats } from './ProjectStats'
+import { folderStats } from './folderStats'
 import { RefreshSessionsButton } from './RefreshSessionsButton'
 import { SearchResultsStatus } from './SearchResultsStatus'
 import { normalizeQuery } from './sessionMatches'
@@ -69,11 +72,17 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
   })
   const matching = useMemo(() => filterRows(rows, query), [rows, query])
   const matchCount = useMemo(() => countMatches(rows, query), [rows, query])
+  // Against every row, not only the matching ones, so a bar doesn't change length while searching.
+  const largest = useMemo(() => largestTokens(rows), [rows])
   // A gone folder's cached list is hidden behind its alert, so it isn't searchable.
   const gone = IpcCallError.codeOf(error) === 'not-found'
   const searchable = !gone && data !== undefined && data.length > 0
   // An empty or gone folder shows no search box, so a leftover query isn't a search.
   const searching = searchable && normalized !== ''
+  const stats = useMemo(
+    () => (data === undefined ? null : folderStats(data, dirName)),
+    [data, dirName]
+  )
   const announcement = useMatchCountPerSearch({
     count: matchCount,
     search: { dirName, query: normalized, settledResortAt },
@@ -86,6 +95,7 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
     <>
       <SelectedProjectHeading
         headingId={headingId}
+        stats={searchable && stats !== null && <ProjectStats stats={stats} dirName={dirName} />}
         actions={
           <>
             {searchable && <SessionSearch />}
@@ -109,6 +119,8 @@ export function SessionsContent({ dirName, headingId }: SessionsContentProps): R
           rows={matching}
           labelledBy={headingId}
           selectedDirName={dirName}
+          largestTokens={largest}
+          matchCount={searching ? matchCount : null}
           query={normalized}
         />
       </SessionsBody>

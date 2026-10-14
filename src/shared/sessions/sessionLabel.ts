@@ -1,6 +1,6 @@
 import type { SessionListItemDto } from '../ipc/sessionListDto'
 
-/** How a session is named on its card or chip. */
+/** How a session is named on its card or teammate row. */
 export interface SessionLabel {
   /** The name: a title, an agent's name and type, or a placeholder. */
   readonly text: string
@@ -29,7 +29,7 @@ export function shortId(id: string): string {
 }
 
 /**
- * Names a session for its card or chip. A teammate agent is named by its agent name
+ * Names a session for its card or teammate row. A teammate agent is named by its agent name
  * and type, since most have no title. Any other session is named by its
  * title, with a placeholder and a short id when it has none or can't be read.
  *

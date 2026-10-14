@@ -12,10 +12,10 @@ interface LinkButtonProps {
    */
   readonly strong?: boolean
   /**
-   * Adds inline padding, to line the text up with padded text beside it.
+   * Sets the text at `--font-size-body`, to read at the size of the text around it, instead of its own smaller size.
    * @defaultValue false
    */
-  readonly padded?: boolean
+  readonly larger?: boolean
 }
 
 /**
@@ -29,12 +29,12 @@ export function LinkButton({
   children,
   onClick,
   strong = false,
-  padded = false
+  larger = false
 }: LinkButtonProps): React.JSX.Element {
   return (
     <button
       type="button"
-      className={[styles.link, strong ? styles.strong : styles.quiet, padded && styles.padded]
+      className={[styles.link, strong ? styles.strong : styles.quiet, larger && styles.larger]
         .filter(Boolean)
         .join(' ')}
       onClick={onClick}

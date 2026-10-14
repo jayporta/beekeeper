@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Card } from '@renderer/components/Card'
 import { MutedText } from '@renderer/components/MutedText'
+import { PageTitle } from '@renderer/components/PageTitle'
 import { TitleRow } from '@renderer/components/TitleRow'
 import { Breadcrumb, type BreadcrumbSegment } from '@renderer/features/navigation/Breadcrumb'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
@@ -18,12 +20,15 @@ interface SelectedProjectHeadingProps {
   readonly headingId?: string
   /** Controls shown on the right of the title row, such as search and refresh. Kept outside the `h1`, so they don't change its name. */
   readonly actions?: React.ReactNode
+  /** The figures shown under the title row, such as a stat row. Not shown when no project is selected. */
+  readonly stats?: React.ReactNode
 }
 
 /**
- * The sessions view's header: a breadcrumb from "All projects" to the
- * selected project, the project's name as the heading, its folder name exactly
- * as on disk beneath it, and optional controls on the right. A worktree
+ * The sessions view's header card. It holds a breadcrumb from "All projects"
+ * to the selected project, the project's name as the heading with its folder
+ * name exactly as on disk beneath it, optional controls on the right, and an
+ * optional stat row at the bottom. A worktree
  * folder is named by its worktree, with its parent project as a step in the
  * breadcrumb. With no project selected it shows only a fixed heading.
  *
@@ -32,7 +37,8 @@ interface SelectedProjectHeadingProps {
  */
 export function SelectedProjectHeading({
   headingId,
-  actions
+  actions,
+  stats
 }: SelectedProjectHeadingProps): React.JSX.Element {
   const { t } = useTranslation(['projects', 'overview'])
   const { data: projects } = useProjects()
@@ -63,17 +69,16 @@ export function SelectedProjectHeading({
   ]
 
   return (
-    <header className={styles.header}>
+    <Card as="header" className={styles.header}>
       {project !== null && <Breadcrumb segments={segments} />}
       <TitleRow>
         <div className={styles.heading}>
-          <h1 id={headingId} className={styles.title}>
-            {title}
-          </h1>
+          <PageTitle id={headingId}>{title}</PageTitle>
           {project !== null && <MutedText wrapAnywhere>{project.dirName}</MutedText>}
         </div>
         <div className={styles.actions}>{actions}</div>
       </TitleRow>
-    </header>
+      {project !== null && stats}
+    </Card>
   )
 }

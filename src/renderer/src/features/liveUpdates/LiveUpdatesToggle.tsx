@@ -36,7 +36,7 @@ export function LiveUpdatesToggle(): React.JSX.Element {
         />
         {t('label')}
       </label>
-      <MutedText smaller role="status" id={noteId} className={styles.note}>
+      <MutedText smaller role="status" id={noteId}>
         {unavailable && t('unavailable')}
       </MutedText>
     </div>

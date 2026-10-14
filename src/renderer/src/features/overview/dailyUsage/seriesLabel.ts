@@ -1,12 +1,13 @@
-import type { Series } from './seriesOf'
+import type { TFunction } from 'i18next'
+import type { SeriesKey } from './seriesOf'
 
 /**
- * The text that names a series: a model's id as it is, or the other series' name.
+ * The translated name of a series' family.
  *
  * @param series - The series.
- * @param otherModels - The name of the series that holds the models outside the top few, already translated.
- * @returns The series' display text. A model id is transcript-derived: render it as plain text.
+ * @param t - The `overview` namespace's translate function.
+ * @returns The family's display name.
  */
-export function seriesLabel(series: Series, otherModels: string): string {
-  return series.key.kind === 'model' ? series.key.model : otherModels
+export function seriesLabel(series: { readonly key: SeriesKey }, t: TFunction<'overview'>): string {
+  return t(`dailyUsage.family.${series.key}`)
 }

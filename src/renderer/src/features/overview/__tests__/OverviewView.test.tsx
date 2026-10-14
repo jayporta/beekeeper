@@ -18,6 +18,7 @@ import {
 } from '@renderer/testQueryWrapper'
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
 import { OverviewView } from '../OverviewView'
+import { useProjectSortStore } from '../state/useProjectSortStore'
 import { useTotalsWindowStore } from '../state/useTotalsWindowStore'
 import { testDailyUsage } from '../dailyUsage/testDailyUsage'
 import { testTotals } from '../testTotals'
@@ -45,7 +46,7 @@ const TOTALS: Readonly<Record<string, Partial<ProjectTotalsDto>>> = {
 const SHARE_BAR = '[aria-hidden] > div'
 const COULDNT_LOAD = "Couldn't load this project's totals."
 const MAY_BE_LOW = 'Totals for the last 7 days updated. Some may be low, see the note below.'
-const share = (percent: number): string => `${percent}% of the busiest project's tokens`
+const share = (percent: number): string => `${percent}% of all tokens`
 
 beforeEach(() => {
   useFirstRunStore.setState({ dismissed: true })
@@ -56,6 +57,7 @@ afterEach(async () => {
   vi.useRealTimers()
   useNavigationStore.getState().reset()
   useTotalsWindowStore.setState({ window: '7d' })
+  useProjectSortStore.setState({ sort: 'tokens' })
   useSelectedProjectStore.setState({ selectedDirName: null })
   await resetPersistedState()
 })
@@ -139,17 +141,27 @@ function statusRegion(): HTMLElement {
   return within(overviewView()).getByRole('status')
 }
 
-/** The card of the project named `name`, once it is on screen. */
+/** The table row of the project named `name`, once it is on screen. */
 async function findCard(name: string): Promise<HTMLElement> {
   const button = await within(main()).findByRole('button', { name })
-  const item = button.closest('li')
-  if (item === null) throw new Error(`No card around ${name}`)
-  return item
+  const row = button.closest('tr')
+  if (row === null) throw new Error(`No row around ${name}`)
+  return row
 }
 
 /** The sidebar's navigation, once the projects have loaded. */
 const findSidebar = (): Promise<HTMLElement> =>
   screen.findByRole('navigation', { name: 'Projects' })
+
+/** A row's figure cells, by column: tokens, sessions, agents and share. */
+function figureCells(
+  row: HTMLElement
+): Record<'tokens' | 'sessions' | 'agents' | 'share', HTMLElement> {
+  const cells = row.querySelectorAll('td')
+  const [, , tokens, sessions, agents, shareCell] = cells
+  if (!tokens || !sessions || !agents || !shareCell) throw new Error('The row lacks figure cells')
+  return { tokens, sessions, agents, share: shareCell }
+}
 
 const shareBar = (card: HTMLElement): HTMLElement | null => card.querySelector(SHARE_BAR)
 
@@ -164,6 +176,13 @@ describe('OverviewView header', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'All projects' })).toBeTruthy()
     expect(screen.getByText('Overview · last 7 days')).toBeTruthy()
+  })
+
+  it('shows a visible "Time window" label beside the control', async () => {
+    renderOverview()
+
+    expect(await screen.findByText('Time window')).toBeTruthy()
+    expect(screen.getByRole('radiogroup', { name: 'Time window' })).toBeTruthy()
   })
 
   it('offers 7 days and 30 days, with 7 days chosen', async () => {
@@ -186,34 +205,31 @@ describe('OverviewView totals strip', () => {
     const strip = within(main()).getByRole('list', { name: 'Totals, last 7 days' })
 
     expect(within(strip).getByText('2M')).toBeTruthy()
-    expect(within(strip).getByText('$16.50 at API prices')).toBeTruthy()
+    expect(within(strip).getByText('$16.50')).toBeTruthy()
     expect(within(strip).getByText('6')).toBeTruthy()
     expect(within(strip).getByText('11')).toBeTruthy()
-    expect(within(strip).getByText('agents, incl. teammates and subagents')).toBeTruthy()
+    expect(within(strip).getByText('incl. teammates and subagents')).toBeTruthy()
   })
 })
 
-describe('OverviewView cards', () => {
-  it("adds a project's worktrees into its card", async () => {
+describe('OverviewView projects table', () => {
+  it("adds a project's worktrees into its row", async () => {
     renderOverview()
     await totalsLoaded()
 
     const alpha = within(await findCard('acme-web'))
-    expect(alpha.getByText('$12.50 at API prices')).toBeTruthy()
     expect(alpha.getByText('4 sessions')).toBeTruthy()
     expect(alpha.getByText('9 agents')).toBeTruthy()
     expect(alpha.getByText('1 worktree')).toBeTruthy()
   })
 
-  it('describes a card by its figures, then its full folder name, without adding them to the name', async () => {
+  it('describes a row’s button by its figures, then its full folder name, without adding them to the name', async () => {
     renderOverview()
 
     expect(
       await within(main()).findByRole('button', {
         name: 'acme-web',
-        description: new RegExp(
-          `^1\\.5M tokens.*\\$12\\.50 at API prices.*4 sessions.*9 agents.*${share(100)}.*${ALPHA}$`
-        )
+        description: new RegExp(`^1\\.5M tokens.*4 sessions.*9 agents.*${share(75)}.*${ALPHA}$`)
       })
     ).toBeTruthy()
   })
@@ -258,16 +274,16 @@ describe('OverviewView cards', () => {
     expect(within(await findCard('beta-app')).queryByText(/worktree/)).toBeNull()
   })
 
-  it("sizes each share bar against the busiest project's tokens", async () => {
+  it("sizes each bar against the busiest project's tokens and each share against all tokens", async () => {
     renderOverview()
     await totalsLoaded()
 
     const alpha = await findCard('acme-web')
     const beta = await findCard('beta-app')
 
-    expect(within(alpha).getByText(share(100))).toBeTruthy()
+    expect(figureCells(alpha).share.textContent).toBe('75%')
     expect(shareBar(alpha)?.style.inlineSize).toBe('100%')
-    expect(within(beta).getByText(share(33))).toBeTruthy()
+    expect(figureCells(beta).share.textContent).toBe('25%')
     expect(shareBar(beta)?.style.inlineSize).toBe(`${(500_000 / 1_500_000) * 100}%`)
   })
 
@@ -284,7 +300,7 @@ describe('OverviewView cards', () => {
     expect(await within(main()).findByText('No activity in this window')).toBeTruthy()
     const alpha = await findCard('acme-web')
     expect(within(alpha).getByText('0 tokens')).toBeTruthy()
-    expect(within(alpha).getByText(share(0))).toBeTruthy()
+    expect(figureCells(alpha).share.textContent).toBe('0%')
     expect(shareBar(alpha)?.style.inlineSize).toBe('0%')
     expect(main().textContent).not.toMatch(/NaN|Infinity/)
   })
@@ -374,11 +390,10 @@ describe('OverviewView partial totals', () => {
     })
     await totalsLoaded()
 
-    const beta = within(await findCard('beta-app'))
-
-    expect(beta.getByText('500K tokens').textContent).toContain('¹')
-    expect(beta.getByText('2 sessions').textContent).not.toContain('¹')
-    expect(beta.getByText('2 agents').textContent).not.toContain('¹')
+    const cells = figureCells(await findCard('beta-app'))
+    expect(cells.tokens.textContent).toContain('¹')
+    expect(cells.sessions.textContent).not.toContain('¹')
+    expect(cells.agents.textContent).not.toContain('¹')
   })
 
   it("marks a card's counts as well when a session couldn't be read", async () => {
@@ -393,34 +408,32 @@ describe('OverviewView partial totals', () => {
     })
     await totalsLoaded()
 
-    const beta = within(await findCard('beta-app'))
+    const cells = figureCells(await findCard('beta-app'))
 
-    expect(beta.getByText('2 sessions').textContent).toContain('¹')
-    expect(beta.getByText('2 agents').textContent).toContain('¹')
+    expect(cells.sessions.textContent).toContain('¹')
+    expect(cells.agents.textContent).toContain('¹')
   })
 
-  it("marks a card's cost but not its tokens or counts when only the cost may be low", async () => {
+  it("marks none of a row's figures when only the cost may be low, since a row shows no cost", async () => {
     renderOverview({ totals: withPartial('withoutCost') })
     await totalsLoaded()
 
-    const beta = within(await findCard('beta-app'))
+    const cells = figureCells(await findCard('beta-app'))
 
-    expect(beta.getByText('$4.00 at API prices').textContent).toContain('¹')
-    expect(beta.getByText('500K tokens').textContent).not.toContain('¹')
-    expect(beta.getByText('2 sessions').textContent).not.toContain('¹')
-    expect(beta.getByText('2 agents').textContent).not.toContain('¹')
+    expect(cells.tokens.textContent).not.toContain('¹')
+    expect(cells.sessions.textContent).not.toContain('¹')
+    expect(cells.agents.textContent).not.toContain('¹')
   })
 
   it('marks every figure of a card when only a session has no timestamps', async () => {
     renderOverview({ totals: withPartial('undated') })
     await totalsLoaded()
 
-    const beta = within(await findCard('beta-app'))
+    const cells = figureCells(await findCard('beta-app'))
 
-    expect(beta.getByText('500K tokens').textContent).toContain('¹')
-    expect(beta.getByText('$4.00 at API prices').textContent).toContain('¹')
-    expect(beta.getByText('2 sessions').textContent).toContain('¹')
-    expect(beta.getByText('2 agents').textContent).toContain('¹')
+    expect(cells.tokens.textContent).toContain('¹')
+    expect(cells.sessions.textContent).toContain('¹')
+    expect(cells.agents.textContent).toContain('¹')
   })
 
   it("marks the strip's cost but not its tokens when only the cost may be low", async () => {
@@ -429,7 +442,7 @@ describe('OverviewView partial totals', () => {
 
     const strip = within(within(main()).getByRole('list', { name: 'Totals, last 7 days' }))
 
-    expect(strip.getByText('$16.50 at API prices').textContent).toContain('¹')
+    expect(strip.getByText('$16.50').textContent).toContain('¹')
     expect(strip.getByText('2M').textContent).not.toContain('¹')
   })
 
@@ -440,19 +453,18 @@ describe('OverviewView partial totals', () => {
     const strip = within(within(main()).getByRole('list', { name: 'Totals, last 7 days' }))
 
     expect(strip.getByText('2M').textContent).toContain('¹')
-    expect(strip.getByText('$16.50 at API prices').textContent).not.toContain('¹')
+    expect(strip.getByText('$16.50').textContent).not.toContain('¹')
   })
 
   it("marks a card's agents but not its tokens, cost or sessions when subagents went uncounted", async () => {
     renderOverview({ totals: withPartial('uncountedSubagents') })
     await totalsLoaded()
 
-    const beta = within(await findCard('beta-app'))
+    const cells = figureCells(await findCard('beta-app'))
 
-    expect(beta.getByText('500K tokens').textContent).not.toContain('¹')
-    expect(beta.getByText('2 agents').textContent).toContain('¹')
-    expect(beta.getByText('2 sessions').textContent).not.toContain('¹')
-    expect(beta.getByText('$4.00 at API prices').textContent).not.toContain('¹')
+    expect(cells.tokens.textContent).not.toContain('¹')
+    expect(cells.agents.textContent).toContain('¹')
+    expect(cells.sessions.textContent).not.toContain('¹')
   })
 
   it("marks the strip's agents but not its tokens, cost or sessions when subagents went uncounted", async () => {
@@ -464,7 +476,7 @@ describe('OverviewView partial totals', () => {
     expect(strip.getByText('2M').textContent).not.toContain('¹')
     expect(strip.getByText('11').textContent).toContain('¹')
     expect(strip.getByText('6').textContent).not.toContain('¹')
-    expect(strip.getByText('$16.50 at API prices').textContent).not.toContain('¹')
+    expect(strip.getByText('$16.50').textContent).not.toContain('¹')
     expect(main().textContent).toContain(
       "¹ Partial: Some sessions have a subagents folder that couldn't be read, so their subagents are missing from the agent count."
     )
@@ -484,7 +496,7 @@ describe('OverviewView loading and errors', () => {
 
     await within(main()).findByText('1.5M tokens')
     const beta = await findCard('beta-app')
-    expect(within(beta).getByText('Loading')).toBeTruthy()
+    expect(within(beta).getAllByText('Loading').length).toBeGreaterThan(0)
     expect(within(beta).queryByText(/tokens/)).toBeNull()
     expect(main().textContent).toContain('Some projects are still loading.')
   })
@@ -494,7 +506,7 @@ describe('OverviewView loading and errors', () => {
 
     const strip = await within(main()).findByRole('list', { name: 'Totals, last 7 days' })
 
-    expect(within(strip).getAllByText('Loading')).toHaveLength(3)
+    expect(within(strip).getAllByText('Loading')).toHaveLength(4)
   })
 
   it("shows an error on a card whose folder can't be read, with the others and the strip intact", async () => {
@@ -525,7 +537,7 @@ describe('OverviewView loading and errors', () => {
     const strip = await within(main()).findByRole('list', { name: 'Totals, last 7 days' })
 
     await waitFor(() => {
-      expect(within(strip).getAllByText('Unavailable')).toHaveLength(3)
+      expect(within(strip).getAllByText('Unavailable')).toHaveLength(4)
     })
   })
 })
@@ -610,7 +622,7 @@ describe('OverviewView while a window loads', () => {
     ).toBeTruthy()
   })
 
-  it('tells assistive technology which cards still show the other window', async () => {
+  it('tells assistive technology which rows still show the other window', async () => {
     const release = await holdThirtyDays()
 
     expect(within(await findCard('beta-app')).getByText('Updating')).toBeTruthy()
@@ -623,9 +635,9 @@ describe('OverviewView while a window loads', () => {
     })
   })
 
-  it('marks the cards busy until the new window has arrived', async () => {
+  it('marks the table busy until the new window has arrived', async () => {
     const release = await holdThirtyDays()
-    const cards = (await findCard('beta-app')).closest('ul')
+    const cards = (await findCard('beta-app')).closest('table')
 
     expect(cards?.getAttribute('aria-busy')).toBe('true')
     act(() => {
@@ -636,10 +648,10 @@ describe('OverviewView while a window loads', () => {
     })
   })
 
-  it('marks the cards busy while the first totals load', async () => {
+  it('marks the table busy while the first totals load', async () => {
     renderOverview({ totals: never })
 
-    expect((await findCard('beta-app')).closest('ul')?.getAttribute('aria-busy')).toBe('true')
+    expect((await findCard('beta-app')).closest('table')?.getAttribute('aria-busy')).toBe('true')
   })
 
   it("holds the empty message back until the new window's totals arrive", async () => {
@@ -896,7 +908,7 @@ describe('OverviewView announcements', () => {
     })
     await findCard('acme-web')
     await waitFor(() => {
-      expect(within(main()).getAllByRole('list').at(-1)?.getAttribute('aria-busy')).toBe('false')
+      expect(within(main()).getByRole('table').getAttribute('aria-busy')).toBe('false')
     })
     await new Promise((resolve) => setTimeout(resolve, 30))
 
@@ -1057,7 +1069,7 @@ describe('OverviewView tokens per day', () => {
   const section = (): HTMLElement =>
     within(main()).getByRole('region', { name: 'Tokens per day, by model' })
 
-  it('shows the section between the totals and the project cards', async () => {
+  it('shows the section between the totals and the projects table', async () => {
     renderOverview({ dailyUsage: usage })
 
     const heading = await within(main()).findByRole('heading', {
@@ -1065,11 +1077,9 @@ describe('OverviewView tokens per day', () => {
       name: 'Tokens per day, by model'
     })
     const strip = within(main()).getByRole('list', { name: /^Totals/ })
-    const cards = within(main()).getAllByRole('list').at(-1)
+    const cards = within(main()).getByRole('table')
     expect(strip.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(
-      heading.compareDocumentPosition(cards as Node) & Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy()
+    expect(heading.compareDocumentPosition(cards) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(await within(section()).findByRole('img', { name: /15 in all/ })).toBeTruthy()
   })
 
@@ -1102,7 +1112,7 @@ describe('OverviewView tokens per day', () => {
     renderOverview({ totals: () => Promise.resolve(ok({})), dailyUsage: () => days.reply })
     await findCard('acme-web')
     await waitFor(() => {
-      expect(within(main()).getAllByRole('list').at(-1)?.getAttribute('aria-busy')).toBe('false')
+      expect(within(main()).getByRole('table').getAttribute('aria-busy')).toBe('false')
     })
     await new Promise((resolve) => setTimeout(resolve, 30))
 
@@ -1245,5 +1255,143 @@ describe('sidebar figures', () => {
     expect(
       await sidebar.findByRole('button', { name: 'beta-app 2M tokens, last 30 days' })
     ).toBeTruthy()
+  })
+})
+
+describe('OverviewView projects table sorting', () => {
+  /** The project names in row order. */
+  const rowNames = (): string[] =>
+    within(main())
+      .getAllByRole('rowheader')
+      .map((header) => header.querySelector('button')?.textContent ?? '')
+
+  it('has a table of the projects under a "Projects" heading, with a column for each figure', async () => {
+    renderOverview()
+    await totalsLoaded()
+
+    const table = within(main()).getByRole('table')
+    expect(within(main()).getByRole('heading', { level: 2, name: 'Projects' })).toBeTruthy()
+    expect(
+      within(table)
+        .getAllByRole('columnheader')
+        .map((header) => header.textContent)
+    ).toEqual([
+      'Project',
+      'Latest',
+      'Tokens compared with the busiest project',
+      'Tokens',
+      'Sessions',
+      'Agents',
+      'Share'
+    ])
+  })
+
+  it('sorts by tokens, busiest first, until told otherwise', async () => {
+    renderOverview()
+    await totalsLoaded()
+
+    const select = within(main()).getByRole('combobox', { name: 'Sort by' }) as HTMLSelectElement
+    expect(select.value).toBe('tokens')
+    expect(rowNames()).toEqual(['acme-web', 'beta-app'])
+  })
+
+  it('offers tokens, latest and name in the sort menu', async () => {
+    renderOverview()
+    await totalsLoaded()
+
+    const select = within(main()).getByRole('combobox', { name: 'Sort by' })
+
+    expect(
+      within(select)
+        .getAllByRole('option')
+        .map((option) => option.textContent)
+    ).toEqual(['Tokens', 'Latest', 'Name'])
+  })
+
+  it('re-orders the rows by name when Name is chosen', async () => {
+    renderOverview({
+      totals: (dirName) =>
+        Promise.resolve(ok(dirName === BETA ? { tokens: 9_000_000 } : (TOTALS[dirName] ?? {})))
+    })
+    await within(main()).findByText('9M tokens')
+    expect(rowNames()).toEqual(['beta-app', 'acme-web'])
+
+    await userEvent.selectOptions(within(main()).getByRole('combobox', { name: 'Sort by' }), 'name')
+
+    expect(rowNames()).toEqual(['acme-web', 'beta-app'])
+    expect(useProjectSortStore.getState().sort).toBe('name')
+  })
+
+  it('re-orders the rows by latest session when Latest is chosen', async () => {
+    renderOverview({
+      totals: (dirName) =>
+        Promise.resolve(
+          ok({
+            ...TOTALS[dirName],
+            latest: {
+              sessionId: dirName,
+              title: null,
+              latestMs: dirName === BETA ? 2_000_000 : 1_000_000
+            }
+          })
+        )
+    })
+    await totalsLoaded()
+
+    await userEvent.selectOptions(
+      within(main()).getByRole('combobox', { name: 'Sort by' }),
+      'latest'
+    )
+
+    expect(rowNames()).toEqual(['beta-app', 'acme-web'])
+  })
+
+  it('keeps a project whose totals are loading after the rest, though its name sorts first', async () => {
+    // Neither project has a latest session, so only the loading rule can put acme-web last.
+    renderOverview({
+      projects: [ALPHA_PROJECT, BETA_PROJECT],
+      totals: (dirName) => (dirName === ALPHA ? never() : normal(dirName))
+    })
+    await within(main()).findByText('500K tokens')
+
+    await userEvent.selectOptions(
+      within(main()).getByRole('combobox', { name: 'Sort by' }),
+      'latest'
+    )
+
+    expect(rowNames()).toEqual(['beta-app', 'acme-web'])
+  })
+
+  it('shows the share column as loading, not a changing figure, while any project is still loading', async () => {
+    renderOverview({ totals: (dirName) => (dirName === BETA ? never() : normal(dirName)) })
+    await within(main()).findByText('1.5M tokens')
+
+    expect(within(figureCells(await findCard('acme-web')).share).getByText('Loading')).toBeTruthy()
+  })
+
+  it('orders same-named projects by folder name', async () => {
+    renderOverview({
+      projects: [
+        { ...testProject('-b'), label: 'app' },
+        { ...testProject('-a'), label: 'app' }
+      ],
+      totals: () => Promise.resolve(ok({ tokens: 5 }))
+    })
+    await userEvent.selectOptions(
+      await within(main()).findByRole('combobox', { name: 'Sort by' }),
+      'name'
+    )
+
+    const buttons = within(main()).getAllByRole('button', { name: 'app' })
+    expect(
+      buttons.map((button) => button.getAttribute('aria-describedby')?.split(' ').length)
+    ).toEqual([2, 2])
+    expect(
+      buttons.map(
+        (button) =>
+          document.getElementById(button.getAttribute('aria-describedby')?.split(' ')[1] ?? '')
+            ?.textContent
+      )
+    ).toEqual(['-a', '-b'])
   })
 })

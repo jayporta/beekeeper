@@ -20,7 +20,13 @@ interface SidebarTotalProps {
  * updating rather than with the chosen window.
  *
  * @example
- * <ProjectRow label="acme-web" meta={<SidebarTotal totals={totals} />} />
+ * <ProjectRow
+ *   label="acme-web"
+ *   dot={<ProjectDot variant="solid" slot={1} />}
+ *   meta={<SidebarTotal totals={totals} />}
+ *   current={false}
+ *   onSelect={() => select('acme-web')}
+ * />
  */
 export function SidebarTotal({ totals }: SidebarTotalProps): React.JSX.Element | null {
   const { t } = useTranslation('overview')

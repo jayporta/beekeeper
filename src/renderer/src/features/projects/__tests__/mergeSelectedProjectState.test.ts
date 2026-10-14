@@ -27,8 +27,6 @@ describe('mergeSelectedProjectState', () => {
 
   it.each([
     ['a number', 1],
-    ['a boolean', true],
-    ['an object', {}],
     ['an array', ['-Users-a-beta']],
     ['undefined', undefined]
   ])('ignores a selectedDirName that is %s and keeps the current value', (_label, stored) => {

@@ -1,5 +1,5 @@
 import type { ArchivedSession } from '../archive/archivePort'
-import type { TotalsSession } from './folderTotals'
+import type { TotalsSession } from '../../shared/usage/folderTotals'
 
 /**
  * Takes an archived session as the folder totals take a live one, from its

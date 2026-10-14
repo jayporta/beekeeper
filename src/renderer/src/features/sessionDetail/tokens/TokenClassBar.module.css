@@ -1,0 +1,19 @@
+.bar {
+  display: flex;
+  gap: var(--space-0-5);
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+}
+
+.regular {
+  block-size: var(--size-token-bar);
+}
+
+.small {
+  block-size: var(--size-token-bar-small);
+}
+
+.segment {
+  min-inline-size: var(--size-token-segment-min);
+  block-size: 100%;
+}

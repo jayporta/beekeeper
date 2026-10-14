@@ -3,26 +3,25 @@ import { StatusMessage } from '@renderer/components/StatusMessage'
 import { DailyUsageSection } from './dailyUsage/DailyUsageSection'
 import { dailyUsageStatusOf } from './dailyUsage/dailyUsageStatus'
 import { useDailyUsage } from './dailyUsage/useDailyUsage'
+import { KpiTiles } from './KpiTiles'
 import { OverviewFootnote } from './OverviewFootnote'
 import { OverviewHeader } from './OverviewHeader'
 import styles from './OverviewView.module.css'
 import { partialReasonsOf } from './partialReasons'
-import { ProjectCard } from './ProjectCard'
-import { shareOfLargest } from './shareOfLargest'
+import { ProjectsTable } from './ProjectsTable'
 import { totalsStatus } from './sumTotals'
 import { TotalsAnnouncement } from './TotalsAnnouncement'
-import { TotalsStrip } from './TotalsStrip'
 import type { DailyAnnouncement, TotalsOutcome } from './useTotalsAnnouncement'
 import { useProjectGroupTotals } from './useProjectGroupTotals'
 
 /**
  * The all-projects overview: a header with the 7 or 30 day window, the totals
- * across every project, a card for each project, and a note on any figure
- * that may be low. Each project loads on its own, so a card fills in as its
+ * across every project, a table of the projects, and a note on any figure
+ * that may be low. Each project loads on its own, so a row fills in as its
  * totals arrive and a project that can't be read doesn't hold up the rest.
  * With nothing in the window, no tokens per day, and no session it couldn't read,
- * it says so, above cards that show zero. While a window's totals load, or show
- * the other window's until they arrive, the cards are marked busy. The empty
+ * it says so, above rows that show zero. While a window's totals load, or show
+ * the other window's until they arrive, the table is marked busy. The empty
  * message and the announcement also wait for the tokens per day. A status region announces once
  * when the window's totals have all arrived (noting when some may be low), that
  * the window is empty, or that none could be loaded, and again if that outcome
@@ -37,10 +36,6 @@ export function OverviewView(): React.JSX.Element {
   const { window: range, items: cards, overall } = useProjectGroupTotals()
   const dailyUsage = useDailyUsage()
 
-  const largest = Math.max(
-    0,
-    ...cards.map(({ totals }) => (totalsStatus(totals) === 'ready' ? totals.tokens : 0))
-  )
   const { folders } = overall
   const settled = folders.loading === 0 && !overall.refreshing
   const idle =
@@ -73,7 +68,7 @@ export function OverviewView(): React.JSX.Element {
         outcome={outcome}
         daily={dailyAnnouncement}
       />
-      {cards.length > 0 && <TotalsStrip totals={overall} range={range} />}
+      {cards.length > 0 && <KpiTiles totals={overall} range={range} />}
       {!empty && <DailyUsageSection usage={dailyUsage} />}
       {empty && (
         <StatusMessage
@@ -82,17 +77,11 @@ export function OverviewView(): React.JSX.Element {
           body={t(`empty.body.${range}`, { range: t(`range.${range}`) })}
         />
       )}
-      <ul className={styles.cards} aria-busy={!settled}>
-        {cards.map(({ group, totals }) => (
-          <ProjectCard
-            key={group.project.dirName}
-            group={group}
-            totals={totals}
-            share={shareOfLargest(totals.tokens, largest)}
-          />
-        ))}
-      </ul>
-      <OverviewFootnote reasons={reasons} />
+      {cards.length > 0 && (
+        <ProjectsTable items={cards} overall={overall} settled={settled}>
+          <OverviewFootnote reasons={reasons} />
+        </ProjectsTable>
+      )}
     </div>
   )
 }

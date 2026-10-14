@@ -1,77 +1,169 @@
 /*
  * The single source of design tokens: color, type, spacing, radius, and focus for every component.
  *
- * Palette: Industry. Text and the divider carry no alpha: each is a solid color, so contrast is the
- * same on every surface and `__tests__/tokensContrast.test.ts` can check it. Declare every color as
- * a hex value or a `var()` reference to one, since that test resolves them.
+ * Palette: redesign v2, an indigo accent on a cool gray ground. Text and the divider carry no alpha:
+ * each is a solid color, so contrast is the same on every surface and
+ * `__tests__/tokensContrast.test.ts` can check it. Declare every color as a hex value or a `var()`
+ * reference to one, since that test resolves them (the hover tint is the one translucent color, and
+ * the test reads its opacity).
  *
  * Both schemes meet the same targets on the ground, the surface, the selected ground, and the hover
- * tints over the ground and the surface: APCA Lc 90 for body text, Lc 75 for muted and accent text,
- * and WCAG 2 4.5:1 for text and 3:1 for a control's edge and the focus ring. A hover tint over the
- * selected ground falls short, so nothing selected takes one.
+ * tints over the ground and the surface: APCA Lc 90 for body text, Lc 75 for muted, accent and
+ * selected text, and WCAG 2 4.5:1 for text (pills, project buttons and KPI tiles included) and 3:1
+ * for a control's edge and the focus ring. The marks that carry meaning (token classes, models,
+ * agent kinds) hold 3:1 on the card ground, where charts and bars sit; a mark placed on the surface
+ * needs its own check. A hover tint over the selected ground falls short, so nothing selected takes one.
  */
 :root {
   color-scheme: light dark;
 
   /* Ground, surface, and text. */
+  /* The card and sidebar ground, where most text sits. */
   --color-bg: #ffffff;
-  --color-surface: #f4f4f5;
-  --color-text: #1d1f20;
+  /* The page ground, the graph canvas, and inset tables. */
+  --color-surface: #f4f5f9;
+  --color-text: #1c2230;
   /* Secondary text, a solid color. Holds Lc 75 on every ground the test checks. */
-  --color-text-muted: #4e4e4f;
-  /* The ground of the current project row, a selected graph node, and an inspector flag. */
-  --color-selected: var(--color-accent-200);
+  --color-text-muted: #4a5365;
+  /* The ground of the current nav row, a table row on hover, a search match, a selected graph node, and an inspector flag. */
+  --color-selected: var(--color-accent-100);
+  /* Text on the selected ground, and on the info pill. */
+  --color-selected-text: #3730a3;
+  /* The ring around the selected graph node: 3:1 or more on the page and surface grounds in both schemes. */
+  --color-selection-ring: var(--color-accent-600);
 
-  /* Divider: text at about 16% on ground. A decorative frame only, at about 1.4:1. */
-  --color-divider: #dbdbdb;
+  /* Divider: a decorative frame only, at about 1.2:1. */
+  --color-divider: #eceef3;
   --color-border: var(--color-divider);
-  /* A control's edge. Passes 3:1 on ground and surface (WCAG 1.4.11). */
-  --color-border-strong: #767879;
+  /* A control's edge: the search field and the zoom control. Passes 3:1 on ground and surface (WCAG 1.4.11). */
+  --color-border-strong: #848d9f;
   --color-surface-header: var(--color-surface);
-  /* The tint a row takes on hover: text at this opacity over transparent, so it works on any surface. The contrast test reads the opacity. */
+  /* A card's edge, a table header's rule, and a chart baseline or link underline. Decorative. */
+  --color-card-border: #e6e8ef;
+  --color-rule: #dde0e8;
+  --color-rule-strong: #c9ceda;
+  /* The segmented control: its track, the selected segment's text (accent-800) and lift, and the track's padding. */
+  --color-segment-track: #eceef4;
+  --color-segment-selected-text: var(--color-accent-800);
+  --shadow-segment: 0 1px 2px rgb(20 24 40 / 14%);
+  --size-segment-padding: 0.1875rem;
+  --shadow-card: 0 1px 2px rgb(20 24 40 / 4%), 0 4px 14px rgb(20 24 40 / 4%);
+  /* A graph node's lift. */
+  --shadow-node: 0 1px 2px rgb(20 24 40 / 10%);
+  /* The tint a row takes on hover: the accent at this opacity over transparent, so it works on any surface. The contrast test reads the opacity. */
   --opacity-hover: 0.05;
   --color-hover: color-mix(
     in srgb,
-    var(--color-text) calc(var(--opacity-hover) * 100%),
+    var(--color-accent) calc(var(--opacity-hover) * 100%),
     transparent
   );
-  /* The blueprint "+" marks on a card's corners: text at 55%. Decorative. */
-  --color-blueprint-mark: color-mix(in srgb, var(--color-text) 55%, transparent);
 
   /* Accent. The ramp inverts in dark mode, so 100 is always the lightest tint against the ground. */
-  --color-accent: #5980a6;
-  --color-accent-100: #eef6ff;
-  --color-accent-200: #d6ebff;
-  --color-accent-300: #b5d9fd;
-  --color-accent-400: #94bce3;
-  --color-accent-500: #749dc4;
-  --color-accent-600: #597ea3;
-  --color-accent-700: #416180;
-  --color-accent-800: #2c455d;
-  --color-accent-900: #1d2d3d;
-  /* The fill for anything that carries text, and the accent used as text. The plain accent is too light for either in light mode. */
-  --color-accent-strong: #36516b;
+  --color-accent: #4f46e5;
+  --color-accent-100: #eef0ff;
+  --color-accent-200: #e0e2ff;
+  --color-accent-400: #a5a8ff;
+  --color-accent-600: #6366f1;
+  --color-accent-700: #4f46e5;
+  --color-accent-800: #4338ca;
+  --color-accent-900: #312e81;
+  /* The kicker and link-hover text, and a fill that carries text. */
+  --color-accent-strong: #4338ca;
+  --color-chevron-hover: var(--color-accent-200);
 
-  /* The chart's series, in the order the chart draws them: a navy, a dark teal, a brown, a violet, and a grey. They run from the darkest to the lightest, each at least 1.5:1 from every other, so any two segments that touch (a series with no tokens leaves a gap) differ in lightness for a reader with color blindness, and each holds 3:1 on the ground (WCAG 1.4.11). The grey also carries a hatch. */
-  --color-series-1: #0a1623;
-  --color-series-2: #0d3f39;
-  --color-series-3: #7a4911;
-  --color-series-4: #9d54b6;
-  --color-series-other: #8f9397;
+  /* A token class's color in a bar, a legend, or a figure's mark. */
+  --color-token-input: #2f6fde;
+  --color-token-output: #ec6a3c;
+  --color-token-cache-write: #1fa77a;
+  --color-token-cache-read: #c5871e;
+  /* A model family's color. Each holds 3:1 on the page and surface grounds in both schemes. Haiku also carries a dot pattern and other a hatch, so neither relies on color alone. */
+  --color-model-fable: #e0457b;
+  --color-model-opus: #7c5cff;
+  --color-model-sonnet: #1a9ba7;
+  --color-model-haiku: #bb7f18;
+  --color-model-other: #848d9f;
+  /* An agent kind's mark and, for a teammate and a workflow, its tinted ground. */
+  --color-kind-lead: #4f46e5;
+  --color-kind-lead-text: #ffffff;
+  --color-kind-teammate: #1a98a4;
+  --color-kind-teammate-bg: #effafb;
+  /* The spec's #e09a12 is 2.4:1 on white; this holds 3:1 on the ground, the surface and its own tint. */
+  --color-kind-workflow: #b87e0f;
+  --color-kind-workflow-bg: #fff8eb;
+  --color-kind-subagent: #7c5cff;
 
-  --focus-ring-color: var(--color-accent-strong);
+  /* A project's color by sidebar slot. The dot is decorative, since the row text names the project. */
+  --color-project-1: #4f46e5;
+  --color-project-2: #1fb3c0;
+  --color-project-3: #ec6a3c;
+  --color-project-4: #7c5cff;
+  --color-project-5: #1fa77a;
+  --color-project-6: #f0a524;
+  --color-project-7: #e0457b;
+  --color-project-8: #2f6fde;
+  --color-project-9: #8a93a6;
+  /* The same colors as a button fill, and the ink that sits on each. */
+  --color-project-button-1: #4f46e5;
+  --color-project-button-2: #1fb3c0;
+  --color-project-button-3: #ec6a3c;
+  --color-project-button-4: #7859f7;
+  --color-project-button-5: #1fa77a;
+  --color-project-button-6: #f0a524;
+  --color-project-button-7: #d04072;
+  --color-project-button-8: #2f6fde;
+  --color-project-button-9: #8a93a6;
+  --color-project-ink-1: #ffffff;
+  --color-project-ink-2: #1c2230;
+  --color-project-ink-3: #1c2230;
+  --color-project-ink-4: #ffffff;
+  --color-project-ink-5: #1c2230;
+  --color-project-ink-6: #1c2230;
+  --color-project-ink-7: #ffffff;
+  --color-project-ink-8: #ffffff;
+  --color-project-ink-9: #1c2230;
+
+  /* Pills, each a background and its text. */
+  --color-pill-error-bg: #fdecea;
+  --color-pill-error-text: #a8241a;
+  --color-pill-warning-bg: #fff3dc;
+  --color-pill-warning-text: #8a5300;
+  --color-pill-neutral-bg: #eceef3;
+  --color-pill-neutral-text: #3f4657;
+  --color-pill-info-bg: var(--color-accent-100);
+  --color-pill-info-text: var(--color-selected-text);
+  /* A file operation's chip. */
+  --color-op-create-bg: #e6f6ef;
+  --color-op-create-text: #11704f;
+  --color-op-update-bg: #e8f0fd;
+  --color-op-update-text: #1f4fa8;
+  /* A KPI tile's ground and dot, and its label and sub text. */
+  --color-kpi-tokens-bg: #e9f0fd;
+  --color-kpi-tokens-dot: #2f6fde;
+  --color-kpi-api-bg: #e6f6ef;
+  --color-kpi-api-dot: #1fa77a;
+  --color-kpi-sessions-bg: #f1edff;
+  --color-kpi-sessions-dot: #7c5cff;
+  --color-kpi-agents-bg: #fff3dc;
+  --color-kpi-agents-dot: #e09a12;
+  --color-kpi-label: #3b4252;
+  --color-kpi-sub: #4a5263;
+
+  --focus-ring-color: var(--color-accent);
   --focus-ring-width: 2px;
   --focus-ring-offset: 2px;
   --focus-ring: var(--focus-ring-width) solid var(--focus-ring-color);
 
-  /* Barlow and Barlow Condensed ship with the app. The system stack covers glyphs outside their Latin subset. */
-  --font-body: 'Barlow', system-ui, sans-serif;
-  --font-heading: 'Barlow Condensed', var(--font-body);
+  /* Figtree ships with the app. The system stack covers glyphs outside its Latin subset. */
+  --font-body: 'Figtree', system-ui, sans-serif;
+  --font-heading: var(--font-body);
   --font-mono: ui-monospace, Menlo, monospace;
   --line-height-body: 1.5;
+  --font-weight-regular: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
+  --font-weight-bold: 700;
   --letter-spacing-caps: 0.08em;
+  --letter-spacing-title: -0.01em;
   /* Sizes by pixel at a 16px root: 2xs 11, xs 12, sm 13, body 14, md 15, lg 18, xl 19, 2xl 24, 3xl 25, 4xl 32, 5xl 34. */
   --font-size-2xs: 0.6875rem;
   --font-size-xs: 0.75rem;
@@ -86,12 +178,22 @@
   --font-size-5xl: 2.125rem;
   /* The figure on a session card: 20px. */
   --font-size-figure: 1.25rem;
+  /* The app name 22px, a page title 30px, a card title 17px, a KPI figure 38px, and the inspector's name 28px. */
+  --font-size-brand: 1.375rem;
+  --font-size-page-title: 1.875rem;
+  --font-size-card-title: 1.0625rem;
+  --font-size-kpi: 2.375rem;
+  --font-size-inspector-name: 1.75rem;
 
-  /* Spacing is N x 4px. The half steps (1-5 is 6px), 5 (20px), and 5-5 (22px) come from the design. */
+  /* Spacing is N x 4px. The half steps (1-5 is 6px), 1-75 (7px), 2-25 (9px), 2-75 (11px), 5 (20px), and 5-5 (22px) come from the design. */
+  --space-0-5: 0.125rem;
   --space-1: 0.25rem;
   --space-1-5: 0.375rem;
+  --space-1-75: 0.4375rem;
   --space-2: 0.5rem;
+  --space-2-25: 0.5625rem;
   --space-2-5: 0.625rem;
+  --space-2-75: 0.6875rem;
   --space-3: 0.75rem;
   --space-3-5: 0.875rem;
   --space-4: 1rem;
@@ -103,20 +205,48 @@
   --space-8: 2rem;
 
   /* Layout sizes. */
-  /* Main's padding; the session detail view's fill height subtracts it. */
-  --space-main: var(--space-6);
-  --size-sidebar: 13rem;
+  /* The sidebar resize handle's grab zone: 24px, the gap between the sidebar card and main. */
+  --size-sidebar-resizer: 1.5rem;
+  /* The least room the sidebar's project list keeps before the card scrolls instead: three rows, the "Projects" label with its padding, and the gap and focus-ring padding around them. */
+  --size-project-list-min: calc(
+    3 * var(--size-target-min) + var(--font-size-xs) * var(--line-height-body) + var(--space-1-5) +
+      3 * var(--space-1)
+  );
+  /* The main column's widest content: 1320px, in a padding of 18px above, 24px at the sides and 48px below. */
+  --size-main-max: 82.5rem;
+  --space-main-block: 1.125rem;
+  --space-main-inline: var(--space-6);
+  --space-main-end: 3rem;
+  /* The gap between the cards of a page. */
+  --space-grid: var(--space-4-5);
+  /* A project dot 9px, a worktree chevron's box 26px, a share bar 6px, and a selected node's ring 3px at an offset of 2px. */
+  --size-dot: 9px;
+  --size-chevron: 1.625rem;
+  --size-share-bar: 6px;
+  --size-selection-ring: 3px;
+  --size-selection-offset: 2px;
   --size-readable: 44rem;
   /* A modal dialog that holds a few short paragraphs. */
   --size-dialog-narrow: 30rem;
   --size-search-field: 16.25rem;
+  /* The least width of one figure in the sessions header's stat row: 220px. */
+  --size-stat-min: 13.75rem;
   --size-target-min: 44px;
-  /* A blueprint corner mark's width and height. */
-  --size-corner-mark: 0.6875rem;
-  /* A session card's columns after the title: agents 220px, duration 90px, tokens 110px. */
-  --size-card-agents: 13.75rem;
-  --size-card-duration: 5.625rem;
-  --size-card-tokens: 6.875rem;
+  /* The session list's columns: session at least 200px, agents 150px to 230px, duration 64px, bar 50px to 130px, tokens 80px, API price 70px. */
+  --size-card-session-min: 12.5rem;
+  --size-card-agents-min: 9.375rem;
+  --size-card-agents-max: 14.375rem;
+  --size-card-duration: 4rem;
+  --size-card-bar-min: 3.125rem;
+  --size-card-bar-max: 8.125rem;
+  --size-card-tokens: 5rem;
+  --size-card-price: 4.375rem;
+  /* The narrowest the session list gets before it scrolls sideways: every column at its least, the gaps, and the row's padding. */
+  --size-card-table-min: calc(
+    var(--size-card-session-min) + var(--size-card-agents-min) + var(--size-card-duration) +
+      var(--size-card-bar-min) + var(--size-card-tokens) + var(--size-card-price) + 5 *
+      var(--space-4) + 2 * var(--space-4-5)
+  );
   /* The agent strip's marks: a lead, teammate or subagent mark is 12px, 12px or 9px. */
   --size-mark: 0.75rem;
   --size-mark-subagent: 0.5625rem;
@@ -132,62 +262,114 @@
   /* Added and removed lines in a patch. They hold Lc 75 and 4.5:1 on the surface, and the + or - itself marks each line as well. */
   --color-diff-add: #1f6b36;
   --color-diff-remove: #a12a2a;
-  /* The graph's viewport is as tall as the full-size graph plus the controls' room, between these, and doesn't follow the zoom. In the fill layout it fills its pane instead, but never below the minimum. */
-  --size-graph-min-height: 10rem;
-  --size-graph-max-height: 70vh;
-  /* The room the zoom controls cover at the bottom of the graph's viewport: their height and their inset. Focus scrolling and Fit keep the graph out of it. */
-  --size-graph-controls-clearance: calc(var(--size-target-min) + var(--space-3));
-  /* The inspector: a 330px column, with token rows of an 80px label, a bar, and a 48px value, under a 6px bar. */
-  --size-inspector: 20.625rem;
-  --size-inspector-label: 5rem;
-  --size-inspector-value: 3rem;
-  --size-bar: 0.375rem;
-  /* The tokens-per-day chart: the plot is 200px tall under a 48px axis column, and a bar is at most 40px wide. */
+  /* The graph's canvas is a fixed 640px tall, whatever the graph's size or zoom. */
+  --size-graph-height: 40rem;
+  /* The graph card grows from 560px. The inspector grows from 340px to 440px. */
+  --size-graph-pane-basis: 35rem;
+  --size-inspector-basis: 21.25rem;
+  --size-inspector-max: 27.5rem;
+  /* The token class bar: 10px tall, or 8px small, with a segment at least 3px wide, and a 10px swatch beside each class. */
+  --size-token-bar: 0.625rem;
+  --size-token-bar-small: 0.5rem;
+  --size-token-segment-min: 3px;
+  --size-token-swatch: 0.625rem;
+  /* The summary cards: at least 280px wide. A row's columns are a bar of 64px, tokens of 56px, a share of 40px, and an error count of 28px. */
+  --size-summary-card-min: 17.5rem;
+  --size-summary-bar: 4rem;
+  --size-summary-tokens: 3.5rem;
+  --size-summary-share: 2.5rem;
+  --size-summary-count: 1.75rem;
+  /* The tokens-per-day chart: the plot is 200px tall under a 44px axis column, and a bar is at most 40px wide. */
   --size-chart-height: 12.5rem;
-  --size-chart-axis: 3rem;
+  --size-chart-axis: 2.75rem;
   --size-chart-bar-max: 2.5rem;
   /* The shortest a day's bar is drawn, so a day with tokens is never invisible. */
   --size-chart-bar-min: 0.125rem;
+  /* The By model ring: 156px. */
+  --size-ring: 9.75rem;
+  /* The tokens per day card's least comfortable width: below it, By model wraps under it so the table's day column keeps its room. */
+  --size-chart-card-basis: 40rem;
+  /* The By model card's least comfortable width. */
+  --size-model-card-basis: 16.25rem;
+  /* The projects table's least widths, in rem: the project column 192px, latest 176px, and the share bar 112px but never under 80px. */
+  --size-project-col: 12rem;
+  --size-latest-col: 11rem;
+  --size-bar-col: 7rem;
+  --size-bar-col-min: 5rem;
+  /* The narrowest a KPI tile gets before the row wraps: 200px. */
+  --size-kpi-tile-min: 12.5rem;
   /* The hairline of ground between a bar's segments, so each meets the ground. */
   --size-hairline: 1px;
-  /* The stripes of the hatch that marks the other series: 3px of color, then 3px of ground. */
+  /* The stripes of the hatch that marks the other series, and half the tile of the dots that mark haiku: 3px of color, then 3px of ground. */
   --size-hatch: 0.1875rem;
   /* The inspector's headline figure: 34px. */
-  --font-size-inspector-figure: 2.125rem;
+  /* A figure in the inspector's stat grid: 16px. */
+  --font-size-stat: 1rem;
 
   --radius-none: 0;
   --radius-sm: 2px;
   --radius-md: 4px;
+  --radius-card: 16px;
+  --radius-tile: 14px;
+  --radius-node: 10px;
+  --radius-control: 10px;
+  --radius-nav: 8px;
+  --radius-mark: 3px;
+  --radius-pill: 999px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-bg: #17191b;
-    --color-surface: #1f2225;
-    --color-text: #eff0f1;
-    --color-text-muted: #d7d8d9;
-    /* Between accent 100 and 200, so the current project row still stands out from the surface. */
-    --color-selected: #263b50;
+    --color-bg: #181b24;
+    --color-surface: #0f1117;
+    --color-text: #eef0f6;
+    --color-text-muted: #d1d5de;
+    --color-selected: #20244a;
+    --color-selected-text: #cfd1ff;
 
-    --color-divider: #3c3e40;
-    --color-border-strong: #7a7d80;
+    --color-divider: #2a2f3c;
+    --color-border-strong: #7d869b;
+    --color-card-border: #2a2f3c;
+    --color-rule: #343a4a;
+    --color-rule-strong: #4a5163;
+    --color-segment-track: #272c3a;
+    --shadow-segment: 0 1px 2px rgb(0 0 0 / 40%);
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 30%);
+    --shadow-node: 0 1px 2px rgb(0 0 0 / 40%);
 
-    --color-accent: #8fb3d9;
-    --color-accent-100: #1d2d3d;
-    --color-accent-200: #2c455d;
-    --color-accent-300: #416180;
-    --color-accent-400: #597ea3;
-    --color-accent-500: #749dc4;
-    --color-accent-600: #94bce3;
-    --color-accent-700: #b5d9fd;
-    --color-accent-800: #d6ebff;
-    --color-accent-900: #eef6ff;
-    --color-accent-strong: #c8daec;
-    --color-series-1: #3c699e;
-    --color-series-2: #319386;
-    --color-series-3: #d49955;
-    --color-series-4: #e1bfec;
-    --color-series-other: #f5f6f6;
+    --color-accent: #9ea1ff;
+    --color-accent-100: #1d2142;
+    --color-accent-200: #2a2e63;
+    --color-accent-400: #4d50b0;
+    --color-accent-600: #7f83f5;
+    --color-accent-700: #9ea1ff;
+    --color-accent-800: #cfd1ff;
+    --color-accent-900: #e4e5ff;
+    --color-accent-strong: #cfd1ff;
+
+    /* The light lead is 2.7:1 on the dark ground; this holds 3:1 there and 4.5:1 under white text. */
+    --color-kind-lead: #675fe9;
+    --color-kind-teammate-bg: #10292c;
+    --color-kind-workflow: #e09a12;
+    --color-kind-workflow-bg: #2e2410;
+
+    --color-pill-error-bg: #3d1f1f;
+    --color-pill-error-text: #ffb4ab;
+    --color-pill-warning-bg: #3a2c12;
+    --color-pill-warning-text: #ffcf7a;
+    --color-pill-neutral-bg: #2a2f3c;
+    --color-pill-neutral-text: #d5d9e4;
+    --color-op-create-bg: #123327;
+    --color-op-create-text: #8ee0b8;
+    --color-op-update-bg: #1b2a48;
+    --color-op-update-text: #a9c7ff;
+    --color-kpi-tokens-bg: #17243d;
+    --color-kpi-api-bg: #13302a;
+    --color-kpi-sessions-bg: #241e40;
+    --color-kpi-agents-bg: #33270f;
+    --color-kpi-label: var(--color-text);
+    --color-kpi-sub: var(--color-text-muted);
+
     --color-diff-add: #9cdeaa;
     --color-diff-remove: #f6c3c3;
   }

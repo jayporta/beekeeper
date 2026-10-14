@@ -34,18 +34,18 @@ describe('LinkButton', () => {
     )
   })
 
-  it('styles a padded button differently from an unpadded one', () => {
+  it('styles a larger button differently from a regular one', () => {
     render(
       <>
-        <LinkButton onClick={vi.fn()}>Flush</LinkButton>
-        <LinkButton padded onClick={vi.fn()}>
-          Padded
+        <LinkButton onClick={vi.fn()}>Regular</LinkButton>
+        <LinkButton larger onClick={vi.fn()}>
+          Larger
         </LinkButton>
       </>
     )
 
-    expect(screen.getByRole('button', { name: 'Padded' }).className).not.toBe(
-      screen.getByRole('button', { name: 'Flush' }).className
+    expect(screen.getByRole('button', { name: 'Larger' }).className).not.toBe(
+      screen.getByRole('button', { name: 'Regular' }).className
     )
   })
 })

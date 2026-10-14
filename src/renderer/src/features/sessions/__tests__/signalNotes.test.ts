@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { EMPTY_AGENT_SIGNALS_DTO } from '../../../../../shared/ipc/emptyAgentSignals'
-import { signalNotes, signalsMarked, signalTotalsOf } from '../signalNotes'
+import { signalPills, signalsMarked, signalTotalsOf } from '../signalNotes'
 import {
   testLeadTeam,
   testRef,
@@ -12,7 +12,22 @@ import { testSessionsT } from '../testSessionsT'
 
 const COUNTS = { toolErrors: 12, compactions: 2, agentsKilled: 0, partial: false }
 
-describe('signalNotes', () => {
+const signalNotes = (...args: Parameters<typeof signalPills>): string[] =>
+  signalPills(...args).map((pill) => pill.text)
+
+describe('signalPills', () => {
+  it('gives errors and kills the error tone and compactions the warning tone', () => {
+    const totals = { toolErrors: 1, compactions: 1, agentsKilled: 1, partial: false }
+
+    expect(signalPills(totals, testSessionsT).map((pill) => pill.tone)).toEqual([
+      'error',
+      'warning',
+      'error'
+    ])
+  })
+})
+
+describe('signalPills text', () => {
   it('gives no notes for no totals', () => {
     expect(signalNotes(null, testSessionsT)).toEqual([])
   })

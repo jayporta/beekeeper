@@ -1,0 +1,16 @@
+/* The one place a token class is tied to its color, for the bar's segments and the rows' swatches. */
+.input {
+  background: var(--color-token-input);
+}
+
+.output {
+  background: var(--color-token-output);
+}
+
+.cacheRead {
+  background: var(--color-token-cache-read);
+}
+
+.cacheWrite {
+  background: var(--color-token-cache-write);
+}

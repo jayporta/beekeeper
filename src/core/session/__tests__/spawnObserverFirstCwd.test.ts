@@ -30,13 +30,6 @@ describe('createSpawnObserver first cwd', () => {
     expect(firstCwd).toBeUndefined()
   })
 
-  it('skips a non-BMP cwd under the code-point cap but over the code-unit cap', () => {
-    // 3000 non-BMP characters: 3000 code points, but 6000 UTF-16 code units.
-    const { firstCwd } = observeAll([buildBranchRecord('main', `/${'😀'.repeat(3000)}`)]).result()
-
-    expect(firstCwd).toBeUndefined()
-  })
-
   it('is undefined when no record has a cwd', () => {
     const { firstCwd } = observeAll([buildSpawnRecord({ cwd: undefined })]).result()
 

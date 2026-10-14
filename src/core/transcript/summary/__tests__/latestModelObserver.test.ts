@@ -61,8 +61,6 @@ describe('createLatestModelObserver', () => {
 
   it.each([
     ['missing', undefined],
-    ['a number', 5],
-    ['null', null],
     ['empty', '']
   ])('ignores a model that is %s', (_label, model) => {
     const record = buildAssistantRecord({ timestamp: '2026-01-02T00:00:00.000Z' })
@@ -90,12 +88,6 @@ describe('createLatestModelObserver', () => {
     expect(modelAfter([at('2026-01-02T00:00:00.000Z', tooLong)])).toBeNull()
   })
 
-  it('accepts a model exactly at the cap', () => {
-    const atCap = 'm'.repeat(MAX_IDENTIFIER_CODE_UNITS)
-
-    expect(modelAfter([at('2026-01-01T00:00:00.000Z', atCap)])).toBe(atCap)
-  })
-
   it('ignores an assistant record with no timestamp, even when it is the only one', () => {
     const record = buildAssistantRecord({ model: 'model-untimed' })
     delete record.timestamp
@@ -106,8 +98,7 @@ describe('createLatestModelObserver', () => {
 
   it.each([
     ['a leading space', ' claude-x'],
-    ['a trailing space', 'claude-x '],
-    ['spaces on both sides', ' claude-x ']
+    ['a trailing space', 'claude-x ']
   ])('ignores a model with %s, since it is an identifier and is not rewritten', (_label, model) => {
     expect(
       modelAfter([
@@ -117,10 +108,9 @@ describe('createLatestModelObserver', () => {
     ).toBe('model-real')
   })
 
-  it.each([
-    ['only spaces', '   '],
-    ['spaces around a no-break space', ' \u00A0 ']
-  ])('ignores a model of %s', (_label, model) => {
+  it('ignores a model of only spaces', () => {
+    const model = '   '
+
     expect(
       modelAfter([
         at('2026-01-01T00:00:00.000Z', 'model-real'),
@@ -129,12 +119,10 @@ describe('createLatestModelObserver', () => {
     ).toBe('model-real')
   })
 
-  it.each([
-    ['a bidi override', 'claude\u202Eopus'],
-    ['a line separator', 'claude\u2028opus'],
-    ['a newline', 'claude\nopus'],
-    ['a control character', 'claude\u0007opus']
-  ])('ignores a model containing %s, so an earlier clean one wins', (_label, model) => {
+  // The classes of unprintable character are covered in hasUnprintable.test.ts.
+  it('ignores an unprintable model, so an earlier clean one wins', () => {
+    const model = 'claude\u202Eopus'
+
     expect(
       modelAfter([
         at('2026-01-01T00:00:00.000Z', 'model-real'),

@@ -1,6 +1,7 @@
 import { DAY_MS } from '../../core/shared/dayMs'
 import type { SessionEntry } from '../../core/transcript/discoverSessions'
 import type { TotalsWindowDto } from '../../shared/ipc/projectTotalsDto'
+import { isBeforeTotalsWindow } from '../../shared/usage/isBeforeTotalsWindow'
 import type { ArchivedTimes } from './archivedTimes'
 
 /** How long each totals window is, in milliseconds. */
@@ -110,20 +111,4 @@ export function mayArchivedCountInWindow(
   const { latestMs, modifiedMs } = times
   if (modifiedMs === null) return true
   return !isBeforeTotalsWindow({ latestMs, mtimeMs: modifiedMs }, window.nowMs - window.windowMs)
-}
-
-/**
- * Whether a session was last active before a totals window starts: by its last
- * message, else by when its transcript was last written. The one rule the
- * folder totals and the archived-session filter share.
- *
- * @param times - When the session's last message was, or `null` when it has none, and when its transcript was last written.
- * @param cutoffMs - The window's start, in milliseconds since the Unix epoch.
- * @returns `true` when the session is out of the window.
- */
-export function isBeforeTotalsWindow(
-  times: { readonly latestMs: number | null; readonly mtimeMs: number },
-  cutoffMs: number
-): boolean {
-  return (times.latestMs ?? times.mtimeMs) < cutoffMs
 }

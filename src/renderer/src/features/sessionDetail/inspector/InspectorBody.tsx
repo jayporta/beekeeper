@@ -7,11 +7,12 @@ import { InspectorFlags } from './InspectorFlags'
 import { InspectorFootnote } from './InspectorFootnote'
 import { inspectorReasons } from './inspectorReasons'
 import { InspectorSignals } from './InspectorSignals'
+import { InspectorStatGrid } from './InspectorStatGrid'
+import { InspectorTokens } from './InspectorTokens'
 import { InspectorTotals } from './InspectorTotals'
-import { ReportedCostNote } from './ReportedCostNote'
+import { ReportedCostStat } from './ReportedCostStat'
 import { reportCost } from './reportCost'
 import { rollupBelow } from './rollupBelow'
-import { TokenRows } from './TokenRows'
 import { WorktreeDiffBox } from './WorktreeDiffBox'
 
 /** Props for {@link InspectorBody}. */
@@ -49,15 +50,17 @@ export function InspectorBody({ node, target, inspection }: InspectorBodyProps):
 
   return (
     <>
-      <InspectorTotals
-        tokens={tokens}
-        cost={cost}
-        rollup={rollup}
-        unreadableLines={report.skippedLines > 0}
-        subagentsUnreadable={subagentsUnreadable}
-      />
-      <ReportedCostNote sessionId={target.ownerRef.sessionId} agentId={target.agentId} />
-      {tokens !== null && <TokenRows report={report} tokens={tokens} />}
+      <InspectorStatGrid>
+        <InspectorTotals
+          tokens={tokens}
+          cost={cost}
+          rollup={rollup}
+          unreadableLines={report.skippedLines > 0}
+          subagentsUnreadable={subagentsUnreadable}
+        />
+        <ReportedCostStat sessionId={target.ownerRef.sessionId} agentId={target.agentId} />
+      </InspectorStatGrid>
+      {tokens !== null && <InspectorTokens report={report} tokens={tokens} model={node.model} />}
       <FilesTouched report={report} />
       {target.agentId === null && node.kind === 'teammate' && (
         <WorktreeDiffBox sessionRef={target.ownerRef} agentId={null} branch={null} />

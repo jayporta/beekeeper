@@ -4,9 +4,8 @@
   gap: var(--space-1);
 }
 
-.title {
-  font-family: var(--font-heading);
-  font-size: var(--font-size-4xl);
-  font-weight: var(--font-weight-semibold);
-  line-height: 1.1;
+.window {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
 }

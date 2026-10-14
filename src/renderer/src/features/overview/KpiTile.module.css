@@ -1,0 +1,60 @@
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-4-5) var(--space-5);
+  background: var(--tile-bg);
+  border-radius: var(--radius-tile);
+}
+
+.tokens {
+  --tile-bg: var(--color-kpi-tokens-bg);
+  --tile-dot: var(--color-kpi-tokens-dot);
+}
+
+.api {
+  --tile-bg: var(--color-kpi-api-bg);
+  --tile-dot: var(--color-kpi-api-dot);
+}
+
+.sessions {
+  --tile-bg: var(--color-kpi-sessions-bg);
+  --tile-dot: var(--color-kpi-sessions-dot);
+}
+
+.agents {
+  --tile-bg: var(--color-kpi-agents-bg);
+  --tile-dot: var(--color-kpi-agents-dot);
+}
+
+.label {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-kpi-label);
+}
+
+.dot {
+  flex: none;
+  inline-size: var(--size-mark);
+  block-size: var(--size-mark);
+  background: var(--tile-dot);
+  border-radius: var(--radius-pill);
+}
+
+.figure {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-kpi);
+  color: var(--kpi-figure-color, var(--color-text));
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.sub {
+  color: var(--color-kpi-sub);
+}

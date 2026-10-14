@@ -95,7 +95,7 @@ describe('a selected project whose folder is gone', () => {
 
     expect(await findAnnouncedGoneNotice(`${folderGone(ALPHA)} Showing ${BETA}.`)).toBeTruthy()
     expect(await screen.findByRole('heading', { level: 1, name: BETA })).toBeTruthy()
-    expect(await screen.findByRole('heading', { level: 2, name: 'Beta work' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 3, name: 'Beta work' })).toBeTruthy()
   })
 
   it('clears the announcement when a different project is chosen in the sidebar', async () => {
@@ -149,7 +149,7 @@ describe('a selected project whose folder is gone', () => {
     await refetchAndSettle(client, ['projects'])
 
     expect(await findAnnouncedGoneNotice(`${folderGone(ALPHA)} Showing ${BETA}.`)).toBeTruthy()
-    expect(await screen.findByRole('heading', { level: 2, name: 'Beta work' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 3, name: 'Beta work' })).toBeTruthy()
   })
 
   it('announces a folder deleted while the app was closed, then forgets it so the next start is silent', async () => {
@@ -492,7 +492,7 @@ describe('a gone folder that comes back', () => {
   it('does not say the folder is gone when a later list puts another project first', async () => {
     const { client, retry, listBetaFirst } = await renderGoneThenBack()
     await retry()
-    await screen.findByRole('heading', { level: 2, name: 'Alpha work' })
+    await screen.findByRole('heading', { level: 3, name: 'Alpha work' })
 
     listBetaFirst()
     await refetchAndSettle(client, ['projects'])
@@ -521,7 +521,7 @@ describe('a folder that went missing and later came back', () => {
       }
     })
     render(<App />, { wrapper: createQueryWrapper(client) })
-    await screen.findByRole('heading', { level: 2, name: 'Alpha work' })
+    await screen.findByRole('heading', { level: 3, name: 'Alpha work' })
     alphaGone = true
     listed = [testProject(BETA)]
     await refetchAndSettle(client, ['sessions', ALPHA])
@@ -536,7 +536,7 @@ describe('a folder that went missing and later came back', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: ALPHA }))
 
-    expect(await screen.findByRole('heading', { level: 2, name: 'Alpha work' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 3, name: 'Alpha work' })).toBeTruthy()
     await settleFor(50)
     expect(screen.getByRole('button', { name: ALPHA }).getAttribute('aria-current')).toBe('page')
     expect(goneNotice()).toBeNull()
@@ -564,6 +564,6 @@ describe('a folder that went missing and later came back', () => {
       await Promise.resolve()
     })
 
-    expect(await screen.findByRole('heading', { level: 2, name: 'Alpha work' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 3, name: 'Alpha work' })).toBeTruthy()
   })
 })

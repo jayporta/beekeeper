@@ -66,12 +66,58 @@ describe('DailyUsageSection', () => {
     ).toBeTruthy()
   })
 
-  it('shows "Other models" in the legend when more than four models ran', async () => {
-    const many = testDailyUsage({ '2026-10-07': { a: 6, b: 5, c: 4, d: 3, e: 2 } })
+  it('shows "Other models" in the legend for a model that fits no family', async () => {
+    const many = testDailyUsage({ '2026-10-07': { 'claude-opus-5': 6, mystery: 2 } })
     renderSection(() => Promise.resolve({ ok: true, value: many }))
 
     const legend = await screen.findByRole('list', { name: 'Models' })
     expect(within(legend).getByText('Other models')).toBeTruthy()
+  })
+})
+
+describe('DailyUsageSection by-model card', () => {
+  it('has a "By model" card beside the chart with a row for each family and the total in a ring', async () => {
+    renderSection(() => Promise.resolve(week()))
+    await chart()
+
+    expect(screen.getByRole('heading', { level: 2, name: 'By model' })).toBeTruthy()
+    const rows = within(screen.getByRole('list', { name: 'Tokens by model' })).getAllByRole(
+      'listitem'
+    )
+    expect(rows.map((row) => row.textContent)).toEqual(['Opus33.2M81%', 'Haiku8M19%'])
+  })
+
+  it('marks the ring total as partial, and shows the footnote once', async () => {
+    renderSection(() => Promise.resolve(week({ skippedLines: 1 })))
+    await chart()
+
+    expect(screen.getByText('41.2M').textContent).toContain('¹')
+    expect(screen.getAllByText(/Partial:/)).toHaveLength(1)
+  })
+
+  it('says it is updating once, not once per card', async () => {
+    const thirty = new Promise<Reply>(() => undefined)
+    renderSection((_dir, window) => (window === '7d' ? Promise.resolve(week()) : thirty))
+    await chart()
+
+    act(() => {
+      useTotalsWindowStore.getState().setWindow('30d')
+    })
+
+    expect(await screen.findAllByText('Updating')).toHaveLength(1)
+  })
+
+  it('says it is loading in its own words before any folder answers', async () => {
+    renderSection(never)
+
+    expect(await screen.findByText('Loading models')).toBeTruthy()
+    expect(screen.queryAllByRole('listitem')).toHaveLength(0)
+  })
+
+  it('says it could not load when every folder failed', async () => {
+    renderSection(() => Promise.resolve(failed), ['-a', '-b'])
+
+    expect(await screen.findByText("Couldn't load models.")).toBeTruthy()
   })
 })
 
@@ -158,7 +204,8 @@ describe('DailyUsageSection while loading and when partial', () => {
         "¹ Partial: Some projects couldn't be read. A day's total may be low."
       )
     ).toBeTruthy()
-    expect(screen.getByText('partial, see the note under the chart')).toBeTruthy()
+    // One marker after the note, one after the ring's total.
+    expect(screen.getAllByText('partial, see the note under the chart')).toHaveLength(2)
   })
 
   it('names each partial reason in the footnote', async () => {

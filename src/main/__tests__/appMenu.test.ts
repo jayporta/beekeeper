@@ -4,7 +4,8 @@ import { buildAppMenuTemplate } from '../appMenu'
 
 const DEV_TOOL_ROLES = ['reload', 'forceReload', 'toggleDevTools']
 const ZOOM_ROLES = ['zoomIn', 'zoomOut', 'resetZoom']
-const PLATFORMS = ['darwin', 'linux', 'win32'] as const
+/** The menu has one branch for macOS and one for every other platform. */
+const PLATFORMS = ['darwin', 'linux'] as const
 const ABOUT_LABEL = 'About beekeeper'
 
 /** Every item in the template, submenus included. */
@@ -144,14 +145,14 @@ describe('buildAppMenuTemplate', () => {
     expect(template[1]?.role).toBe('fileMenu')
   })
 
-  it.each(['linux', 'win32'] as const)('starts with the file menu on %s', (platform) => {
-    const [first] = build(platform)
+  it('starts with the file menu elsewhere', () => {
+    const [first] = build('linux')
 
     expect(first?.role).toBe('fileMenu')
   })
 
-  it.each(['linux', 'win32'] as const)('has no app menu items on %s', (platform) => {
-    const roles = rolesOf(build(platform))
+  it('has no app menu items elsewhere', () => {
+    const roles = rolesOf(build('linux'))
 
     for (const role of ['hide', 'hideOthers', 'unhide']) {
       expect(roles).not.toContain(role)

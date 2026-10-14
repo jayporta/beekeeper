@@ -10,7 +10,6 @@ import {
   sizeView,
   sizer,
   stopModelingScrollClamp,
-  stubControlsClearance,
   surface,
   viewport
 } from '../testGraphViewport'
@@ -133,18 +132,18 @@ describe('GraphCanvas zoom with room around the graph', () => {
 
   it('keeps the point under the pointer where it was when zooming grows a small graph past half the view', () => {
     const resizing = stubResizeObserver()
-    sizeView({ width: 1000, height: 800 })
+    sizeView({ width: 1200, height: 800 })
     renderGraph()
     modelScrollClamp()
     resizing.resize()
     vi.spyOn(viewport(), 'getBoundingClientRect').mockReturnValue({ left: 50, top: 20 } as DOMRect)
 
-    // The graph is 476 wide, less than half the 1000 view, so 524 of room comes before it. Zooming
-    // makes it wider than half, so 500 of room comes before it.
-    fireEvent.wheel(viewport(), { deltaY: -10, ctrlKey: true, clientX: 250, clientY: 120 })
+    // The graph is 508 wide, less than half the 1200 view, so 692 of room comes before it. Zooming
+    // makes it wider than half, so 600 of room comes before it.
+    fireEvent.wheel(viewport(), { deltaY: -100, ctrlKey: true, clientX: 250, clientY: 120 })
 
     // The pointer is 200 into the view and so into the graph, which the zoom scales by the new scale.
-    expect(viewport().scrollLeft).toBeCloseTo(500 + 200 * scale() - 200)
+    expect(viewport().scrollLeft).toBeCloseTo(600 + 200 * scale() - 200)
   })
 })
 
@@ -155,18 +154,18 @@ describe('GraphCanvas zoom out near the far edges', () => {
     modelScrollClamp()
     await press('Zoom in')
     viewport().scrollLeft = 300
-    viewport().scrollTop = 300
+    viewport().scrollTop = 250
 
     await press('Zoom out')
 
     expect(viewport().scrollLeft).toBeCloseTo((300 + 100) / ZOOM_STEP - 100)
-    expect(viewport().scrollTop).toBeCloseTo((300 + 50) / ZOOM_STEP - 50)
+    expect(viewport().scrollTop).toBeCloseTo((250 + 50) / ZOOM_STEP - 50)
   })
 })
 
 describe('GraphCanvas fit', () => {
   it('scales the whole graph into a view narrower than it', async () => {
-    sizeView({ width: 238, height: 1000 })
+    sizeView({ width: 254, height: 1000 })
     renderGraph()
 
     await press('Fit the graph to the view')
@@ -174,10 +173,9 @@ describe('GraphCanvas fit', () => {
     expect(scale()).toBeCloseTo(0.5)
   })
 
-  it('scales by the height less the room the zoom controls cover', async () => {
-    sizeView({ width: 1000, height: 273 })
+  it('scales by the view’s height when the graph is taller than it', async () => {
+    sizeView({ width: 1000, height: 146 })
     renderGraph()
-    stubControlsClearance(100)
 
     await press('Fit the graph to the view')
 
@@ -185,9 +183,8 @@ describe('GraphCanvas fit', () => {
   })
 
   it('gives the same scale however many times it is pressed', async () => {
-    sizeView({ width: 1000, height: 300 })
+    sizeView({ width: 1000, height: 200 })
     renderGraph()
-    stubControlsClearance(56)
     await press('Zoom out')
     await press('Zoom out')
 
@@ -197,7 +194,7 @@ describe('GraphCanvas fit', () => {
       scales.push(scale())
     }
 
-    expect(scales[0]).toBeCloseTo((300 - 56) / 346)
+    expect(scales[0]).toBeCloseTo(200 / 292)
     expect(scales[1]).toBeCloseTo(scales[0] ?? NaN)
     expect(scales[2]).toBeCloseTo(scales[0] ?? NaN)
   })
@@ -212,23 +209,22 @@ describe('GraphCanvas fit', () => {
     expect(scale()).toBe(1)
   })
 
-  it('centers the fitted graph in the room above the zoom controls, with the room it has at its new scale', async () => {
+  it('centers the fitted graph in the view, with the room it has at its new scale', async () => {
     const resizing = stubResizeObserver()
-    sizeView({ width: 900, height: 400 })
+    sizeView({ width: 900, height: 200 })
     renderGraph()
     modelScrollClamp()
-    stubControlsClearance(100)
     resizing.resize()
 
     await press('Fit the graph to the view')
 
-    // The 300 pixel room above the controls fits the graph at 300 / 346, so it is narrower than
-    // half the 900 view and has more room beside it than it had at full size.
-    const fitted = { width: 476 * (300 / 346), height: 300 }
+    // The 200 pixel view fits the graph at 200 / 292, so it is narrower than half the 900 view and
+    // has more room beside it than it had at full size.
+    const fitted = { width: 508 * (200 / 292), height: 200 }
     const graphLeft = Number.parseFloat(surface().style.left) - viewport().scrollLeft
     const graphTop = Number.parseFloat(surface().style.top) - viewport().scrollTop
     expect(graphLeft).toBeCloseTo((900 - fitted.width) / 2)
-    expect(graphTop).toBeCloseTo((300 - fitted.height) / 2)
+    expect(graphTop).toBeCloseTo((200 - fitted.height) / 2)
   })
 
   it('leaves the scale and the scrollable area alone while the view has no size', async () => {

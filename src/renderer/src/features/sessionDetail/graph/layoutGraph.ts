@@ -2,6 +2,7 @@ import type { AgentGraphNode, AgentKey } from '../../../../../shared/agentGraph/
 import { flattenPreorder } from '../../../../../shared/agentGraph/flattenPreorder'
 import {
   COLUMN_WIDTH,
+  EDGE_STUB,
   LEAF_PITCH,
   NODE_HEIGHT,
   NODE_WIDTH,
@@ -27,7 +28,7 @@ export interface GraphEdge {
   readonly from: AgentKey
   /** The child's key. */
   readonly to: AgentKey
-  /** An SVG path from the parent's right middle to the child's left middle. */
+  /** An SVG path from the parent's right middle to the child's left middle: a short run right, a vertical, and a run to the child. */
   readonly path: string
 }
 
@@ -49,14 +50,13 @@ interface Slot {
   readonly depth: number
   readonly parent: Slot | null
   firstChild: Slot | null
-  lastChild: Slot | null
   y: number
 }
 
 /**
  * Places a spawn graph as a tidy tree running left to right. A column holds
  * one depth. Leaves stack at a fixed pitch from the top, and each parent
- * sits at the midpoint of its first and last child. The pass is iterative and
+ * sits level with its first child. The pass is iterative and
  * linear in the number of nodes, so a deep or wide graph is no harder than a
  * small one.
  *
@@ -74,12 +74,10 @@ export function layoutGraph(root: AgentGraphNode): GraphLayout {
       depth: flat.depths[i] ?? 0,
       parent,
       firstChild: null,
-      lastChild: null,
       y: 0
     }
     if (parent !== null) {
       parent.firstChild ??= slot
-      parent.lastChild = slot
     }
     slots.push(slot)
   })
@@ -93,8 +91,8 @@ export function layoutGraph(root: AgentGraphNode): GraphLayout {
   // A parent comes before its children in preorder, so going backward places every child first.
   for (let i = slots.length - 1; i >= 0; i -= 1) {
     const slot = slots[i]
-    if (slot === undefined || slot.firstChild === null || slot.lastChild === null) continue
-    slot.y = (slot.firstChild.y + slot.lastChild.y) / 2
+    if (slot === undefined || slot.firstChild === null) continue
+    slot.y = slot.firstChild.y
   }
 
   const lastLeafY = nextLeafY - LEAF_PITCH
@@ -110,11 +108,11 @@ export function layoutGraph(root: AgentGraphNode): GraphLayout {
     const startY = slot.parent.y + NODE_HEIGHT / 2
     const endX = x(slot)
     const endY = slot.y + NODE_HEIGHT / 2
-    const midX = startX + (endX - startX) / 2
+    const turnX = startX + EDGE_STUB
     edges.push({
       from: slot.parent.node.key,
       to: slot.node.key,
-      path: `M ${startX} ${startY} H ${midX} V ${endY} H ${endX}`
+      path: `M ${startX} ${startY} H ${turnX} V ${endY} H ${endX}`
     })
   }
 

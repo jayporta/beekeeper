@@ -1,6 +1,14 @@
 .group {
   display: inline-flex;
-  border: 1px solid var(--color-border-strong);
+  gap: var(--size-segment-padding);
+  padding: var(--size-segment-padding);
+  background: var(--color-segment-track);
+  border-radius: var(--radius-control);
+
+  /* Forced colors drop the track's fill, so the group keeps an edge. */
+  @media (forced-colors: active) {
+    border: 1px solid CanvasText;
+  }
 }
 
 .segment {
@@ -11,21 +19,20 @@
   min-height: var(--size-target-min);
   padding-inline: var(--space-4);
   font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
   cursor: pointer;
-
-  & + & {
-    border-inline-start: 1px solid var(--color-border-strong);
-  }
+  border-radius: var(--radius-nav);
 
   &:hover {
     background: var(--color-hover);
   }
 
-  /* The accent fill carries the selected segment's text, so it uses the fill token that passes contrast. */
+  /* The weight and the text color tell the chosen segment apart, since its ground is nearly the track's. */
   &:has(:checked) {
-    color: var(--color-bg);
+    color: var(--color-segment-selected-text);
     font-weight: var(--font-weight-semibold);
-    background: var(--color-accent-strong);
+    background: var(--color-bg);
+    box-shadow: var(--shadow-segment);
 
     /* Forced colors drop the fill, so the chosen segment keeps a solid system color. */
     @media (forced-colors: active) {

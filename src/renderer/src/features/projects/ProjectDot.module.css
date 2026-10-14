@@ -1,0 +1,27 @@
+.dot {
+  flex: none;
+  inline-size: var(--size-dot);
+  block-size: var(--size-dot);
+}
+
+.solid {
+  background: var(--project-color);
+  border-radius: var(--radius-pill);
+}
+
+.ring {
+  background: var(--color-bg);
+  border-radius: var(--radius-pill);
+  box-shadow: inset 0 0 0 var(--border-width-strong) var(--project-color);
+}
+
+/* The four-color square for "All projects". */
+.all {
+  background: conic-gradient(
+    var(--color-project-1) 0 25%,
+    var(--color-project-2) 0 50%,
+    var(--color-project-3) 0 75%,
+    var(--color-project-6) 0
+  );
+  border-radius: var(--radius-mark);
+}

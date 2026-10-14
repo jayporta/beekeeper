@@ -1,9 +1,10 @@
 {
   "columns": {
     "session": "Session",
-    "duration": "Duration",
     "agents": "Agents",
-    "tokens": "Tokens"
+    "duration": "Duration",
+    "tokens": "Tokens",
+    "price": "API price"
   },
   "label": {
     "untitled": "Untitled session",
@@ -69,7 +70,9 @@
     "noMatches": "No matching sessions",
     "noMatchesBody": "Try a different search.",
     "matches_one": "{{count, integer}} session matches",
-    "matches_other": "{{count, integer}} sessions match"
+    "matches_other": "{{count, integer}} sessions match",
+    "count_one": "{{count, integer}} match",
+    "count_other": "{{count, integer}} matches"
   },
   "loading": "Loading sessions",
   "unreadable": {
@@ -98,18 +101,39 @@
     "workflow": "Workflow",
     "subagent": "Subagent"
   },
-  "chip": {
-    "matches": "matches search"
-  },
-  "chips": {
-    "label": "Teammates of {{name}}"
-  },
   "footnote": {
     "label": "¹ Partial:",
     "unreadableLines": "Some transcript lines couldn't be read, so a total may be low.",
     "missingTeammates": "Some teammates the lead spawned aren't in this list, so a team total may be low.",
     "unrecordedUsage": "Some sessions recorded no usage, so a team total leaves them out.",
     "subagentsExcluded": "A session still running or stopped early shows its transcript's tokens, which leave out its subagents.",
-    "incompleteSignals": "Some transcripts have more events than beekeeper counts, so a card's tool error, compaction, or agent kill count may be low."
-  }
+    "incompleteSignals": "Some transcripts have more events than beekeeper counts, so a card's tool error, compaction, or agent kill count may be low.",
+    "unknownSubagents": "The number of subagents of some sessions is unknown, so the agent count may be low."
+  },
+  "stats": {
+    "sessions": "Sessions",
+    "tokens": "Tokens",
+    "cost": "At API prices",
+    "agents": "Agents",
+    "worktrees": "Worktrees",
+    "latest": "Latest",
+    "none": "None",
+    "integer": "{{value, integer}}",
+    "partialNote": "partial, see the note under these totals",
+    "footnoteLabel": "¹ Partial totals:"
+  },
+  "figure": {
+    "compact": "{{value, compactInteger}}"
+  },
+  "tokensLabel": "tokens",
+  "listTitle": "Sessions",
+  "teammate": {
+    "matches": "matches search",
+    "share": "{{value, integer}}%",
+    "shareSuffix": "of the session"
+  },
+  "teammates": {
+    "label": "Teammates of {{name}}"
+  },
+  "matchingTeammate": "matching teammate {{agent}}"
 }

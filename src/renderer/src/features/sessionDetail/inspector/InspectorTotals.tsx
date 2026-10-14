@@ -1,9 +1,7 @@
 import { useTranslation } from 'react-i18next'
-import { MutedText } from '@renderer/components/MutedText'
-import { formatTokens } from '@renderer/features/sessions/formatTokens'
-import { InspectorCostNote } from './InspectorCostNote'
-import { InspectorMarker } from './InspectorMarker'
-import { InspectorTotalsFrame } from './InspectorTotalsFrame'
+import { StatRowItem } from '@renderer/components/StatRowItem'
+import { EmptyCell } from '@renderer/features/sessions/EmptyCell'
+import { InspectorCostStat } from './InspectorCostStat'
 import type { ReportCost } from './reportCost'
 import type { Rollup } from './rollupBelow'
 
@@ -22,17 +20,18 @@ interface InspectorTotalsProps {
 }
 
 /**
- * The agent's totals: its own tokens in large type, then what it adds up to
- * with the agents below it (or that there are none), then its cost at API
- * prices. Tokens come first and cost follows. A figure that may be low carries
- * a "¹". The total with the agents below carries one when it may leave tokens
- * out: the agent's own were left out or may be low, an agent below is
- * partial, or a teammate below has subagents that aren't loaded. When the
- * subagents couldn't be read the note says so instead of saying there are
- * none, and carries one too.
+ * The first three items of an agent's stat grid: its own tokens, what it adds
+ * up to with the agents below (or that there are none), and its cost at API
+ * prices. A figure that may be low carries a "¹". The total with the agents
+ * below carries one when it may leave tokens out: the agent's own were left
+ * out or may be low, an agent below is partial, or a teammate below has
+ * subagents that aren't loaded. When the subagents couldn't be read the item
+ * says so instead of saying there are none, and carries one too.
  *
  * @example
- * <InspectorTotals tokens={1200} cost={{ usd: 0.4, partial: false }} rollup={rollup} unreadableLines={false} subagentsUnreadable={false} />
+ * <InspectorStatGrid>
+ *   <InspectorTotals tokens={1200} cost={{ usd: 0.4, partial: false }} rollup={rollup} unreadableLines={false} subagentsUnreadable={false} />
+ * </InspectorStatGrid>
  */
 export function InspectorTotals({
   tokens,
@@ -43,6 +42,7 @@ export function InspectorTotals({
 }: InspectorTotalsProps): React.JSX.Element {
   const { t } = useTranslation('sessionDetail')
   const { t: tSessions } = useTranslation('sessions')
+  const note = t('partial.note')
   const noteMayBeLow =
     subagentsUnreadable ||
     (rollup.below > 0 &&
@@ -50,19 +50,24 @@ export function InspectorTotals({
   const noAgentsBelow = subagentsUnreadable
     ? t('inspector.belowUnreadable')
     : t('inspector.noneBelow')
+  const ownTokens = tokens === null ? null : tSessions('figure.compact', { value: tokens })
+  const noTokensText = tSessions('emptyCell.tokensNotRecorded')
+  const label = tSessions('stats.tokens')
 
   return (
-    <InspectorTotalsFrame tokens={tokens} partial={unreadableLines}>
-      <MutedText>
+    <>
+      <StatRowItem label={label} partialNote={unreadableLines ? note : undefined}>
+        {ownTokens ?? <EmptyCell spokenText={noTokensText} />}
+      </StatRowItem>
+      <StatRowItem label={t('inspector.stats.below')} partialNote={noteMayBeLow ? note : undefined}>
         {rollup.below === 0
           ? noAgentsBelow
           : t('inspector.rollup', {
-              tokens: formatTokens((tokens ?? 0) + rollup.tokens, tSessions),
+              tokens: tSessions('figure.compact', { value: (tokens ?? 0) + rollup.tokens }),
               count: rollup.below
             })}
-        {noteMayBeLow && <InspectorMarker />}
-      </MutedText>
-      <InspectorCostNote cost={cost} usageIncomplete={unreadableLines} />
-    </InspectorTotalsFrame>
+      </StatRowItem>
+      <InspectorCostStat cost={cost} usageIncomplete={unreadableLines} />
+    </>
   )
 }

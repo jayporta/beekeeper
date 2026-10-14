@@ -32,7 +32,7 @@ describe('InspectorTotals with the agent’s own tokens not recorded', () => {
       />
     )
 
-    expect(screen.getByText(/3K tokens incl\. 2 below/).textContent).toContain('¹')
+    expect(screen.getByText(/3K · 2 below/).textContent).toContain('¹')
   })
 
   it('marks the total with the agents below when their subagents are not loaded', () => {
@@ -46,7 +46,7 @@ describe('InspectorTotals with the agent’s own tokens not recorded', () => {
       />
     )
 
-    expect(screen.getByText(/1.5K tokens incl\. 1 below/).textContent).toContain('¹')
+    expect(screen.getByText(/1.5K · 1 below/).textContent).toContain('¹')
   })
 
   it('does not mark the note when there are no agents below', () => {
@@ -76,7 +76,7 @@ describe('InspectorTotals with the agent’s own tokens recorded', () => {
       />
     )
 
-    expect(screen.getByText(/1\.5K tokens incl\. 1 below/).textContent).not.toContain('¹')
+    expect(screen.getByText(/1\.5K · 1 below/).textContent).not.toContain('¹')
   })
 })
 
@@ -107,7 +107,7 @@ describe('InspectorTotals marks', () => {
       />
     )
 
-    expect(screen.getByText(/1\.5K tokens incl\. 1 below/).textContent).toContain('¹')
+    expect(screen.getByText(/1\.5K · 1 below/).textContent).toContain('¹')
   })
 
   it('leaves the note on a lone agent unmarked when unreadable lines only affect its own figures', () => {

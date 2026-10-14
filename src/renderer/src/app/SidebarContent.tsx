@@ -6,8 +6,8 @@ import styles from './SidebarContent.module.css'
 
 /**
  * What the sidebar holds: the app name, the project list once projects are
- * loaded, and a footer with the live updates checkbox, the local-only note
- * and the telemetry dialog's button.
+ * loaded, and a footer with the live updates checkbox, the telemetry dialog's
+ * button and the local-only note, in a card that fills the sidebar.
  *
  * @example
  * <aside aria-label="Sidebar"><SidebarContent /></aside>

@@ -4,37 +4,36 @@ import { DailyUsageLegend } from '../DailyUsageLegend'
 import { seriesOf } from '../seriesOf'
 import { testSummary } from '../testDailyUsage'
 
-const LONG_ID = `claude-${'x'.repeat(120)}`
-
 function legendFor(models: Record<string, number>): React.JSX.Element {
   return <DailyUsageLegend series={seriesOf(testSummary({ '2026-03-10': models }).days)} />
 }
 
 describe('DailyUsageLegend', () => {
-  it('lists each model, largest first', () => {
-    render(legendFor({ 'claude-haiku-5': 1, 'claude-opus-5': 9 }))
+  it('lists each family in the fixed order, however large it is', () => {
+    render(
+      legendFor({
+        'claude-haiku-5': 9,
+        'claude-opus-5': 1,
+        'claude-sonnet-5': 5,
+        'claude-fable-1': 2
+      })
+    )
 
     const items = within(screen.getByRole('list', { name: 'Models' })).getAllByRole('listitem')
-    expect(items.map((item) => item.textContent)).toEqual(['claude-opus-5', 'claude-haiku-5'])
+    expect(items.map((item) => item.textContent)).toEqual(['Fable', 'Opus', 'Sonnet', 'Haiku'])
   })
 
-  it('names the rest "Other models" when more than four models ran', () => {
-    render(legendFor({ a: 60, b: 50, c: 40, d: 30, e: 20 }))
+  it('names a model that fits no family "Other models"', () => {
+    render(legendFor({ 'claude-opus-5': 1, mystery: 2 }))
 
     const items = within(screen.getByRole('list', { name: 'Models' })).getAllByRole('listitem')
-    expect(items.map((item) => item.textContent)).toEqual(['a', 'b', 'c', 'd', 'Other models'])
+    expect(items.map((item) => item.textContent)).toEqual(['Opus', 'Other models'])
   })
 
-  it('shows a very long model id as plain text', () => {
-    render(legendFor({ [LONG_ID]: 5 }))
-
-    expect(screen.getByText(LONG_ID)).toBeTruthy()
-  })
-
-  it('renders model ids that look like markup as text, not elements', () => {
+  it('never shows a model id, which is transcript text', () => {
     const { container } = render(legendFor({ '<b>bold</b>': 5 }))
 
-    expect(screen.getByText('<b>bold</b>')).toBeTruthy()
+    expect(screen.queryByText('<b>bold</b>')).toBeNull()
     expect(container.querySelector('b')).toBeNull()
   })
 

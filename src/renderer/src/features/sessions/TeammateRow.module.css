@@ -1,0 +1,80 @@
+/* On the same columns as the session rows above it, since the list spans their full width. */
+.row {
+  composes: columns from './CardColumns.module.css';
+  align-items: center;
+  inline-size: 100%;
+  min-block-size: var(--size-target-min);
+  padding-block: var(--space-2);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-body);
+  text-align: start;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--color-selected);
+  }
+
+  /* Drawn inside the edge, since the list clips anything outside it (overflow: hidden). */
+  &:focus-visible {
+    outline-offset: calc(-1 * var(--focus-ring-width));
+  }
+}
+
+/* A match shows by its pill and its ground, not by color alone. */
+.highlighted {
+  background: var(--color-selected);
+}
+
+.who {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.mark {
+  display: inline-flex;
+  flex: none;
+  align-self: center;
+}
+
+/* The name never gives way before the type does. */
+.name {
+  flex: none;
+  max-inline-size: 100%;
+  font-weight: var(--font-weight-medium);
+  overflow-wrap: anywhere;
+}
+
+.type {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-1-5);
+  align-items: center;
+}
+
+.note {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.bar {
+  align-self: center;
+}
+
+.figure {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
