@@ -1,0 +1,17 @@
+{
+  "name": "beekeeper",
+  "description": "See what your Claude Code agents did, what they changed, and what they cost. Local-only.",
+  "owner": { "name": "Jason Matthew Porta" },
+  "plugins": [
+    {
+      "name": "beekeeper",
+      "description": "See what your Claude Code agents did, what they changed, and what they cost. Local-only.",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/jayporta/beekeeper.git",
+        "path": "mod",
+        "ref": "mod-release"
+      }
+    }
+  ]
+}
