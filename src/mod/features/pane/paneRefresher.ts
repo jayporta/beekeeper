@@ -1,10 +1,10 @@
 import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
 import { createBrowseRefresher } from '../browse/createBrowseRefresher'
-import { createDiffsRefresher } from '../diffs/createDiffsRefresher'
 import { startMod, type StartOutcome } from '../start/startMod'
 import { createPaneServices } from './createPaneServices'
+import { createWorktreeLoader } from './createWorktreeLoader'
+import { storeView } from './storeView'
 import { contentKey } from '../shared/contentKey'
-import { createPatchRefresher } from '../patch/createPatchRefresher'
 import { emptyPaneView } from './emptyPaneView'
 import { findSessionFolder } from './findSessionFolder'
 import { hasTeam } from './hasTeam'
@@ -147,37 +147,7 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
     return { sessionId, sessionRoot, nowMs, outcome: started ?? (await startNow(sessionRoot)) }
   }
 
-  const diffs = createDiffsRefresher({ writeDiffs: (value) => pane.writeDiffs(value), log })
-
-  const patches = createPatchRefresher({
-    readPatch: () => pane.patch(),
-    writePatch: (value) => pane.writePatch(value),
-    log
-  })
-
-  /** Loads the selected agent's worktree diff, then the patch a press asked for, for a built session view. A stored selection that can't be read is none. */
-  async function loadWorktree(view: PaneView): Promise<void> {
-    if (services === null) return
-    let selected = null
-    try {
-      selected = await pane.selected()
-    } catch {
-      selected = null
-    }
-    const input = { services: services.value, view, selected, nowMs: view.refreshedAtMs }
-    await diffs.refresh(input)
-    await patches.refresh(input)
-  }
-
-  /** Stores the view; whether the engine kept it. */
-  async function writeView(view: PaneView): Promise<boolean> {
-    try {
-      return await pane.writeView(view)
-    } catch {
-      log('pane-write-failed')
-      return false
-    }
-  }
+  const worktree = createWorktreeLoader({ pane, log })
 
   async function build(withList: boolean, nav: PaneNav | undefined): Promise<PaneView> {
     const { sessionId: currentId, sessionRoot, nowMs, outcome } = await readSession()
@@ -249,19 +219,19 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
       })
     }
     const key = contentKey(view)
-    if (key !== lastKey && (await writeView(view))) {
+    if (key !== lastKey && (await storeView({ pane, view, log }))) {
       lastView = view
       lastKey = key
     }
     // After the view, so git never holds it back, and on every path: a row press changes the diff
     // without changing the view.
-    await loadWorktree(view)
+    await worktree.load(view, services?.value ?? null)
   }
 
   const forgetStored = (): void => {
     lastKey = null
     browse.forgetStored()
-    diffs.forgetStored()
+    worktree.forgetStored()
   }
 
   return {
