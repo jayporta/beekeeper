@@ -56,6 +56,14 @@ describe('AboutDialog', () => {
     expect(screen.getByText(/runs entirely on your computer/)).toBeTruthy()
   })
 
+  it('says CLAUDE_CONFIG_DIR moves the folder it reads, and renders the variable as code', () => {
+    render(<AboutDialog />)
+
+    openAbout()
+
+    expect(screen.getByText('CLAUDE_CONFIG_DIR').tagName).toBe('CODE')
+  })
+
   it('shows the app version', async () => {
     api = installBeekeeperApi({
       getAppVersion: () => Promise.resolve({ ok: true, value: '0.1.0' })

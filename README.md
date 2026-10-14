@@ -72,6 +72,8 @@ Leave Claude Code's content flags (`OTEL_LOG_USER_PROMPTS`, `OTEL_LOG_ASSISTANT_
 
 ## What beekeeper reads
 
+The paths below start at `~/.claude`, or at the folder `CLAUDE_CONFIG_DIR` names when it's set to an absolute path (an empty or relative value is ignored). An app opened from Finder or the Dock doesn't inherit your shell's variables, so the variable only applies when it's in launchd's environment or you start beekeeper from a terminal.
+
 - `~/.claude/projects/**/*.jsonl`: the main transcript and subagent transcripts for every session
 - `~/.claude/projects/**/subagents/*.meta.json`: per-agent metadata (type, model, team, worktree)
 - Read-only git commands inside your project and worktree folders, to show what a worktree agent changed: `rev-parse`, `merge-base`, `diff`, `diff-index`, and `ls-files` for the changes themselves, `check-ref-format` to validate a branch name, `config --get-regexp` to find filter drivers, since a repo that defines one isn't diffed as a working tree, and `check-attr` to check whether a changed path has a filter attribute, since such a path isn't diffed as a working tree either. To find a usable git, beekeeper checks a few known install paths, runs `git --version`, and on macOS also runs `xcode-select -p` and `xcrun --find git`.

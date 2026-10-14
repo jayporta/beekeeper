@@ -383,7 +383,9 @@ describe('a list that was loaded before its folder went missing', () => {
     const alert = await screen.findByRole('alert')
     expect(within(alert).getByText('Project folder not found')).toBeTruthy()
     expect(
-      within(alert).getByText("This project's folder no longer exists in ~/.claude/projects.")
+      within(alert).getByText(
+        "This project's folder no longer exists under ~/.claude/projects (or the projects folder under CLAUDE_CONFIG_DIR when it's set)."
+      )
     ).toBeTruthy()
     const message = screen.getByRole('group', { name: 'Project folder not found' })
     expect(within(message).getByRole('heading', { name: 'Project folder not found' })).toBeTruthy()

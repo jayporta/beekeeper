@@ -108,7 +108,7 @@ if (!is.dev && !app.requestSingleInstanceLock()) {
       })
       const archive = openArchiveStore(join(app.getPath('userData'), 'archive.sqlite'))
       const deps = {
-        ...createIpcDeps(app.getPath('home')),
+        ...createIpcDeps(app.getPath('home'), process.env['CLAUDE_CONFIG_DIR']),
         otel,
         copyToClipboard: (text: string) => clipboard.writeText(text),
         appVersion: app.getVersion(),

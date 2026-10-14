@@ -20,7 +20,7 @@ export interface WatcherLike {
 
 /** What {@link createProjectsWatcher} needs from its caller. */
 export interface ProjectsWatcherOptions {
-  /** The `~/.claude/projects` directory. */
+  /** The projects directory, `projects` under `~/.claude` or `CLAUDE_CONFIG_DIR`. */
   readonly root: string
   /** Starts a recursive watch, as `fs.watch` does. It may throw. */
   readonly watch: (

@@ -2,7 +2,7 @@
   "title": "Welcome to beekeeper",
   "reads": {
     "heading": "What beekeeper reads",
-    "body": "beekeeper reads the session files Claude Code writes under <code>~/.claude/projects</code> and shows what each agent did, changed, and cost. It only reads. It never writes to <code>~/.claude</code> or to your repositories."
+    "body": "beekeeper reads the session files Claude Code writes under <code>~/.claude/projects</code> (or the projects folder under <code>CLAUDE_CONFIG_DIR</code> when it's set) and shows what each agent did, changed, and cost. It only reads. It never writes to <code>~/.claude</code> or to your repositories."
   },
   "local": {
     "heading": "Nothing leaves your computer",

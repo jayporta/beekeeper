@@ -1,5 +1,6 @@
 import { join } from 'node:path'
 import { createAgentScanCache } from '../../core/session/agentScanCache'
+import { resolveClaudeConfigDir } from '../../core/transcript/resolveClaudeConfigDir'
 import { createSessionSummaryCache } from '../../core/transcript/summary/sessionSummaryCache'
 import { createGitLocator } from '../git/gitLocator'
 import { createDailyUsageCache } from '../overview/dailyUsageCache'
@@ -28,7 +29,7 @@ export const SCAN_CACHE_CAPACITY = 4
 
 /**
  * Builds the handlers' dependencies for the app's lifetime: the projects
- * root under the user's home, one summary cache, one agent scan cache, one agent terms cache, one
+ * root under Claude Code's config folder, one summary cache, one agent scan cache, one agent terms cache, one
  * workflow run names cache, and the schedulers that share and cap summary reads and full scans, a small scan
  * cache, a scheduler for daily usage scans and their cache, the host's time zone, the clock, and a lazy git locator. Worktree diffs are never cached, since a worktree can
  * change while its transcript doesn't.
@@ -36,11 +37,12 @@ export const SCAN_CACHE_CAPACITY = 4
  * The telemetry receiver, the clipboard writer, the app version and the archive are `null`; the app supplies them.
  *
  * @param homeDir - The user's home directory.
+ * @param configDirEnv - The value of `CLAUDE_CONFIG_DIR`, or `undefined` when it is unset. The app reads it once at startup. See {@link resolveClaudeConfigDir} for which values count.
  * @returns The dependencies.
  */
-export function createIpcDeps(homeDir: string): IpcDeps {
+export function createIpcDeps(homeDir: string, configDirEnv?: string): IpcDeps {
   return {
-    projectsRoot: join(homeDir, '.claude', 'projects'),
+    projectsRoot: join(resolveClaudeConfigDir(configDirEnv, homeDir), 'projects'),
     projectLabels: createProjectLabelCache(),
     summaryCache: createSessionSummaryCache(),
     agentTerms: createAgentTermsCache(),
