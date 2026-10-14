@@ -13,14 +13,25 @@ import { lastActiveMs } from '../../../shared/sessions/lastActiveMs'
 import type { SessionRow } from '../../../shared/sessions/sessionRow'
 import { MAX_BROWSE_ROWS, type BrowseProject, type BrowseRow } from './browseView'
 
+/** The options built for each project list, so a list is grouped, labelled and cleaned once. */
+const optionsByList = new WeakMap<readonly ProjectDto[], readonly BrowseProject[]>()
+
 /**
  * The projects as the picker lists them: each project followed by its
  * worktrees, a worktree reading `<parent> / <worktree name>`.
  *
  * @param projects - The listed projects.
- * @returns The picker's options, with every label cleaned.
+ * @returns The picker's options, with every label cleaned. The same list gives the same options.
  */
 export function browseProjects(projects: readonly ProjectDto[]): readonly BrowseProject[] {
+  const known = optionsByList.get(projects)
+  if (known !== undefined) return known
+  const options = buildProjects(projects)
+  optionsByList.set(projects, options)
+  return options
+}
+
+function buildProjects(projects: readonly ProjectDto[]): readonly BrowseProject[] {
   return groupProjects(projects).flatMap(({ project, worktrees }) => [
     { dirName: project.dirName, label: replaceUnprintable(projectLabel(project)) },
     ...worktrees.map((worktree) => ({

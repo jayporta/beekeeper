@@ -59,7 +59,7 @@ describe('Pane screens', () => {
     expect(textOf(tree)).toContain('No sessions in this project')
   })
 
-  it('draws the nav row and Back over an error for a browsed session that is gone', () => {
+  it('draws the nav row over an error for a browsed session that is gone', () => {
     const view = testPaneView(lead, {
       sessionId: REF.sessionId,
       target: 'browsed',
@@ -70,7 +70,7 @@ describe('Pane screens', () => {
 
     const tree = draw({ view, nav: SESSION_NAV })
 
-    expect(buttonKeys(tree)).toEqual(['nav-current', 'nav-browse', 'nav-back'])
+    expect(buttonKeys(tree)).toEqual(['nav-current', 'nav-browse'])
     expect(textOf(tree)).toContain("can't find this session's transcript")
   })
 

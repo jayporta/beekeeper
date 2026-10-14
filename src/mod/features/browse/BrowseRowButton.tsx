@@ -1,6 +1,7 @@
 import { t } from '../../i18n/modI18n'
 import type { PaneElements } from '../pane/paneElements'
 import type { BrowseRow } from './browseView'
+import { cutLabel } from './cutLabel'
 
 /** The facts about a session as words, most important first, since a long row is cut at its end. */
 function facts(row: BrowseRow): string {
@@ -24,8 +25,9 @@ interface BrowseRowButtonProps {
 }
 
 /**
- * One session as a pressable row: the name, indented for a teammate, then its facts as words.
- * The row is cut at the end rather than wrapped.
+ * One session as a pressable row: the name, cut to a length that leaves room for the facts, then
+ * the facts as words. A teammate is indented and marked with a word. The row is cut at the end
+ * rather than wrapped.
  *
  * @param props - The elements, the row and the press handler.
  * @returns The row.
@@ -36,8 +38,8 @@ export function BrowseRowButton({ elements, row, onOpen }: BrowseRowButtonProps)
   return (
     <Button key={`browse:${row.key}`} onPress={onOpen}>
       <Text wrap="truncate-end">
-        {row.depth === 1 ? '  ' : ''}
-        {row.label}
+        {row.depth === 1 ? `  ${t('row.kind.teammate')}` : ''}
+        {cutLabel(row.label)}
         {summary === '' ? '' : `  ${summary}`}
       </Text>
     </Button>

@@ -1,18 +1,19 @@
-import type { ProjectDto } from '../../../shared/ipc/projectDto'
 import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
-import type { ModHost } from '../../modHost'
-import { BROWSE_WORDS } from '../browse/browseWords'
-import type { BrowseView } from '../browse/browseView'
-import { refreshBrowse } from '../browse/refreshBrowse'
+import { createBrowseRefresher } from '../browse/createBrowseRefresher'
 import { startMod, type StartOutcome } from '../start/startMod'
 import { createPaneServices } from './createPaneServices'
+import { contentKey } from './contentKey'
 import { emptyPaneView } from './emptyPaneView'
 import { findSessionFolder } from './findSessionFolder'
 import { hasTeam } from './hasTeam'
 import { targetOf, type PaneNav } from './paneNav'
+import type { PaneRefresher, PaneRefresherDeps } from './paneRefresherTypes'
 import type { PaneView } from './paneView'
 import { PLAIN_TICK_MS } from './paneScheduler'
 import { refreshPane, type PaneServices } from './refreshPane'
+
+export type { PaneHost, PaneRefresher, PaneRefresherDeps } from './paneRefresherTypes'
+import { startErrorCode } from './startErrorCode'
 
 /**
  * How long a session without a team goes between lists, a second under the plain tick so a tick
@@ -20,48 +21,6 @@ import { refreshPane, type PaneServices } from './refreshPane'
  * title come from, and listing sweeps the project's folders, so it is not repeated every refresh.
  */
 const SOLO_LIST_INTERVAL_MS = PLAIN_TICK_MS - 1_000
-
-/** The engine calls the pane's refresh makes, as closures so lib never sees `$`. */
-export interface PaneHost {
-  /** The current session's id: `$.session.id()`. */
-  sessionId(): Promise<string>
-  /** The current session's working directory: `$.session.root()`. */
-  sessionRoot(): Promise<string>
-  /** The time in milliseconds since the epoch: `$.clock.now()`. */
-  now(): Promise<number>
-  /** The stored nav, or `undefined` when none is stored (the current screen): `$.state.get`. */
-  nav(): Promise<PaneNav | undefined>
-  /** Stores the view for the pane to draw: `$.state.set`. Resolves whether the engine stored it. */
-  writeView(view: PaneView): Promise<boolean>
-  /** Stores the Browse view for the pane to draw: `$.state.set`. Resolves whether the engine stored it. */
-  writeBrowse(view: BrowseView): Promise<boolean>
-}
-
-/** What {@link createPaneRefresher} works through. */
-export interface PaneRefresherDeps {
-  /** What the mod may ask of the engine. */
-  readonly host: ModHost
-  /** The pane's engine calls. */
-  readonly pane: PaneHost
-  /** Starts the mod; defaults to {@link startMod}. */
-  readonly start?: (host: ModHost, session: { cwd: string }) => Promise<StartOutcome>
-  /** Builds the services for a projects folder; defaults to {@link createPaneServices}. */
-  readonly createServices?: (projectsRoot: string) => PaneServices
-  /** Receives a code-only line for a failure the refresher survives; defaults to `console.error`. */
-  readonly log?: (line: string) => void
-}
-
-/** Refreshes the pane's view. */
-export interface PaneRefresher {
-  /** Starts the mod unless it is already ready, remembering the outcome, and returns it. A later refresh reuses a failed outcome rather than probing again; this call retries a failed one, and joins a probe already in flight. */
-  start(cwd: string): Promise<StartOutcome>
-  /** Forgets what was last stored, so the next refresh writes its view even if it matches: call it when the stored view may be gone (after a `/clear`, or a render that found none). */
-  forgetStored(): void
-  /** Builds the view the nav calls for and stores it: the Browse screen on a list refresh only, otherwise a session's tree. Never rejects. */
-  refresh(request: { readonly withList: boolean }): Promise<void>
-  /** Whether the Browse screen shows, or the last view shows a team, so the slow list tick is worth running. */
-  wantsListTick(): boolean
-}
 
 /**
  * Builds the refresh the scheduler runs. It starts the mod when no
@@ -87,11 +46,9 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
     null
   let lastView: PaneView | null = null
   let lastKey: string | null = null
-  let lastBrowseKey: string | null = null
   let lastNavKey: string | null = null
+  let lastNavScreen: PaneNav['screen'] = 'current'
   let lastScreen: PaneNav['screen'] = 'current'
-  let browseProjects: readonly ProjectDto[] | null = null
-  let browseProject: string | null = null
   let lastListedAtMs = Number.NEGATIVE_INFINITY
 
   let probing: Promise<StartOutcome> | null = null
@@ -117,6 +74,12 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
     return services.value
   }
 
+  const browse = createBrowseRefresher({
+    writeBrowse: (view) => pane.writeBrowse(view),
+    log,
+    servicesFor
+  })
+
   /** The engine's own session's folder, remembered per session id; `null` when its transcript isn't there yet. */
   async function folderOf(
     session: { readonly sessionId: string; readonly sessionRoot: string },
@@ -138,29 +101,47 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
     }
   }
 
-  /** Remembers the nav and, when it changed, forgets what was stored and listed, so the new screen is written and listed afresh. Returns whether it changed. */
-  function noteNav(nav: PaneNav | undefined): boolean {
+  /**
+   * Remembers the nav and, when it changed, forgets what was stored and listed, so the new screen is
+   * written and listed afresh. Call it only for a refresh that builds, so a tick that builds nothing
+   * can't use up a change.
+   *
+   * @returns Whether the nav changed, and whether it changed to Browse from another screen.
+   */
+  function noteNav(nav: PaneNav | undefined): { changed: boolean; opened: boolean } {
     const key = JSON.stringify(nav ?? { screen: 'current' })
-    lastScreen = nav?.screen ?? 'current'
-    if (key === lastNavKey) return false
+    const screen = nav?.screen ?? 'current'
+    const previous = lastNavScreen
+    lastNavScreen = screen
+    if (key === lastNavKey) return { changed: false, opened: false }
     lastNavKey = key
     lastKey = null
-    lastBrowseKey = null
+    browse.forgetStored()
     lastList = null
-    return true
+    return { changed: true, opened: screen === 'browse' && previous !== 'browse' }
   }
 
-  async function build(withList: boolean, nav: PaneNav | undefined): Promise<PaneView> {
-    const [currentId, sessionRoot, nowMs] = await Promise.all([
+  /** What every refresh starts from: the engine's session, its root, the time, and what starting the mod came to. */
+  async function readSession(): Promise<{
+    readonly sessionId: string
+    readonly sessionRoot: string
+    readonly nowMs: number
+    readonly outcome: StartOutcome
+  }> {
+    const [sessionId, sessionRoot, nowMs] = await Promise.all([
       pane.sessionId(),
       pane.sessionRoot(),
       pane.now()
     ])
-    const outcome = started ?? (await startNow(sessionRoot))
+    return { sessionId, sessionRoot, nowMs, outcome: started ?? (await startNow(sessionRoot)) }
+  }
+
+  async function build(withList: boolean, nav: PaneNav | undefined): Promise<PaneView> {
+    const { sessionId: currentId, sessionRoot, nowMs, outcome } = await readSession()
     const { ref: wanted, target } = targetOf(nav, { projectDirName: '', sessionId: currentId })
     const sessionId = wanted.sessionId
     if (outcome.kind !== 'ready') {
-      const errorCode = outcome.kind === 'too-old' ? 'too-old' : 'start-failed'
+      const errorCode = startErrorCode(outcome)
       return emptyPaneView({ sessionId, target, status: 'error', errorCode, nowMs })
     }
     const folder =
@@ -185,78 +166,30 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
     return view
   }
 
-  /** The view without its time, so a refresh that found nothing new can be told from one that did. */
-  const contentKey = (view: PaneView | BrowseView): string =>
-    JSON.stringify({ ...view, refreshedAtMs: 0 })
-
-  /** Builds and stores the Browse screen. A plain refresh is not one. */
-  async function refreshBrowseScreen(
-    nav: PaneNav & { screen: 'browse' },
-    changed: boolean
-  ): Promise<void> {
-    const [sessionId, sessionRoot, nowMs] = await Promise.all([
-      pane.sessionId(),
-      pane.sessionRoot(),
-      pane.now()
-    ])
-    const outcome = started ?? (await startNow(sessionRoot))
-    const write = async (view: BrowseView): Promise<boolean> => {
-      const key = contentKey(view)
-      if (key === lastBrowseKey) return true
-      try {
-        if (!(await pane.writeBrowse(view))) return false
-      } catch {
-        log('pane-write-failed')
-        return false
-      }
-      lastBrowseKey = key
-      return true
-    }
-    if (outcome.kind !== 'ready') {
-      const errorCode = outcome.kind === 'too-old' ? 'too-old' : 'start-failed'
-      const view: BrowseView = {
-        status: 'error',
-        errorCode,
-        projects: [],
-        projectDirName: null,
-        rows: [],
-        hiddenCount: 0,
-        refreshedAtMs: nowMs
-      }
-      await write(view)
-      return
-    }
-    const currentFolder =
-      nav.projectDirName === null
-        ? await folderOf({ sessionId, sessionRoot }, outcome.projectsRoot)
-        : null
-    const picked = nav.projectDirName
-    const result = await refreshBrowse(servicesFor(outcome.projectsRoot), {
-      projectDirName: picked,
-      currentFolder,
-      withProjects:
-        changed || browseProjects === null || (picked !== null && picked !== browseProject),
-      lastProjects: browseProjects,
-      nowMs,
-      words: BROWSE_WORDS,
-      write
-    })
-    browseProjects = result.projects
-    browseProject = result.projectDirName
-  }
-
   async function refresh(request: { readonly withList: boolean }): Promise<void> {
     const nav = await readNav()
-    const changed = noteNav(nav)
+    lastScreen = nav?.screen ?? 'current'
     if (nav?.screen === 'browse') {
       if (!request.withList) return
+      const { opened } = noteNav(nav)
       try {
-        await refreshBrowseScreen(nav, changed)
+        const { sessionId, sessionRoot, nowMs, outcome } = await readSession()
+        await browse.refresh({
+          projectDirName: nav.projectDirName,
+          opened,
+          outcome,
+          nowMs,
+          currentFolder: () =>
+            outcome.kind === 'ready'
+              ? folderOf({ sessionId, sessionRoot }, outcome.projectsRoot)
+              : Promise.resolve(null)
+        })
       } catch {
         log('pane-browse-failed')
       }
       return
     }
+    noteNav(nav)
     let view: PaneView
     try {
       view = await build(request.withList, nav)
@@ -283,7 +216,7 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
 
   const forgetStored = (): void => {
     lastKey = null
-    lastBrowseKey = null
+    browse.forgetStored()
   }
 
   return {

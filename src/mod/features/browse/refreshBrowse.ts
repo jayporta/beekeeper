@@ -6,6 +6,7 @@ import { groupSessionRows } from '../../../shared/sessions/groupSessionRows'
 import type { PaneServices } from '../pane/refreshPane'
 import type { PaneErrorCode } from '../pane/paneView'
 import type { BrowseView } from './browseView'
+import { emptyBrowseView } from './emptyBrowseView'
 import type { BrowseWords } from './browseWords'
 import { browseProjects, browseRows } from './toBrowseView'
 
@@ -37,21 +38,6 @@ export interface RefreshedBrowse {
 
 type Services = Pick<PaneServices, 'listSessions' | 'listProjects'>
 
-function viewOf(
-  input: RefreshBrowseInput,
-  parts: Partial<BrowseView> & Pick<BrowseView, 'status'>
-): BrowseView {
-  return {
-    errorCode: null,
-    projects: [],
-    projectDirName: null,
-    rows: [],
-    hiddenCount: 0,
-    refreshedAtMs: input.nowMs,
-    ...parts
-  }
-}
-
 /** Stores a view; a failure to store is not the refresh's to handle. */
 async function store(input: RefreshBrowseInput, view: BrowseView): Promise<void> {
   try {
@@ -66,14 +52,18 @@ async function build(services: Services, input: RefreshBrowseInput): Promise<Ref
   const fail = async (
     code: IpcErrorCode | PaneErrorCode,
     shown: Pick<BrowseView, 'projects' | 'projectDirName'>
-  ): Promise<void> => store(input, viewOf(input, { status: 'error', errorCode: code, ...shown }))
+  ): Promise<void> =>
+    store(
+      input,
+      emptyBrowseView({ refreshedAtMs: input.nowMs, status: 'error', errorCode: code, ...shown })
+    )
 
   let projects = input.lastProjects
   let projectDirName = input.projectDirName
   let projectsFresh = false
 
   if (projectDirName === null) {
-    if (projects === null) {
+    if (projects === null || projects.length === 0) {
       const listed = await services.listProjects()
       if (!listed.ok) {
         await fail(listed.error.code, { projects: [], projectDirName: null })
@@ -84,7 +74,7 @@ async function build(services: Services, input: RefreshBrowseInput): Promise<Ref
     }
     projectDirName = pickProject(projects, input.currentFolder)
     if (projectDirName === null) {
-      await store(input, viewOf(input, { status: 'ready' }))
+      await store(input, emptyBrowseView({ refreshedAtMs: input.nowMs, status: 'ready' }))
       return { projects, projectDirName: null }
     }
   }
@@ -107,16 +97,26 @@ async function build(services: Services, input: RefreshBrowseInput): Promise<Ref
     groupSessionRows(listed.value, words.label),
     words.agentCount
   )
-  await store(input, viewOf(input, { status: 'ready', ...shown(), rows, hiddenCount }))
+  await store(
+    input,
+    emptyBrowseView({ refreshedAtMs: input.nowMs, status: 'ready', ...shown(), rows, hiddenCount })
+  )
 
   if (input.withProjects && !projectsFresh) {
     const relisted = await services.listProjects()
-    if (!relisted.ok) {
-      await fail(relisted.error.code, shown())
-      return { projects, projectDirName }
-    }
+    // The sessions and the projects already held stay on screen: a failed relist loses nothing.
+    if (!relisted.ok) return { projects, projectDirName }
     projects = relisted.value
-    await store(input, viewOf(input, { status: 'ready', ...shown(), rows, hiddenCount }))
+    await store(
+      input,
+      emptyBrowseView({
+        refreshedAtMs: input.nowMs,
+        status: 'ready',
+        ...shown(),
+        rows,
+        hiddenCount
+      })
+    )
   }
   return { projects, projectDirName }
 }
@@ -141,7 +141,8 @@ export async function refreshBrowse(
   } catch {
     await store(
       input,
-      viewOf(input, {
+      emptyBrowseView({
+        refreshedAtMs: input.nowMs,
         status: 'error',
         errorCode: 'internal',
         projectDirName: input.projectDirName

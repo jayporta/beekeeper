@@ -25,7 +25,7 @@ describe('NavRow', () => {
     [
       'a browsed session',
       { screen: 'session', ref: { projectDirName: '-p', sessionId: 's' }, backTo: '-p' },
-      ['nav-current', 'nav-browse', 'nav-back']
+      ['nav-current', 'nav-browse']
     ]
   ])('has the right buttons on %s', (_label, nav, keys) => {
     const tree = NavRow({ elements, nav, onNav: vi.fn() })
@@ -52,22 +52,18 @@ describe('NavRow', () => {
     expect(onNav).toHaveBeenCalledWith({ screen: 'browse', projectDirName: null })
   })
 
-  it('goes back to the project the session was opened from, from Back or Browse', async () => {
+  it('returns to the project the session was opened from with Browse', async () => {
     const onNav = vi.fn()
     const nav: PaneNav = {
       screen: 'session',
       ref: { projectDirName: '-wt', sessionId: 's' },
       backTo: '-p'
     }
-    const [, browse, back] = buttons(NavRow({ elements, nav, onNav }))
+    const [, browse] = buttons(NavRow({ elements, nav, onNav }))
 
-    await back?.press()
     await browse?.press()
 
-    expect(onNav.mock.calls).toEqual([
-      [{ screen: 'browse', projectDirName: '-p' }],
-      [{ screen: 'browse', projectDirName: '-p' }]
-    ])
+    expect(onNav.mock.calls).toEqual([[{ screen: 'browse', projectDirName: '-p' }]])
   })
 
   it('returns to the current screen from This session', async () => {

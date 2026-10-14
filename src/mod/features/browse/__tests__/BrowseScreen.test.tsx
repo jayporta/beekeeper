@@ -96,7 +96,17 @@ describe('BrowseScreen', () => {
       expect(textOf(rows[0])).toContain('1.2K tokens')
       expect(textOf(rows[0])).toContain('Jan 2, 2026')
       expect(textOf(rows[0])).toContain('2 subagents')
-      expect(textOf(rows[1]).startsWith('  Session 2')).toBe(true)
+      expect(textOf(rows[1]).startsWith('  Teammate: Session 2')).toBe(true)
+    })
+
+    it('cuts a long label so the facts stay in view', () => {
+      const long = row(1, { label: 'x'.repeat(500) })
+      const { tree, elements } = draw(view({ rows: [long] }))
+
+      const text = textOf(findAll(tree, elements.Button)[0])
+      expect(text.length).toBeLessThan(150)
+      expect(text).toContain('1.2K tokens')
+      expect(text).toContain('…')
     })
 
     it('says a figure may be incomplete', () => {

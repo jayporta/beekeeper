@@ -402,7 +402,7 @@ describe('createPaneRefresher', () => {
       expect(services.projectCalls).toBe(2)
     })
 
-    it('lists the projects when a project is picked', async () => {
+    it('does not list the projects again when a project is picked, since the list is held', async () => {
       const { services, refresher, navRef } = setup({
         nav: browse,
         projects: [testProject('-p'), testProject('-q')]
@@ -413,6 +413,43 @@ describe('createPaneRefresher', () => {
       await refresher.refresh({ withList: true })
 
       expect(services.listedFolders).toEqual(['-p', '-q'])
+      expect(services.projectCalls).toBe(1)
+    })
+
+    it('lists the projects again on a list tick while the known list is empty', async () => {
+      const { services, refresher } = setup({ nav: browse, projects: [] })
+
+      await refresher.refresh({ withList: true })
+      await refresher.refresh({ withList: true })
+
+      expect(services.projectCalls).toBe(2)
+    })
+
+    it("keeps the project it resolved on a later list tick, even when the current session's folder can no longer be found", async () => {
+      let sessionId = ID
+      const { services, refresher } = setup({
+        nav: browse,
+        sessionId: async () => sessionId,
+        projects: [testProject('-a'), testProject('-p')]
+      })
+
+      await refresher.refresh({ withList: true })
+      sessionId = testSessionId(9)
+      await refresher.refresh({ withList: true })
+
+      expect(services.listedFolders).toEqual(['-p', '-p'])
+    })
+
+    it('does not let a plain tick use up the change to Browse', async () => {
+      const { services, refresher, navRef } = setup({ nav: browse })
+
+      await refresher.refresh({ withList: true })
+      navRef.current = { screen: 'current' }
+      await refresher.refresh({ withList: false })
+      navRef.current = browse
+      await refresher.refresh({ withList: false })
+      await refresher.refresh({ withList: true })
+
       expect(services.projectCalls).toBe(2)
     })
 

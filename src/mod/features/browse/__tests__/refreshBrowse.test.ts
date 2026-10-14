@@ -183,4 +183,37 @@ describe('refreshBrowse', () => {
       })
     ).resolves.toBeDefined()
   })
+
+  it('lists the projects again when the known list is empty and nothing is picked', async () => {
+    const services = testPaneServices({
+      list: ok([]),
+      get: ok(null as never),
+      projects: ok(PROJECTS)
+    })
+
+    const { result } = await run(services, {
+      projectDirName: null,
+      currentFolder: '-b',
+      lastProjects: []
+    })
+
+    expect(services.projectCalls).toBe(1)
+    expect(services.listedFolders).toEqual(['-b'])
+    expect(result.projects).toEqual(PROJECTS)
+  })
+
+  it('keeps the rows and the projects, and stores no error, when relisting the projects fails', async () => {
+    const services = testPaneServices({
+      list: ok([testSession(1, { title: 'One' })]),
+      get: ok(null as never),
+      projects: { ok: false, error: { code: 'unreadable' } }
+    })
+
+    const { written, result } = await run(services, { withProjects: true })
+
+    expect(written).toHaveLength(1)
+    expect(written[0]).toMatchObject({ status: 'ready' })
+    expect(written[0]?.rows).toHaveLength(1)
+    expect(result.projects).toEqual(PROJECTS)
+  })
 })

@@ -185,7 +185,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
     await clock.advance(1)
 
     expect(await pane.find({ type: 'Button', key: 'lead' })).toBeDefined()
-    expect(await pane.find({ type: 'Button', key: 'nav-back' })).toBeDefined()
+    expect(await pane.find({ type: 'Button', key: 'nav-browse' })).toBeDefined()
   })
 }
 

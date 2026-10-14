@@ -39,6 +39,14 @@ describe('browseProjects', () => {
   })
 })
 
+describe('browseProjects memo', () => {
+  it('builds the options once for the same list', () => {
+    const projects: ProjectDto[] = [testProject('-a')]
+
+    expect(browseProjects(projects)).toBe(browseProjects(projects))
+  })
+})
+
 describe('browseRows', () => {
   it('indents a teammate under its lead and opens each row with its own folder', () => {
     const lead = testSession(1, {

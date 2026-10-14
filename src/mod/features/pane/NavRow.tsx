@@ -20,7 +20,7 @@ function browseProject(nav: PaneNav): string | null {
 
 /**
  * The row that leads every screen: `This session` and `Browse`, a word marking the one showing
- * rather than a color, and on a browsed session `Back`, which returns to the project it was opened from.
+ * rather than a color. On a browsed session `Browse` returns to the project it was opened from.
  *
  * @param props - The elements, the nav and the handler.
  * @returns The row.
@@ -40,11 +40,6 @@ export function NavRow({ elements, nav, onNav }: NavRowProps): object {
       <Button key="nav-browse" onPress={toBrowse}>
         <Text>{nav.screen === 'browse' ? t('nav.showing', { name: browse }) : browse}</Text>
       </Button>
-      {nav.screen === 'session' ? (
-        <Button key="nav-back" onPress={toBrowse}>
-          <Text>{t('nav.back')}</Text>
-        </Button>
-      ) : null}
     </Box>
   )
 }
