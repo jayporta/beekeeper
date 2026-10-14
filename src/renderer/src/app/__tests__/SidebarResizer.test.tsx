@@ -84,6 +84,17 @@ describe('SidebarResizer', () => {
     expect(widthNow()).toBe(DEFAULT_SIDEBAR_WIDTH + 64)
   })
 
+  it('ignores the arrow keys when Alt is held, and does not cancel them', async () => {
+    render(<Harness />)
+    separator().focus()
+
+    const notCancelled = fireEvent.keyDown(separator(), { key: 'ArrowLeft', altKey: true })
+    fireEvent.keyDown(separator(), { key: 'ArrowRight', altKey: true })
+
+    expect(widthNow()).toBe(DEFAULT_SIDEBAR_WIDTH)
+    expect(notCancelled).toBe(true)
+  })
+
   it('stops at the minimum and the maximum', async () => {
     render(<Harness />)
     separator().focus()

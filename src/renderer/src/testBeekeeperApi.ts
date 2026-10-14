@@ -36,6 +36,8 @@ export function testProject(dirName: string, worktree?: TestWorktree): ProjectDt
 export type TestBeekeeperApi = { [K in keyof BeekeeperApi]: Mock<BeekeeperApi[K]> } & {
   /** Calls every listener subscribed through `onOpenAbout`, as the menu's About item does. */
   fireOpenAbout(): void
+  /** Calls every listener subscribed through `onGoBack`, as the menu's Back item does. With none subscribed the request is dropped. */
+  fireGoBack(): void
   /** Calls every listener subscribed through `onFilesChanged` with `change`, as a batch from the main process does. */
   fireFilesChanged(change: FilesChangedDto): void
   /**
@@ -89,11 +91,12 @@ function createListeners<T extends unknown[]>(
  * Installs a stub `window.beekeeper`. `listProjects` returns one project by
  * default, and `getOtelReceiver` reports an off receiver, since the sidebar
  * reads it. Calls to any other method the test did not stub reject, so a test
- * can't silently depend on it. `onOpenAbout`, `onFilesChanged` and
+ * can't silently depend on it. `onOpenAbout`, `onGoBack`, `onFilesChanged`,
  * `onLiveUpdatesUnavailable` and `onOtelReceiverChanged` subscriptions are real:
  * each `fire…` helper reaches every listener that has not unsubscribed. As in
  * the preload, a `fireOpenAbout`, `fireLiveUpdatesUnavailable` or
- * `fireOtelReceiverChanged` before any subscriber is held for the first one.
+ * `fireOtelReceiverChanged` before any subscriber is held for the first one,
+ * and a `fireGoBack` with none is dropped.
  *
  * @param overrides - Implementations to use instead of the defaults.
  * @returns The installed stub.
@@ -102,6 +105,7 @@ export function installBeekeeperApi(overrides: Partial<BeekeeperApi> = {}): Test
   const unstubbed = (name: string) => () =>
     Promise.reject(new Error(`window.beekeeper.${name} was not stubbed`))
   const about = createListeners(true)
+  const goBack = createListeners()
   const filesChanged = createListeners<[FilesChangedDto]>()
   const unavailable = createListeners(true)
   const receiverChanged = createListeners(true)
@@ -130,10 +134,12 @@ export function installBeekeeperApi(overrides: Partial<BeekeeperApi> = {}): Test
     getReportedCost: vi.fn(overrides.getReportedCost ?? unstubbed('getReportedCost')),
     copyText: vi.fn(overrides.copyText ?? unstubbed('copyText')),
     onOpenAbout: vi.fn(overrides.onOpenAbout ?? about.subscribe),
+    onGoBack: vi.fn(overrides.onGoBack ?? goBack.subscribe),
     onFilesChanged: vi.fn(overrides.onFilesChanged ?? filesChanged.subscribe),
     onLiveUpdatesUnavailable: vi.fn(overrides.onLiveUpdatesUnavailable ?? unavailable.subscribe),
     onOtelReceiverChanged: vi.fn(overrides.onOtelReceiverChanged ?? receiverChanged.subscribe),
     fireOpenAbout: about.fire,
+    fireGoBack: goBack.fire,
     fireFilesChanged: filesChanged.fire,
     fireLiveUpdatesUnavailable: unavailable.fire,
     fireOtelReceiverChanged: receiverChanged.fire

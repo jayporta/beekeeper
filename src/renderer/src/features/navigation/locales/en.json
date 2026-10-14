@@ -1,4 +1,7 @@
 {
+  "back": {
+    "label": "Back"
+  },
   "breadcrumb": {
     "label": "Breadcrumb",
     "sessions": "Sessions"

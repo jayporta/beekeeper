@@ -112,6 +112,13 @@ export interface BeekeeperApi {
   onOpenAbout(listener: () => void): () => void
 
   /**
+   * Subscribes to the menu's Back item (View > Back, Cmd or Ctrl+[). The main process sends it to the window the item was chosen in, and no other.
+   * @param listener - Called with no arguments each time Back is chosen. A request that arrives while no one is subscribed is dropped, not held for a later subscriber.
+   * @returns A function that removes this subscription and no other.
+   */
+  onGoBack(listener: () => void): () => void
+
+  /**
    * Subscribes to changes under `~/.claude/projects`, which the main process sends in batches.
    * @param listener - Called with each batch that passes validation. Invalid payloads are dropped.
    * @returns A function that removes this subscription and no other.

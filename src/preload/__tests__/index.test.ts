@@ -1,9 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { BeekeeperApi } from '../../shared/ipc/beekeeperApi'
-import { IPC_CHANNELS } from '../../shared/ipc/channels'
+import { IPC_CHANNELS, IPC_EVENTS } from '../../shared/ipc/channels'
 
 const invoke = vi.fn<(channel: string, payload?: unknown) => Promise<unknown>>()
-const exposed = vi.hoisted(() => ({ api: undefined as BeekeeperApi | undefined }))
+const exposed = vi.hoisted(() => ({
+  api: undefined as BeekeeperApi | undefined,
+  /** The listeners the preload registered with `ipcRenderer.on`, by channel. */
+  listeners: new Map<string, Set<(...args: unknown[]) => void>>()
+}))
 
 vi.mock('electron', () => ({
   contextBridge: {
@@ -12,10 +16,22 @@ vi.mock('electron', () => ({
     }
   },
   ipcRenderer: {
-    on: vi.fn(),
+    on: (channel: string, listener: (...args: unknown[]) => void) => {
+      const set = exposed.listeners.get(channel) ?? new Set()
+      set.add(listener)
+      exposed.listeners.set(channel, set)
+    },
+    removeListener: (channel: string, listener: (...args: unknown[]) => void) => {
+      exposed.listeners.get(channel)?.delete(listener)
+    },
     invoke: (channel: string, payload?: unknown) => invoke(channel, payload)
   }
 }))
+
+/** Delivers an event from the main process to every listener registered for `channel`. */
+function emit(channel: string, ...args: unknown[]): void {
+  for (const listener of [...(exposed.listeners.get(channel) ?? [])]) listener({}, ...args)
+}
 
 async function loadApi(): Promise<BeekeeperApi> {
   vi.resetModules()
@@ -25,6 +41,7 @@ async function loadApi(): Promise<BeekeeperApi> {
 }
 
 beforeEach(() => {
+  exposed.listeners.clear()
   invoke.mockReset()
   invoke.mockResolvedValue({ ok: true, value: null })
 })
@@ -82,5 +99,63 @@ describe('preload API', () => {
     await api.getOtelReceiver()
 
     expect(invoke).toHaveBeenCalledWith(IPC_CHANNELS.getOtelReceiver, undefined)
+  })
+
+  describe('onGoBack', () => {
+    it('calls the listener with no arguments each time the main process asks for Back', async () => {
+      const api = await loadApi()
+      const listener = vi.fn()
+      api.onGoBack(listener)
+
+      emit(IPC_EVENTS.goBack)
+      emit(IPC_EVENTS.goBack)
+
+      expect(listener.mock.calls).toEqual([[], []])
+    })
+
+    it('does not pass the event object to the listener', async () => {
+      const api = await loadApi()
+      const listener = vi.fn()
+      api.onGoBack(listener)
+
+      emit(IPC_EVENTS.goBack, 'payload')
+
+      expect(listener).toHaveBeenCalledWith()
+    })
+
+    it('stops calling a listener once it unsubscribes, and no other', async () => {
+      const api = await loadApi()
+      const removed = vi.fn()
+      const kept = vi.fn()
+      const unsubscribe = api.onGoBack(removed)
+      api.onGoBack(kept)
+
+      unsubscribe()
+      emit(IPC_EVENTS.goBack)
+
+      expect(removed).not.toHaveBeenCalled()
+      expect(kept).toHaveBeenCalledOnce()
+    })
+
+    it('drops a request that arrives while nobody is subscribed, instead of replaying it', async () => {
+      const api = await loadApi()
+      emit(IPC_EVENTS.goBack)
+      const listener = vi.fn()
+
+      api.onGoBack(listener)
+
+      expect(listener).not.toHaveBeenCalled()
+    })
+
+    it('drops a request that arrives after the last listener unsubscribed', async () => {
+      const api = await loadApi()
+      api.onGoBack(vi.fn())()
+      emit(IPC_EVENTS.goBack)
+      const late = vi.fn()
+
+      api.onGoBack(late)
+
+      expect(late).not.toHaveBeenCalled()
+    })
   })
 })

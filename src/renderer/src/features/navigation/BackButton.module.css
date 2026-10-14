@@ -1,0 +1,40 @@
+.button {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  width: fit-content;
+  min-height: var(--size-target-min);
+  margin-block-end: var(--space-1);
+  padding: 0 var(--space-2) 0 var(--space-1);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--color-hover);
+  }
+
+  /* Unavailable, but still focusable and named, so a person on it keeps their place. */
+  &[aria-disabled='true'] {
+    color: var(--color-text-muted);
+    cursor: default;
+
+    &:hover {
+      background: none;
+    }
+  }
+}
+
+.icon {
+  width: 1em;
+  height: 1em;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

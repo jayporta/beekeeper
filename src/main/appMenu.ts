@@ -1,4 +1,4 @@
-import type { MenuItemConstructorOptions } from 'electron'
+import type { BaseWindow, MenuItemConstructorOptions } from 'electron'
 
 /** Inputs that decide which menu items the application menu includes. */
 export interface AppMenuOptions {
@@ -8,6 +8,11 @@ export interface AppMenuOptions {
   readonly devTools: boolean
   /** Called when the user picks About beekeeper from the app menu or the Help menu. */
   readonly onAbout: () => void
+  /**
+   * Called when the user picks Back from the View menu or presses its accelerator.
+   * It receives the window the item was chosen in, or `undefined` when none is open.
+   */
+  readonly onBack: (window: BaseWindow | undefined) => void
 }
 
 const ABOUT_LABEL = 'About beekeeper'
@@ -25,7 +30,7 @@ const editMenu: MenuItemConstructorOptions = {
   ]
 }
 
-function viewMenu(devTools: boolean): MenuItemConstructorOptions {
+function viewMenu(devTools: boolean, onBack: AppMenuOptions['onBack']): MenuItemConstructorOptions {
   const devItems: MenuItemConstructorOptions[] = devTools
     ? [
         { role: 'reload' },
@@ -37,6 +42,15 @@ function viewMenu(devTools: boolean): MenuItemConstructorOptions {
   return {
     label: 'View',
     submenu: [
+      // Always enabled: the renderer knows whether there is anywhere to go, and does nothing when there is not.
+      {
+        label: 'Back',
+        accelerator: 'CommandOrControl+[',
+        click: (_item, window) => {
+          onBack(window)
+        }
+      },
+      { type: 'separator' },
       ...devItems,
       { role: 'resetZoom' },
       { role: 'zoomIn' },
@@ -77,20 +91,23 @@ function macAppMenu(onAbout: () => void): MenuItemConstructorOptions {
  * Builds the application menu template.
  *
  * Every item uses a built-in role except the two About items, which only call
- * `onAbout`. The menu opens no URLs. The reload and Developer Tools items
+ * `onAbout`, and View > Back, which only calls `onBack`. The menu opens no URLs. The reload and Developer Tools items
  * appear only when `devTools` is true.
  *
- * @param options - The platform, whether to include the developer items, and the About handler.
+ * @param options - The platform, whether to include the developer items, and the About and Back handlers.
  * @returns A template for `Menu.buildFromTemplate`.
  * @example
  * Menu.setApplicationMenu(
- *   Menu.buildFromTemplate(buildAppMenuTemplate({ platform: process.platform, devTools: false, onAbout }))
+ *   Menu.buildFromTemplate(
+ *     buildAppMenuTemplate({ platform: process.platform, devTools: false, onAbout, onBack })
+ *   )
  * )
  */
 export function buildAppMenuTemplate({
   platform,
   devTools,
-  onAbout
+  onAbout,
+  onBack
 }: AppMenuOptions): MenuItemConstructorOptions[] {
   // The file menu is Close on macOS, where it follows the app menu, and Quit elsewhere.
   const leading: MenuItemConstructorOptions[] =
@@ -98,7 +115,7 @@ export function buildAppMenuTemplate({
   return [
     ...leading,
     editMenu,
-    viewMenu(devTools),
+    viewMenu(devTools, onBack),
     { role: 'windowMenu' },
     { role: 'help', submenu: [aboutItem(onAbout)] }
   ]

@@ -34,8 +34,9 @@ interface Drag {
 /**
  * The sidebar's resize handle, a window splitter (ARIA) on the sidebar's right
  * edge. Arrow keys step the width (Shift for a larger step), Home and End jump
- * to the ends, and Enter restores the default. A drag follows the pointer, and
- * a click without a drag toggles between the default and the widest.
+ * to the ends, and Enter restores the default. Alt turns them off, because the
+ * app keeps Alt and the left arrow for Back. A drag follows the pointer, and a
+ * click without a drag toggles between the default and the widest.
  *
  * @example
  * <SidebarResizer width={260} min={200} max={560} onPreview={preview} onCommit={commit} onCancel={cancel} />
@@ -87,6 +88,8 @@ export function SidebarResizer({
   }
 
   function onKeyDown(event: React.KeyboardEvent): void {
+    // Alt with an arrow key is the app's own shortcut (Alt+Left is Back), not a step.
+    if (event.altKey) return
     const step = event.shiftKey ? SIDEBAR_STEP_LARGE : SIDEBAR_STEP
     const jump = { Home: min, End: max, Enter: DEFAULT_SIDEBAR_WIDTH }[event.key]
     const nudge = { ArrowLeft: width - step, ArrowRight: width + step }[event.key]
