@@ -23,7 +23,7 @@ xattr -dr com.apple.quarantine /Applications/Beekeeper.app
 ### Linux
 
 - **deb (recommended, especially on Ubuntu 24.04 and newer):** download [`beekeeper-linux-amd64.deb`](https://github.com/jayporta/beekeeper/releases/latest/download/beekeeper-linux-amd64.deb), then run `sudo apt install ./beekeeper-linux-amd64.deb`. Ubuntu 24.04+ restricts unprivileged user namespaces with AppArmor, and an AppImage needs an allowance for that.
-- **AppImage:** download [`beekeeper-linux-x86_64.AppImage`](https://github.com/jayporta/beekeeper/releases/latest/download/beekeeper-linux-x86_64.AppImage), run `chmod +x beekeeper-linux-x86_64.AppImage`, then run it.
+- **AppImage:** download [`beekeeper-linux-x86_64.AppImage`](https://github.com/jayporta/beekeeper/releases/latest/download/beekeeper-linux-x86_64.AppImage), run `chmod +x beekeeper-linux-x86_64.AppImage`, then run it. It needs FUSE 2, which current distros often leave out: on Ubuntu 24.04 install `libfuse2t64`, and on 22.04 `libfuse2`.
 
 ### Verify your download
 

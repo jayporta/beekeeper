@@ -73,6 +73,7 @@ describe('AboutDialog', () => {
 
     openAbout()
 
+    expect(aboutDialog()).toBeTruthy()
     expect(screen.queryByText(/version/i)).toBeNull()
   })
 
