@@ -1,6 +1,6 @@
 {
   "name": "beekeeper",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "See what your Claude Code agents did, what they changed, and what they cost. Local-only.",
   "main": "./out/main/index.js",
@@ -23,7 +23,7 @@
     "typecheck:mod": "tsc --noEmit -p tsconfig.mod.json && tsc --noEmit -p tsconfig.mod.test.json",
     "typecheck": "npm run typecheck:node && npm run typecheck:web && npm run typecheck:mod",
     "build:mod": "node scripts/buildMod.mjs",
-    "check:mod": "npm run build:mod && node scripts/checkModCalls.mjs",
+    "check:mod": "npm run build:mod && node scripts/checkModVersion.mjs && node scripts/checkModCalls.mjs && claude plugin validate . --strict",
     "test": "vitest run",
     "test:watch": "vitest",
     "start": "electron-vite preview",

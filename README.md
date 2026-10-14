@@ -8,6 +8,43 @@ See what your Claude Code agents did, what they changed, and what they cost. Loc
 
 Tools like Langfuse, Braintrust, and Helicone are built to trace single requests in a production LLM app. That's not the question a local agent swarm raises. When you kick off a handful of subagents or teammates on a repo, you want to know which agent touched which files, what each worktree actually changed, what each one cost, and where one of them went off the rails. beekeeper is built to answer those questions by reading Claude Code's own session files on disk, without a proxy, a server, or a network call.
 
+## Install as a Claude Code mod
+
+beekeeper also runs inside Claude Code, as a mod: a plugin that adds a `/beekeeper` pane to your session. At a Claude Code prompt, type this and answer `y` to add the marketplace:
+
+```
+/plugin install beekeeper --marketplace jayporta/beekeeper
+```
+
+Or run the two steps from a shell:
+
+```bash
+claude plugin marketplace add jayporta/beekeeper
+claude plugin install beekeeper@beekeeper
+```
+
+Then type `/beekeeper` to open the pane. It lists the session's agents (the lead, its subagents, and its teammates) with their tokens and signs of trouble, the files each one changed, and a Browse screen for the project's other sessions. To update, run `claude plugin update beekeeper@beekeeper`, then `/reload-plugins` in the session.
+
+- **Claude Code 2.1.296 or later.** On an older version the mod puts a line in the status line saying so and does nothing else.
+- **git 2.25 or later.** Claude Code fetches the mod from a subfolder of this repository's `mod-release` branch, which needs it.
+- **Room for the pane.** In Claude Code's fullscreen layout the pane docks beside the transcript when the terminal is at least 110 columns wide. Below that, or outside fullscreen, it opens above the prompt.
+
+What the mod does and doesn't do:
+
+- It reads Claude Code's session files in `~/.claude/projects` (or the folder `CLAUDE_CONFIG_DIR` names), and runs read-only git commands in your project and worktree folders to show what a worktree agent changed.
+- It makes no network calls and writes no files.
+- It doesn't change Claude Code's behavior or what the model sees. Each of its hooks passes the event on unchanged, and the only text it adds to the conversation is the one-line reply to `/beekeeper`. `npm run check:mod` checks the built mod against an allowlist of the calls it may make.
+
+The mod is built in CI from the reviewed source in this repository and published to the `mod-release` branch when a release is published, so what you install is never built on a developer's machine.
+
+To try the mod from a checkout of this repository:
+
+```bash
+npm install
+npm run build:mod
+claude --plugin-dir mod
+```
+
 ## Status
 
 A rough roadmap, in build order:
