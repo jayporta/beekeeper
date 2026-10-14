@@ -63,6 +63,15 @@ beekeeper also keeps two preferences: the selected project and whether you've di
 - They live in IndexedDB in beekeeper's own app data folder, never in `~/.claude` or in a repository, and they're never sent anywhere.
 - No cached list is older than 7 days, and an update that changes the data format clears the cache. The two preferences stay until you change them.
 
+beekeeper also keeps an archive, because Claude Code deletes old transcripts (after 30 days by default) and you may want to look back past that. The archive is a SQLite file, `archive.sqlite`, in the same app data folder. It holds:
+
+- **Every session beekeeper has listed:** the same fields as its entry in the cache.
+- **The detail of quiet sessions:** once a session's last activity is 7 days old, its agent tree (each agent's id, type, name, team, model, task description, and worktree path and branch), each agent's token counts and API-equivalent cost, the paths of the files its tool calls touched, its counts of tool errors and compactions, and its workflow runs. A detail over 5 million characters is skipped, and that session keeps only its list entry.
+
+A daily background pass, which first runs a minute after the first window loads, writes the archive, and so does opening a project or a session. It holds no prompts, responses, tool output, or file contents, and it's never written to `~/.claude` or a repository, or sent anywhere.
+
+The archive has no expiry, and beekeeper never deletes a row. A session stays in it after Claude Code removes its transcript, and beekeeper then shows the archived copy and marks it as archived. To remove the archive, quit beekeeper and delete `archive.sqlite` and its `archive.sqlite-wal` and `archive.sqlite-shm` files from the app data folder: `~/Library/Application Support/Beekeeper` on macOS, `~/.config/Beekeeper` on Linux. beekeeper starts a new archive the next time it runs, from the transcripts still on disk.
+
 If you turn on the telemetry receiver, beekeeper also writes `otel-receiver.json` to its app data folder with your on or off choice and, while it is on, the bearer token and port, readable only by you. Costs the receiver hears about are held in memory and never written to disk.
 
 ## Permissions you may see

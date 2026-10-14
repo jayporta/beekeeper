@@ -26,16 +26,30 @@
     />
     <link
       rel="preload"
+      href="./fonts/figtree-latin-500-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="./fonts/figtree-latin-600-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
       href="./fonts/figtree-latin-700-normal.woff2"
       as="font"
       type="font/woff2"
       crossorigin
     />
+    <script src="./download.js"></script>
     <link rel="stylesheet" href="./tokens.css" />
     <link rel="stylesheet" href="./styles.css" />
     <link rel="stylesheet" href="./frame.css" />
     <link rel="stylesheet" href="./sections.css" />
-    <script type="module" src="./download.js"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -89,8 +103,9 @@
             <a class="button" href="https://github.com/jayporta/beekeeper">View on GitHub</a>
           </div>
           <p class="hero-note">
-            Builds are unsigned, so macOS asks you to confirm the first launch.
-            <a href="#downloads">All downloads and checksums</a>
+            These builds are unsigned, so macOS blocks the first launch. See the
+            <a href="https://github.com/jayporta/beekeeper#install">install steps</a> or
+            <a href="#downloads">all downloads and checksums</a>.
           </p>
         </div>
       </section>
@@ -102,8 +117,8 @@
             <img
               class="shot-image"
               src="./img/session-graph.png"
-              width="3200"
-              height="1840"
+              width="2000"
+              height="1150"
               alt="The beekeeper session view. An agent graph shows a lead agent connected to its subagents and a workflow run, and an inspector beside it lists the selected subagent's tokens, cost, changed files, and a streak of three tool errors."
             />
             <figcaption class="shot-caption">
@@ -116,8 +131,8 @@
               <img
                 class="shot-image"
                 src="./img/sessions-list.png"
-                width="3000"
-                height="2000"
+                width="1600"
+                height="1066"
                 loading="lazy"
                 decoding="async"
                 alt="The beekeeper sessions list for one project. Each row is a session, with its agents, duration, tokens, and cost at API prices."
@@ -126,24 +141,16 @@
                 The sessions list shows each session's agents, tokens, and cost.
               </figcaption>
             </figure>
-            <figure class="shot">
-              <img
-                class="shot-image"
-                src="./img/mod-pane.webp"
-                width="1080"
-                height="720"
-                loading="lazy"
-                decoding="async"
-                alt="The /beekeeper pane in Claude Code, showing the same agents and costs in a pane beside the transcript."
-              />
-              <figcaption class="shot-caption">
-                <span class="pill">Coming soon</span>
-                The /beekeeper pane brings the same view into Claude Code.
+            <div class="card mod-card">
+              <p><span class="pill">Coming soon</span></p>
+              <h3 class="card-title">The /beekeeper pane in Claude Code</h3>
+              <p>
+                See the same agents, tokens, and costs in a pane beside the transcript.
                 <a href="https://github.com/jayporta/beekeeper/issues/219"
                   >Follow the mod's progress on GitHub</a
                 >
-              </figcaption>
-            </figure>
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -153,7 +160,7 @@
           <h2 id="promises-title" class="section-title">Three promises</h2>
           <div class="card promises">
             <div class="promise">
-              <h3 class="promise-title">Local only</h3>
+              <h3 class="card-title">Local only</h3>
               <p>
                 No network requests and no telemetry. A request allowlist, a strict
                 Content-Security-Policy, and lint rules that ban network APIs enforce it. The
@@ -162,25 +169,30 @@
               </p>
             </div>
             <div class="promise">
-              <h3 class="promise-title">Read-only</h3>
+              <h3 class="card-title">Read-only</h3>
               <p>
                 beekeeper never writes to <code>~/.claude</code> or to your repositories. Every git
                 command it runs is checked against an allowlist of read-only ones.
               </p>
             </div>
             <div class="promise">
-              <h3 class="promise-title">Your data stays put</h3>
+              <h3 class="card-title">Your data stays put</h3>
               <p>
-                Transcripts are read in place and shown as plain text. beekeeper keeps only a cache
-                of your project and session lists, in its own app data folder, and no cached list
-                lives longer than 7 days.
+                Transcripts are read in place and shown as plain text. What beekeeper keeps is its
+                own, in its app data folder: a cache of your session lists that expires after 7
+                days, an archive of each session's title, agents, token counts, costs, and the paths
+                of files they touched, and a few settings. The archive has no expiry, so it outlives
+                Claude Code's own transcripts. Quit beekeeper and delete
+                <code>archive.sqlite</code> to remove it.
               </p>
             </div>
           </div>
           <p class="section-note">
-            <a class="link-block" href="https://github.com/jayporta/beekeeper#privacy-promise"
-              >Read the full privacy promise</a
-            >
+            Read the full
+            <a href="https://github.com/jayporta/beekeeper#privacy-promise">privacy promise</a> and
+            <a href="https://github.com/jayporta/beekeeper#what-beekeeper-stores"
+              >what beekeeper stores</a
+            >.
           </p>
         </div>
       </section>
@@ -189,9 +201,10 @@
         <div class="container">
           <h2 id="downloads-title" class="section-title">Downloads</h2>
           <p class="section-lede">
-            Every link fetches the latest release. Builds are unsigned, so macOS asks you to confirm
-            the first launch.
-            <a href="https://github.com/jayporta/beekeeper#install">See the install steps</a>
+            Every link fetches the latest release. These builds are unsigned, so macOS blocks the
+            first launch. The
+            <a href="https://github.com/jayporta/beekeeper#install">install steps</a> show how to
+            open the app anyway.
           </p>
           <ul class="card downloads">
             <li class="download-row">
