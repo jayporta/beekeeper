@@ -1,5 +1,5 @@
 import { act, fireEvent, render, renderHook } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ModalDialog } from '@renderer/components/ModalDialog'
 import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { useBackShortcuts } from '../useBackShortcuts'
@@ -66,6 +66,54 @@ describe('useBackShortcuts from the menu', () => {
 
     expect(latest).toHaveBeenCalledOnce()
     expect(api.onGoBack).toHaveBeenCalledOnce()
+  })
+})
+
+describe('useBackShortcuts from the menu while the accelerator repeats', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  /** Mounts the hook under fake timers and returns a function that asks for Back from the menu after `ms` more. */
+  function mountWithClock(): { goBack: () => void; askAfter: (ms: number) => void } {
+    vi.useFakeTimers()
+    const { api, goBack } = mount()
+    return {
+      goBack,
+      askAfter: (ms) => {
+        act(() => {
+          vi.advanceTimersByTime(ms)
+          api.fireGoBack()
+        })
+      }
+    }
+  }
+
+  it('goes back once for two requests 50 ms apart, which are a held key repeating', () => {
+    const { goBack, askAfter } = mountWithClock()
+
+    askAfter(0)
+    askAfter(50)
+
+    expect(goBack).toHaveBeenCalledOnce()
+  })
+
+  it('goes back twice for two requests 400 ms apart, which are two presses', () => {
+    const { goBack, askAfter } = mountWithClock()
+
+    askAfter(0)
+    askAfter(400)
+
+    expect(goBack).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps ignoring a key held down for a second, however long it repeats', () => {
+    const { goBack, askAfter } = mountWithClock()
+
+    askAfter(0)
+    for (let i = 0; i < 5; i += 1) askAfter(200)
+
+    expect(goBack).toHaveBeenCalledOnce()
   })
 })
 
