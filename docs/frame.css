@@ -16,6 +16,13 @@
   font-size: var(--font-size-brand);
   font-weight: var(--font-weight-bold);
   letter-spacing: var(--letter-spacing-title);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.wordmark-icon {
+  border-radius: 22%;
 }
 
 .nav-list {
