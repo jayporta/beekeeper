@@ -1,5 +1,8 @@
 import type { Query } from '@tanstack/react-query'
 import { hasProjectsToShow } from '@renderer/features/projects/hasProjectsToShow'
+import { PROJECTS_QUERY_ROOT } from '@renderer/features/projects/projectsQuery'
+import { SESSION_DETAIL_QUERY_ROOT } from '@renderer/features/sessionDetail/sessionDetailQuery'
+import { SESSIONS_QUERY_ROOT } from '@renderer/features/sessions/sessionsQuery'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
 
 /**
@@ -51,11 +54,11 @@ const refetchSessionDetail = refetchUnlessErrorScreen((data) => data === undefin
  */
 export function allowsBackgroundRefetch(query: Query): boolean {
   switch (query.queryKey[0]) {
-    case 'projects':
+    case PROJECTS_QUERY_ROOT:
       return refetchProjectsOnFocus(query)
-    case 'sessions':
+    case SESSIONS_QUERY_ROOT:
       return refetchListOnFocus(query)
-    case 'session':
+    case SESSION_DETAIL_QUERY_ROOT:
       return refetchSessionDetail(query)
     default:
       return true

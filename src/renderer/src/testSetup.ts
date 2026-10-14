@@ -1,9 +1,15 @@
 import 'fake-indexeddb/auto'
 import '@renderer/i18n/i18n'
-import { cleanup } from '@testing-library/react'
+import { cleanup, configure } from '@testing-library/react'
 import { afterEach } from 'vitest'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { useExpandedSessionsStore } from '@renderer/features/sessions/state/useExpandedSessionsStore'
+
+// How long `findBy*` and `waitFor` retry before they fail. The default of one second is too short
+// for a first render under a loaded test run, which loads a view's data through several awaits.
+// It stays under Vitest's five second test timeout, so a find that fails reports the DOM it saw
+// rather than the test timing out first.
+configure({ asyncUtilTimeout: 3000 })
 
 afterEach(() => {
   cleanup()

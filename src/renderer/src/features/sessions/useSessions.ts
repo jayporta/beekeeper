@@ -2,8 +2,9 @@ import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-q
 import { useEffect } from 'react'
 import type { SessionListItemDto } from '../../../../shared/ipc/sessionListDto'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
-import { unwrapIpcResult } from '@renderer/ipc/unwrapIpcResult'
+import { projectsQueryOptions } from '@renderer/features/projects/projectsQuery'
 import { useSelectedProjectStore } from '@renderer/features/projects/state/useSelectedProjectStore'
+import { sessionsQueryOptions } from './sessionsQuery'
 
 /**
  * Loads a project's sessions. Its cache lifetime is the `sessions` query
@@ -21,10 +22,7 @@ export function useSessions(dirName: string): UseQueryResult<readonly SessionLis
   const queryClient = useQueryClient()
   const forgetGoneFolder = useSelectedProjectStore((state) => state.forgetGoneFolder)
   const restoreFolder = useSelectedProjectStore((state) => state.restoreFolder)
-  const query = useQuery({
-    queryKey: ['sessions', dirName],
-    queryFn: async () => unwrapIpcResult(await window.beekeeper.listSessions(dirName))
-  })
+  const query = useQuery(sessionsQueryOptions(dirName))
   // A refetch keeps the status and error of the failure before it, so a not-found
   // counts only once no fetch is in flight and the error is this load's own.
   const folderGone =
@@ -35,7 +33,7 @@ export function useSessions(dirName: string): UseQueryResult<readonly SessionLis
   useEffect(() => {
     if (!folderGone) return
     forgetGoneFolder(dirName)
-    void queryClient.invalidateQueries({ queryKey: ['projects'] })
+    void queryClient.invalidateQueries({ queryKey: projectsQueryOptions.queryKey })
   }, [folderGone, query.errorUpdatedAt, dirName, forgetGoneFolder, queryClient])
 
   // `restoreFolder` reads the record from the store, so this does not subscribe to it.

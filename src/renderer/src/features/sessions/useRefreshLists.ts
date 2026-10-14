@@ -1,5 +1,7 @@
 import { useQueryClient, type QueryClient, type QueryKey } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { projectsQueryOptions } from '@renderer/features/projects/projectsQuery'
+import { sessionsQueryOptions } from './sessionsQuery'
 
 /** Where the lists stand after a refresh. */
 export type RefreshStatus = 'idle' | 'refreshing' | 'refreshed' | 'failed'
@@ -19,7 +21,7 @@ export interface RefreshLists {
 
 /** The keys of the lists a refresh covers: the projects and one folder's sessions. */
 function listKeys(dirName: string): QueryKey[] {
-  return [['projects'], ['sessions', dirName]]
+  return [projectsQueryOptions.queryKey, sessionsQueryOptions(dirName).queryKey]
 }
 
 /**

@@ -7,6 +7,7 @@ import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunS
 import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
 import { createQueryWrapper, createTestQueryClient } from '@renderer/testQueryWrapper'
 import { resetPersistedState } from '@renderer/testRenderApp'
+import { projectsQueryOptions } from '../projectsQuery'
 import { useForgetUnlistedSelection } from '../state/useForgetUnlistedSelection'
 import { useSelectedProjectStore } from '../state/useSelectedProjectStore'
 
@@ -83,7 +84,7 @@ describe('useForgetUnlistedSelection', () => {
     const refetch = deferred()
     installBeekeeperApi({ listProjects: () => refetch.promise })
     const client = createTestQueryClient()
-    client.setQueryData(['projects'], [testProject(BETA)], {
+    client.setQueryData(projectsQueryOptions.queryKey, [testProject(BETA)], {
       updatedAt: Date.now() - LISTS_STALE_TIME_MS - 1
     })
 
@@ -104,7 +105,7 @@ describe('useForgetUnlistedSelection', () => {
     const refetch = deferred()
     installBeekeeperApi({ listProjects: () => refetch.promise })
     const client = createTestQueryClient()
-    client.setQueryData(['projects'], [testProject(BETA)], {
+    client.setQueryData(projectsQueryOptions.queryKey, [testProject(BETA)], {
       updatedAt: Date.now() - LISTS_STALE_TIME_MS - 1
     })
     render(<Harness />, { wrapper: createQueryWrapper(client) })
@@ -122,14 +123,14 @@ describe('useForgetUnlistedSelection', () => {
       listProjects: () => Promise.resolve({ ok: false, error: { code: 'unreadable' } })
     })
     const client = createTestQueryClient()
-    client.setQueryData(['projects'], [testProject(BETA)], {
+    client.setQueryData(projectsQueryOptions.queryKey, [testProject(BETA)], {
       updatedAt: Date.now() - LISTS_STALE_TIME_MS - 1
     })
 
     render(<Harness />, { wrapper: createQueryWrapper(client) })
     await settle()
 
-    expect(client.getQueryState(['projects'])?.status).toBe('error')
+    expect(client.getQueryState(projectsQueryOptions.queryKey)?.status).toBe('error')
     expect(stored()).toBe(ALPHA)
     expect(gone()).toBeNull()
   })
@@ -142,7 +143,7 @@ describe('useForgetUnlistedSelection', () => {
     render(<Harness />, { wrapper: createQueryWrapper(client) })
 
     act(() => {
-      client.setQueryData(['projects'], [testProject(BETA)], {
+      client.setQueryData(projectsQueryOptions.queryKey, [testProject(BETA)], {
         updatedAt: Date.now() - LISTS_STALE_TIME_MS - 1
       })
     })

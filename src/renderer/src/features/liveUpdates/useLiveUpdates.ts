@@ -1,6 +1,6 @@
 import { useIsRestoring, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
-import type { ProjectDto } from '../../../../shared/ipc/projectDto'
+import { projectsQueryOptions } from '@renderer/features/projects/projectsQuery'
 import { createInvalidationApplier } from './createInvalidationApplier'
 import { invalidationPlan } from './invalidationPlan'
 import { useLiveUpdatesStore } from './state/useLiveUpdatesStore'
@@ -30,7 +30,7 @@ export function useLiveUpdates(): void {
     const applier = createInvalidationApplier(client)
     const stopListening = window.beekeeper.onFilesChanged((change) => {
       if (useLiveUpdatesStore.getState().paused) return
-      const projects = client.getQueryData<readonly ProjectDto[]>(['projects'])
+      const projects = client.getQueryData(projectsQueryOptions.queryKey)
       applier.apply(invalidationPlan(change, projects))
     })
     const stopWatchingSwitch = useLiveUpdatesStore.subscribe((state, previous) => {

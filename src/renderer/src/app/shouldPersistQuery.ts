@@ -1,4 +1,6 @@
 import type { QueryKey } from '@tanstack/react-query'
+import { PROJECTS_QUERY_ROOT } from '@renderer/features/projects/projectsQuery'
+import { SESSIONS_QUERY_ROOT } from '@renderer/features/sessions/sessionsQuery'
 import { PERSIST_MAX_AGE_MS } from './persistMaxAge'
 
 /**
@@ -7,8 +9,8 @@ import { PERSIST_MAX_AGE_MS } from './persistMaxAge'
  * let the app open with its last results, sidebar figures included.
  */
 export const PERSISTED_QUERY_ROOTS: readonly unknown[] = [
-  'projects',
-  'sessions',
+  PROJECTS_QUERY_ROOT,
+  SESSIONS_QUERY_ROOT,
   'projectTotals',
   'projectDailyUsage'
 ]

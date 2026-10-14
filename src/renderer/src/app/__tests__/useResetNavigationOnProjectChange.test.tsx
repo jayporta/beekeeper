@@ -2,6 +2,7 @@ import { act, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { IpcResult } from '../../../../shared/ipc/ipcResult'
 import type { ProjectDto } from '../../../../shared/ipc/projectDto'
+import { projectsQueryOptions } from '@renderer/features/projects/projectsQuery'
 import { useSelectedProjectDirName } from '@renderer/features/projects/state/useSelectedProjectDirName'
 import { useSelectedProjectStore } from '@renderer/features/projects/state/useSelectedProjectStore'
 import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
@@ -80,7 +81,7 @@ describe('useResetNavigationOnProjectChange', () => {
     openSession()
 
     names = ['a']
-    await refetchAndSettle(client, ['projects'])
+    await refetchAndSettle(client, projectsQueryOptions.queryKey)
     await screen.findByText('project:a')
 
     expect(useNavigationStore.getState().view).toBe('sessions')
@@ -98,7 +99,7 @@ describe('useResetNavigationOnProjectChange', () => {
     })
 
     names = ['a']
-    await refetchAndSettle(client, ['projects'])
+    await refetchAndSettle(client, projectsQueryOptions.queryKey)
     await screen.findByText('project:a')
 
     expect(useNavigationStore.getState().view).toBe('overview')
@@ -113,7 +114,7 @@ describe('useResetNavigationOnProjectChange', () => {
     openSession()
 
     names = ['a', 'b']
-    await refetchAndSettle(client, ['projects'])
+    await refetchAndSettle(client, projectsQueryOptions.queryKey)
 
     expect(useNavigationStore.getState().view).toBe('session')
   })

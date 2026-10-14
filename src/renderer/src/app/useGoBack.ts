@@ -1,10 +1,10 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { ProjectDto } from '../../../shared/ipc/projectDto'
 import { useAnnouncement } from '@renderer/components/useAnnouncement'
 import { entryOf } from '@renderer/features/navigation/state/navigationHistory'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
+import { projectsQueryOptions } from '@renderer/features/projects/projectsQuery'
 import { useSelectedProjectStore } from '@renderer/features/projects/state/useSelectedProjectStore'
 import { canRestoreEntry } from './canRestoreEntry'
 
@@ -47,7 +47,7 @@ export function useGoBack(): GoBack {
   const { message, id, announce } = useAnnouncement()
 
   const goBack = useCallback(() => {
-    const projects = client.getQueryData<readonly ProjectDto[]>(['projects'])
+    const projects = client.getQueryData(projectsQueryOptions.queryKey)
     if (projects === undefined) return
     const navigation = useNavigationStore.getState()
     const current = entryOf(navigation)

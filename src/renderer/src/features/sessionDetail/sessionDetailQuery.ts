@@ -5,6 +5,12 @@ import { LISTS_STALE_TIME_MS } from '@renderer/app/listsStaleTime'
 import { unwrapIpcResult } from '@renderer/ipc/unwrapIpcResult'
 
 /**
+ * The first element of a session detail's query key, and the root the rules
+ * that cover every session detail match on.
+ */
+export const SESSION_DETAIL_QUERY_ROOT = 'session'
+
+/**
  * The query that loads one session's agent tree and each agent's report. It
  * is shared by every reader of a session's detail, so the view and a teammate
  * expanded in its graph use one cache entry. It is not persisted: only the
@@ -15,7 +21,7 @@ import { unwrapIpcResult } from '@renderer/ipc/unwrapIpcResult'
  */
 export function sessionDetailQueryOptions(ref: SessionRefDto): UseQueryOptions<SessionDetailDto> {
   return {
-    queryKey: ['session', ref.projectDirName, ref.sessionId],
+    queryKey: [SESSION_DETAIL_QUERY_ROOT, ref.projectDirName, ref.sessionId],
     queryFn: async () =>
       unwrapIpcResult(await window.beekeeper.getSession(ref.projectDirName, ref.sessionId)),
     staleTime: LISTS_STALE_TIME_MS

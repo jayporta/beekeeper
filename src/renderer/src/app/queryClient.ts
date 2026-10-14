@@ -1,6 +1,8 @@
 import { QueryClient } from '@tanstack/react-query'
 import { TOTALS_STALE_TIME_MS } from '@renderer/features/overview/totalsStaleTime'
+import { PROJECTS_QUERY_ROOT } from '@renderer/features/projects/projectsQuery'
 import { SESSIONS_GC_TIME_MS } from '@renderer/features/sessions/sessionsGcTime'
+import { SESSIONS_QUERY_ROOT } from '@renderer/features/sessions/sessionsQuery'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import { refetchListOnFocus, refetchProjectsOnFocus } from './backgroundRefetchRules'
 import { LISTS_STALE_TIME_MS } from './listsStaleTime'
@@ -86,9 +88,9 @@ export function createQueryClient(): QueryClient {
     client.setQueryDefaults([root], {
       gcTime: PERSIST_MAX_AGE_MS,
       ...(TOTALS_ROOTS.includes(root) ? TOTALS_DEFAULTS : LIST_DEFAULTS),
-      ...(root === 'projects' && { refetchOnWindowFocus: refetchProjectsOnFocus })
+      ...(root === PROJECTS_QUERY_ROOT && { refetchOnWindowFocus: refetchProjectsOnFocus })
     })
   }
-  client.setQueryDefaults(['sessions'], { gcTime: SESSIONS_GC_TIME_MS, ...LIST_DEFAULTS })
+  client.setQueryDefaults([SESSIONS_QUERY_ROOT], { gcTime: SESSIONS_GC_TIME_MS, ...LIST_DEFAULTS })
   return client
 }

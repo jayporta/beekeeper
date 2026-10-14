@@ -1,8 +1,8 @@
 import type { QueryClient } from '@tanstack/react-query'
 import type { ProjectDto } from '../../../shared/ipc/projectDto'
-import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
 import { sameEntry, type NavEntry } from '@renderer/features/navigation/state/navigationHistory'
 import { sessionDetailQueryOptions } from '@renderer/features/sessionDetail/sessionDetailQuery'
+import { sessionsQueryOptions } from '@renderer/features/sessions/sessionsQuery'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
 
 /** What {@link canRestoreEntry} checks an entry against. */
@@ -29,7 +29,7 @@ function isKnownGone(entry: NavEntry, client: QueryClient): boolean {
   const list =
     projectDirName === null
       ? undefined
-      : client.getQueryData<readonly SessionListItemDto[]>(['sessions', projectDirName])
+      : client.getQueryData(sessionsQueryOptions(projectDirName).queryKey)
   if (list === undefined) return false
   return !list.some(
     (item) =>
