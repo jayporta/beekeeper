@@ -1,5 +1,5 @@
 import type { IpcResult } from '../../../../shared/ipc/ipcResult'
-import { testProject } from '@renderer/testBeekeeperApi'
+import { testProject } from '../../../../shared/projects/testProject'
 
 /** A `listProjects` stub that resolves with one top-level project for each folder name. */
 export const listing =

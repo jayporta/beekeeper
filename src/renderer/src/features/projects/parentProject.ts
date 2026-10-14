@@ -1,5 +1,5 @@
 import type { ProjectDto } from '../../../../shared/ipc/projectDto'
-import { groupProjects } from './groupProjects'
+import { groupProjects } from '../../../../shared/projects/groupProjects'
 
 /**
  * Finds the listed top-level project that a worktree folder is grouped under.

@@ -1,7 +1,7 @@
 import { QueryClient, type Query, type QueryKey } from '@tanstack/react-query'
 import { describe, expect, it } from 'vitest'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
-import { testProject } from '@renderer/testBeekeeperApi'
+import { testProject } from '../../../../shared/projects/testProject'
 import { allowsBackgroundRefetch } from '../backgroundRefetchRules'
 
 interface Settled {

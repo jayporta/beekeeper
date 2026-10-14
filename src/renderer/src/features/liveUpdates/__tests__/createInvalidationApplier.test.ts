@@ -2,7 +2,7 @@ import { QueryObserver, type QueryClient, type QueryKey } from '@tanstack/react-
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
 import { createTestQueryClient } from '@renderer/testQueryWrapper'
-import { testProject } from '@renderer/testBeekeeperApi'
+import { testProject } from '../../../../../shared/projects/testProject'
 import { createInvalidationApplier, type InvalidationApplier } from '../createInvalidationApplier'
 import type { InvalidationPlan } from '../invalidationPlan'
 

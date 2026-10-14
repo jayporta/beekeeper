@@ -12,7 +12,8 @@ import {
   goneNoticeParts
 } from '@renderer/features/projects/testGoneNotice'
 import { idbStorage } from '@renderer/storage/idbStorage'
-import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
+import { testProject } from '../../../../../shared/projects/testProject'
+import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
 import {
   createQueryWrapper,
   createTestQueryClient,

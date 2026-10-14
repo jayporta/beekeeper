@@ -1,4 +1,4 @@
-import type { ProjectGroup } from '@renderer/features/projects/groupProjects'
+import type { ProjectGroup } from '../../../../shared/projects/groupProjects'
 import { LOADING, type FolderTotalsState } from './folderTotalsState'
 import { sumTotals, type AggregateTotals } from './sumTotals'
 

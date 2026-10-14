@@ -1,4 +1,4 @@
-import type { ProjectDto } from '../../../../shared/ipc/projectDto'
+import type { ProjectDto } from '../ipc/projectDto'
 
 /**
  * Chooses which project is selected: the stored one when it is still listed,

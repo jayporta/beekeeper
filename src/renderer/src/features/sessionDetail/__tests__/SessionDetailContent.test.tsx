@@ -7,7 +7,8 @@ import type { SessionDetailDto } from '../../../../../shared/ipc/sessionDetailDt
 import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { testRef, testSession } from '../../../../../shared/sessions/testSessionFixtures'
-import { installBeekeeperApi, testProject, type TestBeekeeperApi } from '@renderer/testBeekeeperApi'
+import { testProject } from '../../../../../shared/projects/testProject'
+import { installBeekeeperApi, type TestBeekeeperApi } from '@renderer/testBeekeeperApi'
 import {
   createQueryWrapper,
   createTestQueryClient,

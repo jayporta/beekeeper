@@ -1,4 +1,4 @@
-import { projectTitle } from '@renderer/features/projects/projectTitle'
+import { projectTitle } from '../../../../shared/projects/projectTitle'
 import { totalsStatus } from './sumTotals'
 import type { ProjectGroupItem } from './useProjectGroupTotals'
 

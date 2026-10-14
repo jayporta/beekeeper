@@ -1,4 +1,5 @@
-import { agentCountLabel, hasAgents } from '@renderer/features/sessions/agentCountLabel'
+import { agentCountWords } from '@renderer/features/sessions/agentCountWords'
+import { agentCountLabel, hasAgents } from '../../../../shared/sessions/agentCountLabel'
 import { formatLastActive } from '@renderer/features/sessions/formatLastActive'
 import type { SessionRow } from '../../../../shared/sessions/sessionRow'
 import type { SessionsT } from '@renderer/features/sessions/sessionsT'
@@ -36,6 +37,6 @@ export function sessionMetaLine(row: SessionRow, t: SessionsT): readonly string[
   return [
     formatLastActive(activity?.earliestMs ?? null, t),
     teamName === null ? null : t('notes.team', { name: teamName }),
-    hasAgents(item) ? agentCountLabel(item, t) : null
+    hasAgents(item) ? agentCountLabel(item, agentCountWords(t)) : null
   ].filter((part) => part !== null)
 }

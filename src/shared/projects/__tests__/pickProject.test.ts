@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { ProjectDto } from '../../../../../shared/ipc/projectDto'
-import { testProject } from '@renderer/testBeekeeperApi'
+import type { ProjectDto } from '../../ipc/projectDto'
+import { testProject } from '../testProject'
 import { pickProject } from '../pickProject'
 
 const parent = (dirName: string): ProjectDto => testProject(dirName)

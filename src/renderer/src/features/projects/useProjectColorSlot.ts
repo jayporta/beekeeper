@@ -1,4 +1,4 @@
-import { groupProjects } from './groupProjects'
+import { groupProjects } from '../../../../shared/projects/groupProjects'
 import { projectColorSlot, type ProjectColorSlot } from './projectColorSlot'
 import { useProjects } from './useProjects'
 

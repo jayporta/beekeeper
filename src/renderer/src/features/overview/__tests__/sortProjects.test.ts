@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { groupProjects } from '@renderer/features/projects/groupProjects'
-import { testProject } from '@renderer/testBeekeeperApi'
+import { groupProjects } from '../../../../../shared/projects/groupProjects'
+import { testProject } from '../../../../../shared/projects/testProject'
 import { LOADING } from '../folderTotalsState'
 import type { ProjectGroupItem } from '../useProjectGroupTotals'
 import { PROJECT_SORT_KEYS, sortProjects, type ProjectSortKey } from '../sortProjects'

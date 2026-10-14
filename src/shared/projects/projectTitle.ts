@@ -1,4 +1,4 @@
-import type { ProjectDto } from '../../../../shared/ipc/projectDto'
+import type { ProjectDto } from '../ipc/projectDto'
 import { projectLabel } from './projectLabel'
 
 /**
