@@ -1,0 +1,40 @@
+name: Mod on latest Claude Code
+
+# The engine changes between releases. This runs the mod's checks against the newest Claude Code every
+# week, so a breaking release shows up here before users report it. CI covers the pinned version.
+on:
+  schedule:
+    - cron: '23 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mod:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm install --global @anthropic-ai/claude-code@latest
+
+      - run: claude --version
+
+      - run: npm run check:mod
+
+      - run: claude plugin test mod
