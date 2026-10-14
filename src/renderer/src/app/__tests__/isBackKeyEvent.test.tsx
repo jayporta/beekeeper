@@ -86,6 +86,40 @@ describe('isBackKeyEvent', () => {
     expect(decide(create())).toBe(false)
   })
 
+  it.each([
+    'slider',
+    'spinbutton',
+    'listbox',
+    'tablist',
+    'grid',
+    'tree',
+    'treegrid',
+    'menu',
+    'menubar',
+    'radiogroup',
+    'combobox',
+    'textbox',
+    'searchbox'
+  ])('rejects it pressed in a custom %s, which moves with the arrow keys', (role) => {
+    expect(decide(add('div', { role, tabindex: '0' }))).toBe(false)
+  })
+
+  it('rejects it pressed in an item inside a widget that uses the arrow keys', () => {
+    const listbox = add('div', { role: 'listbox' })
+    const option = document.createElement('div')
+    option.setAttribute('role', 'option')
+    listbox.append(option)
+
+    expect(decide(option)).toBe(false)
+  })
+
+  it.each(['region', 'group', 'dialog', 'img'])(
+    'accepts it pressed in an element with the %s role, which does not use the arrow keys',
+    (role) => {
+      expect(decide(add('div', { role, tabindex: '0' }))).toBe(true)
+    }
+  )
+
   it('rejects it pressed in an element inside an editable one', () => {
     const editable = add('div', { contenteditable: 'true' })
     const inner = document.createElement('span')

@@ -1,5 +1,6 @@
-import { act, fireEvent, renderHook } from '@testing-library/react'
+import { act, fireEvent, render, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { ModalDialog } from '@renderer/components/ModalDialog'
 import { installBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { useBackShortcuts } from '../useBackShortcuts'
 
@@ -166,5 +167,69 @@ describe('useBackShortcuts from the mouse', () => {
     fireEvent.mouseUp(document.body, { button: 3 })
 
     expect(goBack).not.toHaveBeenCalled()
+  })
+})
+
+/** Opens a modal dialog on the page, as the About dialog does. */
+function openModalDialog(): { close: () => void } {
+  const dialog = (open: boolean): React.JSX.Element => (
+    <ModalDialog open={open} onClose={() => undefined} labelledBy="dialog-heading">
+      <h2 id="dialog-heading">Dialog</h2>
+    </ModalDialog>
+  )
+  const { rerender } = render(dialog(true))
+  return {
+    close: () => {
+      rerender(dialog(false))
+    }
+  }
+}
+
+describe('useBackShortcuts while a modal dialog is open', () => {
+  it('ignores the View menu, so the page behind the dialog does not change', () => {
+    const { api, goBack } = mount()
+    openModalDialog()
+
+    act(() => {
+      api.fireGoBack()
+    })
+
+    expect(goBack).not.toHaveBeenCalled()
+  })
+
+  it('ignores Alt and the left arrow, and leaves the key uncancelled', () => {
+    const { goBack } = mount()
+    openModalDialog()
+
+    const notCancelled = pressAltLeft(document.body)
+
+    expect(goBack).not.toHaveBeenCalled()
+    expect(notCancelled).toBe(true)
+  })
+
+  it('ignores the mouse back button, but still cancels it so the browser does not move', () => {
+    const { goBack } = mount()
+    openModalDialog()
+
+    const notCancelled = fireEvent.mouseUp(document.body, { button: 3 })
+
+    expect(goBack).not.toHaveBeenCalled()
+    expect(notCancelled).toBe(false)
+  })
+
+  it.each([
+    ['the View menu', (api: ReturnType<typeof installBeekeeperApi>) => api.fireGoBack()],
+    ['Alt and the left arrow', () => pressAltLeft(document.body)],
+    ['the mouse back button', () => fireEvent.mouseUp(document.body, { button: 3 })]
+  ])('goes back from %s again once the dialog closes', (_name, trigger) => {
+    const { api, goBack } = mount()
+    const dialog = openModalDialog()
+    dialog.close()
+
+    act(() => {
+      trigger(api)
+    })
+
+    expect(goBack).toHaveBeenCalledOnce()
   })
 })

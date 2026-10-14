@@ -137,6 +137,20 @@ describe('MainView Back shortcuts', () => {
     expect(sessionsHeading()).toBeTruthy()
   })
 
+  it('ignores the View menu while the About dialog is open', async () => {
+    await renderAwayFromSessions()
+    act(() => {
+      api.fireOpenAbout()
+    })
+    await screen.findByRole('dialog', { name: /about/i })
+
+    act(() => {
+      api.fireGoBack()
+    })
+
+    expect(useNavigationStore.getState().view).toBe('overview')
+  })
+
   it('does nothing on a shortcut when there is nowhere to go back to', async () => {
     await renderAppReady()
     const before = useNavigationStore.getState()

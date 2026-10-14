@@ -1,5 +1,6 @@
 import { useEffect, useEffectEvent } from 'react'
 import { isBackKeyEvent } from './isBackKeyEvent'
+import { isModalDialogOpen } from './isModalDialogOpen'
 
 /** The mouse button number for the back button, which sits beside the thumb on most mice. */
 const MOUSE_BACK_BUTTON = 3
@@ -8,8 +9,9 @@ const MOUSE_BACK_BUTTON = 3
  * Goes back from the places other than the Back button: the View menu's Back
  * item (Cmd or Ctrl+[), Alt and the left arrow, and the mouse's back button.
  * A shortcut pressed in a control that uses the key itself is ignored (see
- * {@link isBackKeyEvent}). The mouse's back button is cancelled, so the browser
- * does not also move through its own history.
+ * {@link isBackKeyEvent}), and so is every shortcut while a modal dialog is
+ * open, since the page behind it is inert. The mouse's back button is cancelled
+ * either way, so the browser does not also move through its own history.
  *
  * Call it once, where the main area renders. The listeners are registered
  * once, and always call the `goBack` of the latest render.
@@ -20,11 +22,12 @@ export function useBackShortcuts(goBack: () => void): void {
   const onBack = useEffectEvent(goBack)
 
   useEffect(() => {
-    const stopMenu = window.beekeeper.onGoBack(() => {
-      onBack()
-    })
+    const back = (): void => {
+      if (!isModalDialogOpen()) onBack()
+    }
+    const stopMenu = window.beekeeper.onGoBack(back)
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (!isBackKeyEvent(event)) return
+      if (!isBackKeyEvent(event) || isModalDialogOpen()) return
       event.preventDefault()
       onBack()
     }
@@ -33,7 +36,7 @@ export function useBackShortcuts(goBack: () => void): void {
     const onMouseUp = (event: MouseEvent): void => {
       if (event.button !== MOUSE_BACK_BUTTON) return
       event.preventDefault()
-      onBack()
+      back()
     }
     const onAuxClick = (event: MouseEvent): void => {
       if (event.button === MOUSE_BACK_BUTTON) event.preventDefault()
