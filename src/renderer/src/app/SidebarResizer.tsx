@@ -34,9 +34,10 @@ interface Drag {
 /**
  * The sidebar's resize handle, a window splitter (ARIA) on the sidebar's right
  * edge. Arrow keys step the width (Shift for a larger step), Home and End jump
- * to the ends, and Enter restores the default. Alt turns them off, because the
- * app keeps Alt and the left arrow for Back. A drag follows the pointer, and a
- * click without a drag toggles between the default and the widest.
+ * to the ends, and Enter restores the default. Alt turns them off, so Alt and
+ * the left arrow go back from the handle as they do anywhere else. A drag
+ * follows the pointer, and a click without a drag toggles between the default
+ * and the widest.
  *
  * @example
  * <SidebarResizer width={260} min={200} max={560} onPreview={preview} onCommit={commit} onCancel={cancel} />

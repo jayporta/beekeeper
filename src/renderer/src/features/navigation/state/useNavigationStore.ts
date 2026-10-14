@@ -64,7 +64,9 @@ interface NavigationState {
   /**
    * Shows the sessions list in place of the view on screen, which is not
    * recorded in the history. It leaves a session that no longer exists, so Back
-   * never returns to it.
+   * never returns to it. The newest entry is dropped when it is the place this
+   * shows, which is the sessions list the session was opened from, so Back
+   * does not offer the place already on screen.
    */
   replaceWithSessions: () => void
   /**
@@ -175,7 +177,15 @@ export const useNavigationStore = create<NavigationState>()((set, get) => ({
     )
   },
   replaceWithSessions: () => {
-    set((state) => showEntry(state, sessionsEntry(state.currentProjectDirName)))
+    set((state) => {
+      const target = sessionsEntry(state.currentProjectDirName)
+      const newest = state.history.at(-1)
+      const leftFromHere = newest !== undefined && sameEntry(newest, target)
+      return {
+        ...showEntry(state, target),
+        history: leftFromHere ? state.history.slice(0, -1) : state.history
+      }
+    })
   },
   selectAgent: (agent) => {
     set({ selectedAgent: agent })

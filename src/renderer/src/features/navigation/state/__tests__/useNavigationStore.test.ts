@@ -289,8 +289,9 @@ describe('useNavigationStore history', () => {
     expect(history()).toEqual(before)
   })
 
-  it('shows a session without recording it when the sessions list replaces it', () => {
+  it('shows the sessions list in place of a session, without recording the session', () => {
     inProject(ref.projectDirName)
+    useNavigationStore.getState().showOverview()
     useNavigationStore.getState().showSession(ref)
     const before = history()
 
@@ -301,6 +302,37 @@ describe('useNavigationStore history', () => {
       view: 'sessions',
       selectedSessionRef: null
     })
+  })
+
+  it('drops the newest entry when it is the sessions list the replacement shows', () => {
+    inProject(ref.projectDirName)
+    useNavigationStore.getState().showSession(ref)
+    expect(history()).toHaveLength(1)
+
+    useNavigationStore.getState().replaceWithSessions()
+
+    expect(history()).toEqual([])
+  })
+
+  it('drops only the newest entry, keeping the older ones', () => {
+    inProject(ref.projectDirName)
+    useNavigationStore.getState().showOverview()
+    useNavigationStore.getState().showSessions()
+    useNavigationStore.getState().showSession(ref)
+
+    useNavigationStore.getState().replaceWithSessions()
+
+    expect(history().map((entry) => entry.view)).toEqual(['sessions', 'overview'])
+  })
+
+  it('keeps the newest entry when it is the sessions list of another project', () => {
+    inProject(ref.projectDirName)
+    useNavigationStore.getState().showSession(ref)
+    useNavigationStore.getState().syncProject(OTHER)
+
+    useNavigationStore.getState().replaceWithSessions()
+
+    expect(history()).toHaveLength(1)
   })
 
   it('counts the replacement as a navigation, so focus moves', () => {

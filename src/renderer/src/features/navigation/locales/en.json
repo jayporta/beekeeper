@@ -1,6 +1,7 @@
 {
   "back": {
-    "label": "Back"
+    "label": "Back",
+    "nothing": "Nothing to go back to"
   },
   "breadcrumb": {
     "label": "Breadcrumb",

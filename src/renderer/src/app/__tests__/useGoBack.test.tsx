@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { IpcResult } from '../../../../shared/ipc/ipcResult'
 import type { ProjectDto } from '../../../../shared/ipc/projectDto'
+import { BackStatus } from '@renderer/features/navigation/BackStatus'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { sessionDetailQueryOptions } from '@renderer/features/sessionDetail/sessionDetailQuery'
 import { useSelectedProjectDirName } from '@renderer/features/projects/state/useSelectedProjectDirName'
@@ -38,7 +39,7 @@ afterEach(async () => {
 /** Wires the app's navigation hooks and shows what they report, with a button that goes back. */
 function Harness(): React.JSX.Element {
   useResetNavigationOnProjectChange()
-  const { canGoBack, goBack } = useGoBack()
+  const { canGoBack, goBack, announcement } = useGoBack()
   const [first] = useState(() => goBack)
   useEffect(() => {
     firstGoBack = first
@@ -47,6 +48,7 @@ function Harness(): React.JSX.Element {
     <>
       <p>{`project:${useSelectedProjectDirName() ?? 'none'}`}</p>
       <p>{canGoBack ? 'can go back' : 'cannot go back'}</p>
+      <BackStatus message={announcement.message} id={announcement.id} />
       <button type="button" onClick={goBack}>
         Go back
       </button>
@@ -296,21 +298,14 @@ describe('useGoBack', () => {
     expect(useNavigationStore.getState()).toMatchObject({ view: 'overview', history: [] })
   })
 
-  it('stays where it is when the only entry is the place already on screen', async () => {
+  it('has nothing to go back to once a missing session is left for the sessions list it was opened from', async () => {
     await renderHarness('a')
     act(() => {
       useNavigationStore.getState().showSession(refA)
       useNavigationStore.getState().replaceWithSessions()
     })
-    const before = useNavigationStore.getState().navigationCount
 
-    await goBack()
-
-    expect(useNavigationStore.getState()).toMatchObject({
-      view: 'sessions',
-      history: [],
-      navigationCount: before
-    })
+    expect(screen.getByText('cannot go back')).toBeTruthy()
   })
 
   it('skips a session that has been reported not found, and goes on to the entry before it', async () => {
@@ -361,5 +356,59 @@ describe('useGoBack', () => {
     expect(useNavigationStore.getState()).toMatchObject({ view: 'sessions', history: [] })
     expect(useNavigationStore.getState().currentProjectDirName).toBe('a')
     expect(screen.getByText('project:a')).toBeTruthy()
+  })
+
+  describe('when a press leads nowhere', () => {
+    const NOTHING = 'Nothing to go back to'
+
+    it('says so when every entry is one that cannot be shown', async () => {
+      await renderHarness('a')
+      useNavigationStore.setState({
+        history: [{ view: 'sessions', projectDirName: 'gone', sessionRef: null, agent: null }]
+      })
+
+      await goBack()
+
+      expect(await screen.findByText(NOTHING)).toBeTruthy()
+      expect(useNavigationStore.getState().history).toEqual([])
+    })
+
+    it('says so when there is no history at all', async () => {
+      await renderHarness('a')
+
+      await goBack()
+
+      expect(await screen.findByText(NOTHING)).toBeTruthy()
+    })
+
+    it('says it again for a second press, as a new announcement', async () => {
+      await renderHarness('a')
+      await goBack()
+      const first = await screen.findByText(NOTHING)
+
+      await goBack()
+
+      expect(await screen.findByText(NOTHING)).not.toBe(first)
+    })
+
+    it('says nothing when the press goes back', async () => {
+      await renderHarness('a')
+      act(() => {
+        useNavigationStore.getState().showOverview()
+      })
+
+      await goBack()
+
+      expect(screen.queryByText(NOTHING)).toBeNull()
+    })
+
+    it('says nothing while the project list has not loaded, since the press is only waiting', async () => {
+      installBeekeeperApi({ listProjects: () => new Promise(() => undefined) })
+      render(<Harness />, { wrapper: createQueryWrapper() })
+
+      await goBack()
+
+      expect(screen.queryByText(NOTHING)).toBeNull()
+    })
   })
 })

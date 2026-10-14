@@ -80,10 +80,13 @@ describe('isBackKeyEvent', () => {
     ['a select', () => add('select')],
     ['an editable element', () => add('div', { contenteditable: 'true' })],
     ['an editable element with an empty attribute', () => add('div', { contenteditable: '' })],
-    ['a plaintext-only editable element', () => add('div', { contenteditable: 'plaintext-only' })],
-    ['the sidebar resizer, which steps with the arrow keys', () => add('hr', { tabindex: '0' })]
+    ['a plaintext-only editable element', () => add('div', { contenteditable: 'plaintext-only' })]
   ])('rejects it pressed in %s, where the key belongs to that control', (_name, create) => {
     expect(decide(create())).toBe(false)
+  })
+
+  it('accepts it pressed on the sidebar resizer, which leaves Alt and the arrow keys alone', () => {
+    expect(decide(add('hr', { tabindex: '0' }))).toBe(true)
   })
 
   it.each([

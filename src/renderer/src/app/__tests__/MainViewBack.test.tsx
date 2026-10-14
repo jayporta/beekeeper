@@ -151,6 +151,33 @@ describe('MainView Back shortcuts', () => {
     expect(useNavigationStore.getState().view).toBe('overview')
   })
 
+  it('says there is nothing to go back to when a shortcut finds nowhere to go', async () => {
+    await renderAppReady()
+
+    fireEvent.keyDown(screen.getByRole('main'), { key: 'ArrowLeft', altKey: true })
+
+    expect(await screen.findByText('Nothing to go back to')).toBeTruthy()
+  })
+
+  it('says nothing about it when a shortcut goes back', async () => {
+    await renderAwayFromSessions()
+
+    fireEvent.keyDown(screen.getByRole('main'), { key: 'ArrowLeft', altKey: true })
+
+    expect(screen.queryByText('Nothing to go back to')).toBeNull()
+  })
+
+  it('goes back on Alt and the left arrow from the sidebar resizer', async () => {
+    await renderAwayFromSessions()
+
+    fireEvent.keyDown(screen.getByRole('separator', { name: 'Resize sidebar' }), {
+      key: 'ArrowLeft',
+      altKey: true
+    })
+
+    expect(sessionsHeading()).toBeTruthy()
+  })
+
   it('does nothing on a shortcut when there is nowhere to go back to', async () => {
     await renderAppReady()
     const before = useNavigationStore.getState()

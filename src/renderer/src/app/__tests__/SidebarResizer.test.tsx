@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { isBackKeyEvent } from '../isBackKeyEvent'
 import { ResizableShell } from '../ResizableShell'
 import { resetPersistedState } from '@renderer/testRenderApp'
 import { SidebarResizer } from '../SidebarResizer'
@@ -93,6 +94,22 @@ describe('SidebarResizer', () => {
 
     expect(widthNow()).toBe(DEFAULT_SIDEBAR_WIDTH)
     expect(notCancelled).toBe(true)
+  })
+
+  it('leaves Alt and the left arrow to the Back shortcut, which accepts it from the resizer', () => {
+    render(<Harness />)
+    separator().focus()
+    let accepted = false
+    const listener = (event: KeyboardEvent): void => {
+      accepted = isBackKeyEvent(event)
+    }
+    document.addEventListener('keydown', listener)
+
+    fireEvent.keyDown(separator(), { key: 'ArrowLeft', altKey: true })
+    document.removeEventListener('keydown', listener)
+
+    expect(widthNow()).toBe(DEFAULT_SIDEBAR_WIDTH)
+    expect(accepted).toBe(true)
   })
 
   it('stops at the minimum and the maximum', async () => {

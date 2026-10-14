@@ -149,13 +149,25 @@ describe('SessionDetailStatus for a missing session', () => {
   })
 
   it('does not record the missing session when it goes back to the sessions list', async () => {
-    useNavigationStore.getState().showSession({ projectDirName: 'a', sessionId: 'b' })
-    const before = useNavigationStore.getState().history
+    const ref = { projectDirName: 'a', sessionId: 'b' }
+    useNavigationStore.getState().showOverview()
+    useNavigationStore.getState().showSession(ref)
     render(status('not-found'))
 
     await userEvent.click(screen.getByRole('button', { name: 'Back to sessions' }))
 
-    expect(useNavigationStore.getState().history).toEqual(before)
+    expect(useNavigationStore.getState().history.some((entry) => entry.sessionRef === ref)).toBe(
+      false
+    )
+  })
+
+  it('leaves no entry for the sessions list it was opened from, which would be the place on screen', async () => {
+    useNavigationStore.getState().showSession({ projectDirName: 'a', sessionId: 'b' })
+    render(status('not-found'))
+
+    await userEvent.click(screen.getByRole('button', { name: 'Back to sessions' }))
+
+    expect(useNavigationStore.getState().history).toEqual([])
   })
 })
 
