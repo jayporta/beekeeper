@@ -9,7 +9,7 @@ A static site for beekeeper in plain HTML, CSS, and JavaScript, published with G
 
 Every page sets a Content-Security-Policy in a `<meta>` tag that allows only files from the site itself, so a stray third-party request fails loudly instead of slipping in. Don't load anything from another origin.
 
-The scripts are ES modules, which browsers won't load from `file://`, so serve the folder over HTTP to preview it:
+The game's scripts in `bees/` are ES modules, which browsers won't load from `file://`, so serve the folder over HTTP to preview it:
 
 ```bash
 python3 -m http.server 8000 -d docs

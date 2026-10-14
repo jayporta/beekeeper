@@ -54,7 +54,7 @@ beekeeper never reads `~/.claude/sessions/*.key` (a peer token, not session data
 beekeeper keeps a cache of the project list and of the session lists you've opened, so the app opens without rescanning everything. The cache holds those lists exactly as the app shows them:
 
 - **Projects:** each project folder name, which encodes the path of the project, and which project is a worktree of which.
-- **Each session:** its id, the project folder it's in, its title, whether it's a lead or a teammate agent, its agent type, name, and team, its model, and its activity times; its transcript's size and modification time; its subagent count; its recorded token and cost totals, and the token total of its own transcript; how many lines couldn't be read; and any plan limit it hit, with its reset time.
+- **Each session:** its id, the project folder it's in, its title, whether it's a lead or a teammate agent, its agent type, name, and team, its model, and its activity times; its transcript's size and modification time; its subagent count and each subagent's name, task description, and type (so search can match them); how many workflow runs it has, their names, and how many subagents ran inside them; its recorded token and cost totals, and the token total of its own transcript; its signal counts (tool errors, the longest error streak, the longest run of repeated Bash commands, compactions, and stopped agents); how many lines couldn't be read; and any plan limit it hit, with its reset time.
 - **Why a summary is missing:** when a session's summary couldn't be read, the error code (`not-found`, `unreadable`, or `internal`).
 - **Teams:** the team name, and how a session groups with its lead and teammates, including how a teammate was matched to its lead, whether it stopped, and whether it's missing. For a lead, it also holds the team's token and cost totals, how many sessions have no figure, and whether the lead's spawn or stop lists were capped.
 
@@ -65,12 +65,12 @@ beekeeper also keeps two preferences: the selected project and whether you've di
 
 beekeeper also keeps an archive, because Claude Code deletes old transcripts (after 30 days by default) and you may want to look back past that. The archive is a SQLite file, `archive.sqlite`, in the same app data folder. It holds:
 
-- **Every session beekeeper has listed:** the same fields as its entry in the cache.
-- **The detail of quiet sessions:** once a session's last activity is 7 days old, its agent tree (each agent's id, type, name, team, model, task description, and worktree path and branch), each agent's token counts and API-equivalent cost, the paths of the files its tool calls touched, its counts of tool errors and compactions, and its workflow runs. A detail over 5 million characters is skipped, and that session keeps only its list entry.
+- **Every session beekeeper has listed:** the same fields as its entry in the cache, plus the teammates its lead spawned and stopped (their names, teams, types, and tool-use ids) and the lead's token usage per model.
+- **The detail of quiet sessions:** once a session's last activity is 7 days old, everything its session view shows. That is its agent tree (each agent's id, type, name, team, model, task description, and worktree path and branch); each agent's token counts and API-equivalent cost; the paths of the files its tool calls touched, and whether each touch came from an edit or from a Bash command; its signals (tool errors, error streaks, repeated Bash commands, compactions, stopped agents, and the longest tool wait); its message counts and activity times; its workflow runs and their phase names; and how the recorded usage compares with the transcripts' usage. A detail over 5 million characters is skipped, and that session keeps only its list entry.
 
 A daily background pass, which first runs a minute after the first window loads, writes the archive, and so does opening a project or a session. It holds no prompts, responses, tool output, or file contents, and it's never written to `~/.claude` or a repository, or sent anywhere.
 
-The archive has no expiry, and beekeeper never deletes a row. A session stays in it after Claude Code removes its transcript, and beekeeper then shows the archived copy and marks it as archived. To remove the archive, quit beekeeper and delete `archive.sqlite` and its `archive.sqlite-wal` and `archive.sqlite-shm` files from the app data folder: `~/Library/Application Support/Beekeeper` on macOS, `~/.config/Beekeeper` on Linux. beekeeper starts a new archive the next time it runs, from the transcripts still on disk.
+The archive has no expiry, and beekeeper never deletes a row. A session stays in it after Claude Code removes its transcript, and beekeeper then shows the archived copy and marks it as archived. To remove the archive, quit beekeeper and delete `archive.sqlite` and its `archive.sqlite-wal` and `archive.sqlite-shm` files from the app data folder: `~/Library/Application Support/beekeeper` on macOS, `~/.config/beekeeper` on Linux. beekeeper starts a new archive the next time it runs, from the transcripts still on disk.
 
 If you turn on the telemetry receiver, beekeeper also writes `otel-receiver.json` to its app data folder with your on or off choice and, while it is on, the bearer token and port, readable only by you. Costs the receiver hears about are held in memory and never written to disk.
 
@@ -87,7 +87,7 @@ If you turn on the telemetry receiver, beekeeper also writes `otel-receiver.json
 | Agent tree: lead, subagents, teammates, model, team                           | Files changed via Bash in a shared checkout (attribution is a guess without a hook)                           |
 | Tokens per agent, tool calls, wall-clock span, errors                         | Exact billed cost (subscription plans aren't billed per token, so beekeeper shows an API-equivalent estimate) |
 | Files edited through Edit/Write (the transcript records each patch)           | A worktree's base commit once the worktree is deleted                                                         |
-| A worktree agent's exact `git diff` against its merge-base                    | History older than 30 days (Claude Code's default retention), unless beekeeper archived the session first                                                  |
+| A worktree agent's exact `git diff` against its merge-base                    | History older than 30 days (Claude Code's default retention), unless beekeeper archived the session first     |
 | Signs an agent went off the rails: error streaks, `stoppedByUser`, compaction | Live output while an agent is still running (beekeeper reads what's on disk, not a live stream)               |
 
 ## Development
