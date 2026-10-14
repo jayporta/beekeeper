@@ -13,6 +13,7 @@ import { installBeekeeperApi, type TestBeekeeperApi } from '@renderer/testBeekee
 import { createQueryWrapper, createTestQueryClient } from '@renderer/testQueryWrapper'
 import { SCENE_ITEMS, SCENE_SESSION } from '../graph/testGraphScene'
 import { SessionDetailBody } from '../SessionDetailBody'
+import { sessionDetailQueryOptions } from '../sessionDetailQuery'
 import { testDetail, testMeta, testNode, testReport, testTokenGroup } from '../testSessionDetail'
 
 const MIN = 60_000
@@ -151,7 +152,7 @@ export function renderInspectorScene(
       )
   })
   // The view only shows the inspector once the lead's detail has loaded, so it is already cached.
-  client.setQueryData(['session', SCENE_SESSION.projectDirName, SCENE_SESSION.sessionId], detail, {
+  client.setQueryData(sessionDetailQueryOptions(SCENE_SESSION).queryKey, detail, {
     updatedAt: detailUpdatedAt
   })
   const rendered = render(

@@ -6,6 +6,7 @@ import type { ProjectDto } from '../../../../../shared/ipc/projectDto'
 import type { SessionListItemDto } from '../../../../../shared/ipc/sessionListDto'
 import { LISTS_STALE_TIME_MS } from '@renderer/app/listsStaleTime'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
+import { projectsQueryOptions } from '@renderer/features/projects/projectsQuery'
 import { useSelectedProjectStore } from '@renderer/features/projects/state/useSelectedProjectStore'
 import {
   findAnnouncedGoneNotice,
@@ -146,7 +147,7 @@ describe('a selected project whose folder is gone', () => {
     render(<App />, { wrapper: createQueryWrapper(client) })
     await screen.findByRole('heading', { name: 'Loading sessions' })
 
-    await refetchAndSettle(client, ['projects'])
+    await refetchAndSettle(client, projectsQueryOptions.queryKey)
 
     expect(await findAnnouncedGoneNotice(`${folderGone(ALPHA)} Showing ${BETA}.`)).toBeTruthy()
     expect(await screen.findByRole('heading', { level: 3, name: 'Beta work' })).toBeTruthy()
@@ -495,7 +496,7 @@ describe('a gone folder that comes back', () => {
     await screen.findByRole('heading', { level: 3, name: 'Alpha work' })
 
     listBetaFirst()
-    await refetchAndSettle(client, ['projects'])
+    await refetchAndSettle(client, projectsQueryOptions.queryKey)
 
     expect(goneNotice()).toBeNull()
     expect(await screen.findByRole('heading', { level: 1, name: ALPHA })).toBeTruthy()
@@ -528,7 +529,7 @@ describe('a folder that went missing and later came back', () => {
     await findAnnouncedGoneNotice(`${folderGone(ALPHA)} Showing ${BETA}.`)
     alphaGone = false
     listed = [testProject(BETA), testProject(ALPHA)]
-    await refetchAndSettle(client, ['projects'])
+    await refetchAndSettle(client, projectsQueryOptions.queryKey)
   }
 
   it('can be chosen again from the sidebar without a false notice, while its old error is still cached', async () => {

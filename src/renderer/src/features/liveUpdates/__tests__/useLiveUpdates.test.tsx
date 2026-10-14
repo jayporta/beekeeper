@@ -3,6 +3,7 @@ import type { QueryClient } from '@tanstack/react-query'
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { FilesChangedDto } from '../../../../../shared/ipc/filesChangedDto'
+import { projectsQueryOptions } from '@renderer/features/projects/projectsQuery'
 import { installBeekeeperApi, testProject, type TestBeekeeperApi } from '@renderer/testBeekeeperApi'
 import { createTestQueryClient } from '@renderer/testQueryWrapper'
 import { DETAIL_LIVE_INTERVAL_MS } from '../detailThrottle'
@@ -59,7 +60,7 @@ afterEach(() => {
 
 describe('useLiveUpdates', () => {
   it('refetches the visible lists of a changed family', async () => {
-    client.setQueryData(['projects'], [testProject(A), testProject(B)])
+    client.setQueryData(projectsQueryOptions.queryKey, [testProject(A), testProject(B)])
     const list = showing(['sessions', A])
     const other = showing(['sessions', B])
     renderHook(
@@ -80,7 +81,7 @@ describe('useLiveUpdates', () => {
   })
 
   it('refetches every visible list when a changed folder is not in the cached projects', async () => {
-    client.setQueryData(['projects'], [testProject(A), testProject(B)])
+    client.setQueryData(projectsQueryOptions.queryKey, [testProject(A), testProject(B)])
     const parent = showing(['sessions', A])
     const other = showing(['sessions', B])
     renderHook(

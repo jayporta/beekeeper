@@ -8,6 +8,7 @@ import type { ProjectDto } from '../../../../shared/ipc/projectDto'
 import { BackStatus } from '@renderer/features/navigation/BackStatus'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { sessionDetailQueryOptions } from '@renderer/features/sessionDetail/sessionDetailQuery'
+import { projectsQueryOptions } from '@renderer/features/projects/projectsQuery'
 import { useSelectedProjectDirName } from '@renderer/features/projects/state/useSelectedProjectDirName'
 import { useSelectedProjectStore } from '@renderer/features/projects/state/useSelectedProjectStore'
 import { IpcCallError } from '@renderer/ipc/ipcCallError'
@@ -347,7 +348,7 @@ describe('useGoBack', () => {
       history: [{ view: 'sessions', projectDirName: 'b', sessionRef: null, agent: null }]
     })
     listed = ['a']
-    await refetchAndSettle(client, ['projects'])
+    await refetchAndSettle(client, projectsQueryOptions.queryKey)
 
     act(() => {
       firstGoBack?.()

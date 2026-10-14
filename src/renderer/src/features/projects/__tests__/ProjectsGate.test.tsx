@@ -11,6 +11,7 @@ import {
 } from '@renderer/testQueryWrapper'
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
 import { useFirstRunStore } from '../../firstRun/state/useFirstRunStore'
+import { projectsQueryOptions } from '../projectsQuery'
 import { ProjectsGate } from '../ProjectsGate'
 
 beforeEach(() => {
@@ -119,9 +120,9 @@ describe('ProjectsGate states', () => {
     await screen.findByText('the list')
 
     failing = true
-    await refetchAndSettle(client, ['projects'])
+    await refetchAndSettle(client, projectsQueryOptions.queryKey)
 
-    expect(client.getQueryState(['projects'])?.status).toBe('error')
+    expect(client.getQueryState(projectsQueryOptions.queryKey)?.status).toBe('error')
     expect(screen.getByText('the list')).toBeTruthy()
     expect(screen.queryByRole('alert')).toBeNull()
   })
@@ -146,7 +147,7 @@ describe('ProjectsGate states', () => {
       await screen.findByRole('heading', { level: 1, name: 'No sessions found' })
 
       failing = true
-      await refetchAndSettle(client, ['projects'])
+      await refetchAndSettle(client, projectsQueryOptions.queryKey)
 
       const alert = await screen.findByRole('alert')
       expect(within(alert).getByRole('heading', { level: 1, name: heading })).toBeTruthy()
@@ -177,7 +178,7 @@ describe('ProjectsGate states', () => {
       await screen.findByRole('heading', { level: 1, name: 'No sessions found' })
 
       mode = 'fail'
-      await refetchAndSettle(client, ['projects'])
+      await refetchAndSettle(client, projectsQueryOptions.queryKey)
       const alert = await screen.findByRole('alert')
 
       return {
@@ -224,7 +225,7 @@ describe('ProjectsGate states', () => {
     await screen.findByRole('heading', { level: 1, name: 'No sessions found' })
 
     pending = true
-    void client.refetchQueries({ queryKey: ['projects'] })
+    void client.refetchQueries({ queryKey: projectsQueryOptions.queryKey })
 
     expect(await screen.findByRole('heading', { level: 1, name: 'No sessions found' })).toBeTruthy()
     expect(screen.queryByRole('status')).toBeNull()

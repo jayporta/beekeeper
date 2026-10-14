@@ -1,7 +1,12 @@
 import type { Query, QueryClient } from '@tanstack/react-query'
-import type { ProjectDto } from '../../../../shared/ipc/projectDto'
 import { allowsBackgroundRefetch } from '@renderer/app/backgroundRefetchRules'
 import { TOTALS_ROOTS } from '@renderer/app/totalsRoots'
+import {
+  PROJECTS_QUERY_ROOT,
+  projectsQueryOptions
+} from '@renderer/features/projects/projectsQuery'
+import { SESSION_DETAIL_QUERY_ROOT } from '@renderer/features/sessionDetail/sessionDetailQuery'
+import { SESSIONS_QUERY_ROOT } from '@renderer/features/sessions/sessionsQuery'
 import { createDetailThrottle, type DetailThrottle, type ThrottleTimers } from './detailThrottle'
 import { familyOf, isInFamilies, type Families, type InvalidationPlan } from './invalidationPlan'
 
@@ -79,10 +84,10 @@ export function createInvalidationApplier(
   }
 
   function invalidateDetails(families: Families): void {
-    const projects = client.getQueryData<readonly ProjectDto[]>(['projects'])
+    const projects = client.getQueryData(projectsQueryOptions.queryKey)
     invalidate({
       matches: (query) =>
-        query.queryKey[0] === 'session' &&
+        query.queryKey[0] === SESSION_DETAIL_QUERY_ROOT &&
         isInFamilies(families, projects, query.queryKey) &&
         allowsBackgroundRefetch(query)
     })
@@ -100,8 +105,8 @@ export function createInvalidationApplier(
     if (event.action.type !== 'success' && event.action.type !== 'error') return
     if (!watched.delete(event.query)) return
     const { queryKey } = event.query
-    if (queryKey[0] === 'session' && typeof queryKey[1] === 'string') {
-      const projects = client.getQueryData<readonly ProjectDto[]>(['projects'])
+    if (queryKey[0] === SESSION_DETAIL_QUERY_ROOT && typeof queryKey[1] === 'string') {
+      const projects = client.getQueryData(projectsQueryOptions.queryKey)
       details.add(new Set([familyOf(queryKey[1], projects)]))
       return
     }
@@ -116,19 +121,20 @@ export function createInvalidationApplier(
   })
 
   function applyNow(plan: InvalidationPlan): void {
-    const projects = client.getQueryData<readonly ProjectDto[]>(['projects'])
+    const projects = client.getQueryData(projectsQueryOptions.queryKey)
     const hasStaleTotals = ({ queryKey }: Query): boolean =>
       plan.staleTotals === 'all' ||
       (typeof queryKey[1] === 'string' && plan.staleTotals.has(queryKey[1]))
 
     if (plan.projects) {
       invalidate({
-        matches: (query) => query.queryKey[0] === 'projects' && allowsBackgroundRefetch(query)
+        matches: (query) =>
+          query.queryKey[0] === PROJECTS_QUERY_ROOT && allowsBackgroundRefetch(query)
       })
     }
     invalidate({
       matches: (query) =>
-        query.queryKey[0] === 'sessions' &&
+        query.queryKey[0] === SESSIONS_QUERY_ROOT &&
         isInFamilies(plan.families, projects, query.queryKey) &&
         allowsBackgroundRefetch(query)
     })
