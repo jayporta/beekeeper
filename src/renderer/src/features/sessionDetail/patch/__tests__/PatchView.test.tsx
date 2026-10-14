@@ -208,7 +208,7 @@ describe('the patch dialog', () => {
   it('says the diff could not be loaded when the call fails', async () => {
     await openDiff({ a1: { ok: false, error: { code: 'unreadable' } } })
 
-    expect(await dialog().findByText("beekeeper couldn't load the diff.")).toBeTruthy()
+    expect(await dialog().findByText("Beekeeper couldn't load the diff.")).toBeTruthy()
   })
 
   it.each([
@@ -301,7 +301,7 @@ describe('announcing the outcome', () => {
     pending.resolve({ ok: false, error: { code: 'unreadable' } })
 
     await waitFor(() => {
-      expect(status.textContent).toBe("beekeeper couldn't load the diff.")
+      expect(status.textContent).toBe("Beekeeper couldn't load the diff.")
     })
     expect(dialog().getByRole('status')).toBe(status)
     expect(status.classList.contains('visuallyHidden')).toBe(false)

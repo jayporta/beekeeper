@@ -1,6 +1,6 @@
 # Contributing to beekeeper
 
-Use whatever tools you like, AI agents or none. beekeeper judges the result, not how it was made. A change is good when a person owns it, it's verified, it's independently reviewed, and it's small enough to read.
+Use whatever tools you like, AI agents or none. Beekeeper judges the result, not how it was made. A change is good when a person owns it, it's verified, it's independently reviewed, and it's small enough to read.
 
 [AGENTS.md](./AGENTS.md) holds the promises beekeeper keeps, the code rules, and the review roles. Read it before you change code.
 

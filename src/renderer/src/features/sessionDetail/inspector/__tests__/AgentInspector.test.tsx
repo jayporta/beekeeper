@@ -336,7 +336,7 @@ describe('AgentInspector for a subagent', () => {
 
     await select(/^Explore/)
 
-    expect(inspector().getByText("beekeeper couldn't read this agent's transcript.")).toBeTruthy()
+    expect(inspector().getByText("Beekeeper couldn't read this agent's transcript.")).toBeTruthy()
     expect(inspector().queryByRole('alert')).toBeNull()
   })
 
@@ -350,7 +350,7 @@ describe('AgentInspector for a subagent', () => {
     await select(/^scout/)
 
     expect(inspector().getByRole('heading', { level: 2, name: 'scout' })).toBeTruthy()
-    expect(inspector().getByText("beekeeper couldn't read this agent's transcript.")).toBeTruthy()
+    expect(inspector().getByText("Beekeeper couldn't read this agent's transcript.")).toBeTruthy()
     expect(inspector().queryByText(/^Tokens/)).toBeNull()
   })
 
@@ -442,7 +442,7 @@ describe('AgentInspector for a teammate', () => {
     await select(/^writer/)
 
     expect(
-      await inspector().findByText("beekeeper couldn't read this agent's transcript.")
+      await inspector().findByText("Beekeeper couldn't read this agent's transcript.")
     ).toBeTruthy()
   })
 

@@ -75,21 +75,21 @@
   "loading": "Loading session",
   "loaded": "{{title}} loaded",
   "archived": "This session's transcript was removed. Showing the copy beekeeper archived.",
-  "archivedSummaryOnly": "This session's transcript was removed. beekeeper archived only its summary.",
+  "archivedSummaryOnly": "This session's transcript was removed. Beekeeper archived only its summary.",
   "notFound": {
     "heading": "Session not found",
-    "body": "beekeeper can't find this session. It may have been deleted.",
+    "body": "Beekeeper can't find this session. It may have been deleted.",
     "back": "Back to sessions"
   },
   "summaryOnly": {
     "heading": "Only a summary was archived",
-    "body": "beekeeper archived this session's summary, shown above, but not its full detail: agents, files, and tokens per agent. Its transcript was removed before beekeeper archived the detail, or it was too large to archive."
+    "body": "Beekeeper archived this session's summary, shown above, but not its full detail: agents, files, and tokens per agent. Its transcript was removed before beekeeper archived the detail, or it was too large to archive."
   },
   "unreadable": {
     "heading": "Can't read this session",
-    "body": "beekeeper can't read this session's files. Check their permissions, then retry."
+    "body": "Beekeeper can't read this session's files. Check their permissions, then retry."
   },
-  "error": "beekeeper couldn't load this session.",
+  "error": "Beekeeper couldn't load this session.",
   "partial": {
     "note": "partial, see the note below",
     "unreadableLines": "Some transcript lines couldn't be read, or a subagent's transcript is missing, so a figure may be low.",
@@ -141,14 +141,14 @@
       "agents_other": "{{count, integer}} agents",
       "phasesHeading": "Phases",
       "loading": "Loading this workflow",
-      "unreadable": "beekeeper couldn't read this workflow's agents."
+      "unreadable": "Beekeeper couldn't read this workflow's agents."
     },
     "started": "started {{value, shortDateTime}}",
     "active": "{{duration}} active",
     "messages_one": "{{count, integer}} message",
     "messages_other": "{{count, integer}} messages",
     "loading": "Loading this agent",
-    "unreadable": "beekeeper couldn't read this agent's transcript.",
+    "unreadable": "Beekeeper couldn't read this agent's transcript.",
     "reportedCost": {
       "labelSession": "Claude Code's estimate for this session",
       "label": "Claude Code's estimate",
@@ -195,7 +195,7 @@
       "uncommittedMismatch": "Uncommitted changes aren't included: that folder isn't this agent's worktree of the repository.",
       "uncommittedNoWorktree": "Uncommitted changes aren't included: this agent's worktree folder isn't available.",
       "loading": "Loading the diff",
-      "loadFailed": "beekeeper couldn't load the diff.",
+      "loadFailed": "Beekeeper couldn't load the diff.",
       "archived": "Diffs aren't available for archived sessions.",
       "gitNotFound": "Git isn't installed, so the diff isn't available.",
       "gitTooOld": "This version of git is too old to show the diff. Update git to see it.",
@@ -239,7 +239,7 @@
       "incompleteFiles": "The file list may be missing files.",
       "incompleteSignals": "This agent has more events than beekeeper counts, so its signal counts may be low.",
       "unrecordedTokens": "This agent's own tokens weren't recorded, so the total with the agents below may be low.",
-      "subagentsUnreadable": "beekeeper couldn't read this session's subagents, so agents below may be missing and the total may be low.",
+      "subagentsUnreadable": "Beekeeper couldn't read this session's subagents, so agents below may be missing and the total may be low.",
       "subagentsNotLoaded": "Some teammates' subagents aren't loaded, so the total may be low.",
       "belowIncomplete": "Some agents below have partial or unrecorded totals, so the total may be low.",
       "workflowAgentsIncomplete": "Some of this workflow's agents couldn't be read or recorded no tokens, so the total may be low.",

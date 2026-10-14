@@ -305,6 +305,6 @@ describe('InspectedWorkflow without its session’s detail', () => {
   it('says it cannot read the run when the detail failed to load', async () => {
     renderRun(() => Promise.resolve({ ok: false, error: { code: 'unreadable' } }))
 
-    expect(await screen.findByText("beekeeper couldn't read this workflow's agents.")).toBeTruthy()
+    expect(await screen.findByText("Beekeeper couldn't read this workflow's agents.")).toBeTruthy()
   })
 })

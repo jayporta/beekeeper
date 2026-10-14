@@ -35,7 +35,7 @@ describe('SessionDetailStatus for an archived session with a summary only', () =
       screen.getByRole('group', {
         name: 'Only a summary was archived',
         description:
-          /^beekeeper archived this session's summary, shown above, but not its full detail/
+          /^Beekeeper archived this session's summary, shown above, but not its full detail/
       })
     ).toBeTruthy()
   })
@@ -85,7 +85,7 @@ describe('SessionDetailStatus for a missing session', () => {
     expect(
       screen.getByRole('group', {
         name: 'Session not found',
-        description: "beekeeper can't find this session. It may have been deleted."
+        description: "Beekeeper can't find this session. It may have been deleted."
       })
     ).toBeTruthy()
   })

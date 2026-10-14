@@ -149,7 +149,7 @@ This covers app UI text, the README, and the macOS permission strings in `electr
 - Never use em dashes.
 - American English, written for engineers: clear and direct.
 - Keep terminology consistent. An agent is always an "agent", a session is always a "session", and a subagent spawned into a team is a "teammate".
-- Write the app's name all lowercase, "beekeeper", even at the start of a sentence or in a heading. `productName` in `electron-builder.yml` stays "Beekeeper", because it names the app bundle. The saved-data folder is named "beekeeper" after `name` in `package.json`.
+- Write the app's name lowercase, "beekeeper", except at the start of a sentence or heading, where it's "Beekeeper". The name on its own, such as the app's title, stays "beekeeper". `productName` in `electron-builder.yml` stays "Beekeeper", because it names the app bundle. The saved-data folder is named "beekeeper" after `name` in `package.json`.
 - Every renderer UI string, including `aria-label`s and visually hidden text, goes through i18next. Add it to the feature's `locales/en.json` (strings shared across features go in `src/renderer/src/i18n/locales/en.json`) and render it with `t`.
 - Format numbers, dates, durations, and costs with the formats registered in `src/renderer/src/i18n/formats.ts` (`integer`, `compactInteger`, `usd`, `shortDateTime`), never i18next's built-in `number`, `currency`, or `datetime`, whose cache keeps a new `Intl` object for every distinct value.
 - A transcript-derived value (title, agent or team name, folder name) shown on its own renders as plain JSX text. Combined with UI text, it goes through `t()` interpolation, never as a key and never through `<Trans values>`, which parses the result as markup.
