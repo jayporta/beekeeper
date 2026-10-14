@@ -212,6 +212,55 @@ describe('createPatchRefresher', () => {
       expect(state.current).toMatchObject({ status: 'ready' })
     })
 
+    describe.each([
+      ['a refresh saw it hidden in between', true, 9],
+      ['no refresh saw it hidden, but the press is newer', false, 10]
+    ])(
+      'does not reuse a patch whose write failed once it was shown again (%s)',
+      (_, sawHidden, pressMs) => {
+        it('asks git again', async () => {
+          const { services } = setup(undefined)
+          const first = emptyPanePatch({
+            sessionId: 's1',
+            key: 'sub:a1',
+            status: 'loading',
+            nowMs: 9
+          })
+          const state = { current: first as PanePatch | undefined }
+          let accept = false
+          const refresher = createPatchRefresher({
+            readPatch: async () => state.current,
+            writePatch: async (patch) => {
+              if (accept) state.current = patch
+              return accept
+            },
+            log: () => {}
+          })
+          const input = { services, view, selected: { sessionId: 's1', key: 'sub:a1' }, nowMs: 9 }
+
+          await refresher.refresh(input)
+          state.current = emptyPanePatch({
+            sessionId: 's1',
+            key: 'sub:a1',
+            status: 'none',
+            nowMs: 9
+          })
+          if (sawHidden) await refresher.refresh(input)
+          accept = true
+          state.current = emptyPanePatch({
+            sessionId: 's1',
+            key: 'sub:a1',
+            status: 'loading',
+            nowMs: pressMs
+          })
+          await refresher.refresh(input)
+
+          expect(services.patchCalls).toBe(2)
+          expect(state.current).toMatchObject({ status: 'ready' })
+        })
+      }
+    )
+
     it('logs a code when the stored patch cannot be read', async () => {
       const logs: string[] = []
       const services = testPaneServices({

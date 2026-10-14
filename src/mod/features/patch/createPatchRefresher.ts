@@ -45,8 +45,8 @@ export interface PatchRefresher {
  * @returns The refresher.
  */
 export function createPatchRefresher(deps: PatchRefresherDeps): PatchRefresher {
-  /** A fetched patch whose write failed, kept so the next refresh retries the write, not git. */
-  let unwritten: PanePatch | null = null
+  /** A fetched patch whose write failed, with the press (the loading patch's time) it answers, kept so the next refresh of that same press retries the write, not git. */
+  let unwritten: { readonly pressedAtMs: number; readonly patch: PanePatch } | null = null
 
   /** Stores the patch; whether the engine kept it. A failure is logged by code. */
   async function store(patch: PanePatch): Promise<boolean> {
@@ -69,11 +69,12 @@ export function createPatchRefresher(deps: PatchRefresherDeps): PatchRefresher {
     }
   }
 
-  async function fetchPatch(
-    services: PaneServices,
-    request: Parameters<PaneServices['getWorktreePatch']>[0],
-    ids: { readonly sessionId: string; readonly key: string; readonly nowMs: number }
-  ): Promise<PanePatch> {
+  async function fetchPatch(options: {
+    readonly services: PaneServices
+    readonly request: Parameters<PaneServices['getWorktreePatch']>[0]
+    readonly ids: { readonly sessionId: string; readonly key: string; readonly nowMs: number }
+  }): Promise<PanePatch> {
+    const { services, request, ids } = options
     const failed = (errorCode: PaneErrorCode): PanePatch =>
       emptyPanePatch({ ...ids, status: 'error', errorCode })
     try {
@@ -88,13 +89,18 @@ export function createPatchRefresher(deps: PatchRefresherDeps): PatchRefresher {
   async function refresh(input: PatchRefreshInput): Promise<void> {
     const { services, view, selected, nowMs } = input
     const asked = await read()
+    if (asked?.status !== 'loading') unwritten = null
     if (asked?.status !== 'loading' || asked.sessionId !== view.sessionId) return
     const node = view.status === 'ready' ? selectedNode(view, selected) : null
     const worktree = node?.worktree ?? null
     if (node === null || worktree === null || node.key !== asked.key) return
     const ids = { sessionId: asked.sessionId, key: asked.key, nowMs }
-    if (unwritten?.sessionId === asked.sessionId && unwritten.key === asked.key) {
-      if (await store(unwritten)) unwritten = null
+    if (
+      unwritten?.pressedAtMs === asked.refreshedAtMs &&
+      unwritten.patch.sessionId === asked.sessionId &&
+      unwritten.patch.key === asked.key
+    ) {
+      if (await store(unwritten.patch)) unwritten = null
       return
     }
     unwritten = null
@@ -108,11 +114,13 @@ export function createPatchRefresher(deps: PatchRefresherDeps): PatchRefresher {
       return
     }
 
-    const next = await fetchPatch(services, request.data, ids)
+    const next = await fetchPatch({ services, request: request.data, ids })
     const now = await read()
     const isStillAsked =
       now?.status === 'loading' && now.sessionId === asked.sessionId && now.key === asked.key
-    if (isStillAsked && !(await store(next))) unwritten = next
+    if (isStillAsked && !(await store(next))) {
+      unwritten = { pressedAtMs: asked.refreshedAtMs, patch: next }
+    }
   }
 
   return { refresh }
