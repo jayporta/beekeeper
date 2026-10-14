@@ -6,34 +6,38 @@
 
 /* A long list is painted as it scrolls into view. */
 .file {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--space-2);
-  align-items: center;
   padding-block: var(--space-1-5);
   border-block-start: 1px solid var(--color-divider);
   content-visibility: auto;
   contain-intrinsic-size: auto 2rem;
 }
 
-/*
- * One line, cut at the start so the file name shows. The path reads right to left only for clipping:
- * the ellipsis lands on the left. The path inside is isolated and reads left to right.
- */
-.path {
-  min-width: 0;
-  overflow: hidden;
-  font-family: var(--font-mono);
-  font-size: var(--font-size-xs);
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  direction: rtl;
+/* A row's two cells: the path and what was done to it. */
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: center;
+  width: 100%;
 }
 
-.tags {
-  display: flex;
-  flex: none;
-  gap: var(--space-1);
-  align-items: center;
+/* The whole row opens the file's diff, and looks as the row did before it could. */
+.button {
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: 0;
+
+  &:hover {
+    background: var(--color-hover);
+  }
+
+  /* Inset, since the row's `content-visibility` clips anything painted outside its box. */
+  &:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: calc(-1 * var(--focus-ring-width));
+  }
 }

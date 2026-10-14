@@ -126,6 +126,7 @@ export function installBeekeeperApi(overrides: Partial<BeekeeperApi> = {}): Test
       overrides.getProjectDailyUsage ?? ((): Promise<never> => new Promise(() => undefined))
     ),
     getWorktreePatch: vi.fn(overrides.getWorktreePatch ?? unstubbed('getWorktreePatch')),
+    getFileDiff: vi.fn(overrides.getFileDiff ?? unstubbed('getFileDiff')),
     getOtelReceiver: vi.fn(
       overrides.getOtelReceiver ??
         ((): Promise<IpcResult<OtelReceiverDto>> =>

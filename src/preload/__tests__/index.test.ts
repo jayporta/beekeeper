@@ -58,6 +58,7 @@ describe('preload API', () => {
       api.getProjectTotals('p', '7d'),
       api.getProjectDailyUsage('p', '7d'),
       api.getWorktreePatch('p', 's', 'a'),
+      api.getFileDiff({ projectDirName: 'p', sessionId: 's', agentId: null, filePath: '/f' }),
       api.getOtelReceiver(),
       api.setOtelReceiverEnabled(true),
       api.getReportedCost('s'),

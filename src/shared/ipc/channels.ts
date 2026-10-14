@@ -7,6 +7,7 @@ export const IPC_CHANNELS = {
   getProjectTotals: 'beekeeper:get-project-totals',
   getProjectDailyUsage: 'beekeeper:get-project-daily-usage',
   getWorktreePatch: 'beekeeper:get-worktree-patch',
+  getFileDiff: 'beekeeper:get-file-diff',
   getOtelReceiver: 'beekeeper:get-otel-receiver',
   setOtelReceiverEnabled: 'beekeeper:set-otel-receiver-enabled',
   getReportedCost: 'beekeeper:get-reported-cost',

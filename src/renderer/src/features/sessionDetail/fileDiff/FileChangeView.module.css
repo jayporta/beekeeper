@@ -1,0 +1,19 @@
+.change {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  /* A long list of edits paints each as it scrolls into view. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 12rem;
+}
+
+.heading {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}

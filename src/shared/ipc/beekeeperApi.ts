@@ -1,3 +1,4 @@
+import type { FileDiffDto } from './fileDiffDto'
 import type { FilesChangedDto } from './filesChangedDto'
 import type { IpcResult } from './ipcResult'
 import type { OtelReceiverDto } from './otelReceiverDto'
@@ -76,6 +77,18 @@ export interface BeekeeperApi {
     sessionId: string,
     agentId: string
   ): Promise<IpcResult<WorktreePatchDto>>
+
+  /**
+   * Reads what one agent changed in one file, from the patches its own Edit, Write and Bash results recorded in its transcript. Read-only.
+   * @param request - The session, the agent (`null` for the lead) and a file path from that agent's Files touched list.
+   * @returns The agent's changes to the file in order, or `not-found` when the project, session or agent is gone, the agent never touched the file, or its transcript can no longer be read.
+   */
+  getFileDiff(request: {
+    projectDirName: string
+    sessionId: string
+    agentId: string | null
+    filePath: string
+  }): Promise<IpcResult<FileDiffDto>>
 
   /**
    * Reads the opt-in telemetry receiver, which listens on 127.0.0.1 for Claude Code's own cost reports.

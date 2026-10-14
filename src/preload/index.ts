@@ -40,6 +40,7 @@ const api: BeekeeperApi = {
     ipcRenderer.invoke(IPC_CHANNELS.getProjectDailyUsage, { projectDirName, window }),
   getWorktreePatch: (projectDirName, sessionId, agentId) =>
     ipcRenderer.invoke(IPC_CHANNELS.getWorktreePatch, { projectDirName, sessionId, agentId }),
+  getFileDiff: (request) => ipcRenderer.invoke(IPC_CHANNELS.getFileDiff, request),
   getOtelReceiver: () => ipcRenderer.invoke(IPC_CHANNELS.getOtelReceiver),
   setOtelReceiverEnabled: (enabled) =>
     ipcRenderer.invoke(IPC_CHANNELS.setOtelReceiverEnabled, { enabled }),

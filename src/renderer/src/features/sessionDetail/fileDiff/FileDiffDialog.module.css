@@ -1,0 +1,14 @@
+/*
+ * One line, cut at the start so the file name shows. The path reads right to left only for clipping:
+ * the ellipsis lands on the left. The path inside is isolated and reads left to right.
+ */
+.path {
+  display: block;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-lg);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+}

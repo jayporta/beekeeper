@@ -1,9 +1,8 @@
-import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { WorktreePatchFileDto } from '../../../../../shared/ipc/worktreePatchDto'
 import { MutedText } from '@renderer/components/MutedText'
 import styles from './PatchFileView.module.css'
-import { patchRuns } from './patchRuns'
+import { PatchText } from './PatchText'
 
 /** Props for {@link PatchFileView}. */
 interface PatchFileViewProps {
@@ -22,7 +21,6 @@ interface PatchFileViewProps {
  */
 export function PatchFileView({ file }: PatchFileViewProps): React.JSX.Element {
   const { t } = useTranslation('sessionDetail')
-  const runs = useMemo(() => patchRuns(file.patch), [file.patch])
 
   return (
     <section className={styles.file}>
@@ -34,15 +32,7 @@ export function PatchFileView({ file }: PatchFileViewProps): React.JSX.Element {
           <bdi>{t('inspector.patch.renamedFrom', { path: file.oldPath })}</bdi>
         </MutedText>
       )}
-      {file.patch !== '' && (
-        <pre className={styles.patch}>
-          {runs.map((run, index) => (
-            <span key={index} className={styles.run} data-kind={run.kind}>
-              {run.text}
-            </span>
-          ))}
-        </pre>
-      )}
+      {file.patch !== '' && <PatchText patch={file.patch} />}
       {file.truncated && <MutedText wrapAnywhere>{t('inspector.patch.fileTruncated')}</MutedText>}
     </section>
   )

@@ -8,6 +8,7 @@ import { getProjectTotalsHandler } from './getProjectTotalsHandler'
 import { getReportedCostHandler } from './getReportedCostHandler'
 import { getSessionHandler } from './getSessionHandler'
 import { getWorktreeDiffsHandler } from './getWorktreeDiffsHandler'
+import { getFileDiffHandler } from './getFileDiffHandler'
 import { getWorktreePatchHandler } from './getWorktreePatchHandler'
 import { guardIpc } from './guardIpc'
 import type { IpcDeps } from './ipcDeps'
@@ -50,6 +51,7 @@ export function registerIpcHandlers(options: RegisterIpcHandlersOptions): void {
     [IPC_CHANNELS.getProjectTotals]: (payload) => getProjectTotalsHandler(deps, payload),
     [IPC_CHANNELS.getProjectDailyUsage]: (payload) => getProjectDailyUsageHandler(deps, payload),
     [IPC_CHANNELS.getWorktreePatch]: (payload) => getWorktreePatchHandler(deps, payload),
+    [IPC_CHANNELS.getFileDiff]: (payload) => getFileDiffHandler(deps, payload),
     [IPC_CHANNELS.getOtelReceiver]: () => getOtelReceiverHandler(deps),
     [IPC_CHANNELS.setOtelReceiverEnabled]: (payload) =>
       setOtelReceiverEnabledHandler(deps, payload),

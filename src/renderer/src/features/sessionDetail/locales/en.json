@@ -256,6 +256,23 @@
       "fileTruncated": "Patch truncated",
       "totalTruncated": "Patch truncated: the diff is too large, so only its first part is shown.",
       "renamedFrom": "renamed from {{path}}"
+    },
+    "fileDiff": {
+      "close": "Close",
+      "changesBy": "Changes by {{agent}}",
+      "changeHeading": "Change {{index, integer}} of {{count, integer}}",
+      "loading": "Loading changes…",
+      "loaded_one": "Loaded {{count, integer}} change",
+      "loaded_other": "Loaded {{count, integer}} changes",
+      "gone": "This agent's transcript no longer holds these changes.",
+      "loadFailed": "Couldn't read the changes.",
+      "viaBash": "Changed by a Bash command.",
+      "shared": "This diff may include changes made outside this command.",
+      "userModified": "Edited by the person before it was accepted.",
+      "unrecorded": "No diff was recorded for this change.",
+      "noLines": "No lines changed.",
+      "truncated": "The diff was cut to stay within the size limit.",
+      "cut": "Cut to stay within the size limit."
     }
   }
 }
