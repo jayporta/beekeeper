@@ -86,6 +86,8 @@ describe('a configured Claude folder', () => {
     it('is waited for by the watcher, and trying to watch it creates nothing', () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
       const { projectsRoot } = createIpcDeps(ctx.tree.home, missing())
+      // The test home has its own projects folder, so pin that the watcher gets the configured one.
+      expect(projectsRoot).toBe(join(missing(), 'projects'))
       const watcher = createProjectsWatcher({
         root: projectsRoot,
         watch,

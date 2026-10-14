@@ -72,7 +72,7 @@ Leave Claude Code's content flags (`OTEL_LOG_USER_PROMPTS`, `OTEL_LOG_ASSISTANT_
 
 ## What beekeeper reads
 
-The paths below start at `~/.claude`, or at the folder `CLAUDE_CONFIG_DIR` names when it's set to an absolute path (an empty or relative value is ignored). An app opened from Finder or the Dock doesn't inherit your shell's variables, so the variable only applies when it's in launchd's environment or you start beekeeper from a terminal.
+The paths below start at `~/.claude`, or at the folder `CLAUDE_CONFIG_DIR` names when it's set to an absolute path (an empty or relative value is ignored). An app opened from Finder or the Dock doesn't inherit your shell's variables, so the variable only applies when it's in launchd's environment or you quit beekeeper and run its executable from a terminal (`/Applications/Beekeeper.app/Contents/MacOS/Beekeeper`). `open -a Beekeeper` goes through Finder's environment too, and while beekeeper is already open a second launch just exits.
 
 - `~/.claude/projects/**/*.jsonl`: the main transcript and subagent transcripts for every session
 - `~/.claude/projects/**/subagents/*.meta.json`: per-agent metadata (type, model, team, worktree)
