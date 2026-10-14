@@ -66,11 +66,9 @@ describe('ProjectList with a stored selection', () => {
     )
   })
 
-  it.each([
-    ['a number', 42],
-    ['an object', { name: BETA }]
-  ])('ignores a stored selectedDirName that is %s', async (_label, selectedDirName) => {
-    await seed(storedSelection(selectedDirName))
+  // Which stored values are refused is covered in mergeSelectedProjectState.test.ts.
+  it('ignores a stored selectedDirName that is not a string', async () => {
+    await seed(storedSelection(42))
 
     await renderLoaded()
 

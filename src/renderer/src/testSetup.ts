@@ -2,9 +2,11 @@ import 'fake-indexeddb/auto'
 import '@renderer/i18n/i18n'
 import { cleanup } from '@testing-library/react'
 import { afterEach } from 'vitest'
+import { useExpandedSessionsStore } from '@renderer/features/sessions/state/useExpandedSessionsStore'
 
 afterEach(() => {
   cleanup()
+  useExpandedSessionsStore.setState({ expanded: {} })
 })
 
 // jsdom has no pointer capture, which a drag on the graph takes.

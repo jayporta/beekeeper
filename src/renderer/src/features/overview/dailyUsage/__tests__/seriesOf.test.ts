@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_SERIES, seriesOf, seriesTokens } from '../seriesOf'
+import { seriesOf, seriesTokens } from '../seriesOf'
 import type { DailyUsageDay } from '../sumDailyUsage'
 
 function day(byModel: Record<string, number>): DailyUsageDay {
@@ -12,45 +12,38 @@ function day(byModel: Record<string, number>): DailyUsageDay {
 }
 
 describe('seriesOf', () => {
-  it('has one series per model, largest first, and no other series, for up to four models', () => {
-    const series = seriesOf([day({ a: 1, b: 3, c: 2 })])
+  it('has one series per family with tokens, in the fixed order fable, opus, sonnet, haiku, other', () => {
+    const series = seriesOf([
+      day({ 'claude-haiku-5': 4, mystery: 1, 'claude-opus-5': 2, 'claude-sonnet-5': 3, fable: 5 })
+    ])
 
-    expect(series.map((s) => [s.key, s.index, s.total])).toEqual([
-      [{ kind: 'model', model: 'b' }, 0, 3],
-      [{ kind: 'model', model: 'c' }, 1, 2],
-      [{ kind: 'model', model: 'a' }, 2, 1]
+    expect(series.map((s) => [s.key, s.total])).toEqual([
+      ['fable', 5],
+      ['opus', 2],
+      ['sonnet', 3],
+      ['haiku', 4],
+      ['other', 1]
     ])
   })
 
-  it('ranks a model by its total over every day', () => {
-    const series = seriesOf([day({ a: 5, b: 1 }), day({ a: 0, b: 9 })])
-
-    expect(series.map((s) => s.key)).toEqual([
-      { kind: 'model', model: 'b' },
-      { kind: 'model', model: 'a' }
+  it('sums the models of a family over every day', () => {
+    const series = seriesOf([
+      day({ 'claude-opus-4': 5, 'claude-opus-5': 1 }),
+      day({ 'claude-opus-5': 9 })
     ])
+
+    expect(series).toEqual([{ key: 'opus', total: 15 }])
   })
 
-  it('folds the models past the top four into one other series holding the remainder', () => {
-    const series = seriesOf([day({ a: 60, b: 50, c: 40, d: 30, e: 20, f: 10 })])
+  it('keeps the order when a larger family comes later', () => {
+    const series = seriesOf([day({ 'claude-opus-5': 1, 'claude-haiku-5': 99 })])
 
-    expect(MAX_SERIES).toBe(4)
-    expect(series).toHaveLength(5)
-    expect(series.at(-1)).toEqual({ key: { kind: 'other' }, index: MAX_SERIES, total: 30 })
-    expect(series.slice(0, 4).map((s) => s.index)).toEqual([0, 1, 2, 3])
+    expect(series.map((s) => s.key)).toEqual(['opus', 'haiku'])
   })
 
-  it('has no other series for exactly four models', () => {
-    expect(seriesOf([day({ a: 4, b: 3, c: 2, d: 1 })])).toHaveLength(4)
-  })
-
-  it('breaks a tie by model id', () => {
-    const series = seriesOf([day({ b: 5, a: 5, c: 5 })])
-
-    expect(series.map((s) => s.key)).toEqual([
-      { kind: 'model', model: 'a' },
-      { kind: 'model', model: 'b' },
-      { kind: 'model', model: 'c' }
+  it('leaves out a family with no tokens', () => {
+    expect(seriesOf([day({ 'claude-opus-5': 0, 'claude-haiku-5': 3 })]).map((s) => s.key)).toEqual([
+      'haiku'
     ])
   })
 
@@ -61,22 +54,24 @@ describe('seriesOf', () => {
 })
 
 describe('seriesTokens', () => {
-  const days = [day({ a: 60, b: 50, c: 40, d: 30, e: 20, f: 10 }), day({ a: 1, f: 2 })]
-  const all = seriesOf(days)
+  const days = [day({ 'claude-opus-4': 6, 'claude-opus-5': 4, 'claude-haiku-5': 2 }), day({ x: 7 })]
+  const [opus, haiku, other] = seriesOf(days)
 
-  it('is a model series’ tokens that day, or zero', () => {
-    const b = all[1]
-    if (b === undefined) throw new Error('expected a series')
+  it('sums a day’s models of the family', () => {
+    if (opus === undefined) throw new Error('expected a series')
 
-    expect(seriesTokens({ day: days[0] as DailyUsageDay, series: b, all })).toBe(50)
-    expect(seriesTokens({ day: days[1] as DailyUsageDay, series: b, all })).toBe(0)
+    expect(seriesTokens({ day: days[0] as DailyUsageDay, series: opus })).toBe(10)
   })
 
-  it('is the other series’ tokens that day: the models outside the top four', () => {
-    const other = all.at(-1)
+  it('is zero on a day with none of the family', () => {
+    if (haiku === undefined) throw new Error('expected a series')
+
+    expect(seriesTokens({ day: days[1] as DailyUsageDay, series: haiku })).toBe(0)
+  })
+
+  it('counts a model outside every family in other', () => {
     if (other === undefined) throw new Error('expected a series')
 
-    expect(seriesTokens({ day: days[0] as DailyUsageDay, series: other, all })).toBe(30)
-    expect(seriesTokens({ day: days[1] as DailyUsageDay, series: other, all })).toBe(2)
+    expect(seriesTokens({ day: days[1] as DailyUsageDay, series: other })).toBe(7)
   })
 })

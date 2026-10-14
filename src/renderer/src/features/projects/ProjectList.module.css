@@ -1,7 +1,19 @@
 .list {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: var(--space-1);
+  min-height: var(--size-project-list-min);
+  /* The list scrolls inside the card, which would clip a row's focus ring, so it gets room for the ring that its negative margin takes back. */
+  padding: var(--space-1);
+  margin: calc(-1 * var(--space-1));
+  overflow: auto;
+}
+
+.label {
+  padding: 0 var(--space-2-5) var(--space-1-5);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
 }
 
 .rows {

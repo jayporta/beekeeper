@@ -1,11 +1,15 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import type { BeekeeperApi } from '../../../../../shared/ipc/beekeeperApi'
 import type { ProjectDto } from '../../../../../shared/ipc/projectDto'
+import { testTotals } from '@renderer/features/overview/testTotals'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import { installBeekeeperApi, testProject } from '@renderer/testBeekeeperApi'
+import { createTestQueryClient } from '@renderer/testQueryWrapper'
 import { renderApp, resetPersistedState } from '@renderer/testRenderApp'
+import { useExpandedProjectsStore } from '../state/useExpandedProjectsStore'
 import { useSelectedProjectStore } from '../state/useSelectedProjectStore'
 
 const ALPHA = '-Users-a-alpha'
@@ -25,22 +29,31 @@ beforeEach(() => {
 })
 
 afterEach(async () => {
+  useExpandedProjectsStore.setState({ toggled: {} })
   useNavigationStore.getState().reset()
   await resetPersistedState()
 })
 
-async function renderLoaded(projects: readonly ProjectDto[] = PROJECTS): Promise<HTMLElement> {
+async function renderLoaded(
+  projects: readonly ProjectDto[] = PROJECTS,
+  overrides: Partial<BeekeeperApi> = {}
+): Promise<HTMLElement> {
   installBeekeeperApi({
     listProjects: () => Promise.resolve({ ok: true, value: projects }),
-    listSessions: () => Promise.resolve({ ok: true, value: [] })
+    listSessions: () => Promise.resolve({ ok: true, value: [] }),
+    ...overrides
   })
   renderApp()
   return screen.findByRole('navigation', { name: 'Projects' })
 }
 
-/** Asserts the rows, by accessible name, are exactly `expected`, in that order. */
+const TOGGLE_NAME = /^Worktrees of /
+
+/** Asserts the rows, by accessible name, are exactly `expected`, in that order. The worktree toggles aren't rows. */
 function expectRows(nav: HTMLElement, expected: readonly string[]): void {
-  const buttons = within(nav).getAllByRole('button')
+  const buttons = within(nav)
+    .getAllByRole('button')
+    .filter((button) => !TOGGLE_NAME.test(button.getAttribute('aria-label') ?? ''))
   expect(buttons).toHaveLength(expected.length)
   expect(
     expected.map((name) => buttons.indexOf(within(nav).getByRole('button', { name })))
@@ -160,13 +173,107 @@ describe('ProjectList', () => {
   })
 
   describe('worktrees', () => {
-    it('lists the active project’s worktrees beneath it with a worktree note', async () => {
+    const toggle = (nav: HTMLElement, project: string): HTMLElement =>
+      within(nav).getByRole('button', { name: `Worktrees of ${project}` })
+    const isOpen = (nav: HTMLElement, project: string): string | null =>
+      toggle(nav, project).getAttribute('aria-expanded')
+
+    it('lists the current project’s worktrees beneath it, open from the start', async () => {
       const nav = await renderLoaded()
 
-      expectRows(nav, ['All projects', 'acme-web', 'x worktree', 'y worktree', BETA])
+      expect(isOpen(nav, 'acme-web')).toBe('true')
+      expectRows(nav, ['All projects', 'acme-web', 'x', 'y', BETA])
     })
 
-    it('shows no worktrees under a project that is not active', async () => {
+    it('starts a project that is not current closed, with its worktrees out of the tree', async () => {
+      const nav = await renderLoaded([
+        testProject(BETA),
+        ...PROJECTS.filter((project) => project.dirName !== BETA)
+      ])
+
+      expect(isOpen(nav, 'acme-web')).toBe('false')
+      expectRows(nav, ['All projects', BETA, 'acme-web'])
+    })
+
+    it('starts a project folder named like an Object.prototype key closed', async () => {
+      const nav = await renderLoaded([
+        testProject(BETA),
+        testProject('constructor'),
+        testProject('constructor--claude-worktrees-x', {
+          worktreeOf: 'constructor',
+          worktreeName: 'x'
+        })
+      ])
+
+      expect(isOpen(nav, 'constructor')).toBe('false')
+    })
+
+    it('opens a closed project’s worktrees when its toggle is pressed, and nothing else changes', async () => {
+      const nav = await renderLoaded()
+      await userEvent.click(within(nav).getByRole('button', { name: BETA }))
+      useFirstRunStore.setState({ dismissed: false })
+
+      await userEvent.click(toggle(nav, 'acme-web'))
+
+      expect(isOpen(nav, 'acme-web')).toBe('true')
+      expectRows(nav, ['All projects', 'acme-web', 'x', 'y', BETA])
+      expect(within(nav).getByRole('button', { name: BETA }).getAttribute('aria-current')).toBe(
+        'page'
+      )
+      expect(useSelectedProjectStore.getState().selectedDirName).toBe(BETA)
+      expect(useNavigationStore.getState().view).toBe('sessions')
+      expect(useFirstRunStore.getState().dismissed).toBe(false)
+    })
+
+    it('closes an open project’s worktrees when its toggle is pressed', async () => {
+      const nav = await renderLoaded()
+
+      await userEvent.click(toggle(nav, 'acme-web'))
+
+      expect(isOpen(nav, 'acme-web')).toBe('false')
+      expectRows(nav, ['All projects', 'acme-web', BETA])
+    })
+
+    it('points the toggle at the list of worktrees it opens', async () => {
+      const nav = await renderLoaded()
+
+      const controls = toggle(nav, 'acme-web').getAttribute('aria-controls') ?? ''
+
+      expect(
+        document.getElementById(controls)?.contains(within(nav).getByRole('button', { name: 'x' }))
+      ).toBe(true)
+    })
+
+    it('gives a project without worktrees no toggle', async () => {
+      const nav = await renderLoaded()
+
+      expect(within(nav).queryByRole('button', { name: `Worktrees of ${BETA}` })).toBeNull()
+    })
+
+    it('says the parent row contains the current worktree when that group is closed', async () => {
+      const nav = await renderLoaded()
+      await userEvent.click(within(nav).getByRole('button', { name: 'x' }))
+
+      await userEvent.click(toggle(nav, 'acme-web'))
+
+      expect(within(nav).queryByRole('button', { name: 'x' })).toBeNull()
+      const parent = within(nav).getByRole('button', {
+        name: 'acme-web contains the current worktree'
+      })
+      expect(parent.getAttribute('aria-current')).toBeNull()
+    })
+
+    it('does not say the parent holds the current worktree while the group is open', async () => {
+      const nav = await renderLoaded()
+      await userEvent.click(within(nav).getByRole('button', { name: 'x' }))
+
+      expect(within(nav).getByRole('button', { name: 'acme-web' })).toBeTruthy()
+      expect(within(nav).getByRole('button', { name: 'x' }).getAttribute('aria-current')).toBe(
+        'page'
+      )
+    })
+
+    it('shows no worktrees under a project that is not current', async () => {
       const nav = await renderLoaded()
 
       await userEvent.click(within(nav).getByRole('button', { name: BETA }))
@@ -174,7 +281,7 @@ describe('ProjectList', () => {
       expectRows(nav, ['All projects', 'acme-web', BETA])
     })
 
-    it('hides every worktree while the overview shows', async () => {
+    it('closes every group while the overview shows', async () => {
       const nav = await renderLoaded()
 
       await userEvent.click(within(nav).getByRole('button', { name: 'All projects' }))
@@ -185,32 +292,98 @@ describe('ProjectList', () => {
     it('marks a worktree current, not its parent, when the worktree is selected', async () => {
       const nav = await renderLoaded()
 
-      await userEvent.click(within(nav).getByRole('button', { name: 'x worktree' }))
+      await userEvent.click(within(nav).getByRole('button', { name: 'x' }))
 
-      expect(
-        within(nav).getByRole('button', { name: 'x worktree' }).getAttribute('aria-current')
-      ).toBe('page')
+      expect(within(nav).getByRole('button', { name: 'x' }).getAttribute('aria-current')).toBe(
+        'page'
+      )
       expect(
         within(nav).getByRole('button', { name: 'acme-web' }).getAttribute('aria-current')
       ).toBeNull()
-      expectRows(nav, ['All projects', 'acme-web', 'x worktree', 'y worktree', BETA])
+      expect(useSelectedProjectStore.getState().selectedDirName).toBe(WORKTREE_X)
+      expectRows(nav, ['All projects', 'acme-web', 'x', 'y', BETA])
     })
 
     it('describes a worktree row by its full folder name', async () => {
       const nav = await renderLoaded()
 
-      expect(
-        within(nav).getByRole('button', { name: 'x worktree', description: WORKTREE_X })
-      ).toBeTruthy()
+      expect(within(nav).getByRole('button', { name: 'x', description: WORKTREE_X })).toBeTruthy()
     })
 
-    it('lists a worktree with no listed parent as a top-level row named by its worktree', async () => {
+    it('lists a worktree with no listed parent as a top-level row named by its worktree, with no toggle', async () => {
       const nav = await renderLoaded([
         testProject(WORKTREE_X, { worktreeOf: ALPHA, worktreeName: 'x' }),
         testProject(BETA)
       ])
 
       expectRows(nav, ['All projects', 'x', BETA])
+      expect(within(nav).queryByRole('button', { name: TOGGLE_NAME })).toBeNull()
+    })
+
+    it('shows a worktree’s own total beside it, apart from its project’s', async () => {
+      const nav = await renderLoaded(PROJECTS, {
+        getProjectTotals: (dirName: string) =>
+          Promise.resolve({
+            ok: true,
+            value: testTotals({ tokens: dirName === WORKTREE_X ? 1_200_000 : 900_000 })
+          })
+      })
+
+      expect(
+        await within(nav).findByRole('button', { name: 'x 1.2M tokens, last 7 days' })
+      ).toBeTruthy()
+      expect(within(nav).getByRole('button', { name: 'y 900K tokens, last 7 days' })).toBeTruthy()
+    })
+
+    it('shows no total for a worktree whose totals are still loading', async () => {
+      const nav = await renderLoaded(PROJECTS, {
+        getProjectTotals: (dirName: string) =>
+          dirName === WORKTREE_X
+            ? new Promise(() => undefined)
+            : Promise.resolve({ ok: true, value: testTotals({ tokens: 5 }) })
+      })
+
+      await within(nav).findByRole('button', { name: /^-Users-a-beta .*tokens/ })
+
+      expect(within(nav).getByRole('button', { name: 'x' })).toBeTruthy()
+    })
+
+    it('shows no total for a worktree whose totals failed, while its sibling shows one', async () => {
+      installBeekeeperApi({
+        listProjects: () => Promise.resolve({ ok: true, value: PROJECTS }),
+        listSessions: () => Promise.resolve({ ok: true, value: [] }),
+        getProjectTotals: (dirName: string) =>
+          Promise.resolve(
+            dirName === WORKTREE_Y
+              ? { ok: false, error: { code: 'unreadable' } }
+              : { ok: true, value: testTotals({ tokens: 1_200_000 }) }
+          )
+      })
+      const client = createTestQueryClient()
+      renderApp(client)
+      const nav = await screen.findByRole('navigation', { name: 'Projects' })
+
+      await waitFor(() => {
+        expect(client.getQueryState(['projectTotals', WORKTREE_Y, '7d'])?.status).toBe('error')
+      })
+
+      expect(
+        await within(nav).findByRole('button', { name: 'x 1.2M tokens, last 7 days' })
+      ).toBeTruthy()
+      expect(within(nav).getByRole('button', { name: 'y' })).toBeTruthy()
+    })
+
+    it('leaves a closed group’s worktree rows out of the page, not just hidden', async () => {
+      const nav = await renderLoaded()
+
+      await userEvent.click(toggle(nav, 'acme-web'))
+
+      const list = document.getElementById(
+        toggle(nav, 'acme-web').getAttribute('aria-controls') ?? ''
+      )
+      expect(list?.hasAttribute('hidden')).toBe(true)
+      expect(list?.children).toHaveLength(0)
+      expect(within(nav).queryByRole('button', { name: 'x', hidden: true })).toBeNull()
     })
   })
 

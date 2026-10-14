@@ -1,6 +1,9 @@
 import { useTranslation } from 'react-i18next'
+import { Card } from '@renderer/components/Card'
 import { CapsText } from '@renderer/components/CapsText'
 import { MAIN_HEADING_ID } from '@renderer/components/mainHeading'
+import { MutedText } from '@renderer/components/MutedText'
+import { PageTitle } from '@renderer/components/PageTitle'
 import { SegmentedControl } from '@renderer/components/SegmentedControl'
 import { TitleRow } from '@renderer/components/TitleRow'
 import styles from './OverviewHeader.module.css'
@@ -11,9 +14,9 @@ import type { TotalsWindowDto } from '../../../../shared/ipc/projectTotalsDto'
 const WINDOWS = ['7d', '30d'] as const satisfies readonly TotalsWindowDto[]
 
 /**
- * The overview's header: a kicker that names the window, the view's heading,
- * and the control that switches the window between 7 and 30 days. The window
- * is shared with the sidebar's figures.
+ * The overview's header card: a kicker that names the window, the view's
+ * heading, and, beside a "Time window" label, the control that switches the
+ * window between 7 and 30 days. The window is shared with the sidebar's figures.
  *
  * @example
  * <OverviewHeader />
@@ -24,19 +27,24 @@ export function OverviewHeader(): React.JSX.Element {
   const setWindow = useTotalsWindowStore((state) => state.setWindow)
 
   return (
-    <TitleRow as="header">
-      <div className={styles.heading}>
-        <CapsText accent>{t('kicker', { range: t(`range.${range}`) })}</CapsText>
-        <h1 id={MAIN_HEADING_ID} className={styles.title}>
-          {t('heading')}
-        </h1>
-      </div>
-      <SegmentedControl
-        label={t('window.label')}
-        options={WINDOWS.map((value) => ({ value, label: t(`window.${value}`) }))}
-        value={range}
-        onChange={setWindow}
-      />
-    </TitleRow>
+    <Card as="header">
+      <TitleRow>
+        <div className={styles.heading}>
+          <CapsText accent>{t('kicker', { range: t(`range.${range}`) })}</CapsText>
+          <PageTitle id={MAIN_HEADING_ID}>{t('heading')}</PageTitle>
+        </div>
+        <div className={styles.window}>
+          <MutedText as="span" decorative>
+            {t('window.label')}
+          </MutedText>
+          <SegmentedControl
+            label={t('window.label')}
+            options={WINDOWS.map((value) => ({ value, label: t(`window.${value}`) }))}
+            value={range}
+            onChange={setWindow}
+          />
+        </div>
+      </TitleRow>
+    </Card>
   )
 }

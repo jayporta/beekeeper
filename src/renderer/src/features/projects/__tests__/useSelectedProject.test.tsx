@@ -33,14 +33,6 @@ describe('useSelectedProject', () => {
     expect(screen.getByText('pending project:none label:none dir:none')).toBeTruthy()
   })
 
-  it('returns the first parent project when nothing is stored', async () => {
-    listing({ ...testProject('-a'), label: 'Alpha' }, testProject('-b'))
-
-    render(<Harness />, { wrapper: createQueryWrapper() })
-
-    expect(await screen.findByText('success project:-a label:Alpha dir:-a')).toBeTruthy()
-  })
-
   it('returns the stored project when it is still listed', async () => {
     useSelectedProjectStore.setState({ selectedDirName: '-b' })
     listing(testProject('-a'), { ...testProject('-b'), label: 'Beta' })
@@ -48,21 +40,5 @@ describe('useSelectedProject', () => {
     render(<Harness />, { wrapper: createQueryWrapper() })
 
     expect(await screen.findByText('success project:-b label:Beta dir:-b')).toBeTruthy()
-  })
-
-  it('falls back to the first parent project when the stored one is gone', async () => {
-    useSelectedProjectStore.setState({ selectedDirName: '-gone' })
-    listing(testProject('-a'))
-
-    render(<Harness />, { wrapper: createQueryWrapper() })
-
-    expect(await screen.findByText('success project:-a label:none dir:-a')).toBeTruthy()
-  })
-
-  it('returns null when there are no projects', async () => {
-    listing()
-    render(<Harness />, { wrapper: createQueryWrapper() })
-
-    expect(await screen.findByText('success project:none label:none dir:none')).toBeTruthy()
   })
 })

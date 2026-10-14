@@ -23,13 +23,14 @@ beekeeper also ships as an opt-in Claude Code mod (`mod/`, built from `src/mod`)
 - [CONTRIBUTING.md](./CONTRIBUTING.md) is the policy every change meets. This file covers how agents and contributors work day to day.
 - Work in small, human-reviewable chunks on a branch off `main`. Never commit directly to `main`. Each commit covers one issue. Closely related issues may share one branch and one pull request with a `Closes #n` for each, and an issue may take several commits. That keeps the number of pull requests (and GitHub-side reviews) down.
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `ci:`), with an optional scope such as `feat(transcript):`. Keep descriptions concise. Don't be wordy.
-- Track all work on the [beekeeper project board](https://github.com/users/jayporta/projects/4). Each task is an issue, and the [v1 roadmap](https://github.com/jayporta/beekeeper/issues/2) holds the plan and links every task as a sub-issue. Move a card when its state changes, and put `Closes #n` in PR bodies.
+- Track all work on the [beekeeper project board](https://github.com/users/jayporta/projects/4). Each task is an issue, and the [v1 roadmap](https://github.com/jayporta/beekeeper/issues/2) holds the plan and links every task as a sub-issue. The maintainer moves a card when its state changes. Put `Closes #n` in PR bodies.
 - File new work as an issue before starting it. An agent files or picks up issues only on a person's behalf. [Start with an issue](./CONTRIBUTING.md#start-with-an-issue) has the rule for accepting one.
+- **Claim an issue before any work on it**, planning included, so two people (or their agents) don't build the same thing. An issue is claimed when it has an assignee, a comment from someone taking it, or an open pull request for it. If someone else holds the claim, pick another issue or ask on that one. Picking up your own claim again is fine. To claim it, assign it to the person the work is for, or, without permission to assign, comment that you're taking it. Either way, the maintainer moves its card to `In progress`. An agent claims the issue as its first step and doesn't start until the claim is in place. If you stop, release it: unassign it if you can and say so in a comment, which cancels the earlier one taking it. The maintainer then removes any assignee left and moves the card back to `Ready`.
 - CI (lint, format check, typecheck, tests, build on macOS and Ubuntu) must pass before merge.
 
 The task flow:
 
-1. **Plan.** Read the issue and draft a plan.
+1. **Claim and plan.** Claim the issue (see above), then read it and draft a plan.
 2. **Edge-case check.** Before any code is written, a second pass hunts for cases the plan missed, checking real code and data. Fold the findings into the issue.
 3. **Implement** in reviewable chunks.
 4. **Review the changes**, ideally before the pull request is opened (see [Review](#review)).

@@ -1,16 +1,12 @@
-/* The graph beside the inspector. Below this width the inspector drops under the graph, so neither is squeezed. */
+/*
+ * The graph beside the inspector. Each takes its own width and they wrap, so
+ * the inspector drops under the graph when the two don't fit, and neither is squeezed.
+ */
 .body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--size-inspector);
-
-  @media (max-width: 60rem) {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  /* The panes fill the view's remaining height and each scrolls on its own. */
-  @media (width > 60rem) and (min-height: 30rem) {
-    flex: 1;
-    min-height: 0;
-    grid-template-rows: minmax(0, 1fr);
-  }
+  /* A container, so the inspector can tell whether it sits beside the graph. */
+  container-type: inline-size;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-grid);
 }

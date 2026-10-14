@@ -9,7 +9,8 @@ describe('sessionFacts marks', () => {
 
     expect(sessionFacts(testSession(1, { signals })).marks).toEqual({
       toolErrors: 3,
-      compactions: 1
+      compactions: 1,
+      longestErrorStreak: 0
     })
   })
 

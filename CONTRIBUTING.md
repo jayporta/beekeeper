@@ -8,6 +8,8 @@ Use whatever tools you like, AI agents or none. beekeeper judges the result, not
 
 Every pull request needs an accepted issue. Open one, describe the problem, and wait for the maintainer to accept it before you start. An issue is accepted once the maintainer adds it to the [project board](https://github.com/users/jayporta/projects/4). A pull request without an accepted issue, or one its author can't explain, gets closed. Obvious typo fixes are the exception.
 
+Claim an accepted issue before you start on it, so nobody else builds the same thing. If someone else has claimed it (it has an assignee, a comment from someone taking it, or an open pull request for it), pick another or ask on that one. Otherwise, comment that you're taking it, and the maintainer assigns it to you and moves its card to `In progress`. If you stop, say so in a comment, and the maintainer unassigns you. [AGENTS.md](./AGENTS.md#workflow) has the full rule, which agents follow too.
+
 ## The standard every change meets
 
 1. **You own it.** Whoever opens the pull request answers for every line and its behavior, whatever wrote it. You answer review comments yourself, not by relaying them to a tool you can't explain.

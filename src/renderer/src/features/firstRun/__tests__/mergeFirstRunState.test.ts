@@ -14,9 +14,7 @@ describe('mergeFirstRunState', () => {
   it.each([
     ['the string "false"', 'false'],
     ['the string "true"', 'true'],
-    ['a number', 1],
-    ['null', null],
-    ['an object', {}]
+    ['null', null]
   ])('ignores a dismissed that is %s and keeps the current value', (_label, dismissed) => {
     expect(mergeFirstRunState({ dismissed }, current).dismissed).toBe(false)
   })

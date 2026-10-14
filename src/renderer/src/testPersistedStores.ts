@@ -1,4 +1,5 @@
 import type { StoreApi } from 'zustand'
+import { useSidebarWidthStore } from '@renderer/app/state/useSidebarWidthStore'
 import { useFirstRunStore } from '@renderer/features/firstRun/state/useFirstRunStore'
 import { useSelectedProjectStore } from '@renderer/features/projects/state/useSelectedProjectStore'
 import { idbStorage } from '@renderer/storage/idbStorage'
@@ -45,5 +46,6 @@ function persistedStore<S>(
  */
 export const PERSISTED_STORES: readonly PersistedStoreHandle[] = [
   persistedStore(useFirstRunStore),
-  persistedStore(useSelectedProjectStore)
+  persistedStore(useSelectedProjectStore),
+  persistedStore(useSidebarWidthStore)
 ]

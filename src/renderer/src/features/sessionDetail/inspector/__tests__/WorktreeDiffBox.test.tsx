@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { IpcResult } from '../../../../../../shared/ipc/ipcResult'
@@ -24,6 +24,10 @@ import { LEAD_REPORT, inspector, renderInspectorScene } from '../testInspectorSc
 afterEach(() => {
   useNavigationStore.getState().reset()
 })
+
+/** An agent's button in the graph, not the summary cards' rows for the same agent. */
+const graphButton = (name: RegExp): HTMLElement =>
+  within(screen.getByRole('region', { name: 'Agent graph' })).getByRole('button', { name })
 
 const WRITER = testRef(2)
 const TESTER = testRef(3, SCENE_OTHER_FOLDER)
@@ -56,7 +60,7 @@ const okDiff = (
 
 const open = async (diffs: Parameters<typeof renderInspectorScene>[0] = {}): Promise<void> => {
   renderInspectorScene({ detail: worktreeDetail, ...diffs })
-  await userEvent.click(screen.getByRole('button', { name: /^scout/ }))
+  await userEvent.click(graphButton(/^scout/))
 }
 
 describe('WorktreeDiffBox for a subagent on a worktree branch', () => {
@@ -230,7 +234,7 @@ describe('WorktreeDiffBox refresh', () => {
       diffs: { [SCENE_SESSION.sessionId]: cachedDiffs }
     })
 
-    await userEvent.click(screen.getByRole('button', { name: /^scout/ }))
+    await userEvent.click(graphButton(/^scout/))
 
     expect(await inspector().findByText(COUNTS)).toBeTruthy()
     expect(api.getWorktreeDiffs).toHaveBeenCalledTimes(1)
@@ -239,7 +243,7 @@ describe('WorktreeDiffBox refresh', () => {
   it('does not run git again when the cached diffs are newer than the cached detail', async () => {
     const { api } = openCached(STALE)
 
-    await userEvent.click(screen.getByRole('button', { name: /^scout/ }))
+    await userEvent.click(graphButton(/^scout/))
 
     expect(await inspector().findByText(COUNTS)).toBeTruthy()
     expect(api.getWorktreeDiffs).not.toHaveBeenCalled()
@@ -247,12 +251,12 @@ describe('WorktreeDiffBox refresh', () => {
 
   it('runs git again when the detail was refreshed after the diffs were cached', async () => {
     const { api, client } = openCached(STALE)
-    await userEvent.click(screen.getByRole('button', { name: /^scout/ }))
+    await userEvent.click(graphButton(/^scout/))
     await inspector().findByText(COUNTS)
-    await userEvent.click(screen.getByRole('button', { name: /^reader/ }))
+    await userEvent.click(graphButton(/^reader/))
 
     client.setQueryData(DETAIL_KEY, worktreeDetail, { updatedAt: Date.now() })
-    await userEvent.click(screen.getByRole('button', { name: /^scout/ }))
+    await userEvent.click(graphButton(/^scout/))
 
     expect(await inspector().findByText('+9 −9 across 1 file')).toBeTruthy()
     expect(api.getWorktreeDiffs).toHaveBeenCalledTimes(1)
@@ -295,7 +299,7 @@ describe('WorktreeDiffBox for a subagent of a teammate’s session', () => {
       sessions: { [WRITER.sessionId]: { ok: true, value: drafterDetail } },
       diffs: { [WRITER.sessionId]: diffs }
     })
-    await userEvent.click(screen.getByRole('button', { name: /^writer/ }))
+    await userEvent.click(graphButton(/^writer/))
     await userEvent.click(await screen.findByRole('button', { name: /^drafter/ }))
   }
 
@@ -322,10 +326,10 @@ describe('WorktreeDiffBox for a subagent of a teammate’s session', () => {
       diffs: { [WRITER.sessionId]: writerDiffs(null) }
     })
 
-    await userEvent.click(screen.getByRole('button', { name: /^writer/ }))
+    await userEvent.click(graphButton(/^writer/))
     await userEvent.click(await screen.findByRole('button', { name: /^drafter/ }))
     await inspector().findByText('+1 −0 across 1 file')
-    await userEvent.click(screen.getByRole('button', { name: /^scout/ }))
+    await userEvent.click(graphButton(/^scout/))
     await inspector().findByText('feature/x')
 
     const leadCalls = api.getWorktreeDiffs.mock.calls.filter(
@@ -370,7 +374,7 @@ describe('WorktreeDiffBox shared worktree announcement', () => {
     sharedWorktree: { lead: SCENE_SESSION, agentId: 'a1f3c9e2d4abc' }
   }
   const writerStatus = async (): Promise<HTMLElement> => {
-    await userEvent.click(screen.getByRole('button', { name: /^writer/ }))
+    await userEvent.click(graphButton(/^writer/))
     await inspector().findByText('Teammate · own session')
     return inspector().getByRole('status')
   }
@@ -420,7 +424,7 @@ describe('WorktreeDiffBox when no diff applies', () => {
   it('is not shown, and git is not asked, for a subagent with no worktree branch', async () => {
     const { api } = renderInspectorScene({ detail: worktreeDetail })
 
-    await userEvent.click(screen.getByRole('button', { name: /^reader/ }))
+    await userEvent.click(graphButton(/^reader/))
 
     expect(inspector().queryByText('Worktree diff')).toBeNull()
     expect(api.getWorktreeDiffs).not.toHaveBeenCalled()
@@ -436,7 +440,7 @@ describe('WorktreeDiffBox when no diff applies', () => {
   it('asks for the session that holds the subagent', async () => {
     const { api } = renderInspectorScene({ detail: worktreeDetail })
 
-    await userEvent.click(screen.getByRole('button', { name: /^scout/ }))
+    await userEvent.click(graphButton(/^scout/))
 
     await waitFor(() => {
       expect(api.getWorktreeDiffs).toHaveBeenCalledWith(
@@ -456,7 +460,7 @@ describe('WorktreeDiffBox for a teammate in a session of its own', () => {
   it('points at the lead’s subagent whose worktree it shares', async () => {
     renderInspectorScene({ diffs: { [WRITER.sessionId]: shared() } })
 
-    await userEvent.click(screen.getByRole('button', { name: /^writer/ }))
+    await userEvent.click(graphButton(/^writer/))
 
     expect(
       await inspector().findByText(/Shares the worktree of subagent a1f3c9e2 /, {
@@ -469,7 +473,7 @@ describe('WorktreeDiffBox for a teammate in a session of its own', () => {
   it('shows the shared worktree even when git is unusable', async () => {
     renderInspectorScene({ diffs: { [WRITER.sessionId]: shared('git-not-found') } })
 
-    await userEvent.click(screen.getByRole('button', { name: /^writer/ }))
+    await userEvent.click(graphButton(/^writer/))
 
     expect(
       await inspector().findByText(/Shares the worktree of subagent/, { ignore: VISIBLE_ONLY })
@@ -478,7 +482,7 @@ describe('WorktreeDiffBox for a teammate in a session of its own', () => {
 
   it('opens the lead’s session with that subagent selected from the button', async () => {
     renderInspectorScene({ diffs: { [WRITER.sessionId]: shared() } })
-    await userEvent.click(screen.getByRole('button', { name: /^writer/ }))
+    await userEvent.click(graphButton(/^writer/))
 
     await userEvent.click(
       await inspector().findByRole('button', { name: `Show subagent ${shortId('a1f3c9e2d4abc')}` })
@@ -494,7 +498,7 @@ describe('WorktreeDiffBox for a teammate in a session of its own', () => {
   it('shows no box for a teammate that shares no worktree', async () => {
     const { client } = renderInspectorScene()
 
-    await userEvent.click(screen.getByRole('button', { name: /^writer/ }))
+    await userEvent.click(graphButton(/^writer/))
     await inspector().findByText('Teammate · own session')
     await waitFor(() => {
       expect(
@@ -508,7 +512,7 @@ describe('WorktreeDiffBox for a teammate in a session of its own', () => {
   it('reads the diffs of a teammate in another folder by its own folder', async () => {
     const { api } = renderInspectorScene()
 
-    await userEvent.click(screen.getByRole('button', { name: /^tester/ }))
+    await userEvent.click(graphButton(/^tester/))
 
     await waitFor(() => {
       expect(api.getWorktreeDiffs).toHaveBeenCalledWith(TESTER.projectDirName, TESTER.sessionId)
@@ -527,7 +531,7 @@ describe('WorktreeDiffBox for an archived session', () => {
       diffs: { [SCENE_SESSION.sessionId]: changes }
     })
 
-    await userEvent.click(screen.getByRole('button', { name: /^scout/ }))
+    await userEvent.click(graphButton(/^scout/))
 
     expect(await inspector().findByText(NOT_AVAILABLE)).toBeTruthy()
     expect(api.getWorktreeDiffs).not.toHaveBeenCalled()
@@ -537,7 +541,7 @@ describe('WorktreeDiffBox for an archived session', () => {
   it('still names the branch the subagent ran on', async () => {
     renderInspectorScene({ detail: archivedDetail })
 
-    await userEvent.click(screen.getByRole('button', { name: /^scout/ }))
+    await userEvent.click(graphButton(/^scout/))
 
     expect(await inspector().findByText('feature/x')).toBeTruthy()
   })
@@ -548,7 +552,7 @@ describe('WorktreeDiffBox for an archived session', () => {
       diffs: { [SCENE_SESSION.sessionId]: changes }
     })
 
-    await userEvent.click(screen.getByRole('button', { name: /^scout/ }))
+    await userEvent.click(graphButton(/^scout/))
 
     expect(await inspector().findByText('+10 −2 across 1 file')).toBeTruthy()
     expect(inspector().queryByText(NOT_AVAILABLE)).toBeNull()
@@ -559,7 +563,7 @@ describe('WorktreeDiffBox for an archived session', () => {
       detail: worktreeDetail,
       diffs: { [SCENE_SESSION.sessionId]: changes }
     })
-    await userEvent.click(screen.getByRole('button', { name: /^scout/ }))
+    await userEvent.click(graphButton(/^scout/))
     expect(await inspector().findByText('+10 −2 across 1 file')).toBeTruthy()
 
     act(() => {
@@ -588,7 +592,7 @@ describe('WorktreeDiffBox for an archived session', () => {
       diffs: { [WRITER.sessionId]: shared }
     })
 
-    await userEvent.click(screen.getByRole('button', { name: /^writer/ }))
+    await userEvent.click(graphButton(/^writer/))
     await inspector().findByText('Teammate · own session')
 
     expect(inspector().queryByRole('heading', { name: 'Worktree diff' })).toBeNull()
@@ -606,7 +610,7 @@ describe('WorktreeDiffBox for an archived session', () => {
       }
     }
     const { client } = renderInspectorScene({ diffs: { [WRITER.sessionId]: shared } })
-    await userEvent.click(screen.getByRole('button', { name: /^writer/ }))
+    await userEvent.click(graphButton(/^writer/))
     await inspector().findByText(/Shares the worktree of subagent/, { ignore: VISIBLE_ONLY })
 
     act(() => {
@@ -637,7 +641,7 @@ describe('WorktreeDiffBox when a session turns archived', () => {
       detail: worktreeDetail,
       diffs: { [SCENE_SESSION.sessionId]: changes }
     })
-    await userEvent.click(screen.getByRole('button', { name: /^scout/ }))
+    await userEvent.click(graphButton(/^scout/))
     const shown = await inspector().findByText('+10 −2 across 1 file')
     const region = shown.closest('[role="status"]')
     if (!(region instanceof HTMLElement)) throw new Error('the result region should exist')
@@ -707,7 +711,7 @@ describe('WorktreeDiffBox when a session turns archived', () => {
 
   it('leaves focus alone when it was somewhere else', async () => {
     const { client } = await openWithDiffs()
-    const scoutNode = screen.getByRole('button', { name: /^scout/ })
+    const scoutNode = graphButton(/^scout/)
     act(() => {
       scoutNode.focus()
     })
@@ -740,7 +744,7 @@ describe('WorktreeDiffBox when a session turns archived', () => {
     act(() => {
       button.focus()
     })
-    const scoutNode = screen.getByRole('button', { name: /^scout/ })
+    const scoutNode = graphButton(/^scout/)
     act(() => {
       scoutNode.focus()
     })
@@ -760,14 +764,16 @@ describe('WorktreeDiffBox when a session turns archived', () => {
       button.focus()
     })
     await userEvent.click(inspector().getByText('feature/x'))
-    expect(document.activeElement).toBe(document.body)
+    // The inspector is a tab stop, so a click on its plain text focuses the inspector itself.
+    const region = screen.getByRole('region', { name: 'Agent inspector' })
+    expect(document.activeElement).toBe(region)
 
     act(() => {
       client.setQueryData(LEAD_KEY, archivedDetail)
     })
 
     await inspector().findByText(NOT_AVAILABLE)
-    expect(document.activeElement).toBe(document.body)
+    expect(document.activeElement).toBe(region)
   })
 
   it('moves focus to a message when it was on a teammate’s shared worktree link', async () => {
@@ -780,7 +786,7 @@ describe('WorktreeDiffBox when a session turns archived', () => {
       }
     }
     const { client } = renderInspectorScene({ diffs: { [WRITER.sessionId]: shared } })
-    await userEvent.click(screen.getByRole('button', { name: /^writer/ }))
+    await userEvent.click(graphButton(/^writer/))
     const link = await inspector().findByRole('button', { name: /^Show subagent/ })
     act(() => {
       link.focus()

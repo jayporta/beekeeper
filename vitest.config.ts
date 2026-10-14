@@ -30,6 +30,9 @@ export default defineConfig({
         test: {
           name: 'jsdom',
           environment: 'jsdom',
+          // Each file still builds its own jsdom in its own VM context. The gain is reusing the
+          // worker and its module and code caches instead of forking afresh for every file.
+          pool: 'vmThreads',
           include: ['src/**/*.test.tsx'],
           exclude: excludeMod,
           setupFiles: ['src/renderer/src/testSetup.ts']

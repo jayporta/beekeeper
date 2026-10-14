@@ -56,9 +56,15 @@ describe('DailyUsageChart', () => {
   it('labels the axis with compact ticks up to the rounded top', () => {
     render(chartFor(OCTOBER_WEEK))
 
-    for (const tick of ['0', '2M', '4M', '6M', '8M', '10M']) {
+    for (const tick of ['0', '5M', '10M']) {
       expect(screen.getAllByText(tick).length).toBeGreaterThan(0)
     }
+  })
+
+  it('shows three ticks on the axis: zero, a middle, and the top', () => {
+    render(chartFor(OCTOBER_WEEK))
+
+    for (const tick of ['2M', '4M', '6M', '8M']) expect(screen.queryByText(tick)).toBeNull()
   })
 
   it('labels every day of a week with its weekday and date', () => {
@@ -80,7 +86,7 @@ describe('DailyUsageChart', () => {
     expect(labels).toEqual(['Sep 12', 'Sep 17', 'Sep 22', 'Sep 27', 'Oct 2', 'Oct 7'])
   })
 
-  it('draws a segment for each model with tokens on a day, and none for a model without', () => {
+  it('draws a segment for each family with tokens on a day, and none for a family without', () => {
     render(chartFor(OCTOBER_WEEK))
 
     expect(screen.getAllByTitle(/^Thu, Oct 1: /)).toHaveLength(2)
@@ -90,18 +96,23 @@ describe('DailyUsageChart', () => {
   it('titles a segment with its day, model, and exact tokens', () => {
     render(chartFor(OCTOBER_WEEK))
 
-    expect(screen.getByTitle('Wed, Oct 7: claude-haiku-5, 3,800,000 tokens')).toBeTruthy()
+    expect(screen.getByTitle('Wed, Oct 7: Haiku, 3,800,000 tokens')).toBeTruthy()
   })
 
   it('sizes a day’s bar by its share of the axis top, and its segments by their tokens', () => {
-    render(chartFor({ '2026-10-06': { a: 10, b: 30 }, '2026-10-07': { a: 25 } }))
+    render(
+      chartFor({
+        '2026-10-06': { 'claude-opus-5': 10, 'claude-haiku-5': 30 },
+        '2026-10-07': { 'claude-opus-5': 25 }
+      })
+    )
 
     // The axis tops out at 40: the first day fills it, the second takes 25 of 40.
-    const first = screen.getByTitle('Tue, Oct 6: a, 10 tokens').parentElement
-    const second = screen.getByTitle('Wed, Oct 7: a, 25 tokens').parentElement
+    const first = screen.getByTitle('Tue, Oct 6: Opus, 10 tokens').parentElement
+    const second = screen.getByTitle('Wed, Oct 7: Opus, 25 tokens').parentElement
     expect(first?.style.blockSize).toBe('100%')
     expect(second?.style.blockSize).toBe('62.5%')
-    expect(screen.getByTitle('Tue, Oct 6: a, 10 tokens').style.flexGrow).toBe('10')
-    expect(screen.getByTitle('Tue, Oct 6: b, 30 tokens').style.flexGrow).toBe('30')
+    expect(screen.getByTitle('Tue, Oct 6: Opus, 10 tokens').style.flexGrow).toBe('10')
+    expect(screen.getByTitle('Tue, Oct 6: Haiku, 30 tokens').style.flexGrow).toBe('30')
   })
 })

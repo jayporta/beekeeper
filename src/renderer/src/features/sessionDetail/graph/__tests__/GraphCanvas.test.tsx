@@ -2,7 +2,6 @@ import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SessionListItemDto } from '../../../../../../shared/ipc/sessionListDto'
-import { EMPTY_AGENT_SIGNALS_DTO } from '../../../../../../shared/ipc/emptyAgentSignals'
 import { useNavigationStore } from '@renderer/features/navigation/state/useNavigationStore'
 import {
   testLeadTeam,
@@ -70,12 +69,12 @@ describe('GraphCanvas', () => {
   it('places each node at its layout position', () => {
     renderGraph()
 
-    expect([node(/^Lead/).style.left, node(/^Lead/).style.top]).toEqual(['28px', '142px'])
+    expect([node(/^Lead/).style.left, node(/^Lead/).style.top]).toEqual(['24px', '24px'])
     expect([node(/^scout/).style.left, node(/^scout/).style.top]).toEqual([
-      `${28 + COLUMN_WIDTH}px`,
-      '28px'
+      `${24 + COLUMN_WIDTH}px`,
+      '24px'
     ])
-    expect(node(/^reader/).style.top).toBe(`${28 + LEAF_PITCH}px`)
+    expect(node(/^reader/).style.top).toBe(`${24 + LEAF_PITCH}px`)
     expect(node(/^Lead/).style.width).toBe(`${NODE_WIDTH}px`)
     expect(node(/^Lead/).style.height).toBe(`${NODE_HEIGHT}px`)
   })
@@ -88,7 +87,7 @@ describe('GraphCanvas', () => {
 
     expect(svg?.getAttribute('aria-hidden')).toBe('true')
     expect(paths).toHaveLength(4)
-    expect(paths[0]?.getAttribute('d')).toMatch(/^M 216 \d+(\.\d+)? H 238 V 59 H 260$/)
+    expect(paths[0]?.getAttribute('d')).toMatch(/^M 234 50 H 254 V 50 H 274$/)
   })
 
   it('shows the name and tokens on one line, and the type and model on the next', () => {
@@ -144,20 +143,10 @@ describe('GraphCanvas', () => {
 })
 
 describe('GraphCanvas legend', () => {
-  it('explains the marks when an agent has tool errors', () => {
-    const detail = testDetail({
-      children: [testNode('a1')],
-      reports: { a1: testReport({ signals: { ...EMPTY_AGENT_SIGNALS_DTO, toolErrors: 3 } }) }
-    })
-    renderGraphWith({ detail, row: null })
-
-    expect(screen.getByText('× tool errors')).toBeTruthy()
-  })
-
-  it('leaves the legend out when no agent has marks', () => {
+  it('explains the marks even when no agent has any', () => {
     renderGraphWith({ detail: testDetail({ children: [testNode('a1')] }), row: null })
 
-    expect(screen.queryByText('× tool errors')).toBeNull()
+    expect(screen.getByText('× tool errors')).toBeTruthy()
   })
 })
 

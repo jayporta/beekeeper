@@ -1,0 +1,37 @@
+/*
+ * The page scrolls main. At desktop widths the sidebar card stays in view and
+ * its project list scrolls inside it, and a view may keep a pane in view while
+ * the page scrolls. The stacked layout scrolls as one page, so zoomed content
+ * is never trapped in a short scroller.
+ */
+.shell {
+  display: grid;
+  grid-template-columns: var(--size-sidebar-current) minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--color-surface);
+
+  /*
+   * Below this width the sidebar stacks above the main area, so content reflows
+   * instead of being squeezed beside it at high zoom (WCAG 1.4.10). A literal:
+   * custom properties can't be used in a media query.
+   */
+  @media (max-width: 40rem) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+  }
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-self: start;
+  height: 100vh;
+  padding: var(--space-main-block) 0 var(--space-main-block) var(--space-main-block);
+
+  @media (max-width: 40rem) {
+    position: static;
+    height: auto;
+    padding: var(--space-main-block);
+  }
+}

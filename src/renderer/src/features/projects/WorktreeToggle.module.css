@@ -1,0 +1,21 @@
+.toggle {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--size-chevron);
+  min-block-size: var(--size-target-min);
+  padding: 0;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-md);
+  line-height: 1;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--color-chevron-hover);
+  }
+}

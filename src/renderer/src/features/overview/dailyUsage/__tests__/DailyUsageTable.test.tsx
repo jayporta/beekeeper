@@ -18,16 +18,11 @@ describe('DailyUsageTable', () => {
     ).toBeTruthy()
   })
 
-  it('has a column for the day, each model, and the total', () => {
+  it('has a column for the day, each family, and the total', () => {
     render(tableFor(OCTOBER_WEEK))
 
     const headers = screen.getAllByRole('columnheader')
-    expect(headers.map((h) => h.textContent)).toEqual([
-      'Day',
-      'claude-opus-5',
-      'claude-haiku-5',
-      'Total'
-    ])
+    expect(headers.map((h) => h.textContent)).toEqual(['Day', 'Opus', 'Haiku', 'Total'])
     for (const header of headers) expect(header.getAttribute('scope')).toBe('col')
   })
 
@@ -48,7 +43,7 @@ describe('DailyUsageTable', () => {
     for (const header of rowHeaders) expect(header.getAttribute('scope')).toBe('row')
   })
 
-  it('shows exact numbers, with zero for a model that did not run that day', () => {
+  it('shows exact numbers, with zero for a family that did not run that day', () => {
     render(tableFor(OCTOBER_WEEK))
 
     const row = screen.getByRole('row', { name: /Fri, Oct 2/ })
@@ -59,7 +54,7 @@ describe('DailyUsageTable', () => {
     ).toEqual(['7,000,000', '0', '7,000,000'])
   })
 
-  it('ends with each model’s total and the total of all', () => {
+  it('ends with each family’s total and the total of all', () => {
     render(tableFor(OCTOBER_WEEK))
 
     const footer = screen.getByRole('row', { name: /^Total/ })
@@ -79,11 +74,10 @@ describe('DailyUsageTable', () => {
     expect(within(footer).getAllByRole('cell').at(-1)?.textContent).toBe('123')
   })
 
-  it('shows a very long model id as text in its header', () => {
-    const id = `claude-${'y'.repeat(100)}`
-    render(tableFor({ '2026-10-07': { [id]: 1 } }))
+  it('heads a model that fits no family "Other models", not with its id', () => {
+    render(tableFor({ '2026-10-07': { mystery: 1 } }))
 
-    expect(screen.getByRole('columnheader', { name: id })).toBeTruthy()
+    expect(screen.getByRole('columnheader', { name: 'Other models' })).toBeTruthy()
   })
 })
 

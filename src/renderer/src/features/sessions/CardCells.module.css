@@ -1,0 +1,11 @@
+/* The tokens and API price cells of a session card. */
+.cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.figure {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}

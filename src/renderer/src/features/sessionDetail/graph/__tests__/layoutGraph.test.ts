@@ -23,7 +23,7 @@ describe('layoutGraph', () => {
     const layout = layoutGraph(testGraphNode('lead'))
 
     expect(layout.nodes.map(({ node, x, y, depth }) => [node.key, x, y, depth])).toEqual([
-      ['lead', 28, 28, 0]
+      ['lead', 24, 24, 0]
     ])
     expect(layout.edges).toEqual([])
   })
@@ -43,21 +43,21 @@ describe('layoutGraph', () => {
     const placed = positions(chain)
 
     expect(placed).toEqual({
-      a: { x: 28, y: 28, depth: 0 },
-      b: { x: 28 + COLUMN_WIDTH, y: 28, depth: 1 },
-      c: { x: 28 + 2 * COLUMN_WIDTH, y: 28, depth: 2 }
+      a: { x: 24, y: 24, depth: 0 },
+      b: { x: 24 + COLUMN_WIDTH, y: 24, depth: 1 },
+      c: { x: 24 + 2 * COLUMN_WIDTH, y: 24, depth: 2 }
     })
   })
 
-  it('stacks leaves at the leaf pitch and centers the root on them', () => {
+  it('stacks leaves at the leaf pitch and puts the root level with its first child', () => {
     const root = testGraphNode('root', {
       children: [testGraphNode('a'), testGraphNode('b'), testGraphNode('c')]
     })
 
     const placed = positions(root)
 
-    expect([placed['a']?.y, placed['b']?.y, placed['c']?.y]).toEqual([28, 28 + 76, 28 + 152])
-    expect(placed['root']?.y).toBe(28 + 76)
+    expect([placed['a']?.y, placed['b']?.y, placed['c']?.y]).toEqual([24, 24 + 64, 24 + 128])
+    expect(placed['root']?.y).toBe(24)
   })
 
   it('keeps leaves of uneven subtrees at a strict pitch, with no two nodes overlapping', () => {
@@ -74,7 +74,7 @@ describe('layoutGraph', () => {
     const layout = layoutGraph(root)
 
     const leafYs = layout.nodes.filter(({ node }) => node.children.length === 0).map(({ y }) => y)
-    expect(leafYs).toEqual([28, 104, 180, 256])
+    expect(leafYs).toEqual([24, 88, 152, 216])
     const byColumn = new Map<number, number[]>()
     for (const { x, y } of layout.nodes) byColumn.set(x, [...(byColumn.get(x) ?? []), y])
     for (const ys of byColumn.values()) {
@@ -85,7 +85,7 @@ describe('layoutGraph', () => {
     }
   })
 
-  it('centers a parent on its first and last child, not its middle one', () => {
+  it('puts a parent level with its first child, however many follow', () => {
     const root = testGraphNode('root', {
       children: [
         testGraphNode('a'),
@@ -98,8 +98,9 @@ describe('layoutGraph', () => {
 
     const placed = positions(root)
 
-    expect([placed['a']?.y, placed['b']?.y, placed['c']?.y]).toEqual([28, 104, 256])
-    expect(placed['root']?.y).toBe((28 + 256) / 2)
+    expect([placed['a']?.y, placed['b']?.y, placed['c']?.y]).toEqual([24, 88, 152])
+    expect([placed['c1']?.y, placed['c3']?.y]).toEqual([152, 280])
+    expect(placed['root']?.y).toBe(24)
   })
 
   it('draws an elbow from the parent’s right middle to the child’s left middle', () => {
@@ -108,8 +109,8 @@ describe('layoutGraph', () => {
     const { edges } = layoutGraph(root)
 
     expect(edges).toEqual([
-      { from: 'root', to: 'a', path: 'M 216 97 H 238 V 59 H 260' },
-      { from: 'root', to: 'b', path: 'M 216 97 H 238 V 135 H 260' }
+      { from: 'root', to: 'a', path: 'M 234 50 H 254 V 50 H 274' },
+      { from: 'root', to: 'b', path: 'M 234 50 H 254 V 114 H 274' }
     ])
   })
 
@@ -124,7 +125,7 @@ describe('layoutGraph', () => {
     const layout = layoutGraph(root)
 
     expect(layout.width).toBe(ORIGIN_X + 2 * COLUMN_WIDTH + NODE_WIDTH + ORIGIN_X)
-    expect(layout.height).toBe(28 + 2 * 76 + NODE_HEIGHT + ORIGIN_Y)
+    expect(layout.height).toBe(24 + 2 * LEAF_PITCH + NODE_HEIGHT + ORIGIN_Y)
   })
 
   it('lists nodes in preorder, once each, with one edge per non-root node', () => {
@@ -144,8 +145,8 @@ describe('layoutGraph', () => {
     const layout = layoutGraph(testGraphNode('root', { children: leaves }))
 
     expect(layout.nodes).toHaveLength(201)
-    expect(layout.nodes.at(-1)?.y).toBe(28 + 199 * 76)
-    expect(layout.height).toBe(28 + 199 * 76 + NODE_HEIGHT + ORIGIN_Y)
+    expect(layout.nodes.at(-1)?.y).toBe(24 + 199 * LEAF_PITCH)
+    expect(layout.height).toBe(24 + 199 * LEAF_PITCH + NODE_HEIGHT + ORIGIN_Y)
   })
 
   it('lays out a chain tens of thousands deep without recursing', () => {

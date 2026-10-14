@@ -1,11 +1,11 @@
-import { useMemo } from 'react'
+import { useMemo, type RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Card } from '@renderer/components/Card'
 import { GraphEdges } from './GraphEdges'
 import styles from './GraphCanvas.module.css'
 import { GraphFootnote } from './GraphFootnote'
 import { GraphNode } from './GraphNode'
 import { GraphViewport } from './GraphViewport'
-import { hasMarks } from '../../../../../shared/agentGraph/nodeMarks'
 import { nodeLabel } from './nodeLabel'
 import { parentNames } from './parentNames'
 import type { AgentGraph } from './useAgentGraph'
@@ -16,10 +16,15 @@ import { useGraphKeyboard } from './useGraphKeyboard'
 interface GraphCanvasProps {
   /** The graph to show, from `useAgentGraph`. */
   readonly graph: AgentGraph
+  /**
+   * A ref that holds the graph's region element, so code outside the graph can move focus to a node.
+   * @defaultValue The graph keeps its own.
+   */
+  readonly regionRef?: RefObject<HTMLDivElement | null>
 }
 
 /**
- * The session's spawn graph: the viewed agent, its subagents and its teammates
+ * The session's spawn graph, in a card with a header (title, legend, zoom controls) and a footer of notes: the viewed agent, its subagents and its teammates
  * as buttons on a dot grid, joined by elbow edges, left to right, in a window
  * that pans and zooms. Pressing a node selects it, and the lead is selected
  * until another is. Selecting a teammate opens its own session and adds its
@@ -34,7 +39,7 @@ interface GraphCanvasProps {
  * @example
  * <GraphCanvas graph={graph} />
  */
-export function GraphCanvas({ graph }: GraphCanvasProps): React.JSX.Element {
+export function GraphCanvas({ graph, regionRef }: GraphCanvasProps): React.JSX.Element {
   const { root, layout, loading, expansions, selectedKey } = graph
 
   const { t } = useTranslation(['sessionDetail', 'sessions'])
@@ -50,8 +55,8 @@ export function GraphCanvas({ graph }: GraphCanvasProps): React.JSX.Element {
   const moveFocus = useGraphKeyboard(root)
 
   return (
-    <div className={styles.canvas}>
-      <GraphViewport width={layout.width} height={layout.height}>
+    <Card flush className={styles.canvas}>
+      <GraphViewport width={layout.width} height={layout.height} regionRef={regionRef}>
         <GraphEdges edges={layout.edges} width={layout.width} height={layout.height} />
         {layout.nodes.map(({ node, x, y }) => (
           <GraphNode
@@ -69,13 +74,12 @@ export function GraphCanvas({ graph }: GraphCanvasProps): React.JSX.Element {
       <GraphFootnote
         partial={layout.nodes.some(({ node }) => node.kind !== 'workflow' && node.partial)}
         partialWorkflow={layout.nodes.some(({ node }) => node.kind === 'workflow' && node.partial)}
-        marks={layout.nodes.some(({ node }) => hasMarks(node.marks))}
         missingTeammates={root.missingTeammates}
         teamListsTruncated={root.teamListsTruncated}
       />
       <p role="status" className="visuallyHidden">
         {announcement}
       </p>
-    </div>
+    </Card>
   )
 }

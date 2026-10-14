@@ -13,35 +13,47 @@ describe('chartScale', () => {
     }
   )
 
-  it('rounds 7 up to 8 in steps of 2', () => {
-    expect(chartScale(7)).toEqual({ top: 8, ticks: [0, 2, 4, 6, 8] })
+  it('rounds 7 up to 8 with a middle tick at 4', () => {
+    expect(chartScale(7)).toEqual({ top: 8, ticks: [0, 4, 8] })
   })
 
-  it('rounds 41.2 million up to 50 million in steps of 10 million', () => {
+  it('rounds 41.2 million up to 50 million with a middle tick at 25 million', () => {
     expect(chartScale(41_200_000)).toEqual({
       top: 50_000_000,
-      ticks: [0, 10_000_000, 20_000_000, 30_000_000, 40_000_000, 50_000_000]
+      ticks: [0, 25_000_000, 50_000_000]
     })
   })
 
   it('keeps a maximum that is already a tick as the top', () => {
-    expect(chartScale(40)).toEqual({ top: 40, ticks: [0, 10, 20, 30, 40] })
+    expect(chartScale(40)).toEqual({ top: 40, ticks: [0, 20, 40] })
   })
 
-  it('never uses a step below one token', () => {
-    expect(chartScale(1)).toEqual({ top: 1, ticks: [0, 1] })
-    expect(chartScale(3)).toEqual({ top: 3, ticks: [0, 1, 2, 3] })
+  it('never has a top below two tokens, so the middle tick is a whole token', () => {
+    expect(chartScale(1)).toEqual({ top: 2, ticks: [0, 1, 2] })
+    expect(chartScale(3)).toEqual({ top: 4, ticks: [0, 2, 4] })
   })
 
   it.each([1, 3, 7, 12, 99, 100, 101, 4_999, 5_000, 41_200_000, 123_456_789_012])(
-    'covers %d with a top at or above it and between two and five ticks above zero',
+    'covers %d with a top at or above it, and shows three ticks: zero, a middle, and the top',
     (max) => {
       const { top, ticks } = chartScale(max)
 
       expect(top).toBeGreaterThanOrEqual(max)
-      expect(ticks.at(-1)).toBe(top)
-      expect(ticks.length - 1).toBeGreaterThanOrEqual(1)
-      expect(ticks.length - 1).toBeLessThanOrEqual(5)
+      expect(ticks).toEqual([0, top / 2, top])
+    }
+  )
+
+  it.each([1, 2, 3, 5, 7, 11, 13, 25, 99, 1_001, 41_200_000])(
+    'never puts a fractional middle tick on the axis for %d',
+    (max) => {
+      expect(Number.isInteger(chartScale(max).ticks[1])).toBe(true)
+    }
+  )
+
+  it.each([1, 3, 7, 12, 99, 101, 4_999, 41_200_000, 123_456_789_012])(
+    'tops out at no more than twice %d',
+    (max) => {
+      expect(chartScale(max).top).toBeLessThanOrEqual(max * 2)
     }
   )
 

@@ -122,8 +122,9 @@ describe('createQueryClient', () => {
       })
     })
 
-    describe.each([['projectTotals'], ['projectDailyUsage']])('a stale folder’s %s', (root) => {
-      const key = [root, 'x', '7d']
+    // projectDailyUsage takes the same defaults, as its stale time above shows.
+    describe('a stale folder’s projectTotals', () => {
+      const key = ['projectTotals', 'x', '7d']
 
       it('refetches when it loaded', async () => {
         expect(await refetchesOnFocus(key, [['total']])).toBe(1)

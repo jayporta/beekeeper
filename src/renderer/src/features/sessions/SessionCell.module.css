@@ -4,5 +4,25 @@
 
 .title {
   font-size: var(--font-size-md);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semibold);
+}
+
+.open {
+  /* The row's stretched cover shows the focus ring instead. */
+  &:focus-visible {
+    outline: none;
+  }
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-1-5);
+  margin-block-start: var(--space-1-5);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
 }

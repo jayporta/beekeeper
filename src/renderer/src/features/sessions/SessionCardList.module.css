@@ -1,10 +1,42 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
   min-width: 0;
-  /* The cards and the header row size themselves to the list's width, not the window's. */
-  container-type: inline-size;
+}
+
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+
+  /* The legend sits at the end of the row. */
+  & > :last-child {
+    margin-inline-start: auto;
+  }
+}
+
+.title {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-card-title);
+  font-weight: var(--font-weight-bold);
+}
+
+/* The rows keep their least width and scroll sideways inside the card. */
+.scroller {
+  overflow-x: auto;
+}
+
+.table {
+  min-width: var(--size-card-table-min);
+}
+
+.header {
+  padding-block: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 .right {
@@ -12,9 +44,6 @@
 }
 
 .cards {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
   padding: 0;
   list-style: none;
 }
@@ -23,11 +52,4 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
-}
-
-/* The stacked card names its own figures, so the column header row has nothing to head. */
-@container (max-width: 40rem) {
-  .list .header {
-    display: none;
-  }
 }

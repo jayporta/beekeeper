@@ -123,12 +123,9 @@ describe('session search by workflow run', () => {
 })
 
 describe('session search by subagent', () => {
-  it.each([
-    ['name', 'SCOUT'],
-    ['description', 'map the AUTH'],
-    ['type', 'explore']
-  ])('shows a session whose subagent matches by %s, naming the subagent', async (_field, text) => {
-    await search(text, [refactor, lead, mate])
+  // Which subagent fields a search reads is covered in sessionMatches.test.ts.
+  it('shows a session whose subagent matches, naming the subagent', async () => {
+    await search('SCOUT', [refactor, lead, mate])
 
     const shown = await card('Refactor parser')
     expect(within(shown).getByText('matching subagent scout')).toBeTruthy()
@@ -144,11 +141,11 @@ describe('session search by subagent', () => {
     expect(within(await card('Refactor parser')).getByText('matching subagent scout')).toBeTruthy()
   })
 
-  it('highlights a teammate’s chip, and adds no "matching subagent" line, when its own subagent matches', async () => {
+  it('opens a lead to the teammate whose own subagent matches, and adds no "matching subagent" line, when its own subagent matches', async () => {
     await search('checker', [lead, mate, refactor])
 
     const shown = await card('Team lead')
-    expect(within(shown).getByRole('button', { name: /^reviewer \(code\)/ })).toBeTruthy()
+    expect(within(shown).getByRole('button', { name: /^reviewer code/ })).toBeTruthy()
     expect(within(shown).getByText('matches search')).toBeTruthy()
     expect(within(shown).queryByText(/^matching subagent/)).toBeNull()
     expect(screen.queryByRole('button', { name: 'Refactor parser' })).toBeNull()

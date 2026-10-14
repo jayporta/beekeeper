@@ -8,7 +8,12 @@ const schemes = readTokenSchemes(new URL('../tokens.css', import.meta.url))
 const LC_TEXT = 90
 const LC_SECONDARY = 75
 
-const TEXT_TOKENS = ['--color-text', '--color-text-muted', '--color-accent-strong']
+const TEXT_TOKENS = [
+  '--color-text',
+  '--color-text-muted',
+  '--color-accent-strong',
+  '--color-selected-text'
+]
 /** The WCAG 2 ground tokens text sits on. */
 const WCAG_GROUNDS = ['--color-bg', '--color-surface', '--color-surface-header', '--color-selected']
 const CONTROL_GROUNDS = ['--color-bg', '--color-surface']
@@ -21,12 +26,12 @@ function token(tokens: TokenValues, name: string): string {
 
 /** Every ground text can sit on, as [label, hex]: the plain grounds, hover tints, and two tints stacked. */
 function textGrounds(tokens: TokenValues): readonly (readonly [string, string])[] {
-  const text = token(tokens, '--color-text')
+  const accent = token(tokens, '--color-accent')
   const opacity = Number(token(tokens, '--opacity-hover'))
   if (Number.isNaN(opacity)) throw new Error('--opacity-hover is not a number')
   const bg = token(tokens, '--color-bg')
   const surface = token(tokens, '--color-surface')
-  const hoverOver = (ground: string): string => blendOver(text, ground, opacity)
+  const hoverOver = (ground: string): string => blendOver(accent, ground, opacity)
   return [
     ['--color-bg', bg],
     ['--color-surface', surface],
@@ -42,7 +47,8 @@ function textGrounds(tokens: TokenValues): readonly (readonly [string, string])[
 const APCA_TEXT_TARGETS = [
   ['--color-text', LC_TEXT],
   ['--color-text-muted', LC_SECONDARY],
-  ['--color-accent-strong', LC_SECONDARY]
+  ['--color-accent-strong', LC_SECONDARY],
+  ['--color-selected-text', LC_SECONDARY]
 ] as const
 
 /** Text that sits on a fill instead: the page ground on the accent, and diff lines on the surface. */
@@ -73,6 +79,11 @@ const PAIRS: readonly (readonly [string, string, number])[] = [
   ['--color-bg', '--color-accent-strong', 4.5],
   ...['--color-diff-add', '--color-diff-remove'].map((fg) => [fg, '--color-surface', 4.5] as const),
   ...CONTROL_GROUNDS.map((bg) => ['--color-border-strong', bg, 3] as const),
+  ...CONTROL_GROUNDS.map((bg) => ['--color-selection-ring', bg, 3] as const),
+  // A graph node's text on its kind's tinted ground.
+  ...['--color-text', '--color-text-muted'].flatMap((fg) =>
+    ['--color-kind-teammate-bg', '--color-kind-workflow-bg'].map((bg) => [fg, bg, 4.5] as const)
+  ),
   ...[...CONTROL_GROUNDS, '--color-selected'].map((bg) => ['--focus-ring-color', bg, 3] as const)
 ]
 
@@ -81,6 +92,71 @@ describe.each(Object.entries(schemes))('%s color scheme', (_scheme, tokens) => {
     expect(
       contrastRatio(token(tokens, foreground), token(tokens, background))
     ).toBeGreaterThanOrEqual(minimum)
+  })
+})
+
+const PROJECT_SLOTS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const
+
+/** Text on its own fill at 4.5:1, as [foreground, background]: pills, file ops, project buttons, the lead mark, and KPI tiles. */
+const PILL_PAIRS: readonly (readonly [string, string])[] = [
+  ...['error', 'warning', 'neutral', 'info'].map(
+    (kind) => [`--color-pill-${kind}-text`, `--color-pill-${kind}-bg`] as const
+  ),
+  ...['create', 'update'].map((op) => [`--color-op-${op}-text`, `--color-op-${op}-bg`] as const),
+  ...PROJECT_SLOTS.map(
+    (slot) => [`--color-project-ink-${slot}`, `--color-project-button-${slot}`] as const
+  ),
+  ['--color-kind-lead-text', '--color-kind-lead'],
+  ['--color-segment-selected-text', '--color-bg'],
+  ['--color-text-muted', '--color-segment-track'],
+  ...['tokens', 'api', 'sessions', 'agents'].flatMap((kpi) =>
+    ['--color-kpi-label', '--color-kpi-sub'].map((text) => [text, `--color-kpi-${kpi}-bg`] as const)
+  )
+]
+
+/** Marks that carry meaning in a chart, a bar, or a graph: 3:1 against the card ground they sit on (WCAG 1.4.11). */
+const MARK_TOKENS = [
+  '--color-token-input',
+  '--color-token-output',
+  '--color-token-cache-write',
+  '--color-token-cache-read',
+  '--color-model-fable',
+  '--color-model-opus',
+  '--color-model-sonnet',
+  '--color-model-haiku',
+  '--color-model-other',
+  '--color-kind-lead',
+  '--color-kind-teammate',
+  '--color-kind-workflow',
+  '--color-kind-subagent'
+]
+
+describe.each(Object.entries(schemes))('%s color scheme pills and fills', (_scheme, tokens) => {
+  it.each(PILL_PAIRS)('%s on %s is at least 4.5:1', (foreground, background) => {
+    expect(
+      contrastRatio(token(tokens, foreground), token(tokens, background))
+    ).toBeGreaterThanOrEqual(4.5)
+  })
+})
+
+describe.each(Object.entries(schemes))('%s color scheme marks', (_scheme, tokens) => {
+  it.each(MARK_TOKENS)('%s is at least 3:1 against the ground', (mark) => {
+    expect(contrastRatio(token(tokens, mark), token(tokens, '--color-bg'))).toBeGreaterThanOrEqual(
+      3
+    )
+  })
+})
+
+/** The agent kinds' marks also sit in the teammate sub-table and on a hovered or matched row. */
+const KIND_MARK_TOKENS = MARK_TOKENS.filter((mark) => mark.startsWith('--color-kind-'))
+
+describe.each(Object.entries(schemes))('%s color scheme agent kind marks', (_scheme, tokens) => {
+  it.each(
+    KIND_MARK_TOKENS.flatMap((mark) =>
+      ['--color-surface', '--color-selected'].map((ground) => [mark, ground] as const)
+    )
+  )('%s is at least 3:1 against %s', (mark, ground) => {
+    expect(contrastRatio(token(tokens, mark), token(tokens, ground))).toBeGreaterThanOrEqual(3)
   })
 })
 
@@ -96,54 +172,45 @@ describe.each(Object.entries(schemes))('%s color scheme graph edges', (_scheme, 
   })
 })
 
-/** The chart's series colors, in the order the chart draws them. */
-const SERIES_TOKENS = [
-  '--color-series-1',
-  '--color-series-2',
-  '--color-series-3',
-  '--color-series-4',
-  '--color-series-other'
+/** The model colors, in the order the chart stacks them. */
+const MODEL_TOKENS = [
+  '--color-model-fable',
+  '--color-model-opus',
+  '--color-model-sonnet',
+  '--color-model-haiku',
+  '--color-model-other'
 ]
 
-describe.each(Object.entries(schemes))('%s color scheme chart series', (_scheme, tokens) => {
-  it.each(SERIES_TOKENS)('%s is at least 3:1 against the ground (WCAG 1.4.11)', (series) => {
-    expect(
-      contrastRatio(token(tokens, series), token(tokens, '--color-bg'))
-    ).toBeGreaterThanOrEqual(3)
+describe.each(Object.entries(schemes))('%s color scheme model colors', (_scheme, tokens) => {
+  // The card is on the page ground (--color-bg); the surface is the other ground a chart can sit on.
+  it.each(
+    MODEL_TOKENS.flatMap((model) =>
+      ['--color-bg', '--color-surface'].map((ground) => [model, ground] as const)
+    )
+  )('%s is at least 3:1 against %s (WCAG 1.4.11)', (model, ground) => {
+    expect(contrastRatio(token(tokens, model), token(tokens, ground))).toBeGreaterThanOrEqual(3)
   })
 
-  // Any two segments can touch, since a series with no tokens that day leaves a gap in the stack, so
-  // every pair differs in lightness, which stays visible to a reader who can't tell their hues apart.
-  const PAIRS = SERIES_TOKENS.flatMap((first, i) =>
-    SERIES_TOKENS.slice(i + 1).map((second) => [first, second] as const)
-  )
+  it('gives every model its own color', () => {
+    const colors = MODEL_TOKENS.map((model) => token(tokens, model).toLowerCase())
 
-  it.each(PAIRS)('%s and %s are at least 1.5:1 apart', (first, second) => {
-    expect(contrastRatio(token(tokens, first), token(tokens, second))).toBeGreaterThanOrEqual(1.5)
+    expect(new Set(colors).size).toBe(MODEL_TOKENS.length)
   })
+})
 
-  it('orders the series from darkest to lightest', () => {
-    const ratios = SERIES_TOKENS.slice(1).map((series, i) => {
-      const earlier = token(tokens, SERIES_TOKENS[i] ?? '')
-      const later = token(tokens, series)
-      // Against black, the lighter color has the larger ratio.
-      return contrastRatio(later, '#000000') - contrastRatio(earlier, '#000000')
-    })
-
-    for (const difference of ratios) expect(difference).toBeGreaterThan(0)
-  })
-
-  it('gives every series its own color', () => {
-    const colors = SERIES_TOKENS.map((series) => token(tokens, series).toLowerCase())
-
-    expect(new Set(colors).size).toBe(SERIES_TOKENS.length)
+describe.each(Object.entries(schemes))('%s color scheme segmented control', (_scheme, tokens) => {
+  // The selected segment is the page ground on the track, so the track has to differ from the card ground.
+  it('has a track that differs from the card ground', () => {
+    expect(token(tokens, '--color-segment-track').toLowerCase()).not.toBe(
+      token(tokens, '--color-bg').toLowerCase()
+    )
   })
 })
 
 describe.each(Object.entries(schemes))('%s color scheme hover tint', (_scheme, tokens) => {
-  it('is text at --opacity-hover, the opacity the hover grounds are checked at', () => {
+  it('is the accent at --opacity-hover, the opacity the hover grounds are checked at', () => {
     expect(token(tokens, '--color-hover')).toMatch(
-      /^color-mix\(\s*in srgb,\s*var\(--color-text\) calc\(var\(--opacity-hover\) \* 100%\),\s*transparent\s*\)$/
+      /^color-mix\(\s*in srgb,\s*var\(--color-accent\) calc\(var\(--opacity-hover\) \* 100%\),\s*transparent\s*\)$/
     )
   })
 })

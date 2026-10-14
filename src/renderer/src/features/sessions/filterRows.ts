@@ -5,7 +5,7 @@ import type { SessionRow } from '../../../../shared/sessions/sessionRow'
  * Keeps the rows that match a search, by a case-insensitive substring of the
  * session's label or of the name, description or type of any of its own
  * subagents. A lead stays when it or any of its teammates match, and it
- * keeps every one of its teammates, so a card can show all its chips and
+ * keeps every one of its teammates, so a card can show all its teammate rows and
  * highlight the matching ones.
  *
  * @param rows - The top-level rows from `groupSessionRows`.

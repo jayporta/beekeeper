@@ -34,10 +34,10 @@ describe('GraphCanvas roving tab stop', () => {
     expect(tabbable()).toEqual([expect.stringMatching(/^scout/)])
   })
 
-  it('stops on the graph region first, so the keyboard can scroll it', async () => {
+  it('stops on the graph region after the three zoom controls, so the keyboard can scroll it', async () => {
     renderGraph()
 
-    await userEvent.tab()
+    for (let i = 0; i < 4; i += 1) await userEvent.tab()
 
     expect(document.activeElement).toBe(screen.getByRole('region', { name: 'Agent graph' }))
   })
@@ -45,8 +45,7 @@ describe('GraphCanvas roving tab stop', () => {
   it('lands on the lead after the graph region', async () => {
     renderGraph()
 
-    await userEvent.tab()
-    await userEvent.tab()
+    for (let i = 0; i < 5; i += 1) await userEvent.tab()
 
     expect(document.activeElement).toBe(graphNode(/^Lead/))
   })

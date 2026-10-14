@@ -1,0 +1,27 @@
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.columns {
+  grid-template-columns: minmax(0, 1fr) var(--size-summary-bar) var(--size-summary-tokens) var(
+      --size-summary-share
+    );
+}
+
+.figure,
+.share {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.share {
+  color: var(--color-text-muted);
+}
+
+.empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body);
+}

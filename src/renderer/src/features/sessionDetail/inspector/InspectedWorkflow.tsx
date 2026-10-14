@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { SessionRefDto } from '../../../../../shared/ipc/sessionRefDto'
 import type { AgentGraphNode } from '../../../../../shared/agentGraph/agentGraphNode'
 import { reportTokens } from '../../../../../shared/agentGraph/reportFacts'
@@ -6,10 +7,11 @@ import { useSessionDetail } from '../useSessionDetail'
 import { InspectorFootnote } from './InspectorFootnote'
 import { InspectorHeader } from './InspectorHeader'
 import { InspectorPendingNote } from './InspectorPendingNote'
+import { InspectorStatGrid } from './InspectorStatGrid'
+import { InspectorTokens } from './InspectorTokens'
 import type { InspectorReason } from './inspectorReasons'
 import { reportCost } from './reportCost'
 import { readableReports, runAgentsIncomplete, runReport } from './runReport'
-import { TokenRows } from './TokenRows'
 import { WorkflowPhases } from './WorkflowPhases'
 import { WorkflowTotals } from './WorkflowTotals'
 
@@ -24,7 +26,7 @@ interface InspectedWorkflowProps {
 /**
  * What the inspector shows for a workflow run, read from its owner session's
  * detail: who it is, and while that loads or once it can't be read, the same
- * note an agent gets. Once loaded, its totals, its phases, and its tokens by
+ * note an agent gets. Once loaded, its stat grid, its phases, and its tokens by
  * class over all its agents. It shows no files or flags, since a run is never
  * stopped and its "¹" marks and footnote say where its tokens may be low. Its
  * agents are every member of the run below its node, at any depth, including
@@ -35,6 +37,7 @@ interface InspectedWorkflowProps {
  * <InspectedWorkflow key={sessionKey(ownerRef)} node={node} ownerRef={ownerRef} />
  */
 export function InspectedWorkflow({ node, ownerRef }: InspectedWorkflowProps): React.JSX.Element {
+  const { t } = useTranslation('sessionDetail')
   // The view and the graph keep this entry fresh; a click must not re-parse it.
   const { data, isError } = useSessionDetail(ownerRef, { refetchOnMount: false })
 
@@ -65,9 +68,19 @@ export function InspectedWorkflow({ node, ownerRef }: InspectedWorkflowProps): R
   return (
     <>
       <InspectorHeader node={node} report={report} />
-      <WorkflowTotals tokens={tokens} partial={partial} agents={agentIds.length} cost={cost} />
+      <InspectorStatGrid>
+        <WorkflowTotals
+          tokens={tokens}
+          partial={partial}
+          agents={agentIds.length}
+          phases={node.workflow?.phases.length ?? 0}
+          cost={cost}
+        />
+      </InspectorStatGrid>
       <WorkflowPhases phases={node.workflow?.phases ?? []} />
-      {tokens !== null && <TokenRows report={report} tokens={tokens} />}
+      {tokens !== null && (
+        <InspectorTokens report={report} tokens={tokens} model={t('inspector.allAgents')} />
+      )}
       <InspectorFootnote reasons={reasons} />
     </>
   )

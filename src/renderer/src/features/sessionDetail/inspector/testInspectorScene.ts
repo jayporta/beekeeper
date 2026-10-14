@@ -46,6 +46,18 @@ export function factsText(pattern: RegExp): string {
   return (inspector().getByText(pattern).textContent ?? '').replace(/\s*·\s*/g, ' · ')
 }
 
+/**
+ * The figure under a label in the inspector's stat grid.
+ *
+ * @param label - The item's label.
+ * @returns The item's `dd`, which holds the figure and any "¹" marker.
+ */
+export function stat(label: string): Element {
+  const figure = inspector().getByText(label, { selector: 'dt' }).nextElementSibling
+  if (figure === null) throw new Error(`no figure under ${label}`)
+  return figure
+}
+
 /** A token group priced at `usd`. */
 export function pricedGroup(
   tokens: Parameters<typeof testTokenGroup>[0],

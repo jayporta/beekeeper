@@ -1,3 +1,24 @@
+.button {
+  min-height: var(--size-target-min);
+  padding: 0 var(--space-4);
+  color: var(--project-ink, var(--color-project-ink-1));
+  font: inherit;
+  font-weight: var(--font-weight-semibold);
+  background: var(--project-button, var(--color-project-button-1));
+  border: 0;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+
+  @media (prefers-reduced-motion: no-preference) {
+    transition: background-color 0.2s;
+  }
+
+  /* An underline rather than a darker fill, which would take the dark-ink colors below 4.5:1. */
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 .note {
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);

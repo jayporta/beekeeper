@@ -1,0 +1,57 @@
+/*
+ * The one place a project's color is applied. Each slot sets the dot color, the button fill and the
+ * ink that sits on that fill, for the element it is on and everything beneath it.
+ */
+.slot1 {
+  --project-color: var(--color-project-1);
+  --project-button: var(--color-project-button-1);
+  --project-ink: var(--color-project-ink-1);
+}
+
+.slot2 {
+  --project-color: var(--color-project-2);
+  --project-button: var(--color-project-button-2);
+  --project-ink: var(--color-project-ink-2);
+}
+
+.slot3 {
+  --project-color: var(--color-project-3);
+  --project-button: var(--color-project-button-3);
+  --project-ink: var(--color-project-ink-3);
+}
+
+.slot4 {
+  --project-color: var(--color-project-4);
+  --project-button: var(--color-project-button-4);
+  --project-ink: var(--color-project-ink-4);
+}
+
+.slot5 {
+  --project-color: var(--color-project-5);
+  --project-button: var(--color-project-button-5);
+  --project-ink: var(--color-project-ink-5);
+}
+
+.slot6 {
+  --project-color: var(--color-project-6);
+  --project-button: var(--color-project-button-6);
+  --project-ink: var(--color-project-ink-6);
+}
+
+.slot7 {
+  --project-color: var(--color-project-7);
+  --project-button: var(--color-project-button-7);
+  --project-ink: var(--color-project-ink-7);
+}
+
+.slot8 {
+  --project-color: var(--color-project-8);
+  --project-button: var(--color-project-button-8);
+  --project-ink: var(--color-project-ink-8);
+}
+
+.slot9 {
+  --project-color: var(--color-project-9);
+  --project-button: var(--color-project-button-9);
+  --project-ink: var(--color-project-ink-9);
+}

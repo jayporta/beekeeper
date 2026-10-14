@@ -86,16 +86,48 @@ describe('SessionDetailView header', () => {
     expect(screen.getByRole('main', { name: 'Refactor parser' })).toBeTruthy()
   })
 
-  it('shows the start, duration, team, agents and totals beneath the title', async () => {
+  it('shows the start, team and agents beneath the title', async () => {
     openSession(testRef(1, DIR))
     await screen.findByRole('heading', { level: 1, name: 'Refactor parser' })
 
-    const line = screen.getByText(/1h 25m/)
+    const line = screen.getByText(/team team/)
 
-    expect(line.textContent).toContain('team team')
     expect(line.textContent).toContain('1 teammate, 3 subagents')
-    expect(line.textContent).toContain('3.1M tokens')
-    expect(line.textContent).toContain('$13.23 at API prices')
+    expect(line.textContent).not.toContain('tokens')
+  })
+
+  it('shows the totals in the stat row', async () => {
+    openSession(testRef(1, DIR))
+    await screen.findByRole('heading', { level: 1, name: 'Refactor parser' })
+
+    const header = within(
+      screen.getByRole('heading', { level: 1 }).closest('header') as HTMLElement
+    )
+    const value = (label: string): string | null | undefined =>
+      header.getByText(label, { selector: 'dt' }).nextElementSibling?.textContent
+
+    expect(value('Tokens')).toBe('3.1M')
+    expect(value('At API prices')).toBe('$13.23')
+    expect(value('Duration')).toBe('1h 25m')
+    expect(value('Agents')).toBe('5')
+  })
+
+  it('says under the stat row that a lead with teammates counts its own and its subagents', async () => {
+    openSession(testRef(1, DIR))
+    await screen.findByRole('heading', { level: 1, name: 'Refactor parser' })
+
+    expect(screen.getByText(/count the lead and its subagents, not its teammates/)).toBeTruthy()
+  })
+
+  it('has no stat row for a session the list does not hold', async () => {
+    openSession(testRef(9, DIR))
+    await screen.findByRole('heading', { level: 1, name: 'Session' })
+
+    const header = within(
+      screen.getByRole('heading', { level: 1 }).closest('header') as HTMLElement
+    )
+
+    expect(header.queryByText('Tokens', { selector: 'dt' })).toBeNull()
   })
 
   it('shows the short id beside the placeholder title of an untitled session', async () => {

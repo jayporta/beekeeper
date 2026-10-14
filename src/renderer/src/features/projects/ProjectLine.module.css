@@ -1,0 +1,12 @@
+.line {
+  display: flex;
+  gap: var(--space-1);
+  align-items: stretch;
+}
+
+/* The width of a worktree toggle, so rows with and without one line up. */
+.spaced::before {
+  flex: none;
+  inline-size: var(--size-chevron);
+  content: '';
+}

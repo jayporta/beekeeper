@@ -23,11 +23,11 @@ afterEach(() => {
 })
 
 /**
- * Renders the scene's graph, which is 476 by 346 pixels at scale 1, in a view of the given size with
+ * Renders the scene's graph, which is 508 by 292 pixels at scale 1, in a view of the given size with
  * the browser's scroll clamping modeled, and reports the view's first size.
  */
 const renderSizedGraph = (
-  view: ViewBox = { width: 1000, height: 600 }
+  view: ViewBox = { width: 1200, height: 500 }
 ): ReturnType<typeof stubResizeObserver> => {
   const resizing = stubResizeObserver()
   sizeView(view)
@@ -37,27 +37,27 @@ const renderSizedGraph = (
   return resizing
 }
 
-// A 1000 by 600 view leaves 524 by 300 of room beside the graph: the graph is narrower than half
+// A 1200 by 500 view leaves 692 by 250 of room beside the graph: the graph is narrower than half
 // the view, which leaves the rest of it, and taller than half the view, which leaves half.
 describe('GraphCanvas room to pan', () => {
   it('scrolls the graph’s top left to the view’s top left once the view has a size', () => {
     renderSizedGraph()
 
-    expect([viewport().scrollLeft, viewport().scrollTop]).toEqual([524, 300])
+    expect([viewport().scrollLeft, viewport().scrollTop]).toEqual([692, 250])
   })
 
   it('places the graph past the room before it', () => {
     renderSizedGraph()
 
-    expect([surface().style.left, surface().style.top]).toEqual(['524px', '300px'])
+    expect([surface().style.left, surface().style.top]).toEqual(['692px', '250px'])
   })
 
   it('makes room to pan past every edge, by the view less the part kept in view', () => {
     renderSizedGraph()
 
     expect([sizer().style.width, sizer().style.height]).toEqual([
-      `${476 + 2 * 524}px`,
-      `${346 + 2 * 300}px`
+      `${508 + 2 * 692}px`,
+      `${292 + 2 * 250}px`
     ])
   })
 
@@ -68,17 +68,17 @@ describe('GraphCanvas room to pan', () => {
     fireEvent.pointerMove(viewport(), { clientX: 500, clientY: 200, pointerId: 1, buttons: 1 })
 
     // The graph is now 300 pixels in from the view's left.
-    expect(viewport().scrollLeft).toBe(224)
+    expect(viewport().scrollLeft).toBe(392)
   })
 
   it('pans a graph narrower than half the view to the view’s right edge but not past it', () => {
     renderSizedGraph()
 
     fireEvent.pointerDown(viewport(), { clientX: 200, clientY: 200, button: 0, pointerId: 1 })
-    fireEvent.pointerMove(viewport(), { clientX: 2200, clientY: 200, pointerId: 1, buttons: 1 })
+    fireEvent.pointerMove(viewport(), { clientX: 2400, clientY: 200, pointerId: 1, buttons: 1 })
 
-    const graphRight = Number.parseFloat(surface().style.left) - viewport().scrollLeft + 476
-    expect(graphRight).toBe(1000)
+    const graphRight = Number.parseFloat(surface().style.left) - viewport().scrollLeft + 508
+    expect(graphRight).toBe(1200)
   })
 
   it('leaves half the view around a graph that zooming makes bigger than half of it', async () => {
@@ -86,42 +86,42 @@ describe('GraphCanvas room to pan', () => {
 
     await press('Zoom in')
 
-    expect(Number.parseFloat(sizer().style.width)).toBeCloseTo(476 * ZOOM_STEP + 2 * 500)
+    expect(Number.parseFloat(sizer().style.width)).toBeCloseTo(508 * ZOOM_STEP + 2 * 600)
   })
 
   it('keeps the graph where it is on screen when the view narrows', () => {
     const resizing = renderSizedGraph()
     viewport().scrollLeft = 300
 
-    sizeView({ width: 800, height: 600 })
+    sizeView({ width: 1000, height: 500 })
     resizing.resize()
 
-    // The room before the graph goes from 524 to 400, so the graph stays 224 in from the view's left.
-    expect(viewport().scrollLeft).toBe(176)
+    // The room before the graph goes from 692 to 500, so the graph stays 392 in from the view's left.
+    expect(viewport().scrollLeft).toBe(108)
   })
 
   it('keeps the graph’s top where it is on screen when the view grows taller', () => {
     const resizing = renderSizedGraph()
 
-    sizeView({ width: 1000, height: 700 })
+    sizeView({ width: 1200, height: 600 })
     resizing.resize()
 
-    // Half a 600 view is less than the graph's height, but half a 700 view is not, so the room
-    // before the graph goes from 300 to 354.
-    expect(viewport().scrollTop).toBe(354)
+    // Half a 500 view is less than the graph's height, but half a 600 view is not, so the room
+    // before the graph goes from 250 to 308.
+    expect(viewport().scrollTop).toBe(308)
   })
 
   it('keeps the graph where it is on screen when the view grows although the browser clamped the offset first', () => {
     const resizing = renderSizedGraph({ width: 600, height: 400 })
-    viewport().scrollLeft = 450
+    viewport().scrollLeft = 480
 
-    // The browser lays the wider view out against the old content, whose end is then 436 in, before
+    // The browser lays the wider view out against the old content, whose end is then 468 in, before
     // the observer reports.
     sizeView({ width: 640, height: 400 })
     resizing.resize()
 
     // The room before the graph goes from 300 to 320.
-    expect(viewport().scrollLeft).toBe(470)
+    expect(viewport().scrollLeft).toBe(500)
   })
 })
 
@@ -217,16 +217,5 @@ describe('GraphCanvas scroll tracking', () => {
     unmount()
 
     expect(remove).toHaveBeenCalledWith('scroll', expect.any(Function))
-  })
-})
-
-describe('GraphCanvas view height', () => {
-  it('is set from the graph’s full size, which zooming doesn’t change', async () => {
-    renderGraph()
-    expect(viewport().style.getPropertyValue('--graph-height')).toBe('346px')
-
-    await press('Zoom in')
-
-    expect(viewport().style.getPropertyValue('--graph-height')).toBe('346px')
   })
 })

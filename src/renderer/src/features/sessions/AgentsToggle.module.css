@@ -1,0 +1,23 @@
+.toggle {
+  /* Above the row's stretched open button, so it is its own target. */
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-height: var(--size-target-min);
+  padding: 0;
+  color: var(--color-accent-strong);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  text-align: start;
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.glyph {
+  flex: none;
+  text-decoration: none;
+}
