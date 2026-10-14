@@ -16,6 +16,7 @@ export function testPaneNode(key: string, overrides: Partial<PaneNode> = {}): Pa
     files: [],
     fileCount: files?.length ?? null,
     filesIncomplete: false,
+    worktree: null,
     children: [],
     ...overrides
   }

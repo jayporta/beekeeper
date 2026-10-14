@@ -23,6 +23,13 @@ export type BeekeeperPaneNode = {
   files: readonly BeekeeperPaneFile[] | null
   fileCount: number | null
   filesIncomplete: boolean
+  /** The worktree branch a subagent ran on, or `null` for any other node. */
+  worktree: {
+    projectDirName: string
+    sessionId: string
+    agentId: string
+    branch: string
+  } | null
   children: readonly BeekeeperPaneNode[]
 }
 

@@ -1,10 +1,10 @@
 import type { AgentGraphNode, RootAgentGraphNode } from '../../../shared/agentGraph/agentGraphNode'
-import type { AgentReportDto, SubagentReportDto } from '../../../shared/ipc/agentDto'
+import type { AgentNodeDto, AgentReportDto, SubagentReportDto } from '../../../shared/ipc/agentDto'
 import type { SessionDetailDto } from '../../../shared/ipc/sessionDetailDto'
 import type { SessionListItemDto } from '../../../shared/ipc/sessionListDto'
 import { cardFigures } from '../../../shared/sessions/cardFigures'
 import { replaceUnprintable } from '../../../core/transcript/replaceUnprintable'
-import type { PaneFile, PaneNode, PaneView } from './paneView'
+import type { PaneFile, PaneNode, PaneView, PaneWorktree } from './paneView'
 
 /** How many files a node keeps; the count of all of them is kept beside. */
 export const MAX_FILES_PER_NODE = 200
@@ -31,11 +31,29 @@ function filesOfReport(report: AgentReportDto): NodeFiles {
 interface DetailIndex {
   readonly detail: SessionDetailDto
   readonly reports: ReadonlyMap<string, SubagentReportDto>
+  readonly branches: ReadonlyMap<string, string>
+}
+
+/** The worktree branch each subagent's meta names, by subagent id. */
+function branchesOf(node: AgentNodeDto, into: Map<string, string>): Map<string, string> {
+  if (
+    node.agentId !== null &&
+    node.meta.status === 'ok' &&
+    node.meta.meta.worktreeBranch !== undefined
+  ) {
+    into.set(node.agentId, node.meta.meta.worktreeBranch)
+  }
+  for (const child of node.children) branchesOf(child, into)
+  return into
 }
 
 function indexDetail(detail: SessionDetailDto): DetailIndex {
   const entries = detail.subagents.ok ? detail.subagents.value : []
-  return { detail, reports: new Map(entries.map((entry) => [entry.agentId, entry])) }
+  return {
+    detail,
+    reports: new Map(entries.map((entry) => [entry.agentId, entry])),
+    branches: branchesOf(detail.tree, new Map())
+  }
 }
 
 /** The files of a node: the lead's and each subagent's from their reports, none for a teammate session or a workflow run. */
@@ -46,6 +64,20 @@ function filesOfNode(node: AgentGraphNode, index: DetailIndex): NodeFiles {
   return found?.report.ok === true
     ? filesOfReport(found.report.value)
     : { files: [], count: 0, incomplete: true }
+}
+
+/** The worktree a subagent node ran in, from its owner session and meta; `null` for any other node. */
+function worktreeOfNode(node: AgentGraphNode, index: DetailIndex): PaneWorktree | null {
+  if (node.selection?.kind !== 'subagent') return null
+  const { ownerRef, agentId } = node.selection
+  const branch = index.branches.get(agentId)
+  if (branch === undefined) return null
+  return {
+    projectDirName: ownerRef.projectDirName,
+    sessionId: ownerRef.sessionId,
+    agentId,
+    branch: replaceUnprintable(branch)
+  }
 }
 
 /** Maps a graph node and everything below it to plain, cleaned pane nodes. */
@@ -64,6 +96,7 @@ function toPaneNode(node: AgentGraphNode, index: DetailIndex): PaneNode {
     files,
     fileCount: count,
     filesIncomplete: incomplete,
+    worktree: worktreeOfNode(node, index),
     children: node.children.map((child) => toPaneNode(child, index))
   }
 }
