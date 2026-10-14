@@ -92,7 +92,7 @@ app.enableSandbox()
 // lock, since a reload could lose it to the exiting process and dev and
 // packaged builds probably share a userData folder.
 if (!is.dev && !app.requestSingleInstanceLock()) {
-  console.error('beekeeper is already running, so this copy quits.')
+  console.error('Beekeeper is already running, so this copy quits.')
   app.quit()
 } else {
   app
