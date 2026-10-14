@@ -15,6 +15,7 @@ import { isTrustedSender } from './ipc/senderValidation'
 import { createProjectsWatcher } from './live/createProjectsWatcher'
 import { hardenDefaultSession } from './security/session'
 import { hardenWebContents } from './security/windowSecurity'
+import { sendGoBack } from './sendGoBack'
 import { sendOpenAbout } from './sendOpenAbout'
 import { surfaceWindows } from './surfaceWindows'
 import { describeError } from './describeError'
@@ -110,6 +111,7 @@ if (!is.dev && !app.requestSingleInstanceLock()) {
         ...createIpcDeps(app.getPath('home')),
         otel,
         copyToClipboard: (text: string) => clipboard.writeText(text),
+        appVersion: app.getVersion(),
         archive
       }
 
@@ -138,7 +140,11 @@ if (!is.dev && !app.requestSingleInstanceLock()) {
           buildAppMenuTemplate({
             platform: process.platform,
             devTools: devToolsEnabled,
-            onAbout: openAbout
+            onAbout: openAbout,
+            // Only the window the item was chosen in, and it is already the one the person is using.
+            onBack: (window) => {
+              if (window instanceof BrowserWindow) sendGoBack(window)
+            }
           })
         )
       )

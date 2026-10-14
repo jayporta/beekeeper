@@ -45,8 +45,20 @@ const api: BeekeeperApi = {
     ipcRenderer.invoke(IPC_CHANNELS.setOtelReceiverEnabled, { enabled }),
   getReportedCost: (sessionId) => ipcRenderer.invoke(IPC_CHANNELS.getReportedCost, { sessionId }),
   copyText: (text) => ipcRenderer.invoke(IPC_CHANNELS.copyText, { text }),
+  getAppVersion: () => ipcRenderer.invoke(IPC_CHANNELS.getAppVersion),
   // The renderer learns only that About was requested, never the event.
   onOpenAbout: (listener) => openAbout.subscribe(listener),
+  // Back is asked for by a live person, so a request with no subscriber is dropped: it registers
+  // per subscription, with no early relay to replay it to a later one.
+  onGoBack: (listener) => {
+    const handler = (): void => {
+      listener()
+    }
+    ipcRenderer.on(IPC_EVENTS.goBack, handler)
+    return () => {
+      ipcRenderer.removeListener(IPC_EVENTS.goBack, handler)
+    }
+  },
   // Each subscription registers its own listener, so unsubscribing removes only that one.
   // The listener sees only a validated payload, never the event object.
   onFilesChanged: (listener) => {

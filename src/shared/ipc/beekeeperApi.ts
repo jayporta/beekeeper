@@ -105,11 +105,24 @@ export interface BeekeeperApi {
   copyText(text: string): Promise<IpcResult<null>>
 
   /**
+   * Reads the version of the running app.
+   * @returns The version from the app's `package.json`, such as `0.1.0`, or `internal` when the app has none.
+   */
+  getAppVersion(): Promise<IpcResult<string>>
+
+  /**
    * Subscribes to the menu's request to open the About dialog.
    * @param listener - Called with no arguments each time About is chosen from the menu.
    * @returns A function that removes the subscription.
    */
   onOpenAbout(listener: () => void): () => void
+
+  /**
+   * Subscribes to the menu's Back item (View > Back, Cmd or Ctrl+[). The main process sends it to the window the item was chosen in, and no other.
+   * @param listener - Called with no arguments each time Back is chosen. A request that arrives while no one is subscribed is dropped, not held for a later subscriber.
+   * @returns A function that removes this subscription and no other.
+   */
+  onGoBack(listener: () => void): () => void
 
   /**
    * Subscribes to changes under `~/.claude/projects`, which the main process sends in batches.

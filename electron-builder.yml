@@ -10,22 +10,36 @@ files:
   - NOTICE
 asarUnpack:
   - resources/**
+# No update feed: without this, electron-builder writes app-update.yml into the
+# app and latest*.yml into dist, even with --publish never.
+publish: null
+# Release file names are versionless on purpose: the website links to
+# releases/latest/download/<name>, so renaming them breaks the site.
 mac:
-  hardenedRuntime: true
-  entitlementsInherit: build/entitlements.mac.plist
+  target:
+    - target: dmg
+      arch: [arm64]
+  artifactName: beekeeper-mac-arm64.${ext}
+  # Ad-hoc signature ("-"): Apple Silicon refuses to run an unsigned arm64
+  # binary. It is not a Developer ID signature, so Gatekeeper still warns
+  # until signing and notarization land (#20).
+  identity: '-'
+  hardenedRuntime: false
   extendInfo:
     NSDocumentsFolderUsageDescription: beekeeper reads git history in your project folders to show what each agent changed. Nothing leaves your computer.
     NSDownloadsFolderUsageDescription: beekeeper reads git history in your project folders to show what each agent changed. Nothing leaves your computer.
     NSDesktopFolderUsageDescription: beekeeper reads git history in your project folders to show what each agent changed. Nothing leaves your computer.
   notarize: false
-dmg:
-  artifactName: ${name}-${version}.${ext}
 linux:
   target:
-    - AppImage
-    - deb
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
   maintainer: Jason Matthew Porta
   category: Utility
 appImage:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: beekeeper-linux-x86_64.${ext}
+deb:
+  artifactName: beekeeper-linux-amd64.${ext}
 npmRebuild: false

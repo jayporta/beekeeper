@@ -45,7 +45,7 @@ export function ProjectList(): React.JSX.Element | null {
   const choose = (dirName: string): void => {
     dismissFirstRun()
     select(dirName)
-    showSessions()
+    showSessions(dirName)
   }
   const chooseOverview = (): void => {
     dismissFirstRun()

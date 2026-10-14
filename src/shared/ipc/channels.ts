@@ -10,7 +10,8 @@ export const IPC_CHANNELS = {
   getOtelReceiver: 'beekeeper:get-otel-receiver',
   setOtelReceiverEnabled: 'beekeeper:set-otel-receiver-enabled',
   getReportedCost: 'beekeeper:get-reported-cost',
-  copyText: 'beekeeper:copy-text'
+  copyText: 'beekeeper:copy-text',
+  getAppVersion: 'beekeeper:get-app-version'
 } as const
 
 /** One of the channel names in {@link IPC_CHANNELS}. */
@@ -22,6 +23,7 @@ export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
  */
 export const IPC_EVENTS = {
   openAbout: 'beekeeper:open-about',
+  goBack: 'beekeeper:go-back',
   filesChanged: 'beekeeper:files-changed',
   liveUpdatesUnavailable: 'beekeeper:live-updates-unavailable',
   otelReceiverChanged: 'beekeeper:otel-receiver-changed'

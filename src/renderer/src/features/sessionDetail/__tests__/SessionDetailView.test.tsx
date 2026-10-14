@@ -266,6 +266,20 @@ describe('SessionDetailView breadcrumb', () => {
     })
   })
 
+  it('keeps the project in effect when Sessions is pressed, and records the session left', async () => {
+    openSession(testRef(1, DIR))
+    await screen.findByRole('heading', { level: 1, name: 'Refactor parser' })
+
+    await userEvent.click(within(await breadcrumb()).getByRole('button', { name: 'Sessions' }))
+
+    expect(useNavigationStore.getState().currentProjectDirName).toBe(DIR)
+    expect(useNavigationStore.getState().history.at(-1)).toMatchObject({
+      view: 'session',
+      projectDirName: DIR,
+      sessionRef: testRef(1, DIR)
+    })
+  })
+
   it('shows the project as plain text, since Sessions is the step that goes to its list', async () => {
     openSession(testRef(1, DIR))
 
