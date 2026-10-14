@@ -10,6 +10,7 @@ import {
   type PaneRefresher,
   type PaneSelection,
   type PaneScheduler,
+  type BrowseView,
   type PaneNav,
   type PaneView,
   type StartOutcome
@@ -147,7 +148,15 @@ async function refreshIfOpen($: Engine, withList: boolean): Promise<void> {
   if (!(await isPaneOpen($))) return
   const { scheduler } = wired($)
   scheduler.ensureTicks()
+  // Browse refreshes only when it opens, on a pick and on the list tick, not on a turn or a spawn.
+  if ((await $.state.get<PaneNav>(NAV)).value?.screen === 'browse') return
   scheduler.schedule({ withList, delayMs: DEBOUNCE_MS })
+}
+
+/** Asks the loaded copy's refresher for a fresh view at once, after the nav changed. A copy with no wiring yet has no timers to hold this `$`, and the next hook that wires it refreshes. */
+function refreshForNav(): void {
+  wiring?.refresher.forgetStored()
+  wiring?.scheduler.schedule({ withList: true, delayMs: 0 })
 }
 
 /**
@@ -158,6 +167,8 @@ async function refreshIfOpen($: Engine, withList: boolean): Promise<void> {
 async function drawPane($: Engine, e: PaneRenderInput): Promise<object> {
   const view = (await $.state.get<PaneView>(VIEW)).value
   const selected = (await $.state.get<PaneSelection | null>(SELECTED)).value ?? null
+  const nav = (await $.state.get<PaneNav>(NAV)).value
+  const browse = (await $.state.get<BrowseView>(BROWSE)).value
   if (view === undefined && wantsFirstView && wiring !== undefined) {
     wantsFirstView = false
     wiring.refresher.forgetStored()
@@ -167,8 +178,18 @@ async function drawPane($: Engine, e: PaneRenderInput): Promise<object> {
     elements: $.ui.resolve(e),
     view,
     selected,
+    nav,
+    browse,
     onSelect: async (key) => {
       if (view !== undefined) await $.state.set(SELECTED, { sessionId: view.sessionId, key })
+    },
+    onNav: async (next) => {
+      await $.state.set(NAV, next)
+      refreshForNav()
+    },
+    onPickProject: async (dirName) => {
+      await $.state.set(NAV, { screen: 'browse', projectDirName: dirName })
+      refreshForNav()
     }
   })
 }

@@ -1,6 +1,8 @@
 import { t } from '../../i18n/modI18n'
 import { MINIMUM_CLAUDE_CODE } from '../start/minimumVersion'
+import type { BrowseView } from '../browse/browseView'
 import type { PaneElements } from './paneElements'
+import type { PaneNav } from './paneNav'
 import { PaneFiles } from './PaneFiles'
 import { PaneRow } from './PaneRow'
 import { flattenPaneTree } from './paneTree'
@@ -26,6 +28,14 @@ interface PaneProps {
   readonly selected: PaneSelection | null
   /** Stores the selection; runs when a row is pressed. */
   readonly onSelect: (key: string) => void | Promise<void>
+  /** The stored nav, or `undefined` for the current screen. */
+  readonly nav?: PaneNav | undefined
+  /** The Browse view in state, or `undefined` before Browse has built one. */
+  readonly browse?: BrowseView | undefined
+  /** Stores the nav; runs when a nav button is pressed. */
+  readonly onNav?: (nav: PaneNav) => void | Promise<void>
+  /** Opens Browse on a project; runs when a project is picked. */
+  readonly onPickProject?: (dirName: string) => void | Promise<void>
 }
 
 /** The fixed line for a pane that has no tree, by why it has none. */
