@@ -3,6 +3,7 @@
   flex-direction: column;
   gap: var(--space-1);
   min-width: 0;
+  container-type: inline-size;
   padding: var(--space-4-5) var(--space-5);
   background: var(--tile-bg);
   border-radius: var(--radius-tile);
@@ -47,12 +48,12 @@
 
 .figure {
   font-family: var(--font-heading);
-  font-size: var(--font-size-kpi);
+  font-size: min(var(--font-size-kpi), 14cqi);
   color: var(--kpi-figure-color, var(--color-text));
   font-weight: var(--font-weight-semibold);
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
 .sub {
