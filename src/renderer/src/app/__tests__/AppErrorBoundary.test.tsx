@@ -14,6 +14,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  Reflect.deleteProperty(navigator, 'windowControlsOverlay')
 })
 
 describe('AppErrorBoundary', () => {
@@ -46,6 +47,20 @@ describe('AppErrorBoundary', () => {
     )
 
     expect(screen.queryByText(/secret transcript text/)).toBeNull()
+  })
+
+  it('shows the title bar above the fallback, so the window still drags', () => {
+    Object.defineProperty(navigator, 'windowControlsOverlay', {
+      value: Object.assign(new EventTarget(), { visible: true }),
+      configurable: true
+    })
+    const { container } = render(
+      <AppErrorBoundary>
+        <Thrower />
+      </AppErrorBoundary>
+    )
+
+    expect((container.firstElementChild as HTMLElement).dataset['overlay']).toBe('true')
   })
 
   it('renders the fallback inside the main landmark, as an alert', () => {

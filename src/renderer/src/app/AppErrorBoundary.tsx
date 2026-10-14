@@ -26,7 +26,8 @@ function reloadWindow(): void {
 
 /**
  * Catches an error thrown while rendering the app and shows a plain message
- * with a Reload button instead of a blank window, inside a main landmark, and
+ * with a Reload button instead of a blank window, inside a main landmark below
+ * the title bar, so the window still drags and clears its controls, and
  * focuses the button. The error's message and stack are never rendered or
  * logged here, or by the `createRoot` handlers, since they may hold
  * transcript content.
