@@ -124,10 +124,19 @@
 .flower {
   display: inline-grid;
   place-items: center;
-  width: var(--size-target-min);
-  height: var(--size-target-min);
+  width: 4rem;
+  height: 4rem;
   margin-inline-start: auto;
+  padding: 0;
+  border: 0;
   border-radius: 50%;
+  background: none;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
 
   & svg {
     display: block;
@@ -136,12 +145,19 @@
 
 .flower-petals {
   fill: var(--flower-petal);
-  stroke: var(--flower-ink);
-  stroke-width: 1.2;
+  stroke: var(--flower-petal-edge);
+  stroke-width: 0.9;
 }
 
 .flower-heart {
-  fill: var(--flower-ink);
+  fill: var(--flower-heart);
+  stroke: var(--flower-ink);
+  stroke-width: 0.9;
+}
+
+/* Says why the bees can't come out, and takes no space otherwise. */
+.flower-status:empty {
+  display: none;
 }
 
 @media (prefers-reduced-motion: no-preference) {
