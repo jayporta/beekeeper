@@ -2,10 +2,14 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:"
+    />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="beekeeper keeps track of your agent swarms" />
+    <meta name="description" content="Catch the bees. A small game from beekeeper." />
     <meta name="color-scheme" content="light dark" />
-    <title>beekeeper</title>
+    <title>beekeeper bees</title>
     <link
       rel="icon"
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%F0%9F%90%9D</text></svg>"
@@ -18,6 +22,10 @@
     <main class="hero">
       <h1 class="brand">beekeeper</h1>
       <p class="headline">keep track of your agent swarms</p>
+      <p class="howto">
+        Click or tap a bee to catch it. Caught bees line up at the top, and Release lets one go.
+      </p>
+      <a class="back" href="../">Back to beekeeper</a>
     </main>
     <div id="lineup" class="lineup"></div>
   </body>
