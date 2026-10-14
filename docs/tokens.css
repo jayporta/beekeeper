@@ -111,9 +111,8 @@
 
   /* The footer daisy: white petals with an edge that holds on light backgrounds, a yellow heart. */
   --flower-petal: #fff;
-  --flower-petal-edge: #8a7a63;
   --flower-heart: #f2b705;
-  --flower-ink: #7a5200;
+  --flower-ink: #1f1a14;
 }
 
 @media (prefers-color-scheme: dark) {

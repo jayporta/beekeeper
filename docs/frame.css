@@ -124,8 +124,8 @@
 .flower {
   display: inline-grid;
   place-items: center;
-  width: 4rem;
-  height: 4rem;
+  width: 2.75rem;
+  height: 2.75rem;
   margin-inline-start: auto;
   padding: 0;
   border: 0;
@@ -145,14 +145,15 @@
 
 .flower-petals {
   fill: var(--flower-petal);
-  stroke: var(--flower-petal-edge);
-  stroke-width: 0.9;
+  stroke: var(--flower-ink);
+  stroke-width: 0.8;
+  stroke-linejoin: round;
 }
 
 .flower-heart {
   fill: var(--flower-heart);
   stroke: var(--flower-ink);
-  stroke-width: 0.9;
+  stroke-width: 0.8;
 }
 
 /* Says why the bees can't come out, and takes no space otherwise. */
