@@ -28,7 +28,6 @@ const COLON = 0x3a
 const NEWLINE = 0x0a
 const HEADER_PREFIX = 'diff --git '
 const BLOCK_MARKER = `\n${HEADER_PREFIX}`
-const OFFSET_DECODER = new TextDecoder('windows-1252')
 const CONTROL_ESCAPES: ReadonlyMap<number, string> = new Map([
   [0x07, 'a'],
   [0x08, 'b'],
@@ -127,13 +126,12 @@ function expectedHeaders(entry: RawEntry): Set<string> {
  * space, a plus, a minus, `@`, or a backslash.
  *
  * @remarks
- * The patch is decoded as windows-1252 only to locate an ASCII marker. That
- * decoder turns every byte into exactly one UTF-16 code unit, so a string index
- * is a byte offset. It is never used as text: {@link decodeLatin1} and
- * {@link decodeUtf8} stay the decoders for the bytes.
+ * The patch is decoded one character per byte only to locate an ASCII marker, so a string
+ * index is a byte offset. It is never used as text: {@link decodeUtf8} stays the decoder for
+ * the bytes that are shown.
  */
 function blockStarts(patch: Uint8Array): number[] {
-  const text = OFFSET_DECODER.decode(patch)
+  const text = decodeLatin1(patch)
   const starts: number[] = []
   if (text.startsWith(HEADER_PREFIX)) starts.push(0)
   for (let at = text.indexOf(BLOCK_MARKER); at !== -1; at = text.indexOf(BLOCK_MARKER, at + 1)) {

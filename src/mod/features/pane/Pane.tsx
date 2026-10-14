@@ -3,6 +3,7 @@ import type { BrowseView } from '../browse/browseView'
 import type { PaneDiffs } from '../diffs/paneDiffs'
 import { NavRow } from './NavRow'
 import type { PaneElements } from '../shared/paneElements'
+import type { PatchPane } from '../patch/panePatch'
 import type { PaneNav } from '../shared/paneNav'
 import type { PaneView } from './paneView'
 import { SessionScreen, type PaneSelection } from './SessionScreen'
@@ -26,6 +27,8 @@ interface PaneProps {
   readonly browse: BrowseView | undefined
   /** The stored worktree diff of the selected agent, or `undefined` before any. */
   readonly diffs: PaneDiffs | undefined
+  /** The stored patch and the handlers that show and hide it. */
+  readonly patch: PatchPane
   /** Stores the nav; runs when a nav button or a session row is pressed. */
   readonly onNav: (nav: PaneNav) => void | Promise<void>
   /** Opens Browse on a project; runs when a project is picked. */
@@ -51,11 +54,22 @@ function isViewOf(nav: PaneNav, view: PaneView | undefined): view is PaneView {
  * @returns The tree the `ui.render` hook returns.
  * @example
  * on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) =>
- *   Pane({ elements: $.ui.resolve(e), view, selected, onSelect, nav, browse, diffs, onNav, onPickProject })
+ *   Pane({ elements: $.ui.resolve(e), view, selected, onSelect, nav, browse, diffs, patch, onNav, onPickProject })
  * )
  */
 export function Pane(props: PaneProps): object {
-  const { elements, view, selected, onSelect, browse, diffs, onNav, onPickProject, columns } = props
+  const {
+    elements,
+    view,
+    selected,
+    onSelect,
+    browse,
+    diffs,
+    patch,
+    onNav,
+    onPickProject,
+    columns
+  } = props
   const { Box } = elements
   const nav: PaneNav = props.nav ?? { screen: 'current' }
   return (
@@ -69,6 +83,7 @@ export function Pane(props: PaneProps): object {
             selected,
             onSelect,
             diffs,
+            patch,
             isBrowsed: nav.screen === 'session',
             columns
           })}

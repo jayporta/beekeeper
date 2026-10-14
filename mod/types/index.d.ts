@@ -56,6 +56,23 @@ export type BeekeeperPaneView = {
   refreshedAtMs: number
 }
 
+/** Why a worktree diff or patch couldn't be computed. */
+export type BeekeeperDiffCode =
+  | 'invalid-ref'
+  | 'invalid-path'
+  | 'branch-not-found'
+  | 'git-failed'
+  | 'no-common-ancestor'
+  | 'malformed-numstat'
+  | 'output-too-large'
+  | 'timeout'
+  | 'spawn-failed'
+  | 'repo-missing'
+  | 'not-a-repo'
+  | 'outside-project'
+  | 'no-base'
+  | 'too-many-agents'
+
 /** One changed file of a worktree branch. */
 export type BeekeeperDiffFile = {
   path: string
@@ -91,23 +108,30 @@ export type BeekeeperDiffs = {
       }
     | {
         ok: false
-        code:
-          | 'invalid-ref'
-          | 'invalid-path'
-          | 'branch-not-found'
-          | 'git-failed'
-          | 'no-common-ancestor'
-          | 'malformed-numstat'
-          | 'output-too-large'
-          | 'timeout'
-          | 'spawn-failed'
-          | 'repo-missing'
-          | 'not-a-repo'
-          | 'outside-project'
-          | 'no-base'
-          | 'too-many-agents'
+        code: BeekeeperDiffCode
       }
     | null
+  refreshedAtMs: number
+}
+
+/** One changed file's patch. */
+export type BeekeeperPatchFile = {
+  path: string
+  oldPath: string | null
+  text: string
+  truncated: boolean
+}
+
+/** The selected agent's worktree patch, or the request for one. */
+export type BeekeeperPatch = {
+  sessionId: string
+  key: string
+  status: 'none' | 'loading' | 'ready' | 'error'
+  errorCode: BeekeeperDiffs['errorCode']
+  failure: { git: 'git-not-found' | 'git-too-old' } | { code: BeekeeperDiffCode } | null
+  files: readonly BeekeeperPatchFile[]
+  omittedCount: number
+  uncommitted: 'included' | 'no-worktree' | 'skipped-filters' | 'worktree-mismatch' | null
   refreshedAtMs: number
 }
 
@@ -160,6 +184,8 @@ declare module 'claude-code' {
       browse: BeekeeperBrowseView
       /** The selected agent's worktree diff, loaded by the refresher; `none` status when the selected node has no worktree. */
       diffs: BeekeeperDiffs
+      /** The worktree patch a press asked for, or `none` when hidden. */
+      patch: BeekeeperPatch
     }
   }
 }

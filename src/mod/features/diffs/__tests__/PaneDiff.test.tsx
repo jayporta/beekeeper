@@ -3,6 +3,7 @@ import { Pane, type PaneElements } from '../../pane/Pane'
 import { testPaneNode, testPaneView } from '../../pane/testPaneView'
 import type { PaneNode, PaneView } from '../../pane/paneView'
 import { installTestH, makeTestElements, removeTestH, textOf } from '../../shared/testElements'
+import { testPatchPane } from '../../patch/testPatchPane'
 import { PaneDiff } from '../PaneDiff'
 import type { PaneDiffs, PaneDiffResult } from '../paneDiffs'
 
@@ -38,7 +39,7 @@ const okResult = (
 })
 
 const draw = (diffs: PaneDiffs | undefined, node: PaneNode = NODE): string =>
-  textOf(PaneDiff({ elements, node, sessionId: 's1', diffs }))
+  textOf(PaneDiff({ elements, node, sessionId: 's1', diffs, patch: testPatchPane() }))
 
 beforeAll(installTestH)
 afterAll(removeTestH)
@@ -159,6 +160,7 @@ describe('the session screen with a worktree diff', () => {
         nav: undefined,
         browse: undefined,
         diffs,
+        patch: testPatchPane(),
         onNav: () => {},
         onPickProject: () => {},
         columns: undefined

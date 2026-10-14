@@ -125,5 +125,13 @@
       "noBase": "There's no base branch to compare with.",
       "failed": "The diff couldn't be computed."
     }
+  },
+  "patch": {
+    "show": "Show patch",
+    "hide": "Hide patch",
+    "loading": "Loading the patch.",
+    "omitted_one": "{{count, integer}} more file not shown",
+    "omitted_other": "{{count, integer}} more files not shown",
+    "cut": "Cut to fit the pane. The desktop app shows the whole patch."
   }
 }

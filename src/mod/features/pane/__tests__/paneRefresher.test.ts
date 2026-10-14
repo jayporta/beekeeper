@@ -18,6 +18,7 @@ import { PLAIN_TICK_MS } from '../paneScheduler'
 import { createPaneRefresher, type PaneHost } from '../paneRefresher'
 import type { PaneView } from '../paneView'
 import type { PaneDiffs } from '../../diffs/paneDiffs'
+import { emptyPanePatch, type PanePatch } from '../../patch/panePatch'
 import type { PaneSelection } from '../selectedNode'
 import { testPaneServices, type TestPaneServices } from '../../shared/testPaneServices'
 
@@ -41,6 +42,8 @@ interface Setup {
   readonly written: PaneView[]
   readonly browsed: BrowseView[]
   readonly diffed: PaneDiffs[]
+  readonly patched: PanePatch[]
+  readonly patchRef: { current: PanePatch | undefined }
   readonly selectedRef: { current: PaneSelection | null }
   readonly navRef: { current: PaneNav | undefined }
   readonly services: TestPaneServices
@@ -62,12 +65,15 @@ function setup(options: {
   projects?: ProjectDto[]
   nav?: PaneNav
   diffs?: Parameters<typeof testPaneServices>[0]['diffs']
+  patch?: Parameters<typeof testPaneServices>[0]['patch']
   get?: Parameters<typeof testPaneServices>[0]['get']
 }): Setup {
   const { folder = '-p', start = READY, list = [testSession(1, { title: 'Hi' })] } = options
   const written: PaneView[] = []
   const browsed: BrowseView[] = []
   const diffed: PaneDiffs[] = []
+  const patched: PanePatch[] = []
+  const patchRef: { current: PanePatch | undefined } = { current: undefined }
   const selectedRef: { current: PaneSelection | null } = { current: null }
   const navRef: { current: PaneNav | undefined } = { current: options.nav }
   const starts: string[] = []
@@ -79,7 +85,8 @@ function setup(options: {
     list: { ok: true, value: list },
     get: options.get ?? { ok: true, value: testDetail() },
     projects: { ok: true, value: options.projects ?? [testProject('-p')] },
-    diffs: options.diffs
+    diffs: options.diffs,
+    patch: options.patch
   })
   const pane: PaneHost = {
     sessionId: options.sessionId ?? (async () => ID),
@@ -93,6 +100,12 @@ function setup(options: {
     selected: async () => selectedRef.current,
     writeDiffs: async (diffs) => {
       diffed.push(diffs)
+      return true
+    },
+    patch: async () => patchRef.current,
+    writePatch: async (patch) => {
+      patched.push(patch)
+      patchRef.current = patch
       return true
     },
     writeView:
@@ -120,6 +133,8 @@ function setup(options: {
     written,
     browsed,
     diffed,
+    patched,
+    patchRef,
     selectedRef,
     navRef,
     services,
@@ -631,7 +646,9 @@ describe('createPaneRefresher', () => {
           writeView: async (view) => (written.push(view), true),
           writeBrowse: async () => true,
           selected: async () => null,
-          writeDiffs: async () => true
+          writeDiffs: async () => true,
+          patch: async () => undefined,
+          writePatch: async () => true
         },
         start: async () => READY,
         createServices: () =>
@@ -766,5 +783,68 @@ describe('createPaneRefresher worktree diffs', () => {
 
     expect(diffed).toEqual([])
     expect(services.diffCalls).toBe(0)
+  })
+
+  describe('the worktree patch', () => {
+    const patchAnswer = {
+      ok: true as const,
+      value: {
+        kind: 'ready' as const,
+        uncommitted: 'included' as const,
+        truncatedTotal: false,
+        files: [
+          { path: 'f.ts', patch: 'diff --git a/f.ts b/f.ts\n@@ -1 +1 @@\n+x\n', truncated: false }
+        ]
+      }
+    }
+    const key = `sub:-p/${ID}:a1`
+    const ask = (): PanePatch => emptyPanePatch({ sessionId: ID, key, status: 'loading', nowMs: 1 })
+
+    it('loads a patch a press asked for, while the view is unchanged, and only once', async () => {
+      const { patched, patchRef, selectedRef, refresher, written, services } = setup({
+        get: { ok: true, value: worktreeDetail },
+        diffs: diffsAnswer,
+        patch: patchAnswer
+      })
+      await refresher.refresh({ withList: true })
+      selectedRef.current = { sessionId: ID, key }
+      patchRef.current = ask()
+
+      await refresher.refresh({ withList: false })
+      await refresher.refresh({ withList: false })
+
+      expect(written).toHaveLength(1)
+      expect(patched).toHaveLength(1)
+      expect(patched[0]).toMatchObject({ status: 'ready', key })
+      expect(services.patchCalls).toBe(1)
+    })
+
+    it('loads a patch left loading by a copy with no wiring on the next refresh, such as /beekeeper asks for', async () => {
+      const { patched, patchRef, selectedRef, refresher } = setup({
+        get: { ok: true, value: worktreeDetail },
+        diffs: diffsAnswer,
+        patch: patchAnswer
+      })
+      selectedRef.current = { sessionId: ID, key }
+      patchRef.current = ask()
+
+      await refresher.refresh({ withList: true })
+
+      expect(patched.at(-1)).toMatchObject({ status: 'ready', key })
+    })
+
+    it('runs no patch work on the Browse screen', async () => {
+      const { patched, patchRef, refresher, services } = setup({
+        get: { ok: true, value: worktreeDetail },
+        patch: patchAnswer,
+        nav: { screen: 'browse', projectDirName: '-p' }
+      })
+      patchRef.current = ask()
+
+      await refresher.refresh({ withList: true })
+
+      expect(patched).toEqual([])
+      expect(services.patchCalls).toBe(0)
+    })
   })
 })

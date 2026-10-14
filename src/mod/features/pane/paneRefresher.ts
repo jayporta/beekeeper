@@ -4,6 +4,7 @@ import { createDiffsRefresher } from '../diffs/createDiffsRefresher'
 import { startMod, type StartOutcome } from '../start/startMod'
 import { createPaneServices } from './createPaneServices'
 import { contentKey } from '../shared/contentKey'
+import { createPatchRefresher } from '../patch/createPatchRefresher'
 import { emptyPaneView } from './emptyPaneView'
 import { findSessionFolder } from './findSessionFolder'
 import { hasTeam } from './hasTeam'
@@ -148,8 +149,14 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
 
   const diffs = createDiffsRefresher({ writeDiffs: (value) => pane.writeDiffs(value), log })
 
-  /** Loads the selected agent's worktree diff for a built session view. A stored selection that can't be read is none. */
-  async function loadDiffs(view: PaneView): Promise<void> {
+  const patches = createPatchRefresher({
+    readPatch: () => pane.patch(),
+    writePatch: (value) => pane.writePatch(value),
+    log
+  })
+
+  /** Loads the selected agent's worktree diff, then the patch a press asked for, for a built session view. A stored selection that can't be read is none. */
+  async function loadWorktree(view: PaneView): Promise<void> {
     if (services === null) return
     let selected = null
     try {
@@ -157,12 +164,9 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
     } catch {
       selected = null
     }
-    await diffs.refresh({
-      services: services.value,
-      view,
-      selected,
-      nowMs: view.refreshedAtMs
-    })
+    const input = { services: services.value, view, selected, nowMs: view.refreshedAtMs }
+    await diffs.refresh(input)
+    await patches.refresh(input)
   }
 
   async function build(withList: boolean, nav: PaneNav | undefined): Promise<PaneView> {
@@ -235,7 +239,7 @@ export function createPaneRefresher(deps: PaneRefresherDeps): PaneRefresher {
       })
     }
     // Before the view's early returns: a row press changes the diff without changing the view.
-    await loadDiffs(view)
+    await loadWorktree(view)
     const key = contentKey(view)
     if (key === lastKey) return
     try {

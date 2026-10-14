@@ -9,6 +9,7 @@ import {
 } from '../../shared/testElements'
 import { testPaneNode, testPaneView } from '../testPaneView'
 import type { PaneView } from '../paneView'
+import { testPatchPane } from '../../patch/testPatchPane'
 
 const Box = (): object => ({})
 const Text = (): object => ({})
@@ -31,6 +32,7 @@ function draw(
     nav: undefined,
     browse: undefined,
     diffs: undefined,
+    patch: testPatchPane(),
     onNav: () => {},
     onPickProject: () => {},
     columns: options.columns

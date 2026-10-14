@@ -2,6 +2,8 @@ import { diffFailureKey } from '../../../shared/worktrees/diffFailureKey'
 import { uncommittedNoteKey } from '../../../shared/worktrees/uncommittedNoteKey'
 import { t } from '../../i18n/modI18n'
 import type { PaneNode } from '../pane/paneView'
+import { PanePatchView } from '../patch/PanePatchView'
+import type { PatchPane } from '../patch/panePatch'
 import { errorLine } from '../shared/errorLine'
 import type { PaneElements } from '../shared/paneElements'
 import { diffFileLabel } from './diffLine'
@@ -17,6 +19,19 @@ interface PaneDiffProps {
   readonly sessionId: string
   /** The stored diff, which draws only when it is of this session and node. */
   readonly diffs: PaneDiffs | undefined
+  /** The stored patch and the handlers that show and hide it. */
+  readonly patch: PatchPane
+}
+
+/** Whether the stored diff is of this node and lists at least one changed file. */
+function hasFiles(diffs: PaneDiffs | undefined, node: PaneNode, sessionId: string): boolean {
+  return (
+    diffs?.sessionId === sessionId &&
+    diffs.key === node.key &&
+    diffs.status === 'ready' &&
+    diffs.result?.ok === true &&
+    diffs.result.fileCount > 0
+  )
 }
 
 /** The lines under the heading: why the diff isn't there, or what it holds. */
@@ -69,12 +84,12 @@ function bodyOf(
 /**
  * What the selected agent's worktree branch changed, from the stored diff: one line per file with
  * its added and deleted lines in words, then the untracked files. Fixed lines say why there is no
- * diff. A stored diff of another session or node draws as loading.
+ * diff. A stored diff of another session or node draws as loading. Under it, the patch button.
  *
  * @param props - The elements, the selected node, the session and the stored diff.
  * @returns The section.
  */
-export function PaneDiff({ elements, node, sessionId, diffs }: PaneDiffProps): object {
+export function PaneDiff({ elements, node, sessionId, diffs, patch }: PaneDiffProps): object {
   const { Box, Text } = elements
   return (
     <Box flexDirection="column">
@@ -85,6 +100,13 @@ export function PaneDiff({ elements, node, sessionId, diffs }: PaneDiffProps): o
         </Text>
       </Box>
       {bodyOf(elements, diffs, node, sessionId)}
+      {PanePatchView({
+        elements,
+        node,
+        sessionId,
+        hasFiles: hasFiles(diffs, node, sessionId),
+        patch
+      })}
     </Box>
   )
 }

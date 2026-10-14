@@ -301,4 +301,54 @@ describe('the pane selection', () => {
 
     expect((await render())['diffs']).toEqual(diffs)
   })
+
+  describe('the worktree patch', () => {
+    const PATCH = { plugin: 'beekeeper', key: 'patch' }
+    type Patch = { onShow: (key: string) => Promise<void>; onHide: () => Promise<void> }
+    const patchWrites = (engine: ReturnType<typeof createTestEngine>): unknown[] =>
+      engine.calls
+        .filter(
+          (call) =>
+            call.name === 'state.set' && JSON.stringify(call.args[0]) === JSON.stringify(PATCH)
+        )
+        .map((call) => call.args[1])
+
+    it('stores a loading patch of the node and asks for a refresh at once when Show patch is pressed', async () => {
+      const { engine, run, render } = harness({
+        panes: [],
+        state: { 'beekeeper.view': testPaneView(testPaneNode('lead')) }
+      })
+      await run('session.start')
+      const before = engine.timers.length
+
+      const props = await render()
+      await (props['patch'] as Patch).onShow('sub:a1')
+
+      expect(patchWrites(engine)).toEqual([
+        expect.objectContaining({ sessionId: 's1', key: 'sub:a1', status: 'loading' })
+      ])
+      expect(engine.timers.slice(before).map((timer) => [timer.kind, timer.ms])).toEqual([
+        ['after', 0]
+      ])
+    })
+
+    it('stores a hidden patch and builds no timers when Hide patch is pressed', async () => {
+      const { engine, render } = harness({
+        state: { 'beekeeper.view': testPaneView(testPaneNode('lead')) }
+      })
+
+      const props = await render()
+      await (props['patch'] as Patch).onHide()
+
+      expect(patchWrites(engine)).toEqual([expect.objectContaining({ status: 'none' })])
+      expect(engine.timers).toEqual([])
+    })
+
+    it('hands the pane the stored patch', async () => {
+      const stored = { sessionId: 's1', key: 'sub:a1', status: 'none' }
+      const { render } = harness({ state: { 'beekeeper.patch': stored } })
+
+      expect(((await render())['patch'] as { stored: unknown }).stored).toEqual(stored)
+    })
+  })
 })

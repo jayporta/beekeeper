@@ -58,7 +58,9 @@ export const MOD_ALLOWLIST = Object.freeze({
     // The Browse screen's data, read while drawing.
     'beekeeper.browse',
     // The selected agent's worktree diff, read while drawing.
-    'beekeeper.diffs'
+    'beekeeper.diffs',
+    // The worktree patch a press asked for, read while drawing and by the refresher.
+    'beekeeper.patch'
   ]),
   stateWrites: Object.freeze([
     'beekeeper.view',
@@ -68,7 +70,9 @@ export const MOD_ALLOWLIST = Object.freeze({
     // Written by the refresher with the Browse screen's data.
     'beekeeper.browse',
     // Written by the refresher with the selected agent's worktree diff.
-    'beekeeper.diffs'
+    'beekeeper.diffs',
+    // Written by the press handlers and by the refresher with the patch.
+    'beekeeper.patch'
   ]),
   envReads: Object.freeze([
     // The home folder, for ~/.claude.

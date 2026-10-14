@@ -4,10 +4,12 @@ import type {
   BeekeeperBrowseView,
   BeekeeperDiffs,
   BeekeeperNav,
+  BeekeeperPatch,
   BeekeeperPaneView
 } from '../../../../../mod/types/index'
 import type { PaneSelection } from '../Pane'
 import type { PaneDiffs } from '../../diffs/paneDiffs'
+import type { PanePatch } from '../../patch/panePatch'
 import type { BrowseView } from '../../browse/browseView'
 import type { PaneNav } from '../../shared/paneNav'
 import type { PaneView } from '../paneView'
@@ -34,6 +36,11 @@ describe('the $.state contract', () => {
     expectTypeOf<BeekeeperDiffs>().toExtend<PaneDiffs>()
   })
 
+  it('describes the same worktree patch the pane builds', () => {
+    expectTypeOf<PanePatch>().toExtend<BeekeeperPatch>()
+    expectTypeOf<BeekeeperPatch>().toExtend<PanePatch>()
+  })
+
   it('describes the same nav the pane reads', () => {
     expectTypeOf<PaneNav>().toExtend<BeekeeperNav>()
     expectTypeOf<BeekeeperNav>().toExtend<PaneNav>()
@@ -42,6 +49,7 @@ describe('the $.state contract', () => {
   it("keeps the nav and browse views under the mod's state", () => {
     expectTypeOf<PluginState['beekeeper']['nav']>().toExtend<BeekeeperNav | undefined>()
     expectTypeOf<PluginState['beekeeper']['browse']>().toExtend<BeekeeperBrowseView | undefined>()
+    expectTypeOf<PluginState['beekeeper']['patch']>().toExtend<BeekeeperPatch | undefined>()
     expectTypeOf<PluginState['beekeeper']['diffs']>().toExtend<BeekeeperDiffs | undefined>()
   })
 })

@@ -1,6 +1,7 @@
 import { t } from '../../i18n/modI18n'
 import { PaneDiff } from '../diffs/PaneDiff'
 import type { PaneDiffs } from '../diffs/paneDiffs'
+import type { PatchPane } from '../patch/panePatch'
 import { errorLine } from '../shared/errorLine'
 import type { PaneElements } from '../shared/paneElements'
 import { PaneFiles } from './PaneFiles'
@@ -37,6 +38,8 @@ interface SessionScreenProps {
   readonly onSelect: (key: string) => void | Promise<void>
   /** The stored worktree diff of the selected agent, or `undefined` before any. */
   readonly diffs: PaneDiffs | undefined
+  /** The stored patch and the handlers that show and hide it. */
+  readonly patch: PatchPane
   /** Whether the session is one the person browsed to, which the title says in words. */
   readonly isBrowsed: boolean
   /** The pane's body width in columns, or `undefined` when it is unknown, which names are cut to. */
@@ -56,6 +59,7 @@ export function SessionScreen({
   selected,
   onSelect,
   diffs,
+  patch,
   isBrowsed,
   columns
 }: SessionScreenProps): object {
@@ -87,7 +91,7 @@ export function SessionScreen({
       )}
       {PaneFiles({ elements, node: current })}
       {current.worktree !== null &&
-        PaneDiff({ elements, node: current, sessionId: view.sessionId, diffs })}
+        PaneDiff({ elements, node: current, sessionId: view.sessionId, diffs, patch })}
     </Box>
   )
 }

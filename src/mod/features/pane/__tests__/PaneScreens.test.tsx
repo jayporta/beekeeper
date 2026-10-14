@@ -1,3 +1,4 @@
+import { testPatchPane } from '../../patch/testPatchPane'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { BrowseView } from '../../browse/browseView'
 import { Pane } from '../Pane'
@@ -35,6 +36,7 @@ function draw(options: { view?: PaneView; nav?: PaneNav; browse?: BrowseView }):
     nav: options.nav,
     browse: options.browse,
     diffs: undefined,
+    patch: testPatchPane(),
     onNav: vi.fn(),
     onPickProject: vi.fn(),
     columns: undefined
