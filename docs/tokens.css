@@ -1,0 +1,134 @@
+/*
+ * Design tokens for the landing page, copied from the app's `src/renderer/src/assets/tokens.css`
+ * (redesign v2: an indigo accent on a cool gray ground). The site can't import the app's CSS, so
+ * the values it uses are repeated here under the same names. Change a value there first, then
+ * here. The app's contrast notes apply: every text color holds 4.5:1 on the ground and the surface
+ * in both schemes, and the focus ring and a control's edge hold 3:1. The font weights are
+ * regular (the body default), medium, semibold, and bold.
+ *
+ * Only the tokens the site uses are copied. `--color-on-accent`, `--flower-*`, `--space-gutter`
+ * and `--size-container` belong to the site.
+ */
+
+/*
+ * Figtree, latin subset, self-hosted from @fontsource/figtree. Its license is in
+ * `fonts/OFL.txt`. Weights match the app: regular, medium, semibold, and bold. A glyph outside the
+ * latin subset falls back to the system font.
+ */
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('./fonts/figtree-latin-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url('./fonts/figtree-latin-500-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('./fonts/figtree-latin-600-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url('./fonts/figtree-latin-700-normal.woff2') format('woff2');
+}
+
+:root {
+  color-scheme: light dark;
+
+  /* The card ground, the page ground, and text. */
+  --color-bg: #ffffff;
+  --color-surface: #f4f5f9;
+  --color-text: #1c2230;
+  --color-text-muted: #4a5365;
+  --color-selected-text: #3730a3;
+
+  /* A card's edge and a divider are decorative; a control's edge holds 3:1. */
+  --color-card-border: #e6e8ef;
+  --color-border-strong: #848d9f;
+  --shadow-card: 0 1px 2px rgb(20 24 40 / 4%), 0 4px 14px rgb(20 24 40 / 4%);
+
+  --color-accent: #4f46e5;
+  --color-accent-100: #eef0ff;
+  --color-accent-strong: #4338ca;
+  /* The text on an accent fill: white in light, the page ground in dark. */
+  --color-on-accent: #ffffff;
+
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring: var(--focus-ring-width) solid var(--color-accent);
+
+  /* The dot grid of the app's session graph canvas. */
+  --size-graph-grid: 1.25rem;
+  --color-graph-dot: color-mix(in srgb, var(--color-text) 14%, transparent);
+
+  --font-body: 'Figtree', system-ui, sans-serif;
+  --font-mono: ui-monospace, Menlo, monospace;
+  --line-height-body: 1.5;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --letter-spacing-title: -0.01em;
+  --font-size-sm: 0.8125rem;
+  --font-size-md: 0.9375rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.1875rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-brand: 1.375rem;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+
+  --radius-md: 4px;
+  --radius-card: 16px;
+  --radius-control: 10px;
+  --radius-pill: 999px;
+  --size-target-min: 44px;
+  --size-readable: 44rem;
+
+  /* Site layout: the page's side gutter and its widest content. */
+  --space-gutter: clamp(1rem, 4vw, 1.5rem);
+  --size-container: 72rem;
+
+  /* Honey yellow lives only in the footer flower, here and on the bees page. */
+  --flower-petal: #f2b705;
+  --flower-ink: #7a5200;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #181b24;
+    --color-surface: #0f1117;
+    --color-text: #eef0f6;
+    --color-text-muted: #d1d5de;
+    --color-selected-text: #cfd1ff;
+
+    --color-card-border: #2a2f3c;
+    --color-border-strong: #7d869b;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 30%);
+
+    --color-accent: #9ea1ff;
+    --color-accent-100: #1d2142;
+    --color-accent-strong: #cfd1ff;
+    --color-on-accent: #0f1117;
+  }
+}

@@ -1,0 +1,187 @@
+/* Base styles, the buttons, and the pieces the sections share. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: var(--line-height-body);
+}
+
+a {
+  color: var(--color-accent-strong);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+
+  &:hover {
+    text-decoration-thickness: 2px;
+  }
+
+  &:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+}
+
+code {
+  padding: 0.1em 0.35em;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}
+
+.container {
+  width: min(100% - 2 * var(--space-gutter), var(--size-container));
+  margin-inline: auto;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.skip-link {
+  position: absolute;
+  inset-block-start: -4rem;
+  inset-inline-start: var(--space-4);
+  z-index: 10;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-weight: var(--font-weight-semibold);
+
+  &:focus {
+    inset-block-start: var(--space-2);
+  }
+}
+
+/* Buttons */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--size-target-min);
+  padding: var(--space-2) var(--space-5);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.25;
+  text-align: center;
+  text-decoration: none;
+
+  &:hover {
+    border-color: var(--color-accent);
+    background: var(--color-accent-100);
+    color: var(--color-accent-strong);
+  }
+}
+
+.button-primary {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+
+  &:hover {
+    border-color: var(--color-accent-strong);
+    background: var(--color-accent-strong);
+    color: var(--color-on-accent);
+  }
+}
+
+/* download.js sets data-platform on the root element. Without it every option shows. */
+.download-option[data-for='other'] {
+  display: none;
+}
+
+html[data-platform] .download-option {
+  display: none;
+}
+
+html[data-platform='mac'] .download-option[data-for='mac'],
+html[data-platform='linux'] .download-option[data-for='linux'],
+html[data-platform='other'] .download-option[data-for='other'] {
+  display: inline-flex;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .button {
+    transition:
+      background-color 0.15s,
+      border-color 0.15s,
+      color 0.15s;
+  }
+}
+
+/* Sections */
+
+.section {
+  padding-block: clamp(2rem, 5vw, 3.5rem);
+  scroll-margin-top: var(--space-4);
+}
+
+.section-title {
+  margin: 0 0 var(--space-5);
+  font-size: clamp(var(--font-size-2xl), 1.1rem + 1.6vw, 2rem);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.section-lede {
+  max-width: var(--size-readable);
+  margin: 0 0 var(--space-5);
+  color: var(--color-text-muted);
+}
+
+.section-note {
+  margin: var(--space-2) 0 0;
+}
+
+/* A link on its own line, so it keeps a full-size target. */
+.link-block {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-target-min);
+}
+
+.card {
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-card);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-card);
+}
+
+.pill {
+  display: inline-block;
+  padding: 0.125rem 0.625rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent-100);
+  color: var(--color-selected-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.5;
+}
