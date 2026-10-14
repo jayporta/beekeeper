@@ -35,6 +35,7 @@ const TRANSCRIPT = [
   JSON.stringify({ type: 'ai-title', aiTitle: 'Smoke title' }),
   JSON.stringify({
     type: 'assistant',
+    cwd: '/home/u/smoke-app',
     timestamp: '2026-01-01T00:00:00.000Z',
     message: { id: 'msg_1', model: 'claude-opus-5', usage: { input_tokens: 5, output_tokens: 10 } }
   })
@@ -157,6 +158,34 @@ for (const surface of ['terminal', 'desktop'] as const) {
     await clock.advance(1)
 
     expect(await pane.find({ type: 'Button', key: 'lead' })).toBeDefined()
+  })
+}
+
+for (const surface of ['terminal', 'desktop'] as const) {
+  test(`Browse lists the project's sessions and opens one on ${surface}`, async ($, on) => {
+    const { clock } = mockSession(on)
+    await $.session.start({ cwd: '/work', surface, isInteractive: true })
+    await $.command.run({ command: 'beekeeper', args: '' })
+    await clock.advance(1)
+    const pane = await $.ui.mount({
+      plugin: 'beekeeper',
+      surface,
+      component: 'Pane',
+      requestId: 'beekeeper',
+      props: PANE_PROPS
+    })
+
+    await pane.press({ key: 'nav-browse' })
+    await clock.advance(1)
+
+    expect(await pane.find({ type: 'Select', key: 'beekeeper-project' })).toBeDefined()
+    expect(await pane.find({ type: 'Text', text: /Smoke title/ })).toBeDefined()
+
+    await pane.press({ key: `browse:-work/${SESSION}` })
+    await clock.advance(1)
+
+    expect(await pane.find({ type: 'Button', key: 'lead' })).toBeDefined()
+    expect(await pane.find({ type: 'Button', key: 'nav-back' })).toBeDefined()
   })
 }
 

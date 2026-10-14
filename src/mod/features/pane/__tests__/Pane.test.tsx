@@ -20,11 +20,16 @@ function draw(
     elements,
     view,
     selected: options.selected ?? null,
-    onSelect: options.onSelect ?? (() => {})
+    onSelect: options.onSelect ?? (() => {}),
+    nav: undefined,
+    browse: undefined,
+    onNav: () => {},
+    onPickProject: () => {}
   }) as TestNode
 }
 
-const rows = (tree: TestNode): TestNode[] => findAll(tree, Button)
+const rows = (tree: TestNode): TestNode[] =>
+  findAll(tree, Button).filter((node) => !String(node.props['key']).startsWith('nav-'))
 const rowText = (tree: TestNode): string[] => rows(tree).map((row) => textOf(row))
 
 const team = testPaneNode('lead', {

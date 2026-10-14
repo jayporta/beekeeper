@@ -1,22 +1,13 @@
-import { t } from '../../i18n/modI18n'
-import { MINIMUM_CLAUDE_CODE } from '../start/minimumVersion'
+import { BrowseScreen } from '../browse/BrowseScreen'
 import type { BrowseView } from '../browse/browseView'
+import { NavRow } from './NavRow'
 import type { PaneElements } from './paneElements'
 import type { PaneNav } from './paneNav'
-import { PaneFiles } from './PaneFiles'
-import { PaneRow } from './PaneRow'
-import { flattenPaneTree } from './paneTree'
 import type { PaneView } from './paneView'
+import { SessionScreen, type PaneSelection } from './SessionScreen'
 
 export type { PaneElements } from './paneElements'
-
-/** What the person selected: the session and the node's key. */
-export interface PaneSelection {
-  /** The session the selection was made in. */
-  readonly sessionId: string
-  /** The selected node's key. */
-  readonly key: string
-}
+export type { PaneSelection } from './SessionScreen'
 
 /** Props of {@link Pane}. */
 interface PaneProps {
@@ -29,72 +20,50 @@ interface PaneProps {
   /** Stores the selection; runs when a row is pressed. */
   readonly onSelect: (key: string) => void | Promise<void>
   /** The stored nav, or `undefined` for the current screen. */
-  readonly nav?: PaneNav | undefined
+  readonly nav: PaneNav | undefined
   /** The Browse view in state, or `undefined` before Browse has built one. */
-  readonly browse?: BrowseView | undefined
-  /** Stores the nav; runs when a nav button is pressed. */
-  readonly onNav?: (nav: PaneNav) => void | Promise<void>
+  readonly browse: BrowseView | undefined
+  /** Stores the nav; runs when a nav button or a session row is pressed. */
+  readonly onNav: (nav: PaneNav) => void | Promise<void>
   /** Opens Browse on a project; runs when a project is picked. */
-  readonly onPickProject?: (dirName: string) => void | Promise<void>
+  readonly onPickProject: (dirName: string) => void | Promise<void>
 }
 
-/** The fixed line for a pane that has no tree, by why it has none. */
-function statusLine(view: PaneView | undefined): string {
-  if (view?.status === 'waiting') return t('pane.waiting')
-  if (view?.status === 'error') {
-    return t(`pane.error.${view.errorCode ?? 'internal'}`, { minimum: MINIMUM_CLAUDE_CODE })
-  }
-  return t('pane.loading')
-}
-
-/** The totals line: the session's tokens, and a note when they may be short. */
-function totalsLine(view: PaneView): string {
-  if (view.totalTokens === null) return t('pane.totals.none')
-  const total = t('pane.totals.tokens', { count: view.totalTokens })
-  return view.totalTokensPartial ? `${total}. ${t('pane.totals.partial')}` : total
+/** Whether the stored view is of what the nav shows: the engine's own session, or the browsed one. */
+function isViewOf(nav: PaneNav, view: PaneView | undefined): view is PaneView {
+  if (view === undefined) return false
+  if (nav.screen !== 'session') return view.target === 'current'
+  return view.target === 'browsed' && view.sessionId === nav.ref.sessionId
 }
 
 /**
- * The pane: the session's name and token total, its agents as a tree of
- * pressable rows, and the selected agent's changed files. Everything comes from
- * the stored view, so drawing never reads a transcript. Without a tree it says
- * why, in a fixed line.
+ * The pane: a nav row, then the screen the nav names: the Browse screen, or a session's name
+ * and token total, its agents as a tree of pressable rows, and the selected agent's changed
+ * files. Everything comes from stored views, so drawing never reads a transcript. A view of
+ * another session than the nav shows draws as loading.
  *
- * @param props - The elements, the stored view and selection, and the select handler.
+ * @param props - The elements, the stored views and selection, the nav and the handlers.
  * @returns The tree the `ui.render` hook returns.
  * @example
  * on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) =>
- *   Pane({ elements: $.ui.resolve(e), view, selected, onSelect })
+ *   Pane({ elements: $.ui.resolve(e), view, selected, onSelect, nav, browse, onNav, onPickProject })
  * )
  */
-export function Pane({ elements, view, selected, onSelect }: PaneProps): object {
-  const { Box, Text } = elements
-  if (view === undefined || view.status !== 'ready' || view.root === null) {
-    return (
-      <Box flexDirection="column">
-        <Text>{t('pane.title')}</Text>
-        <Text>{statusLine(view)}</Text>
-      </Box>
-    )
-  }
-  const rows = flattenPaneTree(view.root)
-  const chosen = selected?.sessionId === view.sessionId ? selected.key : view.root.key
-  const current = rows.find(({ node }) => node.key === chosen)?.node ?? view.root
+export function Pane(props: PaneProps): object {
+  const { elements, view, selected, onSelect, browse, onNav, onPickProject } = props
+  const { Box } = elements
+  const nav: PaneNav = props.nav ?? { screen: 'current' }
   return (
     <Box flexDirection="column">
-      <Text>{t('pane.title')}</Text>
-      <Text bold>{view.label ?? ''}</Text>
-      <Text>{totalsLine(view)}</Text>
-      {rows.map(({ node, depth }) =>
-        PaneRow({
-          elements,
-          node,
-          depth,
-          isSelected: node.key === current.key,
-          onSelect: () => onSelect(node.key)
-        })
-      )}
-      {PaneFiles({ elements, node: current })}
+      {NavRow({ elements, nav, onNav })}
+      {nav.screen === 'browse'
+        ? BrowseScreen({ elements, browse, nav, onNav, onPickProject })
+        : SessionScreen({
+            elements,
+            view: isViewOf(nav, view) ? view : undefined,
+            selected,
+            onSelect
+          })}
     </Box>
   )
 }
