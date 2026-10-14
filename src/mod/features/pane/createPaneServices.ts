@@ -1,5 +1,6 @@
 import { createServiceDeps } from '../../../service/createServiceDeps'
 import { getSession } from '../../../service/sessionDetail/getSession'
+import { listProjects } from '../../../service/projects/listProjects'
 import { listSessions } from '../../../service/sessions/listSessions'
 import type { PaneServices } from './refreshPane'
 
@@ -8,12 +9,13 @@ import type { PaneServices } from './refreshPane'
  * once per projects folder and keep it, so core's scan caches keep a refresh cheap.
  *
  * @param projectsRoot - The `~/.claude/projects` folder, absolute.
- * @returns The list and get calls.
+ * @returns The list, get and project calls.
  */
 export function createPaneServices(projectsRoot: string): PaneServices {
   const deps = createServiceDeps(projectsRoot)
   return {
     listSessions: (request) => listSessions(deps, request),
-    getSession: (request) => getSession(deps, request)
+    getSession: (request) => getSession(deps, request),
+    listProjects: () => listProjects(deps)
   }
 }

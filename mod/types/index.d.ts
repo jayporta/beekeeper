@@ -29,6 +29,8 @@ export type BeekeeperPaneNode = {
 /** What the pane draws: the session's tree, or why there isn't one. */
 export type BeekeeperPaneView = {
   sessionId: string
+  /** Whether the view is of the engine's own session or one the person browsed to. */
+  target: 'current' | 'browsed'
   status: 'loading' | 'ready' | 'waiting' | 'error'
   errorCode:
     | 'invalid-request'
@@ -47,6 +49,42 @@ export type BeekeeperPaneView = {
   refreshedAtMs: number
 }
 
+/** Which screen the pane shows; a missing value is `current`. */
+export type BeekeeperNav =
+  | { screen: 'current' }
+  | { screen: 'browse'; projectDirName: string | null }
+  | { screen: 'session'; ref: { projectDirName: string; sessionId: string }; backTo: string }
+
+/** One project in the Browse picker. */
+export type BeekeeperBrowseProject = {
+  dirName: string
+  label: string
+}
+
+/** One session row of the Browse screen. */
+export type BeekeeperBrowseRow = {
+  key: string
+  ref: { projectDirName: string; sessionId: string }
+  label: string
+  depth: 0 | 1
+  tokens: number | null
+  tokensPartial: boolean
+  lastActiveMs: number | null
+  agents: string | null
+}
+
+/** What the Browse screen draws. */
+export type BeekeeperBrowseView = {
+  status: 'loading' | 'ready' | 'error'
+  errorCode: BeekeeperPaneView['errorCode']
+  projects: readonly BeekeeperBrowseProject[]
+  projectDirName: string | null
+  rows: readonly BeekeeperBrowseRow[]
+  hiddenCount: number
+  /** When the view's content last changed, in milliseconds since the epoch. */
+  refreshedAtMs: number
+}
+
 declare module 'claude-code' {
   interface PluginState {
     beekeeper: {
@@ -54,6 +92,10 @@ declare module 'claude-code' {
       view: BeekeeperPaneView
       /** The node the person selected, or `null` for none. */
       selected: { sessionId: string; key: string } | null
+      /** Which screen the pane shows. Only the pane's press handlers write it. */
+      nav: BeekeeperNav
+      /** The Browse screen's data, rebuilt by every Browse refresh. */
+      browse: BeekeeperBrowseView
     }
   }
 }

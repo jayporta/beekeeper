@@ -1,4 +1,6 @@
 export { Pane, type PaneElements, type PaneSelection } from './features/pane/Pane'
+export type { BrowseView } from './features/browse/browseView'
+export type { PaneNav } from './features/pane/paneNav'
 export type { PaneView } from './features/pane/paneView'
 export { createPaneRefresher, type PaneRefresher } from './features/pane/paneRefresher'
 export { createPaneScheduler, type PaneScheduler } from './features/pane/paneScheduler'

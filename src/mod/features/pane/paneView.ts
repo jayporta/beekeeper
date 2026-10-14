@@ -48,6 +48,8 @@ export type PaneStatus = 'loading' | 'ready' | 'waiting' | 'error'
 export interface PaneView {
   /** The session the view is of. */
   readonly sessionId: string
+  /** Whether the view is of the engine's own session or one the person browsed to. */
+  readonly target: 'current' | 'browsed'
   /** How the data stands. */
   readonly status: PaneStatus
   /** The failure's code when `status` is `error`, otherwise `null`. Never a message. */

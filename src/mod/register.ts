@@ -10,6 +10,7 @@ import {
   type PaneRefresher,
   type PaneSelection,
   type PaneScheduler,
+  type PaneNav,
   type PaneView,
   type StartOutcome
 } from './lib.js'
@@ -24,6 +25,12 @@ const VIEW = { plugin: 'beekeeper', key: 'view' } as const
 
 /** The `$.state` value holding the node the person selected. */
 const SELECTED = { plugin: 'beekeeper', key: 'selected' } as const
+
+/** The `$.state` value holding which screen the pane shows. Only the pane's press handlers write it. */
+const NAV = { plugin: 'beekeeper', key: 'nav' } as const
+
+/** The `$.state` value the Browse screen draws from. */
+const BROWSE = { plugin: 'beekeeper', key: 'browse' } as const
 
 /** The names among the git repository variables that Claude Code's environment sets, even to empty. */
 async function gitRepoVariablesSet($: Engine): Promise<string[]> {
@@ -105,11 +112,13 @@ function wire($: Engine): PaneWiring {
       sessionId: () => $.session.id(),
       sessionRoot: () => $.session.root(),
       now: () => $.clock.now(),
+      nav: async () => (await $.state.get<PaneNav>(NAV)).value,
       writeView: async (view) => {
         const { isSet } = await $.state.set(VIEW, view)
         wantsFirstView = true
         return isSet
-      }
+      },
+      writeBrowse: async (view) => (await $.state.set(BROWSE, view)).isSet
     },
     log: logCode
   })

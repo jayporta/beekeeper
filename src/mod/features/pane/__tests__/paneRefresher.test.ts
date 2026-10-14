@@ -10,6 +10,10 @@ import {
 } from '../../../../shared/sessions/testSessionFixtures'
 import { createTestHost, type TestPath } from '../../../testHost'
 import type { StartOutcome } from '../../start/startMod'
+import type { ProjectDto } from '../../../../shared/ipc/projectDto'
+import { testProject } from '../../../../shared/projects/testProject'
+import type { BrowseView } from '../../browse/browseView'
+import type { PaneNav } from '../paneNav'
 import { PLAIN_TICK_MS } from '../paneScheduler'
 import { createPaneRefresher, type PaneHost } from '../paneRefresher'
 import type { PaneView } from '../paneView'
@@ -33,6 +37,8 @@ function projects(folder: string | null): Record<string, TestPath> {
 
 interface Setup {
   readonly written: PaneView[]
+  readonly browsed: BrowseView[]
+  readonly navRef: { current: PaneNav | undefined }
   readonly services: TestPaneServices
   readonly refresher: ReturnType<typeof createPaneRefresher>
   readonly starts: string[]
@@ -49,9 +55,13 @@ function setup(options: {
   list?: ReturnType<typeof testSession>[]
   writeView?: (view: PaneView) => Promise<boolean>
   probe?: () => Promise<StartOutcome>
+  projects?: ProjectDto[]
+  nav?: PaneNav
 }): Setup {
   const { folder = '-p', start = READY, list = [testSession(1, { title: 'Hi' })] } = options
   const written: PaneView[] = []
+  const browsed: BrowseView[] = []
+  const navRef: { current: PaneNav | undefined } = { current: options.nav }
   const starts: string[] = []
   const built: string[] = []
   const logs: string[] = []
@@ -59,12 +69,18 @@ function setup(options: {
   let startCalls = 0
   const services = testPaneServices({
     list: { ok: true, value: list },
-    get: { ok: true, value: testDetail() }
+    get: { ok: true, value: testDetail() },
+    projects: { ok: true, value: options.projects ?? [testProject('-p')] }
   })
   const pane: PaneHost = {
     sessionId: options.sessionId ?? (async () => ID),
     sessionRoot: async () => '/work/app',
     now: async () => clock.now,
+    nav: async () => navRef.current,
+    writeBrowse: async (view) => {
+      browsed.push(view)
+      return true
+    },
     writeView:
       options.writeView ??
       (async (view) => {
@@ -86,7 +102,18 @@ function setup(options: {
       return services
     }
   })
-  return { written, services, refresher, starts, built, logs, clock, startCalls: () => startCalls }
+  return {
+    written,
+    browsed,
+    navRef,
+    services,
+    refresher,
+    starts,
+    built,
+    logs,
+    clock,
+    startCalls: () => startCalls
+  }
 }
 
 describe('createPaneRefresher', () => {
@@ -330,5 +357,170 @@ describe('createPaneRefresher', () => {
 
     expect(solo.refresher.wantsListTick()).toBe(false)
     expect(team.refresher.wantsListTick()).toBe(true)
+  })
+
+  describe('on the browse screen', () => {
+    const browse: PaneNav = { screen: 'browse', projectDirName: null }
+
+    it('builds nothing on a plain refresh', async () => {
+      const { written, browsed, services, refresher } = setup({ nav: browse })
+
+      await refresher.refresh({ withList: false })
+
+      expect([written, browsed, services.listCalls, services.getCalls]).toEqual([[], [], 0, 0])
+    })
+
+    it("stores a browse view of the current session's folder on a list refresh, and no pane view", async () => {
+      const { written, browsed, refresher } = setup({ nav: browse })
+
+      await refresher.refresh({ withList: true })
+
+      expect(written).toEqual([])
+      expect(browsed.at(-1)).toMatchObject({ status: 'ready', projectDirName: '-p' })
+      expect(browsed.at(-1)?.rows).toHaveLength(1)
+    })
+
+    it('lists the projects when Browse opens, not again on a later list refresh', async () => {
+      const { services, refresher } = setup({ nav: browse })
+
+      await refresher.refresh({ withList: true })
+      await refresher.refresh({ withList: true })
+
+      expect(services.projectCalls).toBe(1)
+      expect(services.listCalls).toBe(2)
+    })
+
+    it('lists the projects again when the nav leaves Browse and returns', async () => {
+      const { services, refresher, navRef } = setup({ nav: browse })
+
+      await refresher.refresh({ withList: true })
+      navRef.current = { screen: 'current' }
+      await refresher.refresh({ withList: false })
+      navRef.current = browse
+      await refresher.refresh({ withList: true })
+
+      expect(services.projectCalls).toBe(2)
+    })
+
+    it('lists the projects when a project is picked', async () => {
+      const { services, refresher, navRef } = setup({
+        nav: browse,
+        projects: [testProject('-p'), testProject('-q')]
+      })
+
+      await refresher.refresh({ withList: true })
+      navRef.current = { screen: 'browse', projectDirName: '-q' }
+      await refresher.refresh({ withList: true })
+
+      expect(services.listedFolders).toEqual(['-p', '-q'])
+      expect(services.projectCalls).toBe(2)
+    })
+
+    it('does not store the same browse view twice', async () => {
+      const { browsed, refresher } = setup({ nav: browse })
+
+      await refresher.refresh({ withList: true })
+      const stored = browsed.length
+      await refresher.refresh({ withList: true })
+
+      expect(browsed).toHaveLength(stored)
+    })
+
+    it('stores a browse view again after it is told the stored views are gone', async () => {
+      const { browsed, refresher } = setup({ nav: browse })
+
+      await refresher.refresh({ withList: true })
+      const stored = browsed.length
+      refresher.forgetStored()
+      await refresher.refresh({ withList: true })
+
+      expect(browsed.length).toBeGreaterThan(stored)
+    })
+
+    it('stores an error browse view with a code when the mod could not start', async () => {
+      const { browsed, refresher } = setup({ nav: browse, start: { kind: 'failed' } })
+
+      await refresher.refresh({ withList: true })
+
+      expect(browsed[0]).toMatchObject({ status: 'error', errorCode: 'start-failed' })
+    })
+
+    it('wants the list tick', async () => {
+      const { refresher } = setup({ nav: browse })
+
+      await refresher.refresh({ withList: false })
+
+      expect(refresher.wantsListTick()).toBe(true)
+    })
+  })
+
+  describe('on a browsed session', () => {
+    const other = { projectDirName: '-other', sessionId: testSessionId(7) }
+    const session: PaneNav = { screen: 'session', ref: other, backTo: '-other' }
+
+    it('builds the view of the browsed session, tagged as browsed', async () => {
+      const { written, services, refresher } = setup({ nav: session })
+
+      await refresher.refresh({ withList: true })
+
+      expect(services.gotSessions).toEqual([`-other/${other.sessionId}`])
+      expect(services.listedFolders).toEqual(['-other'])
+      expect(written[0]).toMatchObject({ sessionId: other.sessionId, target: 'browsed' })
+    })
+
+    it("tags the current session's view as current", async () => {
+      const { written, refresher } = setup({})
+
+      await refresher.refresh({ withList: true })
+
+      expect(written[0]).toMatchObject({ sessionId: ID, target: 'current' })
+    })
+
+    it('writes the current view again after returning from a browsed session', async () => {
+      const { written, refresher, navRef } = setup({ nav: session })
+
+      await refresher.refresh({ withList: true })
+      navRef.current = { screen: 'current' }
+      await refresher.refresh({ withList: true })
+
+      expect(written.map((view) => view.target)).toEqual(['browsed', 'current'])
+    })
+
+    it("lists the browsed session's folder again after the nav changed, even inside the solo interval", async () => {
+      const { services, refresher, navRef } = setup({})
+
+      await refresher.refresh({ withList: true })
+      navRef.current = session
+      await refresher.refresh({ withList: false })
+
+      expect(services.listedFolders).toEqual(['-p', '-other'])
+    })
+
+    it('treats a nav that cannot be read as the current screen', async () => {
+      const written: PaneView[] = []
+      const broken = createPaneRefresher({
+        host: createTestHost({ paths: projects('-p') }),
+        pane: {
+          sessionId: async () => ID,
+          sessionRoot: async () => '/work/app',
+          now: async () => 1,
+          nav: async () => {
+            throw new Error('nope')
+          },
+          writeView: async (view) => (written.push(view), true),
+          writeBrowse: async () => true
+        },
+        start: async () => READY,
+        createServices: () =>
+          testPaneServices({
+            list: { ok: true, value: [testSession(1)] },
+            get: { ok: true, value: testDetail() }
+          })
+      })
+
+      await broken.refresh({ withList: true })
+
+      expect(written[0]).toMatchObject({ sessionId: ID, target: 'current' })
+    })
   })
 })
